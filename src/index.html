@@ -186,21 +186,38 @@ document.getElementById("mark").innerHTML=sunburst(22);
 // ---------- entorno ----------
 const TAURI = window.__TAURI__?.core;
 const invoke = TAURI ? TAURI.invoke : null;
-const EVENT = window.__TAURI__?.event;   // el panel es el ÚNICO que llama al endpoint;
-let lastBarPayload = null;               // la franja recibe los datos por evento.
 const PALETTE = ["var(--accent)","var(--brand)","var(--ok)","var(--warn)","var(--txt-dim)"];
 
-// Resumen compacto que consume la franja (no vuelve a llamar al endpoint).
-function emitBar(ses, weekPct){
-  lastBarPayload = {
-    ok:true,
-    session: ses ? {pct:ses.pct, resets:ses.resets, pace:elapsedPct(ses.resets,5)} : null,
-    weekly:  weekPct!=null ? {pct:weekPct} : null
-  };
-  EVENT?.emit("quota:update", lastBarPayload);
+// ---------- icono de bandeja dinámico ----------
+// El % de sesión vive junto al reloj, como los medidores de batería/CPU: se
+// dibuja en un canvas y el backend lo aplica como icono del tray (update_tray).
+// (Windows 11 no permite incrustar ventanas en la barra; esta es la vía nativa.)
+const HEX={ok:"#40b869",warn:"#e6a417",bad:"#f05a41",dim:"#9aa0aa"};
+function colorHex(pct,pace){ if(pct>=95) return HEX.bad;
+  if(pace!=null && pct>pace+8) return pct>85?HEX.bad:HEX.warn;
+  if(pct>=80) return HEX.warn; return HEX.ok; }
+
+function updateTray(ses, weekPct){
+  if(!invoke) return;
+  const S=32, cv=document.createElement("canvas"); cv.width=cv.height=S;
+  const ctx=cv.getContext("2d");
+  const label = ses ? String(Math.round(ses.pct)) : "–";
+  const c = ses ? colorHex(ses.pct, ses.pace) : HEX.dim;
+  ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle=c;
+  ctx.font=`bold ${label.length>2?15:20}px "Segoe UI",sans-serif`;
+  ctx.fillText(label, S/2, S/2 - (weekPct!=null?2:0));
+  if(weekPct!=null){                      // barrita semanal al pie del icono
+    ctx.fillStyle="rgba(128,128,128,.45)"; ctx.fillRect(4,S-5,S-8,3);
+    ctx.fillStyle=colorHex(weekPct,null);
+    ctx.fillRect(4,S-5,Math.round((S-8)*Math.min(100,weekPct)/100),3);
+  }
+  const tip = ses
+    ? `Sesión ${Math.round(ses.pct)}% · ${fmtReset(ses.resets)}`
+      + (weekPct!=null?` · Semanal ${Math.round(weekPct)}%`:"")
+    : "Claude Code Meter — sin datos de cuota";
+  invoke("update_tray",{rgba:Array.from(ctx.getImageData(0,0,S,S).data),
+    width:S, height:S, tooltip:tip}).catch(()=>{});
 }
-// Cuando la franja (re)carga, pide el último dato conocido para no esperar 60 s.
-EVENT?.listen("bar:ready", ()=>{ if(lastBarPayload) EVENT.emit("quota:update", lastBarPayload); });
 
 // ---------- helpers ----------
 const $=id=>document.getElementById(id);
@@ -317,7 +334,8 @@ function renderQuota(data){
     </div>`;
   }).join("") || `<div class="errbox">Sin buckets semanales en la respuesta.</div>`;
 
-  emitBar(ses, weeklyAllPct);   // comparte con la franja
+  updateTray(ses ? {pct:ses.pct, resets:ses.resets, pace:elapsedPct(ses.resets,5)} : null,
+             weeklyAllPct);
 }
 
 // ---------- avisos de sesión (una vez por umbral por ventana de sesión) ----------
@@ -424,11 +442,11 @@ async function refresh(){
       renderQuota(quota.value); $("liveDot").classList.remove("err"); lastSync=Date.now(); fails=0;
     }else{
       $("liveDot").classList.add("err"); $("syncTxt").textContent=quota.reason; fails++;
-      EVENT?.emit("quota:update",{ok:false,error:String(quota.reason)});   // la franja muestra "sin datos"
+      updateTray(null,null);              // icono en gris: sin datos, sin inventar
     }
     if(local.status==="fulfilled") renderLocal(local.value);
   }catch(e){ $("liveDot").classList.add("err"); $("syncTxt").textContent=String(e); fails++;
-    EVENT?.emit("quota:update",{ok:false,error:String(e)}); }
+    updateTray(null,null); }
   finally{ scheduleNext(); }
 }
 function scheduleNext(){

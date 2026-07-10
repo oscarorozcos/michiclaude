@@ -6,7 +6,7 @@
 //      -> parseo de ~/.claude/projects/**/*.jsonl con deduplicación
 
 use chrono::{DateTime, Duration, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
@@ -302,108 +302,25 @@ fn get_local_stats() -> Result<LocalStats, String> {
     })
 }
 
-// ---------- config persistente de la franja ----------
-
-#[derive(Serialize, Deserialize)]
-struct BarConfig {
-    bar_visible: bool,
-}
-impl Default for BarConfig {
-    fn default() -> Self {
-        BarConfig { bar_visible: true }
-    }
-}
-
-/// (junto al ejecutable, directorio de datos). Se intenta el primero y, si no se
-/// puede, el segundo — cumple "un JSON de config junto al ejecutable" con respaldo.
-fn bar_config_paths() -> (PathBuf, PathBuf) {
-    let exe = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.join("bar_config.json")));
-    let data = app_data_dir().join("bar_config.json");
-    (exe.unwrap_or_else(|| data.clone()), data)
-}
-
-fn load_bar_config() -> BarConfig {
-    let (exe, data) = bar_config_paths();
-    for p in [exe, data] {
-        if let Ok(s) = fs::read_to_string(&p) {
-            if let Ok(c) = serde_json::from_str::<BarConfig>(&s) {
-                return c;
-            }
-        }
-    }
-    BarConfig::default()
-}
-
-fn save_bar_config(c: &BarConfig) {
-    if let Ok(s) = serde_json::to_string_pretty(c) {
-        let (exe, data) = bar_config_paths();
-        if fs::write(&exe, &s).is_ok() {
-            return;
-        }
-        let _ = fs::create_dir_all(app_data_dir());
-        let _ = fs::write(&data, &s);
-    }
-}
-
 // ---------- rectángulo real de la barra de tareas (Win32) ----------
 
 #[cfg(windows)]
 mod win_taskbar {
     use windows::core::{w, PCWSTR};
-    use windows::Win32::Foundation::{HWND, RECT};
-    use windows::Win32::UI::Shell::{SHAppBarMessage, ABM_GETSTATE, ABS_AUTOHIDE, APPBARDATA};
-    use windows::Win32::UI::WindowsAndMessaging::{
-        FindWindowExW, FindWindowW, GetSystemMetrics, GetWindowLongPtrW, GetWindowRect,
-        SetWindowLongPtrW, GWL_EXSTYLE, SM_CYSCREEN, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
-    };
+    use windows::Win32::Foundation::RECT;
+    use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, GetWindowRect};
 
     pub struct Taskbar {
         pub rect: RECT,
-        pub tray_left: Option<i32>,
-        pub hidden: bool,
     }
 
-    /// Lee Shell_TrayWnd (barra) y TrayNotifyWnd (área de bandeja) + estado auto-hide.
+    /// Lee el rectángulo de Shell_TrayWnd (para apoyar el panel encima de la barra).
     pub fn query() -> Option<Taskbar> {
         unsafe {
             let tray = FindWindowW(w!("Shell_TrayWnd"), PCWSTR::null()).ok()?;
             let mut rect = RECT::default();
             GetWindowRect(tray, &mut rect).ok()?;
-
-            let tray_left = FindWindowExW(Some(tray), None, w!("TrayNotifyWnd"), PCWSTR::null())
-                .ok()
-                .and_then(|h| {
-                    let mut r = RECT::default();
-                    if GetWindowRect(h, &mut r).is_ok() {
-                        Some(r.left)
-                    } else {
-                        None
-                    }
-                });
-
-            let mut abd = APPBARDATA {
-                cbSize: std::mem::size_of::<APPBARDATA>() as u32,
-                ..Default::default()
-            };
-            let state = SHAppBarMessage(ABM_GETSTATE, &mut abd) as u32;
-            let cy = GetSystemMetrics(SM_CYSCREEN);
-            let h = rect.bottom - rect.top;
-            // Auto-hide "guardada": alto ~0 o borde superior pegado al fondo (deslizada).
-            let hidden = h <= 2 || ((state & ABS_AUTOHIDE) != 0 && rect.top >= cy - 4);
-
-            Some(Taskbar { rect, tray_left, hidden })
-        }
-    }
-
-    /// Evita que la franja robe el foco al hacer clic (se comporta como la barra).
-    pub fn make_noactivate(hwnd_raw: isize) {
-        unsafe {
-            let hwnd = HWND(hwnd_raw as *mut core::ffi::c_void);
-            let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
-            let add = (WS_EX_NOACTIVATE.0 as isize) | (WS_EX_TOOLWINDOW.0 as isize);
-            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | add);
+            Some(Taskbar { rect })
         }
     }
 }
@@ -422,34 +339,19 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_quota,
             get_local_stats,
-            show_panel,
-            open_bar_menu
+            update_tray
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
-            "bar_hide" | "tray_bar_hide" => set_bar_visible(app, false),
-            "tray_bar_show" => set_bar_visible(app, true),
             "tray_panel" => show_main_panel(app),
-            "bar_quit" | "tray_quit" => app.exit(0),
+            "tray_quit" => app.exit(0),
             _ => {}
         })
         .setup(|app| {
-            // Franja: quitarle la activación (no roba foco) y colocarla en la barra.
-            if let Some(bar) = app.get_webview_window("bar") {
-                #[cfg(windows)]
-                if let Ok(h) = bar.hwnd() {
-                    win_taskbar::make_noactivate(h.0 as isize);
-                }
-                let _ = &bar;
-            }
-            reposition_bar(app.handle());
-
-            // Menú del tray (clic derecho): abrir panel, mostrar/ocultar franja, salir.
+            // Menú del tray (clic derecho): abrir panel, salir.
             let tray_menu = Menu::with_items(
                 app,
                 &[
                     &MenuItem::with_id(app, "tray_panel", "Abrir panel", true, None::<&str>)?,
-                    &MenuItem::with_id(app, "tray_bar_show", "Mostrar franja", true, None::<&str>)?,
-                    &MenuItem::with_id(app, "tray_bar_hide", "Ocultar franja", true, None::<&str>)?,
                     &MenuItem::with_id(app, "tray_quit", "Salir", true, None::<&str>)?,
                 ],
             )?;
@@ -467,14 +369,6 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Reposiciona la franja cada 5 s (resolución/DPI/auto-hide) y re-asegura el
-            // always-on-top: la barra de tareas también es topmost y puede taparla.
-            let handle = app.handle().clone();
-            std::thread::spawn(move || loop {
-                std::thread::sleep(std::time::Duration::from_secs(5));
-                reposition_bar(&handle);
-            });
-
             Ok(())
         })
         .on_window_event(|window, event| match event {
@@ -483,12 +377,6 @@ pub fn run() {
                 if window.label() == "main" {
                     let _ = window.hide();
                     api.prevent_close();
-                }
-            }
-            // Cambio de DPI/monitor: recoloca la franja dentro de la barra.
-            tauri::WindowEvent::ScaleFactorChanged { .. } => {
-                if window.label() == "bar" {
-                    reposition_bar(window.app_handle());
                 }
             }
             _ => {}
@@ -501,40 +389,29 @@ pub fn run() {
 const MARGIN_X: u32 = 16;
 const TASKBAR_H: u32 = 56; // respaldo si no hay rect real de la barra
 const PANEL_GAP: u32 = 8;
-/// Ancho lógico objetivo de la franja (se escala por DPI). El alto lo dicta la barra.
-const BAR_W_LOGICAL: f64 = 205.0;
-const BAR_MARGIN_V: f64 = 8.0; // margen vertical dentro de la barra
 
-/// Muestra el panel (invocado desde el clic en la franja o el tray).
+/// Redibuja el icono del tray con el % actual (RGBA renderizado por el panel en
+/// un canvas) y actualiza el tooltip. Así el número vive junto al reloj, como
+/// los medidores de batería/CPU — la vía nativa en Windows 11.
 #[tauri::command]
-fn show_panel(app: tauri::AppHandle) {
-    show_main_panel(&app);
-}
-
-/// Menú contextual de la franja (clic derecho): ocultar franja / salir.
-#[tauri::command]
-fn open_bar_menu(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
-    use tauri::menu::{Menu, MenuItem};
-    let hide = MenuItem::with_id(&app, "bar_hide", "Ocultar franja", true, None::<&str>)
-        .map_err(|e| e.to_string())?;
-    let quit = MenuItem::with_id(&app, "bar_quit", "Salir", true, None::<&str>)
-        .map_err(|e| e.to_string())?;
-    let menu = Menu::with_items(&app, &[&hide, &quit]).map_err(|e| e.to_string())?;
-    window.popup_menu(&menu).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Cambia (y persiste) la visibilidad de la franja.
-fn set_bar_visible(app: &tauri::AppHandle, visible: bool) {
+fn update_tray(
+    app: tauri::AppHandle,
+    rgba: Vec<u8>,
+    width: u32,
+    height: u32,
+    tooltip: String,
+) -> Result<(), String> {
     use tauri::Manager;
-    let mut cfg = load_bar_config();
-    cfg.bar_visible = visible;
-    save_bar_config(&cfg);
-    if visible {
-        reposition_bar(app);
-    } else if let Some(bar) = app.get_webview_window("bar") {
-        let _ = bar.hide();
+    if rgba.len() != (width as usize) * (height as usize) * 4 {
+        return Err("buffer RGBA de tamaño inesperado".into());
     }
+    let tray = app
+        .tray_by_id("main-tray")
+        .ok_or("icono de bandeja no encontrado")?;
+    let icon = tauri::image::Image::new_owned(rgba, width, height);
+    tray.set_icon(Some(icon)).map_err(|e| e.to_string())?;
+    tray.set_tooltip(Some(&tooltip)).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 /// Coloca, muestra y enfoca el panel principal (encima de la barra de tareas).
@@ -565,48 +442,3 @@ fn position_panel(w: &tauri::WebviewWindow) {
     }
 }
 
-/// Coloca la franja DENTRO de la barra de tareas (o esquina inferior derecha si no
-/// hay Win32), re-asegurando el always-on-top. Respeta la preferencia guardada.
-fn reposition_bar(app: &tauri::AppHandle) {
-    use tauri::Manager;
-    let Some(bar) = app.get_webview_window("bar") else {
-        return;
-    };
-    if !load_bar_config().bar_visible {
-        let _ = bar.hide();
-        return;
-    }
-
-    #[cfg(windows)]
-    if let Some(tb) = win_taskbar::query() {
-        if tb.hidden {
-            let _ = bar.hide(); // barra auto-hide oculta -> franja oculta también
-            return;
-        }
-        let scale = bar.scale_factor().unwrap_or(1.0);
-        let tb_h = (tb.rect.bottom - tb.rect.top).max(1);
-        let margin = (BAR_MARGIN_V * scale) as i32;
-        let bar_h = (tb_h - 2 * margin).clamp((24.0 * scale) as i32, tb_h);
-        let bar_w = (BAR_W_LOGICAL * scale) as i32;
-        let anchor = tb.tray_left.unwrap_or(tb.rect.right - (220.0 * scale) as i32);
-        let x = (anchor - bar_w - margin).max(tb.rect.left);
-        let y = tb.rect.top + (tb_h - bar_h) / 2;
-        let _ = bar.set_size(tauri::PhysicalSize::new(bar_w.max(1) as u32, bar_h.max(1) as u32));
-        let _ = bar.set_position(tauri::PhysicalPosition::new(x, y));
-        let _ = bar.set_always_on_top(true); // re-aserción
-        if !bar.is_visible().unwrap_or(true) {
-            let _ = bar.show();
-        }
-        return;
-    }
-
-    // Fallback sin Win32: esquina inferior derecha, siempre encima.
-    if let (Ok(Some(monitor)), Ok(size)) = (bar.current_monitor(), bar.outer_size()) {
-        let s = monitor.size();
-        let x = s.width.saturating_sub(size.width + 220) as i32;
-        let y = s.height.saturating_sub(size.height + 8) as i32;
-        let _ = bar.set_position(tauri::PhysicalPosition::new(x, y));
-        let _ = bar.set_always_on_top(true);
-        let _ = bar.show();
-    }
-}

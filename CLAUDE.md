@@ -17,13 +17,17 @@ el uso de Claude (suscripción). Muestra:
   desde los logs locales de Claude Code.
 - **Fila "claude.ai / otros"**: estimación por diferencia entre cuota global y
   actividad local (en % de cuota, nunca en $ inventados).
+- **Icono de bandeja dinámico**: el icono del tray se redibuja con el % de
+  sesión (color por estado + barrita semanal), como los medidores de
+  batería/CPU. Sustituye a la antigua "franja sobre la barra" (descartada
+  2026-07-10: Windows 11 centra los iconos y cualquier overlay encima de la
+  barra los tapa y les bloquea los clics).
 
 ## Arquitectura
 
 ```
-src/index.html          # Frontend del panel: HTML+CSS+JS vanilla, un solo archivo,
+src/index.html          # Frontend completo: HTML+CSS+JS vanilla, un solo archivo,
                         # sin frameworks, sin bundler, sin dependencias npm de runtime.
-src/bar.html            # Frontend de la franja compacta (widget sobre la barra)
 src-tauri/src/main.rs   # Entry point (windows_subsystem = "windows")
 src-tauri/src/lib.rs    # Backend: comandos, tray, ventanas, Win32
 src-tauri/tauri.conf.json
@@ -64,15 +68,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - **Panel** (`main`): flyout sin decoraciones, transparente, alwaysOnTop,
   skipTaskbar. Se abre con clic en el tray; se oculta al perder foco (excepto
   durante arrastre); ✕ oculta a bandeja; arrastrable desde el encabezado.
-- **Franja compacta** (`bar`): overlay posicionado SOBRE la barra de tareas
-  (junto al área de bandeja) usando Win32 (`Shell_TrayWnd`/`TrayNotifyWnd` vía
-  crate `windows`), porque Windows 11 no permite incrustar ventanas reales en
-  la barra (DeskBands deprecado). Persistente, no roba foco
-  (`WS_EX_NOACTIVATE`), re-aserta always-on-top cada 5 s, clic abre el panel,
-  clic derecho: menú ocultar/salir con preferencia persistida
-  (`bar_config.json`).
-- **Tray icon**: base robusta de la app; clic izquierdo muestra el panel,
-  clic derecho menú (abrir panel / mostrar-ocultar franja / salir).
+- **Tray icon dinámico**: única presencia permanente en la barra. El panel
+  dibuja el % de sesión en un canvas 32×32 (número coloreado por estado +
+  barrita semanal al pie) y lo manda por el comando `update_tray`
+  (RGBA → `tray.set_icon`), junto con el tooltip ("Sesión X% · reset en …").
+  Clic izquierdo muestra el panel, clic derecho menú (abrir panel / salir).
+  Con cuota en error, el icono muestra "–" gris (nunca datos inventados).
+  El módulo Win32 `win_taskbar` solo se usa ya para apoyar el panel encima
+  de la barra (`Shell_TrayWnd` vía crate `windows`).
 
 ## INVARIANTES — no romper nunca
 
@@ -108,8 +111,8 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - Estados de error legibles con punto rojo en la línea de estado.
 - Notificaciones de umbral: máx. una por umbral por ventana de sesión
   (`maybeNotify`, clave en localStorage).
-- La franja nunca llama al endpoint: recibe datos del panel vía evento
-  `quota:update` y pide el último conocido con `bar:ready` al (re)cargar.
+- El panel es el ÚNICO que llama al endpoint; el icono del tray se actualiza
+  desde su mismo ciclo de refresco (`updateTray` en cada render).
 
 ## Estado actual / pendientes conocidos
 
@@ -119,13 +122,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] Fix de arrastre y flyout
 - [x] `cargo check` limpio (verificado 2026-07-10; la sesión que se cortó a
       mitad de editar Cargo.toml no dejó nada roto)
-- [~] Franja compacta sobre la barra de tareas — código completo (bar.html,
-      módulo `win_taskbar`, `reposition_bar`, menú contextual, persistencia).
-      FALTA probarla en vivo en Windows 11: posición junto a la bandeja,
-      que no robe foco, auto-hide de la barra, DPI/multi-monitor.
-- [~] Bug de render vacío de la franja: mitigado (estado "loading", handshake
-      `bar:ready` → reemisión del último payload, backoff 5→10→20→40 s en el
-      panel). FALTA confirmar en vivo que no reaparece.
+- [x] Franja sobre la barra: DESCARTADA (2026-07-10, solapaba los iconos
+      centrados de Windows 11 y bloqueaba sus clics). Sustituida por el icono
+      de bandeja dinámico con %.
+- [~] Icono de bandeja dinámico (`updateTray` + comando `update_tray`) —
+      implementado; FALTA probar en vivo: legibilidad del número en temas
+      claro/oscuro de Windows y actualización tras cada refresco.
 - [ ] Lectura incremental de .jsonl por offset (hoy: escaneo completo por ciclo)
 - [ ] Auto-updater (tauri-plugin-updater) y autostart (tauri-plugin-autostart)
 - [ ] Tema claro

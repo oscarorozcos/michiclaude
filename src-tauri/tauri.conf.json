@@ -20,21 +20,6 @@
         "alwaysOnTop": true,
         "skipTaskbar": false,
         "visible": false
-      },
-      {
-        "label": "bar",
-        "title": "Claude Code Meter — widget",
-        "url": "bar.html",
-        "width": 260,
-        "height": 66,
-        "resizable": false,
-        "decorations": false,
-        "transparent": true,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "shadow": false,
-        "focus": false,
-        "visible": false
       }
     ],
     "security": {
