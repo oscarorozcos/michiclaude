@@ -401,6 +401,7 @@ function renderLocal(s){
   $("plist").innerHTML = rows;
 
   const models=Object.entries(s.models).map(([m,a])=>({m,t:a.input+a.output+a.cache_write}))
+    .filter(x=>x.t>0)                       // fuera modelos sin trabajo real (p. ej. placeholders)
     .sort((a,b)=>b.t-a.t);
   const tot=models.reduce((a,x)=>a+x.t,0);
   if(tot>0){

@@ -164,6 +164,9 @@ fn get_local_stats() -> Result<LocalStats, String> {
     let week_ago = now - Duration::days(7);
 
     let mut seen: HashSet<String> = HashSet::new();
+    // Clave: nombre de carpeta codificado; el nombre bonito sale del `cwd` real
+    // que traen las entradas (el nombre codificado es ambiguo con los guiones).
+    let mut display_names: HashMap<String, String> = HashMap::new();
     let mut per_project: HashMap<String, (f64, u64)> = HashMap::new();
     let mut per_model: HashMap<String, ModelAgg> = HashMap::new();
     let mut cost_today = 0.0;
@@ -191,7 +194,7 @@ fn get_local_stats() -> Result<LocalStats, String> {
         if !proj.path().is_dir() {
             continue;
         }
-        let pname = pretty_project(&proj.file_name().to_string_lossy());
+        let raw_dir = proj.file_name().to_string_lossy().to_string();
 
         let files = match fs::read_dir(proj.path()) {
             Ok(f) => f,
@@ -207,6 +210,15 @@ fn get_local_stats() -> Result<LocalStats, String> {
 
             for line in content.lines() {
                 let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+                if !display_names.contains_key(&raw_dir) {
+                    if let Some(base) = v["cwd"]
+                        .as_str()
+                        .and_then(|c| c.rsplit(['\\', '/']).next())
+                        .filter(|s| !s.is_empty())
+                    {
+                        display_names.insert(raw_dir.clone(), base.to_string());
+                    }
+                }
                 let msg = &v["message"];
                 let usage = &msg["usage"];
                 if !usage.is_object() {
@@ -230,6 +242,11 @@ fn get_local_stats() -> Result<LocalStats, String> {
                 let cw = usage["cache_creation_input_tokens"].as_u64().unwrap_or(0);
                 let cr = usage["cache_read_input_tokens"].as_u64().unwrap_or(0);
                 let model = msg["model"].as_str().unwrap_or("unknown").to_string();
+                // "<synthetic>" = mensajes placeholder de error de Claude Code,
+                // no son peticiones reales al modelo.
+                if model == "<synthetic>" {
+                    continue;
+                }
                 let cost = cost_of(&model, inp, out, cw, cr);
 
                 let ts: Option<DateTime<Utc>> = v["timestamp"]
@@ -244,7 +261,7 @@ fn get_local_stats() -> Result<LocalStats, String> {
                     cost_week += cost;
                     // tokens "de trabajo": excluimos cache_read (infla ~100x)
                     tokens_week += inp + out + cw;
-                    let e = per_project.entry(pname.clone()).or_insert((0.0, 0));
+                    let e = per_project.entry(raw_dir.clone()).or_insert((0.0, 0));
                     e.0 += cost;
                     e.1 += inp + out + cw;
                     let m = per_model.entry(model.clone()).or_default();
@@ -263,7 +280,14 @@ fn get_local_stats() -> Result<LocalStats, String> {
 
     let mut projects: Vec<ProjectAgg> = per_project
         .into_iter()
-        .map(|(name, (cost, tokens))| ProjectAgg { name, cost, tokens })
+        .map(|(raw, (cost, tokens))| ProjectAgg {
+            name: display_names
+                .get(&raw)
+                .cloned()
+                .unwrap_or_else(|| pretty_project(&raw)),
+            cost,
+            tokens,
+        })
         .collect();
     projects.sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
 
