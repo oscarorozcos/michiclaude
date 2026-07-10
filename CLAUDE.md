@@ -132,6 +132,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       para errores de red; nunca reintentar rápido un rate-limit).
 - [x] Instancia única (tauri-plugin-single-instance, registrado el primero):
       instancias duplicadas de dev eran sospechosas del 429.
+- [x] 429: se respeta el Retry-After del servidor, el cuerpo del error se
+      vuelca a quota_debug.json, y si el token local ya venció (expiresAt) no
+      se llama a la API (evita bloqueos por reintentos con token muerto).
+- [ ] Fuente remota: Oscar usa Claude Code sobre todo EN EL VPS (VS Code por
+      SSH); esos .jsonl viven en el VPS y el "gasto por proyecto" local no los
+      ve. Idea: sumar una fuente remota opcional (sync de .jsonl o mini
+      exportador en el VPS). La cuota global sí refleja todo el uso.
 - [ ] Lectura incremental de .jsonl por offset (hoy: escaneo completo por ciclo)
 - [ ] Auto-updater (tauri-plugin-updater) y autostart (tauri-plugin-autostart)
 - [ ] Tema claro

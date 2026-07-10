@@ -47,11 +47,23 @@ async fn get_quota() -> Result<serde_json::Value, String> {
         .as_str()
         .ok_or("Token OAuth no encontrado en las credenciales.")?;
 
+    // Si el token ya venció según las credenciales locales, no llamamos a la API
+    // (peticiones repetidas con token vencido provocan bloqueos temporales).
+    if let Some(exp) = v["claudeAiOauth"]["expiresAt"].as_i64() {
+        if exp < chrono::Utc::now().timestamp_millis() {
+            return Err(
+                "Token expirado. Usa Claude Code en ESTE PC (cualquier consulta) para refrescarlo."
+                    .into(),
+            );
+        }
+    }
+
     let client = reqwest::Client::new();
     let resp = client
         .get("https://api.anthropic.com/api/oauth/usage")
         .bearer_auth(token)
         .header("anthropic-beta", "oauth-2025-04-20")
+        .header("user-agent", "claude-code-meter/0.1.0")
         .send()
         .await
         .map_err(|e| format!("Sin conexión con la API: {e}"))?;
@@ -60,10 +72,25 @@ async fn get_quota() -> Result<serde_json::Value, String> {
         return Err("Token expirado. Abre Claude Code (o ejecuta `claude update`) para refrescarlo.".into());
     }
     if resp.status().as_u16() == 429 {
-        return Err(
-            "La API limitó las peticiones (429). Reintento en 5 min — tu cuota no se ve afectada."
-                .into(),
+        // Respetar el Retry-After del servidor si viene; si no, 5 min.
+        let mins = resp
+            .headers()
+            .get("retry-after")
+            .and_then(|h| h.to_str().ok())
+            .and_then(|s| s.parse::<f64>().ok())
+            .map(|secs| ((secs / 60.0).ceil() as u64).max(1))
+            .unwrap_or(5);
+        // Cuerpo del error a quota_debug.json para diagnóstico.
+        let body = resp.text().await.unwrap_or_default();
+        let dir = app_data_dir();
+        let _ = fs::create_dir_all(&dir);
+        let _ = fs::write(
+            dir.join("quota_debug.json"),
+            format!("HTTP 429 (retry-after: {mins} min)\n{body}"),
         );
+        return Err(format!(
+            "La API limitó las peticiones (429). Reintento en {mins} min — tu cuota no se ve afectada."
+        ));
     }
     if !resp.status().is_success() {
         return Err(format!("La API respondió {}", resp.status()));

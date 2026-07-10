@@ -433,7 +433,7 @@ function renderLocal(s){
 }
 
 // ---------- ciclo de refresco (auto-programado, con backoff ante fallos) ----------
-let lastSync=Date.now(), fails=0, rateLimited=false, refreshTimer=null;
+let lastSync=Date.now(), fails=0, rateLimited=false, rateWaitMs=300000, refreshTimer=null;
 async function refresh(){
   if(!invoke){ demo(); return; }
   try{
@@ -444,6 +444,8 @@ async function refresh(){
     }else{
       $("liveDot").classList.add("err"); $("syncTxt").textContent=quota.reason; fails++;
       rateLimited=String(quota.reason).includes("429");
+      const rm=String(quota.reason).match(/Reintento en (\d+) min/);
+      rateWaitMs=rm?Math.max(60000,+rm[1]*60000):300000;   // respeta el Retry-After del servidor
       updateTray(null,null);              // icono en gris: sin datos, sin inventar
     }
     if(local.status==="fulfilled") renderLocal(local.value);
@@ -454,8 +456,9 @@ async function refresh(){
 }
 function scheduleNext(){
   // 60 s en régimen normal; red/errores: backoff 5→10→20→40 s (máx 60 s).
-  // 429: esperar 5 min — reintentar rápido un rate-limit solo lo empeora.
-  const delay = rateLimited ? 300000
+  // 429: esperar lo que pida el servidor (Retry-After) o 5 min — reintentar
+  // rápido un rate-limit solo lo empeora.
+  const delay = rateLimited ? rateWaitMs
     : fails>0 ? Math.min(60000, 5000*2**(fails-1)) : 60000;
   clearTimeout(refreshTimer); refreshTimer=setTimeout(refresh, delay);
 }
