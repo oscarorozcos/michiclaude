@@ -42,6 +42,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 **A) Cuota real — comando `get_quota` (Rust):**
 1. Lee el token OAuth de `~/.claude/.credentials.json`
    (campo `claudeAiOauth.accessToken`). Respeta `CLAUDE_CONFIG_DIR` si existe.
+   Si falta o su `expiresAt` ya pasó, intenta las máquinas de `remotes.json`
+   (`ssh <host> cat ~/.claude/.credentials.json`) y usa el primer token
+   vigente — así el meter no depende de usar Claude Code en Windows si se usa
+   a diario en el VPS. El token remoto viaja por SSH y solo vive en memoria.
+   NUNCA se llama a la API con token vencido (provoca 429 temporales).
 2. `GET https://api.anthropic.com/api/oauth/usage` con `Bearer <token>` y
    header `anthropic-beta: oauth-2025-04-20`.
 3. Devuelve el JSON crudo. Es un **endpoint no oficial** — puede cambiar de
@@ -152,7 +157,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       contra los logs reales del VPS. FALTA: crear remotes.json en Windows y
       verificar en vivo la fusión (proyectos "· vps").
 - [ ] Lectura incremental de .jsonl por offset (hoy: escaneo completo por ciclo)
-- [ ] Auto-updater (tauri-plugin-updater) y autostart (tauri-plugin-autostart)
+- [x] Token de respaldo desde remotes.json cuando el local venció (2026-07-10):
+      el meter ya no depende de usar Claude Code en Windows.
+- [x] Autostart (tauri-plugin-autostart): solo builds release, se activa una
+      única vez (marker `autostart_configured`); si el usuario lo desactiva
+      en el Administrador de tareas, se respeta.
+- [x] LICENSE MIT (preparación para repo público).
+- [ ] Auto-updater (tauri-plugin-updater)
 - [ ] Tema claro
 - [ ] Precios de modelos configurables (JSON externo)
 

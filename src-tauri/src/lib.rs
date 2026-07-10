@@ -35,28 +35,55 @@ fn claude_dir() -> PathBuf {
 
 // ---------- 1) Cuota real (endpoint OAuth, no oficial) ----------
 
+/// Extrae (accessToken, expiresAt en ms) de un .credentials.json.
+fn parse_credentials(raw: &str) -> Option<(String, i64)> {
+    let v: serde_json::Value = serde_json::from_str(raw).ok()?;
+    let token = v["claudeAiOauth"]["accessToken"].as_str()?.to_string();
+    let exp = v["claudeAiOauth"]["expiresAt"].as_i64().unwrap_or(i64::MAX);
+    Some((token, exp))
+}
+
+/// Credenciales frescas desde una máquina remota (misma llave SSH que el
+/// exportador). El token viaja cifrado por SSH y solo vive en memoria.
+fn fetch_remote_credentials(r: &RemoteSource) -> Option<(String, i64)> {
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+        .arg(&r.host)
+        .arg("cat ~/.claude/.credentials.json");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let out = cmd.output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    parse_credentials(std::str::from_utf8(&out.stdout).ok()?)
+}
+
 #[tauri::command]
 async fn get_quota() -> Result<serde_json::Value, String> {
-    let cred_path = claude_dir().join(".credentials.json");
-    let raw = fs::read_to_string(&cred_path).map_err(|_| {
-        "No encontré ~/.claude/.credentials.json. Inicia sesión en Claude Code primero.".to_string()
-    })?;
-    let v: serde_json::Value =
-        serde_json::from_str(&raw).map_err(|e| format!("Credenciales ilegibles: {e}"))?;
-    let token = v["claudeAiOauth"]["accessToken"]
-        .as_str()
-        .ok_or("Token OAuth no encontrado en las credenciales.")?;
+    let now_ms = chrono::Utc::now().timestamp_millis();
 
-    // Si el token ya venció según las credenciales locales, no llamamos a la API
-    // (peticiones repetidas con token vencido provocan bloqueos temporales).
-    if let Some(exp) = v["claudeAiOauth"]["expiresAt"].as_i64() {
-        if exp < chrono::Utc::now().timestamp_millis() {
-            return Err(
-                "Token expirado. Usa Claude Code en ESTE PC (cualquier consulta) para refrescarlo."
-                    .into(),
-            );
+    // 1) Token local vigente. 2) Si falta o venció: token fresco de las máquinas
+    // remotas de remotes.json (p. ej. el VPS donde Claude Code se usa a diario).
+    // Nunca se llama a la API con token vencido (provoca bloqueos temporales).
+    let mut cred = fs::read_to_string(claude_dir().join(".credentials.json"))
+        .ok()
+        .and_then(|raw| parse_credentials(&raw))
+        .filter(|(_, exp)| *exp > now_ms);
+    if cred.is_none() {
+        for r in load_remotes() {
+            if let Some(c) = fetch_remote_credentials(&r).filter(|(_, exp)| *exp > now_ms) {
+                cred = Some(c);
+                break;
+            }
         }
     }
+    let (token, _) = cred.ok_or_else(|| {
+        "Sin token vigente. Usa Claude Code en este PC (cualquier consulta) o en una máquina de remotes.json para refrescarlo.".to_string()
+    })?;
 
     let client = reqwest::Client::new();
     let resp = client
@@ -450,6 +477,10 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             show_main_panel(app);
         }))
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             get_quota,
@@ -462,6 +493,19 @@ pub fn run() {
             _ => {}
         })
         .setup(|app| {
+            // Autoarranque con Windows: solo en builds de release (en dev apuntaría
+            // al binario de target/debug) y solo la primera vez — si el usuario lo
+            // desactiva después en el Administrador de tareas, se respeta.
+            #[cfg(not(debug_assertions))]
+            {
+                use tauri_plugin_autostart::ManagerExt;
+                let marker = app_data_dir().join("autostart_configured");
+                if !marker.exists() && app.autolaunch().enable().is_ok() {
+                    let _ = fs::create_dir_all(app_data_dir());
+                    let _ = fs::write(&marker, "1");
+                }
+            }
+
             // Menú del tray (clic derecho): abrir panel, salir.
             let tray_menu = Menu::with_items(
                 app,
