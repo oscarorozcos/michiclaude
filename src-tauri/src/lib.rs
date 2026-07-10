@@ -341,6 +341,12 @@ pub fn run() {
     };
 
     tauri::Builder::default()
+        // Instancia única: si la app ya corre, el segundo arranque solo enfoca el
+        // panel (varias instancias duplicando el polling provocan 429). Debe ser
+        // el primer plugin registrado.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            show_main_panel(app);
+        }))
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             get_quota,

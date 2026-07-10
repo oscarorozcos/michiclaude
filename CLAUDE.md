@@ -128,6 +128,10 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [~] Icono de bandeja dinámico (`updateTray` + comando `update_tray`) —
       implementado; FALTA probar en vivo: legibilidad del número en temas
       claro/oscuro de Windows y actualización tras cada refresco.
+- [x] 429 del endpoint: espera de 5 min (el backoff rápido 5→40 s queda solo
+      para errores de red; nunca reintentar rápido un rate-limit).
+- [x] Instancia única (tauri-plugin-single-instance, registrado el primero):
+      instancias duplicadas de dev eran sospechosas del 429.
 - [ ] Lectura incremental de .jsonl por offset (hoy: escaneo completo por ciclo)
 - [ ] Auto-updater (tauri-plugin-updater) y autostart (tauri-plugin-autostart)
 - [ ] Tema claro
