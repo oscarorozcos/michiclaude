@@ -6,7 +6,7 @@
 //      -> parseo de ~/.claude/projects/**/*.jsonl con deduplicación
 
 use chrono::{DateTime, Duration, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
@@ -131,7 +131,7 @@ async fn get_quota() -> Result<serde_json::Value, String> {
 
 // ---------- 2) Detalle local desde los .jsonl ----------
 
-#[derive(Serialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 struct ModelAgg {
     input: u64,
     output: u64,
@@ -140,14 +140,14 @@ struct ModelAgg {
     cost: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct ProjectAgg {
     name: String,
     cost: f64,
     tokens: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct LocalStats {
     projects: Vec<ProjectAgg>,
     models: HashMap<String, ModelAgg>,
@@ -176,6 +176,52 @@ fn price_for(model: &str) -> (f64, f64, f64, f64) {
 fn cost_of(model: &str, inp: u64, out: u64, cw: u64, cr: u64) -> f64 {
     let (pi, po, pcw, pcr) = price_for(model);
     (inp as f64 * pi + out as f64 * po + cw as f64 * pcw + cr as f64 * pcr) / 1_000_000.0
+}
+
+// ---------- fuentes remotas opcionales (otras máquinas vía SSH) ----------
+// %APPDATA%\com.oscarorozco.claude-code-meter\remotes.json:
+//   { "remotes": [ { "name": "vps", "host": "<alias ssh>",
+//       "command": "python3 /opt/projects/claude-code-meter/scripts/meter-export.py" } ] }
+// Cada fuente devuelve un LocalStats por stdout; se fusiona con lo local y sus
+// proyectos se etiquetan "nombre · vps". Sin remotes.json la función no hace nada.
+
+#[derive(Deserialize)]
+struct RemoteSource {
+    name: String,
+    host: String,
+    command: String,
+}
+
+#[derive(Deserialize)]
+struct RemotesConfig {
+    remotes: Vec<RemoteSource>,
+}
+
+fn load_remotes() -> Vec<RemoteSource> {
+    fs::read_to_string(app_data_dir().join("remotes.json"))
+        .ok()
+        .and_then(|s| serde_json::from_str::<RemotesConfig>(&s).ok())
+        .map(|c| c.remotes)
+        .unwrap_or_default()
+}
+
+/// Ejecuta el exportador remoto por SSH. BatchMode: jamás pide contraseña
+/// (requiere llave configurada, la misma que usa VS Code Remote-SSH).
+fn fetch_remote(r: &RemoteSource) -> Option<LocalStats> {
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+        .arg(&r.host)
+        .arg(&r.command);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW: sin flash de consola
+    }
+    let out = cmd.output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    serde_json::from_slice::<LocalStats>(&out.stdout).ok()
 }
 
 /// Decodifica el nombre de carpeta de proyecto de Claude Code
@@ -311,7 +357,7 @@ fn get_local_stats() -> Result<LocalStats, String> {
         }
     }
 
-    let mut projects: Vec<ProjectAgg> = per_project
+    let projects: Vec<ProjectAgg> = per_project
         .into_iter()
         .map(|(raw, (cost, tokens))| ProjectAgg {
             name: display_names
@@ -322,9 +368,8 @@ fn get_local_stats() -> Result<LocalStats, String> {
             tokens,
         })
         .collect();
-    projects.sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
 
-    Ok(LocalStats {
+    let mut stats = LocalStats {
         projects,
         models: per_model,
         cost_today,
@@ -332,7 +377,38 @@ fn get_local_stats() -> Result<LocalStats, String> {
         tokens_week,
         files_scanned,
         entries_deduped: deduped,
-    })
+    };
+
+    // Fusionar fuentes remotas (si remotes.json existe): totales sumados,
+    // proyectos etiquetados con su origen, modelos agregados.
+    for r in load_remotes() {
+        let Some(remote) = fetch_remote(&r) else { continue };
+        stats.cost_today += remote.cost_today;
+        stats.cost_week += remote.cost_week;
+        stats.tokens_week += remote.tokens_week;
+        stats.files_scanned += remote.files_scanned;
+        stats.entries_deduped += remote.entries_deduped;
+        for p in remote.projects {
+            stats.projects.push(ProjectAgg {
+                name: format!("{} · {}", p.name, r.name),
+                cost: p.cost,
+                tokens: p.tokens,
+            });
+        }
+        for (m, a) in remote.models {
+            let e = stats.models.entry(m).or_default();
+            e.input += a.input;
+            e.output += a.output;
+            e.cache_write += a.cache_write;
+            e.cache_read += a.cache_read;
+            e.cost += a.cost;
+        }
+    }
+    stats
+        .projects
+        .sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
+
+    Ok(stats)
 }
 
 // ---------- rectángulo real de la barra de tareas (Win32) ----------

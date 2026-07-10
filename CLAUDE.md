@@ -32,6 +32,7 @@ src-tauri/src/main.rs   # Entry point (windows_subsystem = "windows")
 src-tauri/src/lib.rs    # Backend: comandos, tray, ventanas, Win32
 src-tauri/tauri.conf.json
 src-tauri/capabilities/default.json
+scripts/meter-export.py  # Exportador remoto (corre en el VPS vía SSH; solo stdlib)
 app-icon.png            # Fuente de iconos (npm run icons los genera)
 .github/workflows/release.yml  # Compila y publica instalador en tags v*
 ```
@@ -62,6 +63,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 4. Coste equivalente-API con la tabla `price_for()` por substring del modelo
    (opus/fable/mythos, haiku, sonnet/default).
 5. Agrega: por proyecto (7 días), por modelo (7 días), coste hoy y semana.
+
+**C) Fuentes remotas opcionales (dentro de `get_local_stats`):**
+1. Si existe `%APPDATA%\com.oscarorozco.claude-code-meter\remotes.json`
+   (`{"remotes":[{"name":"vps","host":"<alias ssh>","command":"python3 /opt/projects/claude-code-meter/scripts/meter-export.py"}]}`),
+   por cada fuente se ejecuta `ssh -o BatchMode=yes <host> <command>`.
+2. `scripts/meter-export.py` replica en Python la MISMA agregación que
+   `get_local_stats` (dedup, `<synthetic>` fuera, cache_read excluido, precios)
+   y emite un JSON con la forma de `LocalStats`. Mantener ambos en sincronía.
+3. El meter fusiona: totales sumados, proyectos etiquetados `nombre · vps`,
+   modelos agregados. Si el SSH falla, se ignora en silencio (los datos
+   locales nunca se bloquean por la red).
 
 ### Ventanas
 
@@ -135,10 +147,10 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] 429: se respeta el Retry-After del servidor, el cuerpo del error se
       vuelca a quota_debug.json, y si el token local ya venció (expiresAt) no
       se llama a la API (evita bloqueos por reintentos con token muerto).
-- [ ] Fuente remota: Oscar usa Claude Code sobre todo EN EL VPS (VS Code por
-      SSH); esos .jsonl viven en el VPS y el "gasto por proyecto" local no los
-      ve. Idea: sumar una fuente remota opcional (sync de .jsonl o mini
-      exportador en el VPS). La cuota global sí refleja todo el uso.
+- [~] Fuente remota VPS (Oscar usa Claude Code sobre todo en el VPS vía
+      VS Code SSH): exportador + fusión implementados y el script probado
+      contra los logs reales del VPS. FALTA: crear remotes.json en Windows y
+      verificar en vivo la fusión (proyectos "· vps").
 - [ ] Lectura incremental de .jsonl por offset (hoy: escaneo completo por ciclo)
 - [ ] Auto-updater (tauri-plugin-updater) y autostart (tauri-plugin-autostart)
 - [ ] Tema claro
