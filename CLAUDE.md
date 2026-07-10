@@ -116,7 +116,15 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
    fiables; en % de cuota, no en dólares.
 9. No tocar `README.md`, `.github/workflows/release.yml` ni `app-icon.png`
    salvo petición explícita.
-10. Mensajes de UI en español, tono claro y accionable.
+10. UI multiidioma: diccionario `I18N` en index.html (inglés por defecto,
+    español incluido; autodetección por `navigator.language`, persistido en
+    localStorage). Todo texto visible pasa por `t()` — nunca hardcodear
+    cadenas en un solo idioma. El backend Rust devuelve errores como códigos
+    `ERR_*` (ERR_NO_TOKEN, ERR_TOKEN_EXPIRED, ERR_RATE_LIMITED:<min>,
+    ERR_API:<status>, ERR_NET, ERR_BAD_RESPONSE) que el frontend traduce.
+    Tono claro y accionable en ambos idiomas.
+11. Tema claro/oscuro: variables CSS con override en `body.light`, toggle ◐
+    en el header, persistido en localStorage.
 
 ## Comportamiento ya validado — no regresionar
 
@@ -169,8 +177,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       única vez (marker `autostart_configured`); si el usuario lo desactiva
       en el Administrador de tareas, se respeta.
 - [x] LICENSE MIT (preparación para repo público).
+- [x] Multiidioma EN (default) + ES: diccionario I18N, selector en ajustes,
+      errores del backend como códigos ERR_* traducidos en el frontend.
+- [x] Tema claro/oscuro con toggle ◐ persistido.
 - [ ] Auto-updater (tauri-plugin-updater)
-- [ ] Tema claro
+- [ ] Fuente WSL: detectar distros (`wsl -l -q`) y leer
+      `\\wsl.localhost\<distro>\home\<user>\.claude\projects` como fuente
+      local extra (mismo merge que remotos, sin SSH). Mucha gente corre
+      Claude Code dentro de WSL.
 - [ ] Precios de modelos configurables (JSON externo)
 
 ## Comandos

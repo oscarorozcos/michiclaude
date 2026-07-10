@@ -81,9 +81,8 @@ async fn get_quota() -> Result<serde_json::Value, String> {
             }
         }
     }
-    let (token, _) = cred.ok_or_else(|| {
-        "Sin token vigente. Usa Claude Code en este PC (cualquier consulta) o en una máquina de remotes.json para refrescarlo.".to_string()
-    })?;
+    // Los errores viajan como códigos ERR_*; el frontend los traduce al idioma activo.
+    let (token, _) = cred.ok_or_else(|| "ERR_NO_TOKEN".to_string())?;
 
     let client = reqwest::Client::new();
     let resp = client
@@ -93,10 +92,10 @@ async fn get_quota() -> Result<serde_json::Value, String> {
         .header("user-agent", "claude-code-meter/0.1.0")
         .send()
         .await
-        .map_err(|e| format!("Sin conexión con la API: {e}"))?;
+        .map_err(|_| "ERR_NET".to_string())?;
 
     if resp.status().as_u16() == 401 {
-        return Err("Token expirado. Abre Claude Code (o ejecuta `claude update`) para refrescarlo.".into());
+        return Err("ERR_TOKEN_EXPIRED".into());
     }
     if resp.status().as_u16() == 429 {
         // Respetar el Retry-After del servidor si viene; si no, 5 min.
@@ -115,12 +114,10 @@ async fn get_quota() -> Result<serde_json::Value, String> {
             dir.join("quota_debug.json"),
             format!("HTTP 429 (retry-after: {mins} min)\n{body}"),
         );
-        return Err(format!(
-            "La API limitó las peticiones (429). Reintento en {mins} min — tu cuota no se ve afectada."
-        ));
+        return Err(format!("ERR_RATE_LIMITED:{mins}"));
     }
     if !resp.status().is_success() {
-        return Err(format!("La API respondió {}", resp.status()));
+        return Err(format!("ERR_API:{}", resp.status().as_u16()));
     }
     // Devolvemos el JSON crudo; el frontend renderiza los buckets que existan
     // (five_hour, seven_day, seven_day_sonnet/opus/fable...) de forma dinámica,
@@ -128,7 +125,7 @@ async fn get_quota() -> Result<serde_json::Value, String> {
     let data = resp
         .json::<serde_json::Value>()
         .await
-        .map_err(|e| format!("Respuesta ilegible: {e}"))?;
+        .map_err(|_| "ERR_BAD_RESPONSE".to_string())?;
 
     // Debug: volcamos la respuesta cruda a quota_debug.json para inspeccionar qué
     // buckets reales devuelve el endpoint. Los nombres de modelo (p. ej. "Fable")
@@ -555,8 +552,8 @@ pub fn run() {
             let tray_menu = Menu::with_items(
                 app,
                 &[
-                    &MenuItem::with_id(app, "tray_panel", "Abrir panel", true, None::<&str>)?,
-                    &MenuItem::with_id(app, "tray_quit", "Salir", true, None::<&str>)?,
+                    &MenuItem::with_id(app, "tray_panel", "Open panel", true, None::<&str>)?,
+                    &MenuItem::with_id(app, "tray_quit", "Quit", true, None::<&str>)?,
                 ],
             )?;
 

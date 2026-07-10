@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Claude Code Meter</title>
@@ -16,6 +16,14 @@
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
     --track:rgba(255,255,255,.08);
   }
+  body.light{
+    --mica:rgba(243,244,247,.98);
+    --surface:rgba(0,0,0,.035);
+    --stroke:rgba(0,0,0,.1);
+    --stroke-soft:rgba(0,0,0,.06);
+    --txt:#1b1e24; --txt-mut:#575d68; --txt-dim:#8a909b;
+    --track:rgba(0,0,0,.09);
+  }
   *{box-sizing:border-box}
   html,body{margin:0;background:transparent;height:100%}
   body{font-family:var(--font);color:var(--txt);padding:8px;overflow:hidden}
@@ -27,6 +35,7 @@
     box-shadow:0 24px 60px -12px rgba(0,0,0,.7),0 0 0 1px var(--stroke);
     padding:15px 15px 13px;
   }
+  body.light .panel{box-shadow:0 24px 60px -14px rgba(30,40,60,.35),0 0 0 1px var(--stroke)}
   .p-head{display:flex;align-items:center;gap:10px;margin-bottom:13px;
     cursor:grab;user-select:none;-webkit-user-select:none}
   .p-head:active{cursor:grabbing}
@@ -49,6 +58,7 @@
   .xbtn{margin-left:8px;width:24px;height:24px;border-radius:6px;border:0;cursor:pointer;
     background:transparent;color:var(--txt-mut);font-size:14px;line-height:1}
   .xbtn:hover{background:var(--surface);color:var(--txt)}
+  .p-head .xbtn{margin-left:4px}
 
   .sect{border-top:1px solid var(--stroke-soft);padding-top:11px;margin-top:11px}
   .sect:first-of-type{border-top:0;margin-top:0;padding-top:0}
@@ -123,6 +133,10 @@
   .cfg-form button:hover{background:rgba(86,199,214,.22)}
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
   #remList .pitem{grid-template-columns:1fr auto}
+  .cfg-row{display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:10px;
+    border-top:1px dashed var(--stroke-soft);font-size:11px;color:var(--txt-mut)}
+  .cfg-row select{background:var(--surface);border:1px solid var(--stroke);border-radius:7px;
+    padding:4px 8px;color:var(--txt);font-family:var(--font);font-size:11.5px;outline:none}
 </style>
 </head>
 <body>
@@ -131,15 +145,16 @@
     <span class="mark" id="mark"></span>
     <div class="p-htext">
       <div class="p-title">Claude Code Meter</div>
-      <div class="p-sub" id="syncLine"><span class="live" id="liveDot"></span><span id="syncTxt">conectando…</span></div>
+      <div class="p-sub" id="syncLine"><span class="live" id="liveDot"></span><span id="syncTxt"></span></div>
     </div>
     <span class="plan" id="planTag">—</span>
-    <button class="xbtn" id="cfgBtn" title="Fuentes de datos (servidores SSH)">⚙</button>
-    <button class="xbtn" id="hideBtn" title="Ocultar a la bandeja">✕</button>
+    <button class="xbtn" id="themeBtn">◐</button>
+    <button class="xbtn" id="cfgBtn">⚙</button>
+    <button class="xbtn" id="hideBtn">✕</button>
   </div>
 
   <div class="sect">
-    <div class="eyebrow">Cuánto te queda <span class="q" id="remQ"></span></div>
+    <div class="eyebrow"><span data-i18n="quota_title"></span> <span class="q" id="remQ"></span></div>
     <div class="hero">
       <div class="gauge">
         <svg viewBox="0 0 132 78">
@@ -148,7 +163,7 @@
                 stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
         </svg>
         <div class="g-val" id="sesVal">–</div>
-        <div class="g-cap">SESIÓN · 5 H</div>
+        <div class="g-cap" data-i18n="session_cap"></div>
         <div class="g-reset" id="sesReset"></div>
       </div>
       <div class="stack" id="weekStack"><!-- barras semanales dinámicas --></div>
@@ -156,7 +171,7 @@
   </div>
 
   <div class="sect" id="projSect" hidden>
-    <div class="eyebrow">A este ritmo</div>
+    <div class="eyebrow" data-i18n="at_this_rate"></div>
     <div class="proj calm" id="proj">
       <div>
         <div class="ptxt" id="projTxt"></div>
@@ -166,44 +181,208 @@
   </div>
 
   <div class="sect">
-    <div class="eyebrow">Gasto por proyecto <span class="q">7 días · equiv. API</span></div>
-    <div class="plist" id="plist"><div class="errbox" style="color:var(--txt-dim)">leyendo ~/.claude…</div></div>
+    <div class="eyebrow"><span data-i18n="spend_title"></span> <span class="q" data-i18n="spend_q"></span></div>
+    <div class="plist" id="plist"></div>
   </div>
 
   <div class="sect" id="modelSect" hidden>
-    <div class="eyebrow">Modelo más usado <span class="q" id="modelQ"></span></div>
+    <div class="eyebrow"><span data-i18n="model_title"></span> <span class="q" id="modelQ"></span></div>
     <div class="split" id="split"></div>
     <div class="legend" id="legend"></div>
   </div>
 
   <div class="sect" id="cfgSect" hidden>
-    <div class="eyebrow">Fuentes de datos</div>
-    <div class="cfg-note">
-      <b>Este PC</b>: automático (logs de Claude Code). ·
-      <b>claude.ai</b>: automático vía la cuota de tu cuenta. ·
-      <b>Servidores</b>: agrégalos aquí por SSH (misma llave que usas para
-      conectarte); sus proyectos aparecen como "nombre · servidor".
-    </div>
+    <div class="eyebrow" data-i18n="sources_title"></div>
+    <div class="cfg-note" data-i18n-html="cfg_note"></div>
     <div class="plist" id="remList"></div>
     <div class="cfg-form">
-      <input id="rName" placeholder="nombre corto (ej. vps)">
-      <input id="rHost" placeholder="host SSH (alias de ~/.ssh/config o usuario@ip)">
+      <input id="rName" data-i18n-ph="ph_name">
+      <input id="rHost" data-i18n-ph="ph_host">
       <input id="rCmd" value="python3 /opt/projects/claude-code-meter/scripts/meter-export.py">
-      <button id="rAdd">Probar y agregar</button>
+      <button id="rAdd" data-i18n="btn_test"></button>
       <span id="rMsg"></span>
+    </div>
+    <div class="cfg-row">
+      <span data-i18n="lang_label"></span>
+      <select id="langSel">
+        <option value="en">English</option>
+        <option value="es">Español</option>
+      </select>
     </div>
   </div>
 
   <div class="p-foot">
     <div class="totals">
-      <div class="t">Hoy<b id="costToday">–</b></div>
-      <div class="t">Semana<b id="costWeek">–</b></div>
+      <div class="t"><span data-i18n="today"></span><b id="costToday">–</b></div>
+      <div class="t"><span data-i18n="week"></span><b id="costWeek">–</b></div>
     </div>
-    <div class="foot-note">Datos locales + cuota real. Nada sale de tu equipo salvo hacia api.anthropic.com</div>
+    <div class="foot-note" data-i18n="footnote"></div>
   </div>
 </div>
 
 <script>
+// ---------- helpers ----------
+const $=id=>document.getElementById(id);
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>(
+  {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+// ---------- i18n (default: English; Spanish included) ----------
+const I18N={
+en:{
+  connecting:"connecting…",
+  live_ago:s=>`live · updated ${s}s ago`,
+  quota_title:"How much you have left",
+  session_cap:"SESSION · 5 H",
+  reset_now:"resets now",
+  reset_in:(h,m)=>h?`resets in ${h} h ${m} min`:`resets in ${m} min`,
+  on_track:"on track",
+  ahead_clock:"you're outpacing the clock",
+  session_label:"Session · 5 h",
+  weekly_all:"Weekly · all models",
+  weekly_x:m=>`Weekly · ${m}`,
+  pace_ok:"pace under the clock · cruising",
+  pace_watch:"watch your pace",
+  no_buckets:"No weekly buckets in the response.",
+  at_this_rate:"At this rate",
+  proj_hit:(d,r)=>`You'll hit <b>100% of the session in ~${d}</b>, before the reset (${r}). Slow down or switch models.`,
+  proj_ok_rate:"You're fine. At the current rate <b>you'll reach the reset without running out</b>.",
+  proj_ahead:"Your usage is <b>ahead of the clock</b>: slow down or you may hit the limit.",
+  proj_behind:"You're fine. Your usage is <b>behind the clock</b> for this period.",
+  burn:r=>`current burn · ${r}%/min`,
+  spend_title:"Spend by project",
+  spend_q:"7 days · API-equiv.",
+  reading:"reading ~/.claude…",
+  no_activity:"No Claude Code activity in the last 7 days.",
+  others:n=>`others (${n})`,
+  claudeai_row:"claude.ai / others",
+  pct_quota:p=>`${p}% quota`,
+  claudeai_tip:"Estimate. claude.ai chats and usage on other devices leave no local logs on this machine. This row shows the % of your global weekly limit consumed across all surfaces; the per-project spend above only covers Claude Code here. Not converted to dollars because the endpoint does not expose the cap in $.",
+  model_title:"Top model",
+  model_leads:m=>`${m} leads`,
+  unknown_model:"unknown",
+  today:"Today", week:"Week",
+  footnote:"Local data + real quota. Nothing leaves your machine except to api.anthropic.com",
+  sources_title:"Data sources",
+  cfg_note:"<b>This PC</b>: automatic (Claude Code logs). · <b>claude.ai</b>: automatic via your account quota. · <b>Servers</b>: add them here over SSH (same key you use to connect); their projects show up as \"name · server\".",
+  ph_name:"short name (e.g. vps)",
+  ph_host:"SSH host (~/.ssh/config alias or user@ip)",
+  btn_test:"Test & add",
+  msg_no_host:"missing SSH host",
+  msg_testing:"testing connection…",
+  msg_added:"✓ connected & saved",
+  no_servers:"No servers added.",
+  remove_server:"Remove this server",
+  hide_title:"Hide to tray",
+  cfg_title:"Data sources (SSH servers)",
+  theme_title:"Light/dark theme",
+  lang_label:"Language",
+  plan_sub:"Subscription",
+  notif_hi:p=>`Session at ${p}% — almost exhausted. Consider pausing or switching models.`,
+  notif_lo:p=>`Session at ${p}% of your 5 h limit.`,
+  tray_tip:(s,r,w)=>`Session ${s}%${r?` · ${r}`:""}${w!=null?` · Weekly ${w}%`:""}`,
+  tray_no_data:"Claude Code Meter — no quota data",
+  demo_mode:"demo mode (no Tauri)",
+  err_no_token:"No valid token. Use Claude Code on this PC (any prompt) or on a server from your data sources to refresh it.",
+  err_expired:"Token expired. Open Claude Code (any prompt) to refresh it.",
+  err_rate:m=>`API rate-limited (429). Retrying in ${m} min — your quota is not affected.`,
+  err_net:"No connection to the API.",
+  err_api:s=>`The API returned ${s}.`,
+  err_bad:"Unreadable API response."
+},
+es:{
+  connecting:"conectando…",
+  live_ago:s=>`en vivo · actualizado hace ${s}s`,
+  quota_title:"Cuánto te queda",
+  session_cap:"SESIÓN · 5 H",
+  reset_now:"reset ya",
+  reset_in:(h,m)=>h?`reset en ${h} h ${m} min`:`reset en ${m} min`,
+  on_track:"dentro de lo previsto",
+  ahead_clock:"vas más rápido que el reloj",
+  session_label:"Sesión · 5 h",
+  weekly_all:"Semanal · todos los modelos",
+  weekly_x:m=>`Semanal · ${m}`,
+  pace_ok:"ritmo bajo el reloj · vas holgado",
+  pace_watch:"ojo al ritmo",
+  no_buckets:"Sin buckets semanales en la respuesta.",
+  at_this_rate:"A este ritmo",
+  proj_hit:(d,r)=>`Llegas al <b>100% de la sesión en ~${d}</b>, antes del reset (${r}). Baja el ritmo o cambia de modelo.`,
+  proj_ok_rate:"Vas al día. Al ritmo actual <b>llegas al reset sin agotar</b> la sesión.",
+  proj_ahead:"Tu uso va <b>por delante del reloj</b>: consume más lento o podrías toparte con el límite.",
+  proj_behind:"Vas al día. Tu consumo va <b>por detrás del reloj</b> del periodo.",
+  burn:r=>`quema actual · ${r}%/min`,
+  spend_title:"Gasto por proyecto",
+  spend_q:"7 días · equiv. API",
+  reading:"leyendo ~/.claude…",
+  no_activity:"Sin actividad de Claude Code en los últimos 7 días.",
+  others:n=>`otros (${n})`,
+  claudeai_row:"claude.ai / otros",
+  pct_quota:p=>`${p}% cuota`,
+  claudeai_tip:"Estimación. Los chats de claude.ai y el uso en otros dispositivos no dejan registro local en este equipo. Esta fila muestra el % de tu límite semanal consumido en total (todas las superficies); el gasto por proyecto de arriba solo cubre Claude Code aquí. No se convierte a dólares porque el endpoint no expone el tope en $.",
+  model_title:"Modelo más usado",
+  model_leads:m=>`${m} lidera`,
+  unknown_model:"desconocido",
+  today:"Hoy", week:"Semana",
+  footnote:"Datos locales + cuota real. Nada sale de tu equipo salvo hacia api.anthropic.com",
+  sources_title:"Fuentes de datos",
+  cfg_note:"<b>Este PC</b>: automático (logs de Claude Code). · <b>claude.ai</b>: automático vía la cuota de tu cuenta. · <b>Servidores</b>: agrégalos aquí por SSH (misma llave que usas para conectarte); sus proyectos aparecen como \"nombre · servidor\".",
+  ph_name:"nombre corto (ej. vps)",
+  ph_host:"host SSH (alias de ~/.ssh/config o usuario@ip)",
+  btn_test:"Probar y agregar",
+  msg_no_host:"falta el host SSH",
+  msg_testing:"probando conexión…",
+  msg_added:"✓ conectado y guardado",
+  no_servers:"Sin servidores agregados.",
+  remove_server:"Quitar este servidor",
+  hide_title:"Ocultar a la bandeja",
+  cfg_title:"Fuentes de datos (servidores SSH)",
+  theme_title:"Tema claro/oscuro",
+  lang_label:"Idioma",
+  plan_sub:"Suscripción",
+  notif_hi:p=>`Sesión al ${p}% — casi agotada. Considera parar o cambiar de modelo.`,
+  notif_lo:p=>`Sesión al ${p}% de tu límite de 5 h.`,
+  tray_tip:(s,r,w)=>`Sesión ${s}%${r?` · ${r}`:""}${w!=null?` · Semanal ${w}%`:""}`,
+  tray_no_data:"Claude Code Meter — sin datos de cuota",
+  demo_mode:"modo demo (sin Tauri)",
+  err_no_token:"Sin token vigente. Usa Claude Code en este PC (cualquier consulta) o en un servidor de tus fuentes para refrescarlo.",
+  err_expired:"Token expirado. Abre Claude Code (cualquier consulta) para refrescarlo.",
+  err_rate:m=>`La API limitó las peticiones (429). Reintento en ${m} min — tu cuota no se ve afectada.`,
+  err_net:"Sin conexión con la API.",
+  err_api:s=>`La API respondió ${s}.`,
+  err_bad:"Respuesta de la API ilegible."
+}};
+
+let lang = localStorage.getItem("lang") || (String(navigator.language||"").toLowerCase().startsWith("es")?"es":"en");
+if(!I18N[lang]) lang="en";
+function t(key,...a){
+  const v=(I18N[lang]&&I18N[lang][key])??I18N.en[key];
+  return typeof v==="function"?v(...a):(v??key);
+}
+function applyI18n(){
+  document.documentElement.lang=lang;
+  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent=t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-html]").forEach(el=>{ el.innerHTML=t(el.dataset.i18nHtml); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{ el.placeholder=t(el.dataset.i18nPh); });
+  $("hideBtn").title=t("hide_title"); $("cfgBtn").title=t("cfg_title"); $("themeBtn").title=t("theme_title");
+  $("langSel").value=lang;
+}
+
+// Traducción de códigos de error del backend (ERR_*)
+function errText(code){
+  code=String(code);
+  if(code.startsWith("ERR_RATE_LIMITED")) return t("err_rate", +code.split(":")[1]||3);
+  if(code.startsWith("ERR_API")) return t("err_api", code.split(":")[1]||"?");
+  const map={ERR_NO_TOKEN:"err_no_token",ERR_TOKEN_EXPIRED:"err_expired",
+             ERR_NET:"err_net",ERR_BAD_RESPONSE:"err_bad"};
+  return map[code]?t(map[code]):code;
+}
+
+// ---------- tema (persistido) ----------
+if(localStorage.getItem("theme")==="light") document.body.classList.add("light");
+$("themeBtn").addEventListener("click",()=>{
+  const light=document.body.classList.toggle("light");
+  localStorage.setItem("theme", light?"light":"dark");
+});
+
 // ---------- marca ----------
 function sunburst(size){
   const S=64,cx=32,cy=32,rays=11;let p=`<svg width="${size}" height="${size}" viewBox="0 0 ${S} ${S}">`;
@@ -216,12 +395,13 @@ function sunburst(size){
     p+=`<polygon points="${pts}" fill="var(--brand)"/>`}
   return p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
 }
-document.getElementById("mark").innerHTML=sunburst(22);
+$("mark").innerHTML=sunburst(22);
 
 // ---------- entorno ----------
 const TAURI = window.__TAURI__?.core;
 const invoke = TAURI ? TAURI.invoke : null;
 const PALETTE = ["var(--accent)","var(--brand)","var(--ok)","var(--warn)","var(--txt-dim)"];
+let lastQuotaData=null, lastLocalData=null;   // caché para re-render al cambiar idioma
 
 // ---------- icono de bandeja dinámico ----------
 // El % de sesión vive junto al reloj, como los medidores de batería/CPU: se
@@ -247,33 +427,29 @@ function updateTray(ses, weekPct){
     ctx.fillRect(4,S-5,Math.round((S-8)*Math.min(100,weekPct)/100),3);
   }
   const tip = ses
-    ? `Sesión ${Math.round(ses.pct)}% · ${fmtReset(ses.resets)}`
-      + (weekPct!=null?` · Semanal ${Math.round(weekPct)}%`:"")
-    : "Claude Code Meter — sin datos de cuota";
+    ? t("tray_tip", Math.round(ses.pct), fmtReset(ses.resets), weekPct!=null?Math.round(weekPct):null)
+    : t("tray_no_data");
   invoke("update_tray",{rgba:Array.from(ctx.getImageData(0,0,S,S).data),
     width:S, height:S, tooltip:tip}).catch(()=>{});
 }
 
-// ---------- helpers ----------
-const $=id=>document.getElementById(id);
+// ---------- helpers de cuota ----------
 function col(pct,pace){ if(pct>=95) return "var(--bad)";
-  if(pace!=null && pct>pace+8) return pct>85?"var(--bad)":"var(--warn)"; 
+  if(pace!=null && pct>pace+8) return pct>85?"var(--bad)":"var(--warn)";
   if(pct>=80) return "var(--warn)"; return "var(--ok)"; }
 function fmtReset(iso){ if(!iso) return "";
-  const ms=new Date(iso)-Date.now(); if(ms<=0) return "reset ya";
+  const ms=new Date(iso)-Date.now(); if(ms<=0) return t("reset_now");
   const h=Math.floor(ms/3.6e6),m=Math.floor(ms%3.6e6/6e4);
-  return h?`reset en ${h} h ${m} min`:`reset en ${m} min`; }
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>(
-  {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  return t("reset_in",h,m); }
 
 function prettyBucket(k){
-  return k.replace(/seven_day|7d/gi,"Semanal").replace(/five_hour|5h/gi,"Sesión")
+  return k.replace(/seven_day|7d/gi,"Weekly").replace(/five_hour|5h/gi,"Session")
           .replace(/[_-]/g," ").replace(/\b\w/g,c=>c.toUpperCase());
 }
 
 // Nombre bonito de modelo: "claude-opus-4-8" -> "Opus 4.8"
 function prettyModel(id){
-  if(!id) return "desconocido";
+  if(!id) return t("unknown_model");
   const s=id.replace(/^claude-/,"").replace(/-\d{8}$/,"");
   const fam=(s.match(/opus|sonnet|haiku|fable|mythos|cowork/i)||[])[0];
   const ver=s.match(/(\d+)[-.](\d+)/);
@@ -282,11 +458,8 @@ function prettyModel(id){
 }
 
 // ---------- cuota real (dinámica por plan) ----------
-// Fuente principal: el array `limits` del endpoint. Es estructurado y trae, por
-// cada límite: kind (session | weekly_all | weekly_scoped), percent, resets_at y
-// scope.model.display_name ("Fable", "Opus"...). Las claves sueltas seven_day_*
-// suelen venir null, por eso hay que leer `limits`. Fallback: búsqueda recursiva
-// de objetos con { utilization } por si el endpoint cambia de forma.
+// Fuente principal: el array `limits` del endpoint. Fallback: búsqueda
+// recursiva de objetos con { utilization } por si el endpoint cambia de forma.
 function extractBuckets(node, path, out){
   if(!node || typeof node!=="object") return;
   const u = node.utilization ?? node.used_percent ?? node.percent_used;
@@ -294,15 +467,13 @@ function extractBuckets(node, path, out){
     const key=path.join("."), isSes=/five|5h|session/i.test(key);
     out.push({
       kind: isSes?"session":(/seven_day$|week/i.test(key)?"weekly_all":"weekly_scoped"),
-      label: isSes?"Sesión · 5 h":prettyBucket(key),
+      label: isSes?t("session_label"):prettyBucket(key),
       pct:Math.round(u<=1?u*100:u),
       resets:node.resets_at ?? node.reset_at ?? null}); return;
   }
   for(const [k,v] of Object.entries(node)) extractBuckets(v,[...path,k],out);
 }
 
-// Normaliza la respuesta a una lista homogénea de buckets, se renderice lo que se
-// renderice: si mañana aparece un bucket nuevo (Cowork, otro modelo...) se pinta solo.
 function parseQuota(data){
   const out=[];
   if(Array.isArray(data?.limits) && data.limits.length){
@@ -310,11 +481,11 @@ function parseQuota(data){
       const pct=Math.round(l.percent ?? l.utilization ?? 0);
       const resets=l.resets_at ?? null;
       let kind,label;
-      if(l.kind==="session" || l.group==="session"){ kind="session"; label="Sesión · 5 h"; }
-      else if(l.kind==="weekly_all"){ kind="weekly_all"; label="Semanal · todos los modelos"; }
+      if(l.kind==="session" || l.group==="session"){ kind="session"; label=t("session_label"); }
+      else if(l.kind==="weekly_all"){ kind="weekly_all"; label=t("weekly_all"); }
       else if(l.kind==="weekly_scoped"){
-        const m=l.scope?.model?.display_name || l.scope?.surface || "otro modelo";
-        kind="weekly_scoped"; label="Semanal · "+m;
+        const m=l.scope?.model?.display_name || l.scope?.surface || "?";
+        kind="weekly_scoped"; label=t("weekly_x", m);
       } else { kind=l.kind||l.group||"otro"; label=prettyBucket(l.kind||l.group||"otro"); }
       out.push({kind,label,pct,resets});
     }
@@ -333,7 +504,8 @@ function elapsedPct(resets,hours){ if(!resets) return null;
   return Math.round(Math.min(100,Math.max(0,(1-left/hours)*100))); }
 
 function renderQuota(data){
-  $("planTag").textContent = data?.plan?.name || data?.subscription?.plan || data?.plan_name || "Suscripción";
+  lastQuotaData=data;
+  $("planTag").textContent = data?.plan?.name || data?.subscription?.plan || data?.plan_name || t("plan_sub");
 
   const buckets=parseQuota(data);
   const ses=buckets.find(b=>b.kind==="session");
@@ -348,7 +520,7 @@ function renderQuota(data){
     $("gFill").setAttribute("stroke",c);
     $("sesVal").textContent=ses.pct+"%"; $("sesVal").style.color=c;
     $("sesReset").textContent=fmtReset(ses.resets);
-    $("remQ").textContent = pace!=null && ses.pct>pace+8 ? "vas más rápido que el reloj" : "dentro de lo previsto";
+    $("remQ").textContent = pace!=null && ses.pct>pace+8 ? t("ahead_clock") : t("on_track");
     renderProjection(ses.pct,pace,ses.resets);
     maybeNotify(ses.pct,ses.resets);
   }
@@ -362,12 +534,12 @@ function renderQuota(data){
       <div class="track"><div class="fill" style="width:${b.pct}%;background:${c}"></div>
         ${pace!=null?`<div class="pace" style="left:${pace}%"></div>`:""}</div>
       ${hero?`<div class="brow-top wrap" style="margin-top:4px;margin-bottom:0">
-        <span class="rst">${pace!=null&&b.pct<=pace?'ritmo bajo el reloj · vas holgado':'ojo al ritmo'}</span>
+        <span class="rst">${pace!=null&&b.pct<=pace?t("pace_ok"):t("pace_watch")}</span>
         <span class="rst">${fmtReset(b.resets)}</span></div>`
        :`<div class="brow-top" style="margin-top:3px;margin-bottom:0">
         <span class="rst" style="margin-left:auto">${fmtReset(b.resets)}</span></div>`}
     </div>`;
-  }).join("") || `<div class="errbox">Sin buckets semanales en la respuesta.</div>`;
+  }).join("") || `<div class="errbox">${t("no_buckets")}</div>`;
 
   updateTray(ses ? {pct:ses.pct, resets:ses.resets, pace:elapsedPct(ses.resets,5)} : null,
              weeklyAllPct);
@@ -387,8 +559,7 @@ function maybeNotify(pct,resets){
           .then(g=> g ? true : notif.requestPermission().then(p=>p==="granted"))
           .then(ok=>{ if(ok) notif.sendNotification({
             title:"Claude Code Meter",
-            body: thr>=95 ? `Sesión al ${pct}% — casi agotada. Considera parar o cambiar de modelo.`
-                          : `Sesión al ${pct}% de tu límite de 5 h.` }); })
+            body: thr>=95 ? t("notif_hi",pct) : t("notif_lo",pct) }); })
           .catch(()=>{});
       }
       break;
@@ -406,17 +577,15 @@ function renderProjection(pct,pace,resets){
     const perMin=(pct-lastSes)/((now-lastTs)/6e4);      // %/min
     const minsLeft=resets?(new Date(resets)-now)/6e4:null;
     const minsTo100=perMin>0?(100-pct)/perMin:Infinity;
-    rate=`quema actual · ${perMin.toFixed(2)}%/min`;
+    rate=t("burn", perMin.toFixed(2));
     if(minsLeft!=null && minsTo100<minsLeft){
       calm=false;
-      txt=`Llegas al <b>100% de la sesión en ~${fmtDur(minsTo100)}</b>, antes del reset (${fmtDur(minsLeft)}). Baja el ritmo o cambia de modelo.`;
+      txt=t("proj_hit", fmtDur(minsTo100), fmtDur(minsLeft));
     }else{
-      txt=`Vas al día. Al ritmo actual <b>llegas al reset sin agotar</b> la sesión.`;
+      txt=t("proj_ok_rate");
     }
   }else{
-    txt = pace!=null && pct>pace+8
-      ? `Tu uso va <b>por delante del reloj</b>: consume más lento o podrías toparte con el límite.`
-      : `Vas al día. Tu consumo va <b>por detrás del reloj</b> del periodo.`;
+    txt = pace!=null && pct>pace+8 ? t("proj_ahead") : t("proj_behind");
     calm = !(pace!=null && pct>pace+8);
   }
   lastSes=pct; lastTs=now;
@@ -427,9 +596,10 @@ function fmtDur(m){m=Math.round(m);const h=Math.floor(m/60);return h?`${h} h ${m
 
 // ---------- detalle local ----------
 function renderLocal(s){
+  lastLocalData=s;
   const projs=s.projects.slice(0,4);
   const others=s.projects.slice(4);
-  if(others.length) projs.push({name:`otros (${others.length})`,cost:others.reduce((a,p)=>a+p.cost,0)});
+  if(others.length) projs.push({name:t("others",others.length),cost:others.reduce((a,p)=>a+p.cost,0)});
   const max=Math.max(...projs.map(p=>p.cost),0.01);
 
   let rows = projs.map((p,i)=>`
@@ -438,30 +608,28 @@ function renderLocal(s){
       <div class="pcost">$${p.cost.toFixed(2)}</div>
       <div class="pbar"><i style="width:${Math.round(p.cost/max*100)}%;background:${PALETTE[i%PALETTE.length]}"></i></div>
     </div>`).join("");
-  if(!rows) rows = `<div class="errbox" style="color:var(--txt-dim)">Sin actividad de Claude Code en los últimos 7 días.</div>`;
+  if(!rows) rows = `<div class="errbox" style="color:var(--txt-dim)">${t("no_activity")}</div>`;
 
-  // Fila estimada de otras superficies (claude.ai / IDE): los chats web no dejan
-  // registro local. NO convertimos % de cuota a $ (el endpoint no expone el tope en
-  // dólares, sería inventar): mostramos el % del límite SEMANAL global consumido en
-  // todas las superficies. Solo si hay dato; si no, se omite en vez de inventar.
+  // Fila estimada de otras superficies (claude.ai / IDE): solo si hay dato
+  // fiable, en % de cuota (nunca convertido a dólares).
   if(weeklyAllPct!=null){
-    rows += `<div class="pitem other" title="Estimación. Los chats de claude.ai y el uso en otros dispositivos no dejan registro local en este equipo. Esta fila muestra el % de tu límite semanal consumido en total (todas las superficies); el gasto por proyecto de arriba solo cubre Claude Code aquí. No se convierte a dólares porque el endpoint no expone el tope en $.">
-      <div class="pname"><span class="swatch" style="background:var(--txt-dim);border-radius:50%"></span><span>claude.ai / otros</span></div>
-      <div class="pcost">${weeklyAllPct}% cuota</div>
+    rows += `<div class="pitem other" title="${escapeHtml(t("claudeai_tip"))}">
+      <div class="pname"><span class="swatch" style="background:var(--txt-dim);border-radius:50%"></span><span>${t("claudeai_row")}</span></div>
+      <div class="pcost">${t("pct_quota", weeklyAllPct)}</div>
       <div class="pbar"><i style="width:${weeklyAllPct}%;background:var(--txt-dim)"></i></div>
     </div>`;
   }
   $("plist").innerHTML = rows;
 
   const models=Object.entries(s.models).map(([m,a])=>({m,t:a.input+a.output+a.cache_write}))
-    .filter(x=>x.t>0)                       // fuera modelos sin trabajo real (p. ej. placeholders)
+    .filter(x=>x.t>0)                       // fuera modelos sin trabajo real
     .sort((a,b)=>b.t-a.t);
   const tot=models.reduce((a,x)=>a+x.t,0);
   if(tot>0){
     $("modelSect").hidden=false;
     $("split").innerHTML=models.map((x,i)=>`<i style="width:${(x.t/tot*100).toFixed(1)}%;background:${PALETTE[i%PALETTE.length]}"></i>`).join("");
     $("legend").innerHTML=models.slice(0,4).map((x,i)=>`<span><b style="background:${PALETTE[i%PALETTE.length]}"></b>${escapeHtml(prettyModel(x.m))} ${Math.round(x.t/tot*100)}%</span>`).join("");
-    $("modelQ").textContent=prettyModel(models[0].m)+" lidera";
+    $("modelQ").textContent=t("model_leads", prettyModel(models[0].m));
   }
   $("costToday").textContent="$"+s.cost_today.toFixed(2);
   $("costWeek").textContent="$"+s.cost_week.toFixed(2);
@@ -471,14 +639,14 @@ function renderLocal(s){
 // El endpoint de cuota tiene rate-limit estricto: cadencia normal de 3 min.
 const REFRESH_MS=180000, STALE_MS=15*60000;
 let lastSync=Date.now(), fails=0, rateLimited=false, rateWaitMs=REFRESH_MS,
-    hadQuota=false, refreshTimer=null;
+    hadQuota=false, refreshTimer=null, lastErrCode=null;
 
 function onQuotaFail(reason){
-  $("liveDot").classList.add("err"); $("syncTxt").textContent=reason; fails++;
-  rateLimited=String(reason).includes("429");
-  const rm=String(reason).match(/Reintento en (\d+) min/);
+  lastErrCode=String(reason);
+  $("liveDot").classList.add("err"); $("syncTxt").textContent=errText(reason); fails++;
+  rateLimited=lastErrCode.startsWith("ERR_RATE_LIMITED");
   // respeta el Retry-After del servidor, con piso de 3 min
-  rateWaitMs=Math.max(REFRESH_MS, rm?+rm[1]*60000:REFRESH_MS);
+  rateWaitMs=Math.max(REFRESH_MS, (+lastErrCode.split(":")[1]||3)*60000);
   // el gauge y el icono CONSERVAN el último dato bueno reciente; solo se
   // ponen en gris si nunca hubo dato o si el último tiene más de 15 min.
   if(!hadQuota || Date.now()-lastSync>STALE_MS) updateTray(null,null);
@@ -490,7 +658,7 @@ async function refresh(){
     const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats")]);
     if(quota.status==="fulfilled"){
       renderQuota(quota.value); $("liveDot").classList.remove("err");
-      lastSync=Date.now(); fails=0; rateLimited=false; hadQuota=true;
+      lastSync=Date.now(); fails=0; rateLimited=false; hadQuota=true; lastErrCode=null;
     }else{
       onQuotaFail(quota.reason);
     }
@@ -506,23 +674,20 @@ function scheduleNext(){
   clearTimeout(refreshTimer); refreshTimer=setTimeout(refresh, delay);
 }
 setInterval(()=>{ if(!$("liveDot").classList.contains("err"))
-  $("syncTxt").textContent=`en vivo · actualizado hace ${Math.round((Date.now()-lastSync)/1000)}s`; },1000);
-refresh();
+  $("syncTxt").textContent=t("live_ago", Math.round((Date.now()-lastSync)/1000)); },1000);
 
 // arrastrar la ventana desde el encabezado (ventana sin decoraciones)
 const APPWIN = window.__TAURI__?.window ? window.__TAURI__.window.getCurrentWindow() : null;
 let dragging=false;
 $("pHead").addEventListener("mousedown",(e)=>{
   if(e.button!==0) return;               // solo clic izquierdo
-  if(e.target.closest("button")) return; // no arrastrar desde el botón ✕
+  if(e.target.closest("button")) return; // no arrastrar desde los botones
   dragging=true;
   APPWIN?.startDragging();
   setTimeout(()=>{ dragging=false; },500); // el arrastre nativo se traga el mouseup
 });
 
-// flyout: el panel se oculta al perder el foco (como el panel de la bandeja),
-// EXCEPTO mientras se arrastra (el arrastre nativo provoca un blur transitorio
-// que, sin esta guarda, haría desaparecer la ventana al intentar moverla).
+// flyout: el panel se oculta al perder el foco, EXCEPTO mientras se arrastra
 window.addEventListener("focus",()=>{ dragging=false; });
 window.addEventListener("blur",()=>{ if(!dragging) APPWIN?.hide(); });
 
@@ -541,9 +706,9 @@ function renderRemotes(){
     <div class="pitem">
       <div class="pname"><span class="swatch" style="background:var(--accent)"></span>
         <span>${escapeHtml(r.name)} — ${escapeHtml(r.host)}</span></div>
-      <button class="xbtn" data-i="${i}" title="Quitar este servidor">✕</button>
+      <button class="xbtn" data-i="${i}" title="${escapeHtml(t("remove_server"))}">✕</button>
     </div>`).join("")
-    || `<div class="errbox" style="color:var(--txt-dim)">Sin servidores agregados.</div>`;
+    || `<div class="errbox" style="color:var(--txt-dim)">${t("no_servers")}</div>`;
   document.querySelectorAll("#remList .xbtn").forEach(b=>{
     b.onclick=async()=>{
       remotes.splice(+b.dataset.i,1);
@@ -557,19 +722,29 @@ $("cfgBtn").addEventListener("click",()=>{
   if(!$("cfgSect").hidden){ loadRemotes(); $("cfgSect").scrollIntoView({behavior:"smooth"}); }
 });
 $("rAdd").addEventListener("click",async()=>{
-  const name=$("rName").value.trim()||"servidor";
+  const name=$("rName").value.trim()||"server";
   const host=$("rHost").value.trim();
   const command=$("rCmd").value.trim();
-  if(!host){ $("rMsg").textContent="falta el host SSH"; return; }
-  $("rMsg").textContent="probando conexión…";
+  if(!host){ $("rMsg").textContent=t("msg_no_host"); return; }
+  $("rMsg").textContent=t("msg_testing");
   try{
     await invoke("test_remote",{host});
     remotes.push({name,host,command});
     await invoke("save_remotes",{remotes});
-    $("rMsg").textContent="✓ conectado y guardado";
+    $("rMsg").textContent=t("msg_added");
     $("rName").value=""; $("rHost").value="";
     renderRemotes(); refresh();
   }catch(e){ $("rMsg").textContent="✗ "+e; }
+});
+
+// ---------- idioma (persistido; re-render en caliente) ----------
+$("langSel").addEventListener("change",()=>{
+  lang=$("langSel").value; localStorage.setItem("lang",lang);
+  applyI18n();
+  if(lastQuotaData) renderQuota(lastQuotaData);
+  if(lastLocalData) renderLocal(lastLocalData);
+  if(lastErrCode) $("syncTxt").textContent=errText(lastErrCode);
+  renderRemotes();
 });
 
 // ---------- modo demo (SOLO al abrir index.html suelto en un navegador, sin Tauri) ----------
@@ -587,8 +762,14 @@ function demo(){
     models:{"claude-sonnet-4-6":{input:9e6,output:1e6,cache_write:2e6,cache_read:0,cost:30},
       "claude-opus-4-8":{input:2e6,output:4e5,cache_write:8e5,cache_read:0,cost:17}},
     cost_today:6.8,cost_week:47.2});
-  $("syncTxt").textContent="modo demo (sin Tauri)";
+  $("syncTxt").textContent=t("demo_mode");
 }
+
+// ---------- arranque ----------
+applyI18n();
+$("syncTxt").textContent=t("connecting");
+$("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
+refresh();
 </script>
 </body>
 </html>
