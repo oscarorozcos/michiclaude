@@ -212,14 +212,14 @@ fn cost_of(model: &str, inp: u64, out: u64, cw: u64, cr: u64) -> f64 {
 // Cada fuente devuelve un LocalStats por stdout; se fusiona con lo local y sus
 // proyectos se etiquetan "nombre · vps". Sin remotes.json la función no hace nada.
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct RemoteSource {
     name: String,
     host: String,
     command: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct RemotesConfig {
     remotes: Vec<RemoteSource>,
 }
@@ -230,6 +230,48 @@ fn load_remotes() -> Vec<RemoteSource> {
         .and_then(|s| serde_json::from_str::<RemotesConfig>(&s).ok())
         .map(|c| c.remotes)
         .unwrap_or_default()
+}
+
+/// Fuentes remotas configuradas (para el apartado de ajustes del panel).
+#[tauri::command]
+fn get_remotes() -> Vec<RemoteSource> {
+    load_remotes()
+}
+
+/// Persiste la lista de fuentes remotas editada desde el panel.
+#[tauri::command]
+fn save_remotes(remotes: Vec<RemoteSource>) -> Result<(), String> {
+    let dir = app_data_dir();
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let s = serde_json::to_string_pretty(&RemotesConfig { remotes })
+        .map_err(|e| e.to_string())?;
+    fs::write(dir.join("remotes.json"), s).map_err(|e| e.to_string())
+}
+
+/// Prueba la conexión SSH a un host (BatchMode: nunca pide contraseña).
+#[tauri::command]
+fn test_remote(host: String) -> Result<String, String> {
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+        .arg(&host)
+        .arg("echo ok");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let out = cmd
+        .output()
+        .map_err(|e| format!("No pude ejecutar ssh: {e}"))?;
+    if out.status.success() {
+        Ok("ok".into())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr)
+            .trim()
+            .chars()
+            .take(200)
+            .collect())
+    }
 }
 
 /// Ejecuta el exportador remoto por SSH. BatchMode: jamás pide contraseña
@@ -485,7 +527,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_quota,
             get_local_stats,
-            update_tray
+            update_tray,
+            get_remotes,
+            save_remotes,
+            test_remote
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

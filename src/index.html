@@ -17,8 +17,10 @@
     --track:rgba(255,255,255,.08);
   }
   *{box-sizing:border-box}
-  html,body{margin:0;background:transparent}
+  html,body{margin:0;background:transparent;height:100%}
   body{font-family:var(--font);color:var(--txt);padding:8px;overflow:hidden}
+  /* si el contenido crece (ajustes abiertos), el panel hace scroll interno */
+  .panel{max-height:calc(100vh - 16px);overflow-y:auto;scrollbar-width:thin}
 
   .panel{
     background:var(--mica);border-radius:14px;
@@ -107,6 +109,20 @@
   .totals .t b{display:block;font-family:var(--mono);font-size:15px;color:var(--txt);margin-top:2px}
   .foot-note{font-size:10px;color:var(--txt-dim);max-width:160px;text-align:right;line-height:1.35}
   .errbox{font-size:11.5px;color:var(--warn);line-height:1.4;padding:6px 0}
+
+  /* ajustes (fuentes de datos) */
+  .cfg-note{font-size:11px;color:var(--txt-mut);line-height:1.5;margin-bottom:9px}
+  .cfg-note b{color:var(--txt);font-weight:600}
+  .cfg-form{display:flex;flex-direction:column;gap:6px;margin-top:9px}
+  .cfg-form input{background:var(--surface);border:1px solid var(--stroke);border-radius:7px;
+    padding:6px 9px;color:var(--txt);font-family:var(--mono);font-size:11px;outline:none}
+  .cfg-form input:focus{border-color:var(--accent)}
+  .cfg-form button{align-self:flex-start;background:rgba(86,199,214,.14);color:var(--accent);
+    border:1px solid rgba(86,199,214,.35);border-radius:7px;padding:6px 12px;
+    font-size:11.5px;cursor:pointer;font-family:var(--font)}
+  .cfg-form button:hover{background:rgba(86,199,214,.22)}
+  #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
+  #remList .pitem{grid-template-columns:1fr auto}
 </style>
 </head>
 <body>
@@ -118,6 +134,7 @@
       <div class="p-sub" id="syncLine"><span class="live" id="liveDot"></span><span id="syncTxt">conectando…</span></div>
     </div>
     <span class="plan" id="planTag">—</span>
+    <button class="xbtn" id="cfgBtn" title="Fuentes de datos (servidores SSH)">⚙</button>
     <button class="xbtn" id="hideBtn" title="Ocultar a la bandeja">✕</button>
   </div>
 
@@ -157,6 +174,24 @@
     <div class="eyebrow">Modelo más usado <span class="q" id="modelQ"></span></div>
     <div class="split" id="split"></div>
     <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="sect" id="cfgSect" hidden>
+    <div class="eyebrow">Fuentes de datos</div>
+    <div class="cfg-note">
+      <b>Este PC</b>: automático (logs de Claude Code). ·
+      <b>claude.ai</b>: automático vía la cuota de tu cuenta. ·
+      <b>Servidores</b>: agrégalos aquí por SSH (misma llave que usas para
+      conectarte); sus proyectos aparecen como "nombre · servidor".
+    </div>
+    <div class="plist" id="remList"></div>
+    <div class="cfg-form">
+      <input id="rName" placeholder="nombre corto (ej. vps)">
+      <input id="rHost" placeholder="host SSH (alias de ~/.ssh/config o usuario@ip)">
+      <input id="rCmd" value="python3 /opt/projects/claude-code-meter/scripts/meter-export.py">
+      <button id="rAdd">Probar y agregar</button>
+      <span id="rMsg"></span>
+    </div>
   </div>
 
   <div class="p-foot">
@@ -433,33 +468,41 @@ function renderLocal(s){
 }
 
 // ---------- ciclo de refresco (auto-programado, con backoff ante fallos) ----------
-let lastSync=Date.now(), fails=0, rateLimited=false, rateWaitMs=300000, refreshTimer=null;
+// El endpoint de cuota tiene rate-limit estricto: cadencia normal de 3 min.
+const REFRESH_MS=180000, STALE_MS=15*60000;
+let lastSync=Date.now(), fails=0, rateLimited=false, rateWaitMs=REFRESH_MS,
+    hadQuota=false, refreshTimer=null;
+
+function onQuotaFail(reason){
+  $("liveDot").classList.add("err"); $("syncTxt").textContent=reason; fails++;
+  rateLimited=String(reason).includes("429");
+  const rm=String(reason).match(/Reintento en (\d+) min/);
+  // respeta el Retry-After del servidor, con piso de 3 min
+  rateWaitMs=Math.max(REFRESH_MS, rm?+rm[1]*60000:REFRESH_MS);
+  // el gauge y el icono CONSERVAN el último dato bueno reciente; solo se
+  // ponen en gris si nunca hubo dato o si el último tiene más de 15 min.
+  if(!hadQuota || Date.now()-lastSync>STALE_MS) updateTray(null,null);
+}
+
 async function refresh(){
   if(!invoke){ demo(); return; }
   try{
     const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats")]);
     if(quota.status==="fulfilled"){
       renderQuota(quota.value); $("liveDot").classList.remove("err");
-      lastSync=Date.now(); fails=0; rateLimited=false;
+      lastSync=Date.now(); fails=0; rateLimited=false; hadQuota=true;
     }else{
-      $("liveDot").classList.add("err"); $("syncTxt").textContent=quota.reason; fails++;
-      rateLimited=String(quota.reason).includes("429");
-      const rm=String(quota.reason).match(/Reintento en (\d+) min/);
-      rateWaitMs=rm?Math.max(60000,+rm[1]*60000):300000;   // respeta el Retry-After del servidor
-      updateTray(null,null);              // icono en gris: sin datos, sin inventar
+      onQuotaFail(quota.reason);
     }
     if(local.status==="fulfilled") renderLocal(local.value);
-  }catch(e){ $("liveDot").classList.add("err"); $("syncTxt").textContent=String(e); fails++;
-    rateLimited=String(e).includes("429");
-    updateTray(null,null); }
+  }catch(e){ onQuotaFail(e); }
   finally{ scheduleNext(); }
 }
 function scheduleNext(){
-  // 60 s en régimen normal; red/errores: backoff 5→10→20→40 s (máx 60 s).
-  // 429: esperar lo que pida el servidor (Retry-After) o 5 min — reintentar
-  // rápido un rate-limit solo lo empeora.
+  // 3 min en régimen normal; errores de red: backoff 5→10→20→40 s (máx 60 s);
+  // 429: lo que pida el servidor, mínimo 3 min (reintentar rápido lo empeora).
   const delay = rateLimited ? rateWaitMs
-    : fails>0 ? Math.min(60000, 5000*2**(fails-1)) : 60000;
+    : fails>0 ? Math.min(60000, 5000*2**(fails-1)) : REFRESH_MS;
   clearTimeout(refreshTimer); refreshTimer=setTimeout(refresh, delay);
 }
 setInterval(()=>{ if(!$("liveDot").classList.contains("err"))
@@ -485,6 +528,49 @@ window.addEventListener("blur",()=>{ if(!dragging) APPWIN?.hide(); });
 
 // ocultar a bandeja
 $("hideBtn").addEventListener("click",()=>{ APPWIN?.hide(); });
+
+// ---------- ajustes: fuentes remotas (servidores por SSH) ----------
+let remotes=[];
+async function loadRemotes(){
+  if(!invoke) return;
+  try{ remotes=await invoke("get_remotes"); }catch(e){ remotes=[]; }
+  renderRemotes();
+}
+function renderRemotes(){
+  $("remList").innerHTML = remotes.map((r,i)=>`
+    <div class="pitem">
+      <div class="pname"><span class="swatch" style="background:var(--accent)"></span>
+        <span>${escapeHtml(r.name)} — ${escapeHtml(r.host)}</span></div>
+      <button class="xbtn" data-i="${i}" title="Quitar este servidor">✕</button>
+    </div>`).join("")
+    || `<div class="errbox" style="color:var(--txt-dim)">Sin servidores agregados.</div>`;
+  document.querySelectorAll("#remList .xbtn").forEach(b=>{
+    b.onclick=async()=>{
+      remotes.splice(+b.dataset.i,1);
+      try{ await invoke("save_remotes",{remotes}); }catch(e){}
+      renderRemotes(); refresh();
+    };
+  });
+}
+$("cfgBtn").addEventListener("click",()=>{
+  $("cfgSect").hidden=!$("cfgSect").hidden;
+  if(!$("cfgSect").hidden){ loadRemotes(); $("cfgSect").scrollIntoView({behavior:"smooth"}); }
+});
+$("rAdd").addEventListener("click",async()=>{
+  const name=$("rName").value.trim()||"servidor";
+  const host=$("rHost").value.trim();
+  const command=$("rCmd").value.trim();
+  if(!host){ $("rMsg").textContent="falta el host SSH"; return; }
+  $("rMsg").textContent="probando conexión…";
+  try{
+    await invoke("test_remote",{host});
+    remotes.push({name,host,command});
+    await invoke("save_remotes",{remotes});
+    $("rMsg").textContent="✓ conectado y guardado";
+    $("rName").value=""; $("rHost").value="";
+    renderRemotes(); refresh();
+  }catch(e){ $("rMsg").textContent="✗ "+e; }
+});
 
 // ---------- modo demo (SOLO al abrir index.html suelto en un navegador, sin Tauri) ----------
 // Nunca se ejecuta dentro de la app real (allí window.__TAURI__ existe -> invoke).

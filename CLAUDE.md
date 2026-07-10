@@ -152,6 +152,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] 429: se respeta el Retry-After del servidor, el cuerpo del error se
       vuelca a quota_debug.json, y si el token local ya venció (expiresAt) no
       se llama a la API (evita bloqueos por reintentos con token muerto).
+- [x] Cadencia de cuota bajada a 3 min (60 s disparaba 429 recurrentes) y el
+      gauge/icono conservan el último dato bueno hasta 15 min ante fallos
+      transitorios (nunca se borra la lectura por un error pasajero).
+- [x] Ajustes en el panel (botón ⚙): alta/baja de servidores SSH con prueba
+      de conexión (comandos get_remotes/save_remotes/test_remote); escribe
+      remotes.json. Este PC y claude.ai no requieren configuración.
 - [~] Fuente remota VPS (Oscar usa Claude Code sobre todo en el VPS vía
       VS Code SSH): exportador + fusión implementados y el script probado
       contra los logs reales del VPS. FALTA: crear remotes.json en Windows y
