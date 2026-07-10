@@ -433,25 +433,30 @@ function renderLocal(s){
 }
 
 // ---------- ciclo de refresco (auto-programado, con backoff ante fallos) ----------
-let lastSync=Date.now(), fails=0, refreshTimer=null;
+let lastSync=Date.now(), fails=0, rateLimited=false, refreshTimer=null;
 async function refresh(){
   if(!invoke){ demo(); return; }
   try{
     const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats")]);
     if(quota.status==="fulfilled"){
-      renderQuota(quota.value); $("liveDot").classList.remove("err"); lastSync=Date.now(); fails=0;
+      renderQuota(quota.value); $("liveDot").classList.remove("err");
+      lastSync=Date.now(); fails=0; rateLimited=false;
     }else{
       $("liveDot").classList.add("err"); $("syncTxt").textContent=quota.reason; fails++;
+      rateLimited=String(quota.reason).includes("429");
       updateTray(null,null);              // icono en gris: sin datos, sin inventar
     }
     if(local.status==="fulfilled") renderLocal(local.value);
   }catch(e){ $("liveDot").classList.add("err"); $("syncTxt").textContent=String(e); fails++;
+    rateLimited=String(e).includes("429");
     updateTray(null,null); }
   finally{ scheduleNext(); }
 }
 function scheduleNext(){
-  // 60 s en régimen normal; si falla, reintento con backoff 5→10→20→40 s (máx 60 s).
-  const delay = fails>0 ? Math.min(60000, 5000*2**(fails-1)) : 60000;
+  // 60 s en régimen normal; red/errores: backoff 5→10→20→40 s (máx 60 s).
+  // 429: esperar 5 min — reintentar rápido un rate-limit solo lo empeora.
+  const delay = rateLimited ? 300000
+    : fails>0 ? Math.min(60000, 5000*2**(fails-1)) : 60000;
   clearTimeout(refreshTimer); refreshTimer=setTimeout(refresh, delay);
 }
 setInterval(()=>{ if(!$("liveDot").classList.contains("err"))

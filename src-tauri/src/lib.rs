@@ -59,6 +59,12 @@ async fn get_quota() -> Result<serde_json::Value, String> {
     if resp.status().as_u16() == 401 {
         return Err("Token expirado. Abre Claude Code (o ejecuta `claude update`) para refrescarlo.".into());
     }
+    if resp.status().as_u16() == 429 {
+        return Err(
+            "La API limitó las peticiones (429). Reintento en 5 min — tu cuota no se ve afectada."
+                .into(),
+        );
+    }
     if !resp.status().is_success() {
         return Err(format!("La API respondió {}", resp.status()));
     }
