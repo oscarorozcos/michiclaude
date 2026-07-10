@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Claude Code Meter</title>
+<style>
+  :root{
+    --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
+    --mica:rgba(30,33,40,.96);
+    --surface:rgba(255,255,255,.045);
+    --stroke:rgba(255,255,255,.09);
+    --stroke-soft:rgba(255,255,255,.055);
+    --txt:#e9ebef; --txt-mut:#969ba6; --txt-dim:#6c717c;
+    --brand:#d97757; --accent:#56c7d6;
+    --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
+    --track:rgba(255,255,255,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:transparent}
+  body{font-family:var(--font);color:var(--txt);padding:8px;overflow:hidden}
+
+  .panel{
+    background:var(--mica);border-radius:14px;
+    box-shadow:0 24px 60px -12px rgba(0,0,0,.7),0 0 0 1px var(--stroke);
+    padding:15px 15px 13px;
+  }
+  .p-head{display:flex;align-items:center;gap:10px;margin-bottom:13px;
+    cursor:grab;user-select:none;-webkit-user-select:none}
+  .p-head:active{cursor:grabbing}
+  .p-head button{cursor:pointer}
+  .p-head .mark{width:22px;height:22px;flex:0 0 auto}
+  .p-htext{min-width:0;flex:1 1 auto}
+  .p-title{font-size:13.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-sub{font-size:11px;color:var(--txt-dim);font-family:var(--mono);margin-top:1px;
+    display:flex;align-items:center;gap:6px;transition:opacity .2s;
+    min-width:0;white-space:normal;overflow-wrap:anywhere}
+  .p-sub #syncTxt{min-width:0;overflow-wrap:anywhere}
+  .p-sub .live{flex:0 0 auto}
+  .live{width:7px;height:7px;border-radius:50%;background:var(--ok);
+    box-shadow:0 0 0 0 rgba(64,184,105,.6);animation:pulse 2.4s infinite}
+  .live.err{background:var(--bad);animation:none}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(64,184,105,.5)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  .plan{margin-left:auto;flex:0 0 auto;font-size:10.5px;font-weight:650;letter-spacing:.4px;
+    color:var(--accent);background:rgba(86,199,214,.14);
+    border:1px solid rgba(86,199,214,.35);padding:3px 8px;border-radius:7px}
+  .xbtn{margin-left:8px;width:24px;height:24px;border-radius:6px;border:0;cursor:pointer;
+    background:transparent;color:var(--txt-mut);font-size:14px;line-height:1}
+  .xbtn:hover{background:var(--surface);color:var(--txt)}
+
+  .sect{border-top:1px solid var(--stroke-soft);padding-top:11px;margin-top:11px}
+  .sect:first-of-type{border-top:0;margin-top:0;padding-top:0}
+  .eyebrow{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt-dim);
+    font-weight:700;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
+  .eyebrow .q{font-family:var(--mono);letter-spacing:0;text-transform:none;
+    color:var(--txt-mut);font-weight:500;font-size:11px}
+
+  .hero{display:flex;gap:14px;align-items:center}
+  .gauge{width:132px;flex:0 0 auto;position:relative;text-align:center}
+  .gauge svg{width:132px;height:78px;display:block}
+  .g-val{position:absolute;left:0;right:0;top:38px;font-family:var(--mono);font-weight:700;
+    font-size:23px;letter-spacing:.5px}
+  .g-cap{position:absolute;left:0;right:0;top:64px;font-size:10px;color:var(--txt-dim)}
+  .g-reset{font-family:var(--mono);font-size:11px;color:var(--txt-mut);margin-top:2px}
+
+  .stack{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+  .bar-row .brow-top{display:flex;justify-content:space-between;align-items:baseline;
+    gap:8px;min-width:0;font-size:11.5px;margin-bottom:5px}
+  .bar-row .brow-top.wrap{flex-wrap:wrap;gap:2px 8px}
+  .bar-row .brow-top.wrap .rst{white-space:normal;min-width:0;margin-left:0}
+  .bar-row .lbl{color:var(--txt-mut);flex:1 1 auto;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-row .lbl b{color:var(--txt);font-weight:600}
+  .bar-row .rst{font-family:var(--mono);font-size:10.5px;color:var(--txt-dim);flex:0 1 auto;margin-left:8px}
+  .track{position:relative;height:9px;border-radius:6px;background:var(--track);overflow:hidden}
+  .mini .track{height:6px}
+  .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;transition:width .6s,background .3s}
+  .pace{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--txt);opacity:.85}
+
+  .proj{display:flex;gap:11px;align-items:flex-start;border-radius:10px;padding:10px 12px;
+    background:rgba(230,164,23,.12);border:1px solid rgba(230,164,23,.32)}
+  .proj.calm{background:rgba(64,184,105,.11);border-color:rgba(64,184,105,.3)}
+  .proj .ptxt{font-size:12px;line-height:1.42}
+  .proj .rate{font-family:var(--mono);font-size:10.5px;color:var(--txt-mut);margin-top:3px}
+
+  .plist{display:flex;flex-direction:column;gap:8px}
+  .pitem{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+  .pitem .pname{font-size:12px;display:flex;align-items:center;gap:7px;min-width:0}
+  .pitem .swatch{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+  .pitem .pname span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pitem .pcost{font-family:var(--mono);font-size:12px;font-weight:600}
+  .pitem .pbar{grid-column:1/-1;height:5px;border-radius:4px;background:var(--track);overflow:hidden}
+  .pitem .pbar i{display:block;height:100%;border-radius:4px}
+  .pitem.other{margin-top:2px;padding-top:8px;border-top:1px dashed var(--stroke-soft);cursor:help}
+  .pitem.other .pname span:last-child{color:var(--txt-mut);font-style:italic}
+  .pitem.other .pcost{color:var(--txt-mut);font-weight:500}
+
+  .split{height:11px;border-radius:6px;overflow:hidden;display:flex;border:1px solid var(--stroke-soft)}
+  .legend{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap}
+  .legend span{font-size:11px;color:var(--txt-mut);display:flex;align-items:center;gap:6px}
+  .legend b{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+  .p-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;
+    padding-top:10px;border-top:1px solid var(--stroke-soft)}
+  .totals{display:flex;gap:16px}
+  .totals .t{font-size:10px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:.6px}
+  .totals .t b{display:block;font-family:var(--mono);font-size:15px;color:var(--txt);margin-top:2px}
+  .foot-note{font-size:10px;color:var(--txt-dim);max-width:160px;text-align:right;line-height:1.35}
+  .errbox{font-size:11.5px;color:var(--warn);line-height:1.4;padding:6px 0}
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="p-head" id="pHead">
+    <span class="mark" id="mark"></span>
+    <div class="p-htext">
+      <div class="p-title">Claude Code Meter</div>
+      <div class="p-sub" id="syncLine"><span class="live" id="liveDot"></span><span id="syncTxt">conectando…</span></div>
+    </div>
+    <span class="plan" id="planTag">—</span>
+    <button class="xbtn" id="hideBtn" title="Ocultar a la bandeja">✕</button>
+  </div>
+
+  <div class="sect">
+    <div class="eyebrow">Cuánto te queda <span class="q" id="remQ"></span></div>
+    <div class="hero">
+      <div class="gauge">
+        <svg viewBox="0 0 132 78">
+          <path d="M 14 72 A 52 52 0 0 1 118 72" fill="none" stroke="var(--track)" stroke-width="11" stroke-linecap="round"/>
+          <path id="gFill" d="M 14 72 A 52 52 0 0 1 118 72" fill="none" stroke="var(--ok)" stroke-width="11"
+                stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+        </svg>
+        <div class="g-val" id="sesVal">–</div>
+        <div class="g-cap">SESIÓN · 5 H</div>
+        <div class="g-reset" id="sesReset"></div>
+      </div>
+      <div class="stack" id="weekStack"><!-- barras semanales dinámicas --></div>
+    </div>
+  </div>
+
+  <div class="sect" id="projSect" hidden>
+    <div class="eyebrow">A este ritmo</div>
+    <div class="proj calm" id="proj">
+      <div>
+        <div class="ptxt" id="projTxt"></div>
+        <div class="rate" id="rateTxt"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="eyebrow">Gasto por proyecto <span class="q">7 días · equiv. API</span></div>
+    <div class="plist" id="plist"><div class="errbox" style="color:var(--txt-dim)">leyendo ~/.claude…</div></div>
+  </div>
+
+  <div class="sect" id="modelSect" hidden>
+    <div class="eyebrow">Modelo más usado <span class="q" id="modelQ"></span></div>
+    <div class="split" id="split"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="p-foot">
+    <div class="totals">
+      <div class="t">Hoy<b id="costToday">–</b></div>
+      <div class="t">Semana<b id="costWeek">–</b></div>
+    </div>
+    <div class="foot-note">Datos locales + cuota real. Nada sale de tu equipo salvo hacia api.anthropic.com</div>
+  </div>
+</div>
+
+<script>
+// ---------- marca ----------
+function sunburst(size){
+  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="${size}" height="${size}" viewBox="0 0 ${S} ${S}">`;
+  for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
+    const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
+    const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
+    const pts=[[cx+ux*base,cy+uy*base],[cx+ux*mid+px*hw,cy+uy*mid+py*hw],
+      [cx+ux*tip,cy+uy*tip],[cx+ux*mid-px*hw,cy+uy*mid-py*hw]]
+      .map(q=>q.map(n=>n.toFixed(2)).join(",")).join(" ");
+    p+=`<polygon points="${pts}" fill="var(--brand)"/>`}
+  return p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
+}
+document.getElementById("mark").innerHTML=sunburst(22);
+
+// ---------- entorno ----------
+const TAURI = window.__TAURI__?.core;
+const invoke = TAURI ? TAURI.invoke : null;
+const EVENT = window.__TAURI__?.event;   // el panel es el ÚNICO que llama al endpoint;
+let lastBarPayload = null;               // la franja recibe los datos por evento.
+const PALETTE = ["var(--accent)","var(--brand)","var(--ok)","var(--warn)","var(--txt-dim)"];
+
+// Resumen compacto que consume la franja (no vuelve a llamar al endpoint).
+function emitBar(ses, weekPct){
+  lastBarPayload = {
+    ok:true,
+    session: ses ? {pct:ses.pct, resets:ses.resets, pace:elapsedPct(ses.resets,5)} : null,
+    weekly:  weekPct!=null ? {pct:weekPct} : null
+  };
+  EVENT?.emit("quota:update", lastBarPayload);
+}
+// Cuando la franja (re)carga, pide el último dato conocido para no esperar 60 s.
+EVENT?.listen("bar:ready", ()=>{ if(lastBarPayload) EVENT.emit("quota:update", lastBarPayload); });
+
+// ---------- helpers ----------
+const $=id=>document.getElementById(id);
+function col(pct,pace){ if(pct>=95) return "var(--bad)";
+  if(pace!=null && pct>pace+8) return pct>85?"var(--bad)":"var(--warn)"; 
+  if(pct>=80) return "var(--warn)"; return "var(--ok)"; }
+function fmtReset(iso){ if(!iso) return "";
+  const ms=new Date(iso)-Date.now(); if(ms<=0) return "reset ya";
+  const h=Math.floor(ms/3.6e6),m=Math.floor(ms%3.6e6/6e4);
+  return h?`reset en ${h} h ${m} min`:`reset en ${m} min`; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>(
+  {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function prettyBucket(k){
+  return k.replace(/seven_day|7d/gi,"Semanal").replace(/five_hour|5h/gi,"Sesión")
+          .replace(/[_-]/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+// Nombre bonito de modelo: "claude-opus-4-8" -> "Opus 4.8"
+function prettyModel(id){
+  if(!id) return "desconocido";
+  const s=id.replace(/^claude-/,"").replace(/-\d{8}$/,"");
+  const fam=(s.match(/opus|sonnet|haiku|fable|mythos|cowork/i)||[])[0];
+  const ver=s.match(/(\d+)[-.](\d+)/);
+  const name=fam?fam[0].toUpperCase()+fam.slice(1).toLowerCase():s;
+  return ver?`${name} ${ver[1]}.${ver[2]}`:name;
+}
+
+// ---------- cuota real (dinámica por plan) ----------
+// Fuente principal: el array `limits` del endpoint. Es estructurado y trae, por
+// cada límite: kind (session | weekly_all | weekly_scoped), percent, resets_at y
+// scope.model.display_name ("Fable", "Opus"...). Las claves sueltas seven_day_*
+// suelen venir null, por eso hay que leer `limits`. Fallback: búsqueda recursiva
+// de objetos con { utilization } por si el endpoint cambia de forma.
+function extractBuckets(node, path, out){
+  if(!node || typeof node!=="object") return;
+  const u = node.utilization ?? node.used_percent ?? node.percent_used;
+  if(typeof u==="number"){
+    const key=path.join("."), isSes=/five|5h|session/i.test(key);
+    out.push({
+      kind: isSes?"session":(/seven_day$|week/i.test(key)?"weekly_all":"weekly_scoped"),
+      label: isSes?"Sesión · 5 h":prettyBucket(key),
+      pct:Math.round(u<=1?u*100:u),
+      resets:node.resets_at ?? node.reset_at ?? null}); return;
+  }
+  for(const [k,v] of Object.entries(node)) extractBuckets(v,[...path,k],out);
+}
+
+// Normaliza la respuesta a una lista homogénea de buckets, se renderice lo que se
+// renderice: si mañana aparece un bucket nuevo (Cowork, otro modelo...) se pinta solo.
+function parseQuota(data){
+  const out=[];
+  if(Array.isArray(data?.limits) && data.limits.length){
+    for(const l of data.limits){
+      const pct=Math.round(l.percent ?? l.utilization ?? 0);
+      const resets=l.resets_at ?? null;
+      let kind,label;
+      if(l.kind==="session" || l.group==="session"){ kind="session"; label="Sesión · 5 h"; }
+      else if(l.kind==="weekly_all"){ kind="weekly_all"; label="Semanal · todos los modelos"; }
+      else if(l.kind==="weekly_scoped"){
+        const m=l.scope?.model?.display_name || l.scope?.surface || "otro modelo";
+        kind="weekly_scoped"; label="Semanal · "+m;
+      } else { kind=l.kind||l.group||"otro"; label=prettyBucket(l.kind||l.group||"otro"); }
+      out.push({kind,label,pct,resets});
+    }
+  } else {
+    extractBuckets(data,[],out);         // fallback recursivo
+  }
+  return out;
+}
+
+const WRANK={session:0,weekly_all:1,weekly_scoped:2};
+let weeklyAllPct=null;   // lo usa la fila "claude.ai / otros" en renderLocal
+
+// marcador de ritmo: % del periodo ya transcurrido
+function elapsedPct(resets,hours){ if(!resets) return null;
+  const left=(new Date(resets)-Date.now())/3.6e6;
+  return Math.round(Math.min(100,Math.max(0,(1-left/hours)*100))); }
+
+function renderQuota(data){
+  $("planTag").textContent = data?.plan?.name || data?.subscription?.plan || data?.plan_name || "Suscripción";
+
+  const buckets=parseQuota(data);
+  const ses=buckets.find(b=>b.kind==="session");
+  const weekly=buckets.filter(b=>b.kind!=="session")
+    .sort((a,b)=>(WRANK[a.kind]??9)-(WRANK[b.kind]??9));
+  weeklyAllPct = (weekly.find(b=>b.kind==="weekly_all") || weekly[0] || {}).pct ?? null;
+
+  if(ses){
+    const pace=elapsedPct(ses.resets,5);
+    const c=col(ses.pct,pace);
+    $("gFill").setAttribute("stroke-dashoffset",(100-ses.pct));
+    $("gFill").setAttribute("stroke",c);
+    $("sesVal").textContent=ses.pct+"%"; $("sesVal").style.color=c;
+    $("sesReset").textContent=fmtReset(ses.resets);
+    $("remQ").textContent = pace!=null && ses.pct>pace+8 ? "vas más rápido que el reloj" : "dentro de lo previsto";
+    renderProjection(ses.pct,pace,ses.resets);
+    maybeNotify(ses.pct,ses.resets);
+  }
+
+  $("weekStack").innerHTML = weekly.map((b)=>{
+    const hero=b.kind==="weekly_all";
+    const pace=elapsedPct(b.resets,168), c=col(b.pct,pace);
+    return `<div class="bar-row ${hero?'':'mini'}">
+      <div class="brow-top"><span class="lbl">${escapeHtml(b.label)}</span>
+        <span class="rst">${b.pct}%</span></div>
+      <div class="track"><div class="fill" style="width:${b.pct}%;background:${c}"></div>
+        ${pace!=null?`<div class="pace" style="left:${pace}%"></div>`:""}</div>
+      ${hero?`<div class="brow-top wrap" style="margin-top:4px;margin-bottom:0">
+        <span class="rst">${pace!=null&&b.pct<=pace?'ritmo bajo el reloj · vas holgado':'ojo al ritmo'}</span>
+        <span class="rst">${fmtReset(b.resets)}</span></div>`
+       :`<div class="brow-top" style="margin-top:3px;margin-bottom:0">
+        <span class="rst" style="margin-left:auto">${fmtReset(b.resets)}</span></div>`}
+    </div>`;
+  }).join("") || `<div class="errbox">Sin buckets semanales en la respuesta.</div>`;
+
+  emitBar(ses, weeklyAllPct);   // comparte con la franja
+}
+
+// ---------- avisos de sesión (una vez por umbral por ventana de sesión) ----------
+function maybeNotify(pct,resets){
+  const notif=window.__TAURI__?.notification;
+  if(!notif) return;
+  const win=resets||"sesion";                 // clave = ventana de sesión actual
+  for(const thr of [95,80]){                  // el umbral más alto primero
+    if(pct>=thr){
+      const key=`notif:${thr}:${win}`;
+      if(!localStorage.getItem(key)){
+        localStorage.setItem(key,"1");        // anti-spam: uno por umbral y ventana
+        Promise.resolve(notif.isPermissionGranted())
+          .then(g=> g ? true : notif.requestPermission().then(p=>p==="granted"))
+          .then(ok=>{ if(ok) notif.sendNotification({
+            title:"Claude Code Meter",
+            body: thr>=95 ? `Sesión al ${pct}% — casi agotada. Considera parar o cambiar de modelo.`
+                          : `Sesión al ${pct}% de tu límite de 5 h.` }); })
+          .catch(()=>{});
+      }
+      break;
+    }
+  }
+}
+
+// proyección simple: burn rate de la sesión vs tiempo restante
+let lastSes=null, lastTs=null;
+function renderProjection(pct,pace,resets){
+  $("projSect").hidden=false;
+  const now=Date.now();
+  let txt, calm=true, rate="";
+  if(lastSes!=null && pct>lastSes && now>lastTs){
+    const perMin=(pct-lastSes)/((now-lastTs)/6e4);      // %/min
+    const minsLeft=resets?(new Date(resets)-now)/6e4:null;
+    const minsTo100=perMin>0?(100-pct)/perMin:Infinity;
+    rate=`quema actual · ${perMin.toFixed(2)}%/min`;
+    if(minsLeft!=null && minsTo100<minsLeft){
+      calm=false;
+      txt=`Llegas al <b>100% de la sesión en ~${fmtDur(minsTo100)}</b>, antes del reset (${fmtDur(minsLeft)}). Baja el ritmo o cambia de modelo.`;
+    }else{
+      txt=`Vas al día. Al ritmo actual <b>llegas al reset sin agotar</b> la sesión.`;
+    }
+  }else{
+    txt = pace!=null && pct>pace+8
+      ? `Tu uso va <b>por delante del reloj</b>: consume más lento o podrías toparte con el límite.`
+      : `Vas al día. Tu consumo va <b>por detrás del reloj</b> del periodo.`;
+    calm = !(pace!=null && pct>pace+8);
+  }
+  lastSes=pct; lastTs=now;
+  $("proj").classList.toggle("calm",calm);
+  $("projTxt").innerHTML=txt; $("rateTxt").textContent=rate;
+}
+function fmtDur(m){m=Math.round(m);const h=Math.floor(m/60);return h?`${h} h ${m%60} min`:`${m} min`;}
+
+// ---------- detalle local ----------
+function renderLocal(s){
+  const projs=s.projects.slice(0,4);
+  const others=s.projects.slice(4);
+  if(others.length) projs.push({name:`otros (${others.length})`,cost:others.reduce((a,p)=>a+p.cost,0)});
+  const max=Math.max(...projs.map(p=>p.cost),0.01);
+
+  let rows = projs.map((p,i)=>`
+    <div class="pitem">
+      <div class="pname"><span class="swatch" style="background:${PALETTE[i%PALETTE.length]}"></span><span>${escapeHtml(p.name)}</span></div>
+      <div class="pcost">$${p.cost.toFixed(2)}</div>
+      <div class="pbar"><i style="width:${Math.round(p.cost/max*100)}%;background:${PALETTE[i%PALETTE.length]}"></i></div>
+    </div>`).join("");
+  if(!rows) rows = `<div class="errbox" style="color:var(--txt-dim)">Sin actividad de Claude Code en los últimos 7 días.</div>`;
+
+  // Fila estimada de otras superficies (claude.ai / IDE): los chats web no dejan
+  // registro local. NO convertimos % de cuota a $ (el endpoint no expone el tope en
+  // dólares, sería inventar): mostramos el % del límite SEMANAL global consumido en
+  // todas las superficies. Solo si hay dato; si no, se omite en vez de inventar.
+  if(weeklyAllPct!=null){
+    rows += `<div class="pitem other" title="Estimación. Los chats de claude.ai y el uso en otros dispositivos no dejan registro local en este equipo. Esta fila muestra el % de tu límite semanal consumido en total (todas las superficies); el gasto por proyecto de arriba solo cubre Claude Code aquí. No se convierte a dólares porque el endpoint no expone el tope en $.">
+      <div class="pname"><span class="swatch" style="background:var(--txt-dim);border-radius:50%"></span><span>claude.ai / otros</span></div>
+      <div class="pcost">${weeklyAllPct}% cuota</div>
+      <div class="pbar"><i style="width:${weeklyAllPct}%;background:var(--txt-dim)"></i></div>
+    </div>`;
+  }
+  $("plist").innerHTML = rows;
+
+  const models=Object.entries(s.models).map(([m,a])=>({m,t:a.input+a.output+a.cache_write}))
+    .sort((a,b)=>b.t-a.t);
+  const tot=models.reduce((a,x)=>a+x.t,0);
+  if(tot>0){
+    $("modelSect").hidden=false;
+    $("split").innerHTML=models.map((x,i)=>`<i style="width:${(x.t/tot*100).toFixed(1)}%;background:${PALETTE[i%PALETTE.length]}"></i>`).join("");
+    $("legend").innerHTML=models.slice(0,4).map((x,i)=>`<span><b style="background:${PALETTE[i%PALETTE.length]}"></b>${escapeHtml(prettyModel(x.m))} ${Math.round(x.t/tot*100)}%</span>`).join("");
+    $("modelQ").textContent=prettyModel(models[0].m)+" lidera";
+  }
+  $("costToday").textContent="$"+s.cost_today.toFixed(2);
+  $("costWeek").textContent="$"+s.cost_week.toFixed(2);
+}
+
+// ---------- ciclo de refresco (auto-programado, con backoff ante fallos) ----------
+let lastSync=Date.now(), fails=0, refreshTimer=null;
+async function refresh(){
+  if(!invoke){ demo(); return; }
+  try{
+    const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats")]);
+    if(quota.status==="fulfilled"){
+      renderQuota(quota.value); $("liveDot").classList.remove("err"); lastSync=Date.now(); fails=0;
+    }else{
+      $("liveDot").classList.add("err"); $("syncTxt").textContent=quota.reason; fails++;
+      EVENT?.emit("quota:update",{ok:false,error:String(quota.reason)});   // la franja muestra "sin datos"
+    }
+    if(local.status==="fulfilled") renderLocal(local.value);
+  }catch(e){ $("liveDot").classList.add("err"); $("syncTxt").textContent=String(e); fails++;
+    EVENT?.emit("quota:update",{ok:false,error:String(e)}); }
+  finally{ scheduleNext(); }
+}
+function scheduleNext(){
+  // 60 s en régimen normal; si falla, reintento con backoff 5→10→20→40 s (máx 60 s).
+  const delay = fails>0 ? Math.min(60000, 5000*2**(fails-1)) : 60000;
+  clearTimeout(refreshTimer); refreshTimer=setTimeout(refresh, delay);
+}
+setInterval(()=>{ if(!$("liveDot").classList.contains("err"))
+  $("syncTxt").textContent=`en vivo · actualizado hace ${Math.round((Date.now()-lastSync)/1000)}s`; },1000);
+refresh();
+
+// arrastrar la ventana desde el encabezado (ventana sin decoraciones)
+const APPWIN = window.__TAURI__?.window ? window.__TAURI__.window.getCurrentWindow() : null;
+let dragging=false;
+$("pHead").addEventListener("mousedown",(e)=>{
+  if(e.button!==0) return;               // solo clic izquierdo
+  if(e.target.closest("button")) return; // no arrastrar desde el botón ✕
+  dragging=true;
+  APPWIN?.startDragging();
+  setTimeout(()=>{ dragging=false; },500); // el arrastre nativo se traga el mouseup
+});
+
+// flyout: el panel se oculta al perder el foco (como el panel de la bandeja),
+// EXCEPTO mientras se arrastra (el arrastre nativo provoca un blur transitorio
+// que, sin esta guarda, haría desaparecer la ventana al intentar moverla).
+window.addEventListener("focus",()=>{ dragging=false; });
+window.addEventListener("blur",()=>{ if(!dragging) APPWIN?.hide(); });
+
+// ocultar a bandeja
+$("hideBtn").addEventListener("click",()=>{ APPWIN?.hide(); });
+
+// ---------- modo demo (SOLO al abrir index.html suelto en un navegador, sin Tauri) ----------
+// Nunca se ejecuta dentro de la app real (allí window.__TAURI__ existe -> invoke).
+function demo(){
+  renderQuota({
+    plan:{name:"DEMO"},
+    limits:[
+      {kind:"session",group:"session",percent:68,resets_at:new Date(Date.now()+2.2*3.6e6).toISOString()},
+      {kind:"weekly_all",group:"weekly",percent:41,resets_at:new Date(Date.now()+80*3.6e6).toISOString()},
+      {kind:"weekly_scoped",group:"weekly",percent:22,scope:{model:{display_name:"Fable"}},resets_at:new Date(Date.now()+80*3.6e6).toISOString()}
+    ]});
+  renderLocal({projects:[{name:"vps-infra",cost:18.4},{name:"edge-gallery",cost:12.1},
+    {name:"rocket-code-prep",cost:8.9}],
+    models:{"claude-sonnet-4-6":{input:9e6,output:1e6,cache_write:2e6,cache_read:0,cost:30},
+      "claude-opus-4-8":{input:2e6,output:4e5,cache_write:8e5,cache_read:0,cost:17}},
+    cost_today:6.8,cost_week:47.2});
+  $("syncTxt").textContent="modo demo (sin Tauri)";
+}
+</script>
+</body>
+</html>

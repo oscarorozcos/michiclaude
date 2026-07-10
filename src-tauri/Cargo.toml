@@ -1,0 +1,36 @@
+[package]
+name = "claude-code-meter"
+version = "0.1.0"
+description = "Widget de bandeja para Windows: cuota real de Claude (5h/semanal), coste por proyecto y modelo más usado."
+authors = ["Oscar Orozco"]
+edition = "2021"
+license = "MIT"
+
+[lib]
+name = "claude_code_meter_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-notification = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+chrono = "0.4"
+dirs = "5"
+
+# Solo Windows: rectángulo real de la barra de tareas + estilo no-activable de la franja.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_UI_Shell",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

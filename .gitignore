@@ -1,0 +1,9 @@
+node_modules/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/
+dist/
+.env
+.env.*
+!.env.example
+quota_debug.json
