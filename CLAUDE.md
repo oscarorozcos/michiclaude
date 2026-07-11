@@ -205,6 +205,15 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       lista de servidores con estado activo/sin conexión, alta con prueba)
       y "Preferencias" (idioma, presupuesto, exportación) por separado.
 - [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
+- [ ] MODO HUB (decidido 2026-07-11, pendiente de implementar tras la semana
+      de pruebas): el VPS consolida los datos de todas las máquinas para que
+      los totales cuadren en cualquier PC. Diseño acordado: (1) cada meter
+      sube su resumen local por SSH a ~/.claude-code-meter/hosts/<hostname>.json
+      en el VPS en cada ciclo; (2) meter-export.py devuelve sus logs + los
+      resúmenes de los demás hosts, excluyendo el del host que pregunta
+      (--exclude-host <hostname>) para no contar doble; (3) opcional: config
+      compartida (servidores/presupuesto) guardada también en el hub para que
+      una PC nueva herede todo al conectar el VPS.
 - [ ] Auto-updater (tauri-plugin-updater)
 - [ ] Precios de modelos configurables (JSON externo)
 
