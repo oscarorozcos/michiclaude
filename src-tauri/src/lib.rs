@@ -74,6 +74,18 @@ async fn get_quota() -> Result<serde_json::Value, String> {
         .and_then(|raw| parse_credentials(&raw))
         .filter(|(_, exp)| *exp > now_ms);
     if cred.is_none() {
+        for d in wsl_claude_dirs() {
+            if let Some(c) = fs::read_to_string(d.join(".credentials.json"))
+                .ok()
+                .and_then(|raw| parse_credentials(&raw))
+                .filter(|(_, exp)| *exp > now_ms)
+            {
+                cred = Some(c);
+                break;
+            }
+        }
+    }
+    if cred.is_none() {
         for r in load_remotes() {
             if let Some(c) = fetch_remote_credentials(&r).filter(|(_, exp)| *exp > now_ms) {
                 cred = Some(c);
@@ -301,67 +313,132 @@ fn pretty_project(dir_name: &str) -> String {
         .to_string()
 }
 
-#[tauri::command]
-fn get_local_stats() -> Result<LocalStats, String> {
-    let projects_dir = claude_dir().join("projects");
-    let now = Utc::now();
+// ---------- WSL (Claude Code dentro de Windows Subsystem for Linux) ----------
+// Muchos usuarios corren Claude Code dentro de WSL; sus logs viven en
+// \\wsl.localhost\<distro>\home\<user>\.claude (o /root). Se detectan las
+// distros con `wsl.exe -l -q` (salida UTF-16LE) y se leen esas carpetas como
+// una fuente local más — cero configuración del usuario.
+
+#[cfg(windows)]
+fn wsl_claude_dirs() -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    let mut cmd = std::process::Command::new("wsl.exe");
+    cmd.args(["-l", "-q"]);
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let Ok(o) = cmd.output() else { return out };
+    if !o.status.success() {
+        return out;
+    }
+    let u16s: Vec<u16> = o
+        .stdout
+        .chunks_exact(2)
+        .map(|c| u16::from_le_bytes([c[0], c[1]]))
+        .collect();
+    let text = String::from_utf16_lossy(&u16s);
+    for distro in text
+        .lines()
+        .map(|l| l.trim().trim_matches('\0'))
+        .filter(|l| !l.is_empty())
+    {
+        let base = PathBuf::from(format!(r"\\wsl.localhost\{distro}"));
+        if let Ok(homes) = fs::read_dir(base.join("home")) {
+            for h in homes.flatten() {
+                let d = h.path().join(".claude");
+                if d.is_dir() {
+                    out.push(d);
+                }
+            }
+        }
+        let root = base.join("root").join(".claude");
+        if root.is_dir() {
+            out.push(root);
+        }
+    }
+    out
+}
+
+#[cfg(not(windows))]
+fn wsl_claude_dirs() -> Vec<PathBuf> {
+    Vec::new()
+}
+
+// ---------- agregación de logs locales (este PC + WSL) ----------
+
+struct ProjSlot {
+    display: Option<String>,
+    fallback: String,
+    suffix: Option<String>,
+    cost: f64,
+    tokens: u64,
+}
+
+#[derive(Default)]
+struct LocalAgg {
+    seen: HashSet<String>,
+    projects: HashMap<String, ProjSlot>, // clave: ruta única de la carpeta
+    models: HashMap<String, ModelAgg>,
+    cost_today: f64,
+    cost_week: f64,
+    tokens_week: u64,
+    files: usize,
+    deduped: usize,
+}
+
+/// Escanea un directorio de proyectos de Claude Code y acumula en `agg`.
+/// `suffix` etiqueta el origen ("wsl") en el nombre del proyecto.
+fn scan_projects_dir(
+    projects_dir: &std::path::Path,
+    suffix: Option<&str>,
+    now: DateTime<Utc>,
+    agg: &mut LocalAgg,
+) {
     let day_ago = now - Duration::hours(24);
     let week_ago = now - Duration::days(7);
-
-    let mut seen: HashSet<String> = HashSet::new();
-    // Clave: nombre de carpeta codificado; el nombre bonito sale del `cwd` real
-    // que traen las entradas (el nombre codificado es ambiguo con los guiones).
-    let mut display_names: HashMap<String, String> = HashMap::new();
-    let mut per_project: HashMap<String, (f64, u64)> = HashMap::new();
-    let mut per_model: HashMap<String, ModelAgg> = HashMap::new();
-    let mut cost_today = 0.0;
-    let mut cost_week = 0.0;
-    let mut tokens_week: u64 = 0;
-    let mut files_scanned = 0usize;
-    let mut deduped = 0usize;
-
-    let entries = match fs::read_dir(&projects_dir) {
-        Ok(e) => e,
-        Err(_) => {
-            return Ok(LocalStats {
-                projects: vec![],
-                models: HashMap::new(),
-                cost_today: 0.0,
-                cost_week: 0.0,
-                tokens_week: 0,
-                files_scanned: 0,
-                entries_deduped: 0,
-            })
-        }
-    };
+    let Ok(entries) = fs::read_dir(projects_dir) else { return };
 
     for proj in entries.flatten() {
         if !proj.path().is_dir() {
             continue;
         }
         let raw_dir = proj.file_name().to_string_lossy().to_string();
+        let slot_key = proj.path().to_string_lossy().to_string();
+        agg.projects.entry(slot_key.clone()).or_insert_with(|| ProjSlot {
+            display: None,
+            // el nombre de carpeta codificado es ambiguo con los guiones; el
+            // nombre bonito sale del `cwd` real de las entradas
+            fallback: pretty_project(&raw_dir),
+            suffix: suffix.map(String::from),
+            cost: 0.0,
+            tokens: 0,
+        });
 
-        let files = match fs::read_dir(proj.path()) {
-            Ok(f) => f,
-            Err(_) => continue,
-        };
+        let Ok(files) = fs::read_dir(proj.path()) else { continue };
         for f in files.flatten() {
             let path = f.path();
             if path.extension().map(|e| e != "jsonl").unwrap_or(true) {
                 continue;
             }
-            files_scanned += 1;
+            agg.files += 1;
             let Ok(content) = fs::read_to_string(&path) else { continue };
 
             for line in content.lines() {
                 let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
-                if !display_names.contains_key(&raw_dir) {
-                    if let Some(base) = v["cwd"]
-                        .as_str()
-                        .and_then(|c| c.rsplit(['\\', '/']).next())
-                        .filter(|s| !s.is_empty())
-                    {
-                        display_names.insert(raw_dir.clone(), base.to_string());
+                {
+                    let slot = agg.projects.get_mut(&slot_key).unwrap();
+                    if slot.display.is_none() {
+                        if let Some(base) = v["cwd"].as_str().and_then(|c| {
+                            let s = c.replace('\\', "/");
+                            s.trim_end_matches('/')
+                                .rsplit('/')
+                                .next()
+                                .filter(|x| !x.is_empty())
+                                .map(String::from)
+                        }) {
+                            slot.display = Some(base);
+                        }
                     }
                 }
                 let msg = &v["message"];
@@ -377,8 +454,8 @@ fn get_local_stats() -> Result<LocalStats, String> {
                     msg["id"].as_str().unwrap_or(""),
                     v["requestId"].as_str().unwrap_or("")
                 );
-                if key != ":" && !seen.insert(key) {
-                    deduped += 1;
+                if key != ":" && !agg.seen.insert(key) {
+                    agg.deduped += 1;
                     continue;
                 }
 
@@ -403,13 +480,15 @@ fn get_local_stats() -> Result<LocalStats, String> {
                 let in_day = ts.map(|t| t >= day_ago).unwrap_or(false);
 
                 if in_week {
-                    cost_week += cost;
+                    agg.cost_week += cost;
                     // tokens "de trabajo": excluimos cache_read (infla ~100x)
-                    tokens_week += inp + out + cw;
-                    let e = per_project.entry(raw_dir.clone()).or_insert((0.0, 0));
-                    e.0 += cost;
-                    e.1 += inp + out + cw;
-                    let m = per_model.entry(model.clone()).or_default();
+                    agg.tokens_week += inp + out + cw;
+                    {
+                        let slot = agg.projects.get_mut(&slot_key).unwrap();
+                        slot.cost += cost;
+                        slot.tokens += inp + out + cw;
+                    }
+                    let m = agg.models.entry(model.clone()).or_default();
                     m.input += inp;
                     m.output += out;
                     m.cache_write += cw;
@@ -417,32 +496,50 @@ fn get_local_stats() -> Result<LocalStats, String> {
                     m.cost += cost;
                 }
                 if in_day {
-                    cost_today += cost;
+                    agg.cost_today += cost;
                 }
             }
         }
     }
+}
 
-    let projects: Vec<ProjectAgg> = per_project
-        .into_iter()
-        .map(|(raw, (cost, tokens))| ProjectAgg {
-            name: display_names
-                .get(&raw)
-                .cloned()
-                .unwrap_or_else(|| pretty_project(&raw)),
-            cost,
-            tokens,
+#[tauri::command]
+fn get_local_stats() -> Result<LocalStats, String> {
+    let now = Utc::now();
+    let mut agg = LocalAgg::default();
+
+    // 1) Este PC
+    scan_projects_dir(&claude_dir().join("projects"), None, now, &mut agg);
+    // 2) Distros WSL (si existen): misma máquina, cero configuración
+    for d in wsl_claude_dirs() {
+        scan_projects_dir(&d.join("projects"), Some("wsl"), now, &mut agg);
+    }
+
+    let projects: Vec<ProjectAgg> = agg
+        .projects
+        .into_values()
+        .filter(|s| s.cost > 0.0 || s.tokens > 0)
+        .map(|s| {
+            let base = s.display.unwrap_or(s.fallback);
+            ProjectAgg {
+                name: match s.suffix {
+                    Some(x) => format!("{base} · {x}"),
+                    None => base,
+                },
+                cost: s.cost,
+                tokens: s.tokens,
+            }
         })
         .collect();
 
     let mut stats = LocalStats {
         projects,
-        models: per_model,
-        cost_today,
-        cost_week,
-        tokens_week,
-        files_scanned,
-        entries_deduped: deduped,
+        models: agg.models,
+        cost_today: agg.cost_today,
+        cost_week: agg.cost_week,
+        tokens_week: agg.tokens_week,
+        files_scanned: agg.files,
+        entries_deduped: agg.deduped,
     };
 
     // Fusionar fuentes remotas (si remotes.json existe): totales sumados,

@@ -177,14 +177,15 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       única vez (marker `autostart_configured`); si el usuario lo desactiva
       en el Administrador de tareas, se respeta.
 - [x] LICENSE MIT (preparación para repo público).
-- [x] Multiidioma EN (default) + ES: diccionario I18N, selector en ajustes,
-      errores del backend como códigos ERR_* traducidos en el frontend.
+- [x] Multiidioma (8): EN default, ES, PT, FR, DE, JA, KO, ZH — diccionario
+      I18N, autodetección, selector en ajustes, errores del backend como
+      códigos ERR_* traducidos en el frontend.
+- [~] Fuente WSL implementada: `wsl.exe -l -q` (UTF-16LE) + escaneo de
+      \\wsl.localhost\<distro>\{home/*,root}\.claude como fuente local extra
+      (proyectos "nombre · wsl") y token de respaldo desde WSL antes que los
+      remotos. FALTA probar en una máquina con WSL real.
 - [x] Tema claro/oscuro con toggle ◐ persistido.
 - [ ] Auto-updater (tauri-plugin-updater)
-- [ ] Fuente WSL: detectar distros (`wsl -l -q`) y leer
-      `\\wsl.localhost\<distro>\home\<user>\.claude\projects` como fuente
-      local extra (mismo merge que remotos, sin SSH). Mucha gente corre
-      Claude Code dentro de WSL.
 - [ ] Precios de modelos configurables (JSON externo)
 
 ## Comandos
