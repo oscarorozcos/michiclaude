@@ -133,10 +133,35 @@
   .cfg-form button:hover{background:rgba(86,199,214,.22)}
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
   #remList .pitem{grid-template-columns:1fr auto}
-  .cfg-row{display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:10px;
-    border-top:1px dashed var(--stroke-soft);font-size:11px;color:var(--txt-mut)}
+  .cfg-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt-mut)}
   .cfg-row select{background:var(--surface);border:1px solid var(--stroke);border-radius:7px;
     padding:4px 8px;color:var(--txt);font-family:var(--font);font-size:11.5px;outline:none}
+  .cfg-lbl{font-size:10.5px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .btnrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .btnrow button{align-self:auto}
+  .rstat{font-size:10px;font-family:var(--mono);margin-left:8px;flex:0 0 auto;color:var(--txt-dim)}
+  .rstat.ok{color:var(--ok)} .rstat.bad{color:var(--bad)}
+
+  /* selector de periodo (1d/7d/30d) */
+  .dlink{cursor:pointer;color:var(--txt-dim)}
+  .dlink:hover{color:var(--txt)}
+  .dlink.on{color:var(--accent);font-weight:700}
+
+  /* etiqueta de origen del proyecto (local / wsl / servidor) */
+  .srctag{font-size:9px;color:var(--txt-dim);background:var(--surface);
+    border:1px solid var(--stroke-soft);padding:1px 6px;border-radius:5px;
+    margin-left:7px;flex:0 0 auto;letter-spacing:.3px}
+
+  /* tendencia diaria: barras finas, un solo tono, hoy enfatizado por intensidad */
+  .tchart{display:flex;align-items:flex-end;gap:2px;height:56px;
+    border-bottom:1px solid var(--stroke-soft);padding-bottom:1px}
+  .tchart i{flex:1 1 0;background:var(--accent);opacity:.5;border-radius:3px 3px 0 0;
+    min-height:2px;cursor:default;transition:opacity .15s}
+  .tchart i:hover{opacity:1}
+  .tchart i.today{opacity:1}
+  .tchart i.zero{background:var(--track);opacity:1}
+  .tspan{display:flex;justify-content:space-between;font-size:9px;color:var(--txt-dim);
+    font-family:var(--mono);margin-top:4px}
 </style>
 </head>
 <body>
@@ -181,8 +206,15 @@
   </div>
 
   <div class="sect">
-    <div class="eyebrow"><span data-i18n="spend_title"></span> <span class="q" data-i18n="spend_q"></span></div>
+    <div class="eyebrow"><span data-i18n="spend_title"></span>
+      <span class="q"><span class="dlink" data-d="1">1d</span> · <span class="dlink" data-d="7">7d</span> · <span class="dlink" data-d="30">30d</span> · <span data-i18n="spend_q"></span></span></div>
     <div class="plist" id="plist"></div>
+  </div>
+
+  <div class="sect" id="trendSect" hidden>
+    <div class="eyebrow"><span data-i18n="trend_title"></span> <span class="q" data-i18n="trend_q"></span></div>
+    <div class="tchart" id="tchart"></div>
+    <div class="tspan"><span id="tFrom"></span><span id="tTo"></span></div>
   </div>
 
   <div class="sect" id="modelSect" hidden>
@@ -202,18 +234,33 @@
       <button id="rAdd" data-i18n="btn_test"></button>
       <span id="rMsg"></span>
     </div>
-    <div class="cfg-row">
-      <span data-i18n="lang_label"></span>
-      <select id="langSel">
-        <option value="en">English</option>
-        <option value="es">Español</option>
-        <option value="pt">Português</option>
-        <option value="fr">Français</option>
-        <option value="de">Deutsch</option>
-        <option value="ja">日本語</option>
-        <option value="ko">한국어</option>
-        <option value="zh">中文</option>
-      </select>
+  </div>
+
+  <div class="sect" id="prefSect" hidden>
+    <div class="eyebrow" data-i18n="prefs_title"></div>
+    <div class="cfg-form">
+      <div class="cfg-row">
+        <span data-i18n="lang_label"></span>
+        <select id="langSel">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="pt">Português</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+          <option value="zh">中文</option>
+        </select>
+      </div>
+      <div class="cfg-lbl" data-i18n="budget_label"></div>
+      <input id="budgetIn" type="number" min="0" step="1" style="max-width:120px">
+      <div class="cfg-lbl" data-i18n="export_label"></div>
+      <input id="exportDir" data-i18n-ph="export_dir_ph">
+      <div class="btnrow">
+        <button id="expCsv">CSV</button>
+        <button id="expJson">JSON</button>
+        <span id="expMsg"></span>
+      </div>
     </div>
   </div>
 
@@ -259,7 +306,7 @@ en:{
   spend_q:"7 days · API-equiv.",
   reading:"reading ~/.claude…",
   no_activity:"No Claude Code activity in the last 7 days.",
-  others:n=>`others (${n})`,
+  others:n=>`more projects (${n})`,
   claudeai_row:"claude.ai / others",
   pct_quota:p=>`${p}% quota`,
   claudeai_tip:"Estimate. claude.ai chats and usage on other devices leave no local logs on this machine. This row shows the % of your global weekly limit consumed across all surfaces; the per-project spend above only covers Claude Code here. Not converted to dollars because the endpoint does not expose the cap in $.",
@@ -269,7 +316,7 @@ en:{
   today:"Today", week:"Week",
   footnote:"Local data + real quota. Nothing leaves your machine except to api.anthropic.com",
   sources_title:"Data sources",
-  cfg_note:"<b>This PC</b>: automatic (Claude Code logs). · <b>claude.ai</b>: automatic via your account quota. · <b>Servers</b>: add them here over SSH (same key you use to connect); their projects show up as \"name · server\".",
+  cfg_note:"<b>This PC</b>: automatic (Claude Code logs). · <b>claude.ai</b>: automatic via your account quota. · <b>WSL</b>: automatic — its projects show as \"name · wsl\". · <b>Servers</b>: add them here over SSH (same key you use to connect); their projects show up as \"name · server\".",
   ph_name:"short name (e.g. vps)",
   ph_host:"SSH host (~/.ssh/config alias or user@ip)",
   btn_test:"Test & add",
@@ -288,6 +335,17 @@ en:{
   tray_tip:(s,r,w)=>`Session ${s}%${r?` · ${r}`:""}${w!=null?` · Weekly ${w}%`:""}`,
   tray_no_data:"Claude Code Meter — no quota data",
   demo_mode:"demo mode (no Tauri)",
+  src_local:"local",
+  trend_title:"Daily trend",
+  trend_q:"last 30 days",
+  prefs_title:"Preferences",
+  budget_label:"Weekly budget in $ (0 = no alert)",
+  notif_budget:(s,b)=>`Weekly spend $${s} exceeded your $${b} budget (API-equiv.).`,
+  export_label:"Export data (CSV/JSON)",
+  export_dir_ph:"destination folder (empty = Downloads)",
+  msg_exported:p=>`✓ saved to ${p}`,
+  status_active:"active",
+  status_fail:"unreachable",
   err_no_token:"No valid token. Use Claude Code on this PC (any prompt) or on a server from your data sources to refresh it.",
   err_expired:"Token expired. Open Claude Code (any prompt) to refresh it.",
   err_rate:m=>`API rate-limited (429). Retrying in ${m} min — your quota is not affected.`,
@@ -320,7 +378,7 @@ es:{
   spend_q:"7 días · equiv. API",
   reading:"leyendo ~/.claude…",
   no_activity:"Sin actividad de Claude Code en los últimos 7 días.",
-  others:n=>`otros (${n})`,
+  others:n=>`más proyectos (${n})`,
   claudeai_row:"claude.ai / otros",
   pct_quota:p=>`${p}% cuota`,
   claudeai_tip:"Estimación. Los chats de claude.ai y el uso en otros dispositivos no dejan registro local en este equipo. Esta fila muestra el % de tu límite semanal consumido en total (todas las superficies); el gasto por proyecto de arriba solo cubre Claude Code aquí. No se convierte a dólares porque el endpoint no expone el tope en $.",
@@ -330,7 +388,7 @@ es:{
   today:"Hoy", week:"Semana",
   footnote:"Datos locales + cuota real. Nada sale de tu equipo salvo hacia api.anthropic.com",
   sources_title:"Fuentes de datos",
-  cfg_note:"<b>Este PC</b>: automático (logs de Claude Code). · <b>claude.ai</b>: automático vía la cuota de tu cuenta. · <b>Servidores</b>: agrégalos aquí por SSH (misma llave que usas para conectarte); sus proyectos aparecen como \"nombre · servidor\".",
+  cfg_note:"<b>Este PC</b>: automático (logs de Claude Code). · <b>claude.ai</b>: automático vía la cuota de tu cuenta. · <b>WSL</b>: automático — sus proyectos salen como \"nombre · wsl\". · <b>Servidores</b>: agrégalos aquí por SSH (misma llave que usas para conectarte); sus proyectos aparecen como \"nombre · servidor\".",
   ph_name:"nombre corto (ej. vps)",
   ph_host:"host SSH (alias de ~/.ssh/config o usuario@ip)",
   btn_test:"Probar y agregar",
@@ -349,6 +407,17 @@ es:{
   tray_tip:(s,r,w)=>`Sesión ${s}%${r?` · ${r}`:""}${w!=null?` · Semanal ${w}%`:""}`,
   tray_no_data:"Claude Code Meter — sin datos de cuota",
   demo_mode:"modo demo (sin Tauri)",
+  src_local:"local",
+  trend_title:"Tendencia diaria",
+  trend_q:"últimos 30 días",
+  prefs_title:"Preferencias",
+  budget_label:"Presupuesto semanal en $ (0 = sin aviso)",
+  notif_budget:(s,b)=>`El gasto semanal $${s} superó tu presupuesto de $${b} (equiv. API).`,
+  export_label:"Exportar datos (CSV/JSON)",
+  export_dir_ph:"carpeta destino (vacía = Descargas)",
+  msg_exported:p=>`✓ guardado en ${p}`,
+  status_active:"activo",
+  status_fail:"sin conexión",
   err_no_token:"Sin token vigente. Usa Claude Code en este PC (cualquier consulta) o en un servidor de tus fuentes para refrescarlo.",
   err_expired:"Token expirado. Abre Claude Code (cualquier consulta) para refrescarlo.",
   err_rate:m=>`La API limitó las peticiones (429). Reintento en ${m} min — tu cuota no se ve afectada.`,
@@ -381,7 +450,7 @@ pt:{
   spend_q:"7 dias · equiv. API",
   reading:"lendo ~/.claude…",
   no_activity:"Sem atividade do Claude Code nos últimos 7 dias.",
-  others:n=>`outros (${n})`,
+  others:n=>`mais projetos (${n})`,
   claudeai_row:"claude.ai / outros",
   pct_quota:p=>`${p}% da cota`,
   claudeai_tip:"Estimativa. Os chats do claude.ai e o uso em outros dispositivos não deixam registros locais nesta máquina. Esta linha mostra o % do seu limite semanal global consumido em todas as superfícies; o gasto por projeto acima cobre apenas o Claude Code aqui. Não é convertido em dólares porque o endpoint não expõe o teto em $.",
@@ -391,7 +460,7 @@ pt:{
   today:"Hoje", week:"Semana",
   footnote:"Dados locais + cota real. Nada sai da sua máquina exceto para api.anthropic.com",
   sources_title:"Fontes de dados",
-  cfg_note:"<b>Este PC</b>: automático (logs do Claude Code). · <b>claude.ai</b>: automático via a cota da sua conta. · <b>Servidores</b>: adicione-os aqui via SSH (mesma chave que você usa para conectar); seus projetos aparecem como \"nome · servidor\".",
+  cfg_note:"<b>Este PC</b>: automático (logs do Claude Code). · <b>claude.ai</b>: automático via a cota da sua conta. · <b>WSL</b>: automático — seus projetos aparecem como \"nome · wsl\". · <b>Servidores</b>: adicione-os aqui via SSH (mesma chave que você usa para conectar); seus projetos aparecem como \"nome · servidor\".",
   ph_name:"nome curto (ex. vps)",
   ph_host:"host SSH (alias de ~/.ssh/config ou user@ip)",
   btn_test:"Testar e adicionar",
@@ -410,6 +479,17 @@ pt:{
   tray_tip:(s,r,w)=>`Sessão ${s}%${r?` · ${r}`:""}${w!=null?` · Semanal ${w}%`:""}`,
   tray_no_data:"Claude Code Meter — sem dados de cota",
   demo_mode:"modo demo (sem Tauri)",
+  src_local:"local",
+  trend_title:"Tendência diária",
+  trend_q:"últimos 30 dias",
+  prefs_title:"Preferências",
+  budget_label:"Orçamento semanal em $ (0 = sem aviso)",
+  notif_budget:(s,b)=>`O gasto semanal $${s} superou seu orçamento de $${b} (equiv. API).`,
+  export_label:"Exportar dados (CSV/JSON)",
+  export_dir_ph:"pasta de destino (vazia = Downloads)",
+  msg_exported:p=>`✓ salvo em ${p}`,
+  status_active:"ativo",
+  status_fail:"sem conexão",
   err_no_token:"Sem token válido. Use o Claude Code neste PC (qualquer prompt) ou em um servidor das suas fontes para renová-lo.",
   err_expired:"Token expirado. Abra o Claude Code (qualquer prompt) para renová-lo.",
   err_rate:m=>`API limitou as requisições (429). Nova tentativa em ${m} min — sua cota não é afetada.`,
@@ -442,7 +522,7 @@ fr:{
   spend_q:"7 jours · équiv. API",
   reading:"lecture de ~/.claude…",
   no_activity:"Aucune activité Claude Code ces 7 derniers jours.",
-  others:n=>`autres (${n})`,
+  others:n=>`autres projets (${n})`,
   claudeai_row:"claude.ai / autres",
   pct_quota:p=>`${p} % du quota`,
   claudeai_tip:"Estimation. Les discussions claude.ai et l'usage sur d'autres appareils ne laissent pas de journaux locaux sur cette machine. Cette ligne montre le % de votre limite hebdomadaire globale consommé toutes surfaces confondues ; la dépense par projet ci-dessus ne couvre que Claude Code ici. Non converti en dollars car l'endpoint n'expose pas le plafond en $.",
@@ -452,7 +532,7 @@ fr:{
   today:"Aujourd'hui", week:"Semaine",
   footnote:"Données locales + quota réel. Rien ne quitte votre machine sauf vers api.anthropic.com",
   sources_title:"Sources de données",
-  cfg_note:"<b>Ce PC</b> : automatique (journaux Claude Code). · <b>claude.ai</b> : automatique via le quota de votre compte. · <b>Serveurs</b> : ajoutez-les ici via SSH (même clé que pour vous connecter) ; leurs projets apparaissent comme « nom · serveur ».",
+  cfg_note:"<b>Ce PC</b> : automatique (journaux Claude Code). · <b>claude.ai</b> : automatique via le quota de votre compte. · <b>WSL</b> : automatique — ses projets apparaissent comme « nom · wsl ». · <b>Serveurs</b> : ajoutez-les ici via SSH (même clé que pour vous connecter) ; leurs projets apparaissent comme « nom · serveur ».",
   ph_name:"nom court (ex. vps)",
   ph_host:"hôte SSH (alias ~/.ssh/config ou user@ip)",
   btn_test:"Tester et ajouter",
@@ -471,6 +551,17 @@ fr:{
   tray_tip:(s,r,w)=>`Session ${s}%${r?` · ${r}`:""}${w!=null?` · Hebdo ${w}%`:""}`,
   tray_no_data:"Claude Code Meter — pas de données de quota",
   demo_mode:"mode démo (sans Tauri)",
+  src_local:"local",
+  trend_title:"Tendance quotidienne",
+  trend_q:"30 derniers jours",
+  prefs_title:"Préférences",
+  budget_label:"Budget hebdo en $ (0 = pas d'alerte)",
+  notif_budget:(s,b)=>`La dépense hebdo $${s} a dépassé votre budget de $${b} (équiv. API).`,
+  export_label:"Exporter les données (CSV/JSON)",
+  export_dir_ph:"dossier de destination (vide = Téléchargements)",
+  msg_exported:p=>`✓ enregistré dans ${p}`,
+  status_active:"actif",
+  status_fail:"injoignable",
   err_no_token:"Aucun jeton valide. Utilisez Claude Code sur ce PC (n'importe quel prompt) ou sur un serveur de vos sources pour le renouveler.",
   err_expired:"Jeton expiré. Ouvrez Claude Code (n'importe quel prompt) pour le renouveler.",
   err_rate:m=>`API limitée (429). Nouvel essai dans ${m} min — votre quota n'est pas affecté.`,
@@ -503,7 +594,7 @@ de:{
   spend_q:"7 Tage · API-Äquiv.",
   reading:"lese ~/.claude…",
   no_activity:"Keine Claude-Code-Aktivität in den letzten 7 Tagen.",
-  others:n=>`weitere (${n})`,
+  others:n=>`weitere Projekte (${n})`,
   claudeai_row:"claude.ai / andere",
   pct_quota:p=>`${p} % Kontingent`,
   claudeai_tip:"Schätzung. claude.ai-Chats und Nutzung auf anderen Geräten hinterlassen keine lokalen Logs auf diesem Rechner. Diese Zeile zeigt den % deines globalen Wochenlimits über alle Oberflächen; die Projektausgaben oben decken nur Claude Code hier ab. Keine Umrechnung in Dollar, da der Endpoint die Obergrenze in $ nicht offenlegt.",
@@ -513,7 +604,7 @@ de:{
   today:"Heute", week:"Woche",
   footnote:"Lokale Daten + echtes Kontingent. Nichts verlässt deinen Rechner außer zu api.anthropic.com",
   sources_title:"Datenquellen",
-  cfg_note:"<b>Dieser PC</b>: automatisch (Claude-Code-Logs). · <b>claude.ai</b>: automatisch über dein Konto-Kontingent. · <b>Server</b>: hier per SSH hinzufügen (gleicher Schlüssel wie zum Verbinden); ihre Projekte erscheinen als „Name · Server“.",
+  cfg_note:"<b>Dieser PC</b>: automatisch (Claude-Code-Logs). · <b>claude.ai</b>: automatisch über dein Konto-Kontingent. · <b>WSL</b>: automatisch — Projekte erscheinen als „Name · wsl“. · <b>Server</b>: hier per SSH hinzufügen (gleicher Schlüssel wie zum Verbinden); ihre Projekte erscheinen als „Name · Server“.",
   ph_name:"Kurzname (z. B. vps)",
   ph_host:"SSH-Host (~/.ssh/config-Alias oder user@ip)",
   btn_test:"Testen & hinzufügen",
@@ -532,6 +623,17 @@ de:{
   tray_tip:(s,r,w)=>`Sitzung ${s}%${r?` · ${r}`:""}${w!=null?` · Woche ${w}%`:""}`,
   tray_no_data:"Claude Code Meter — keine Kontingentdaten",
   demo_mode:"Demo-Modus (ohne Tauri)",
+  src_local:"lokal",
+  trend_title:"Täglicher Trend",
+  trend_q:"letzte 30 Tage",
+  prefs_title:"Einstellungen",
+  budget_label:"Wochenbudget in $ (0 = kein Alarm)",
+  notif_budget:(s,b)=>`Wochenausgaben $${s} haben dein Budget von $${b} überschritten (API-Äquiv.).`,
+  export_label:"Daten exportieren (CSV/JSON)",
+  export_dir_ph:"Zielordner (leer = Downloads)",
+  msg_exported:p=>`✓ gespeichert in ${p}`,
+  status_active:"aktiv",
+  status_fail:"nicht erreichbar",
   err_no_token:"Kein gültiges Token. Nutze Claude Code auf diesem PC (beliebiger Prompt) oder auf einem Server deiner Quellen, um es zu erneuern.",
   err_expired:"Token abgelaufen. Öffne Claude Code (beliebiger Prompt), um es zu erneuern.",
   err_rate:m=>`API drosselt Anfragen (429). Neuer Versuch in ${m} Min — dein Kontingent ist nicht betroffen.`,
@@ -564,7 +666,7 @@ ja:{
   spend_q:"7日間 · API換算",
   reading:"~/.claude を読み込み中…",
   no_activity:"過去7日間に Claude Code の利用はありません。",
-  others:n=>`その他 (${n})`,
+  others:n=>`他のプロジェクト (${n})`,
   claudeai_row:"claude.ai / その他",
   pct_quota:p=>`クォータの${p}%`,
   claudeai_tip:"推定値です。claude.ai のチャットや他のデバイスでの利用は、このマシンにローカルログを残しません。この行は全サーフェスで消費された週間制限全体の%を示します。上のプロジェクト別コストはこのマシンの Claude Code のみが対象です。エンドポイントが上限額($)を公開していないため、ドル換算はしません。",
@@ -574,7 +676,7 @@ ja:{
   today:"今日", week:"週間",
   footnote:"ローカルデータ + 実クォータ。api.anthropic.com 以外にデータは送信されません",
   sources_title:"データソース",
-  cfg_note:"<b>このPC</b>: 自動（Claude Code のログ）。 · <b>claude.ai</b>: アカウントのクォータ経由で自動。 · <b>サーバー</b>: SSH でここに追加（接続に使う鍵と同じ）。プロジェクトは「名前 · サーバー」として表示されます。",
+  cfg_note:"<b>このPC</b>: 自動（Claude Code のログ）。 · <b>claude.ai</b>: アカウントのクォータ経由で自動。 · <b>WSL</b>: 自動 — プロジェクトは「名前 · wsl」と表示されます。 · <b>サーバー</b>: SSH でここに追加（接続に使う鍵と同じ）。プロジェクトは「名前 · サーバー」として表示されます。",
   ph_name:"短い名前（例: vps）",
   ph_host:"SSH ホスト（~/.ssh/config のエイリアスか user@ip）",
   btn_test:"テストして追加",
@@ -593,6 +695,17 @@ ja:{
   tray_tip:(s,r,w)=>`セッション ${s}%${r?` · ${r}`:""}${w!=null?` · 週間 ${w}%`:""}`,
   tray_no_data:"Claude Code Meter — クォータデータなし",
   demo_mode:"デモモード（Tauri なし）",
+  src_local:"ローカル",
+  trend_title:"日次トレンド",
+  trend_q:"過去30日",
+  prefs_title:"設定",
+  budget_label:"週間予算 $（0 = 通知なし）",
+  notif_budget:(s,b)=>`週間支出 $${s} が予算 $${b} を超えました（API換算）。`,
+  export_label:"データのエクスポート（CSV/JSON）",
+  export_dir_ph:"保存先フォルダー（空 = ダウンロード）",
+  msg_exported:p=>`✓ 保存先: ${p}`,
+  status_active:"接続中",
+  status_fail:"接続不可",
   err_no_token:"有効なトークンがありません。このPCで Claude Code を使うか（任意のプロンプト）、データソースのサーバーで使って更新してください。",
   err_expired:"トークンの期限切れ。Claude Code を開いて（任意のプロンプト）更新してください。",
   err_rate:m=>`API がレート制限中 (429)。${m}分後に再試行 — クォータには影響しません。`,
@@ -625,7 +738,7 @@ ko:{
   spend_q:"7일 · API 환산",
   reading:"~/.claude 읽는 중…",
   no_activity:"지난 7일간 Claude Code 활동이 없습니다.",
-  others:n=>`기타 (${n})`,
+  others:n=>`기타 프로젝트 (${n})`,
   claudeai_row:"claude.ai / 기타",
   pct_quota:p=>`쿼터의 ${p}%`,
   claudeai_tip:"추정치입니다. claude.ai 채팅과 다른 기기의 사용은 이 컴퓨터에 로컬 로그를 남기지 않습니다. 이 행은 모든 표면에서 소비된 전체 주간 한도의 %를 보여줍니다. 위의 프로젝트별 비용은 이 컴퓨터의 Claude Code만 포함합니다. 엔드포인트가 한도를 $로 공개하지 않아 달러로 환산하지 않습니다.",
@@ -635,7 +748,7 @@ ko:{
   today:"오늘", week:"주간",
   footnote:"로컬 데이터 + 실제 쿼터. api.anthropic.com 외에는 아무것도 전송되지 않습니다",
   sources_title:"데이터 소스",
-  cfg_note:"<b>이 PC</b>: 자동 (Claude Code 로그). · <b>claude.ai</b>: 계정 쿼터를 통해 자동. · <b>서버</b>: SSH로 여기에 추가하세요 (접속에 쓰는 키와 동일). 프로젝트는 \"이름 · 서버\"로 표시됩니다.",
+  cfg_note:"<b>이 PC</b>: 자동 (Claude Code 로그). · <b>claude.ai</b>: 계정 쿼터를 통해 자동. · <b>WSL</b>: 자동 — 프로젝트는 \"이름 · wsl\"로 표시됩니다. · <b>서버</b>: SSH로 여기에 추가하세요 (접속에 쓰는 키와 동일). 프로젝트는 \"이름 · 서버\"로 표시됩니다.",
   ph_name:"짧은 이름 (예: vps)",
   ph_host:"SSH 호스트 (~/.ssh/config 별칭 또는 user@ip)",
   btn_test:"테스트 후 추가",
@@ -654,6 +767,17 @@ ko:{
   tray_tip:(s,r,w)=>`세션 ${s}%${r?` · ${r}`:""}${w!=null?` · 주간 ${w}%`:""}`,
   tray_no_data:"Claude Code Meter — 쿼터 데이터 없음",
   demo_mode:"데모 모드 (Tauri 없음)",
+  src_local:"로컬",
+  trend_title:"일별 추세",
+  trend_q:"최근 30일",
+  prefs_title:"환경설정",
+  budget_label:"주간 예산 $ (0 = 알림 없음)",
+  notif_budget:(s,b)=>`주간 지출 $${s}이(가) 예산 $${b}을(를) 초과했습니다 (API 환산).`,
+  export_label:"데이터 내보내기 (CSV/JSON)",
+  export_dir_ph:"대상 폴더 (비우면 다운로드)",
+  msg_exported:p=>`✓ 저장됨: ${p}`,
+  status_active:"연결됨",
+  status_fail:"연결 불가",
   err_no_token:"유효한 토큰이 없습니다. 이 PC에서 Claude Code를 사용하거나(아무 프롬프트) 데이터 소스의 서버에서 사용해 갱신하세요.",
   err_expired:"토큰이 만료되었습니다. Claude Code를 열어(아무 프롬프트) 갱신하세요.",
   err_rate:m=>`API 요청 제한 (429). ${m}분 후 재시도 — 쿼터에는 영향이 없습니다.`,
@@ -686,7 +810,7 @@ zh:{
   spend_q:"7天 · API 等价",
   reading:"正在读取 ~/.claude…",
   no_activity:"过去7天没有 Claude Code 活动。",
-  others:n=>`其他 (${n})`,
+  others:n=>`更多项目 (${n})`,
   claudeai_row:"claude.ai / 其他",
   pct_quota:p=>`配额的${p}%`,
   claudeai_tip:"估算值。claude.ai 聊天和其他设备上的使用不会在本机留下本地日志。此行显示所有平台消耗的全局每周限额百分比；上方的按项目支出仅涵盖本机的 Claude Code。由于接口不公开美元上限，因此不换算为美元。",
@@ -696,7 +820,7 @@ zh:{
   today:"今天", week:"本周",
   footnote:"本地数据 + 真实配额。除 api.anthropic.com 外，任何数据都不会离开你的电脑",
   sources_title:"数据源",
-  cfg_note:"<b>本机</b>：自动（Claude Code 日志）。 · <b>claude.ai</b>：通过账户配额自动获取。 · <b>服务器</b>：在此通过 SSH 添加（与你连接时相同的密钥）；其项目显示为「名称 · 服务器」。",
+  cfg_note:"<b>本机</b>：自动（Claude Code 日志）。 · <b>claude.ai</b>：通过账户配额自动获取。 · <b>WSL</b>：自动 — 项目显示为「名称 · wsl」。 · <b>服务器</b>：在此通过 SSH 添加（与你连接时相同的密钥）；其项目显示为「名称 · 服务器」。",
   ph_name:"短名称（如 vps）",
   ph_host:"SSH 主机（~/.ssh/config 别名或 user@ip）",
   btn_test:"测试并添加",
@@ -715,6 +839,17 @@ zh:{
   tray_tip:(s,r,w)=>`会话 ${s}%${r?` · ${r}`:""}${w!=null?` · 每周 ${w}%`:""}`,
   tray_no_data:"Claude Code Meter — 无配额数据",
   demo_mode:"演示模式（无 Tauri）",
+  src_local:"本机",
+  trend_title:"每日趋势",
+  trend_q:"最近30天",
+  prefs_title:"偏好设置",
+  budget_label:"每周预算 $（0 = 不提醒）",
+  notif_budget:(s,b)=>`每周支出 $${s} 已超过你的预算 $${b}（API 等价）。`,
+  export_label:"导出数据（CSV/JSON）",
+  export_dir_ph:"目标文件夹（留空 = 下载）",
+  msg_exported:p=>`✓ 已保存到 ${p}`,
+  status_active:"已连接",
+  status_fail:"无法连接",
   err_no_token:"没有有效令牌。请在本机使用 Claude Code（任意提问），或在数据源中的服务器上使用以刷新。",
   err_expired:"令牌已过期。打开 Claude Code（任意提问）以刷新。",
   err_rate:m=>`API 限流 (429)。${m}分钟后重试 — 你的配额不受影响。`,
@@ -968,16 +1103,28 @@ function renderProjection(pct,pace,resets){
 function fmtDur(m){m=Math.round(m);const h=Math.floor(m/60);return h?`${h} h ${m%60} min`:`${m} min`;}
 
 // ---------- detalle local ----------
+// Separa "nombre · origen" que arma el backend (local no lleva sufijo).
+function splitSrc(name){
+  const i=name.lastIndexOf(" · ");
+  return i>0?{base:name.slice(0,i),src:name.slice(i+3)}:{base:name,src:t("src_local")};
+}
+// Tooltip con el desglose por modelo del proyecto ("Fable: $75.65 · Opus 4.8: $0.15")
+function modelTip(p){
+  const e=Object.entries(p.by_model||{}).sort((a,b)=>b[1]-a[1]);
+  return e.length?e.map(([m,c])=>`${prettyModel(m)}: $${c.toFixed(2)}`).join(" · "):"";
+}
+
 function renderLocal(s){
   lastLocalData=s;
-  const projs=s.projects.slice(0,4);
+  const projs=s.projects.slice(0,4).map(p=>({...p, ...splitSrc(p.name)}));
   const others=s.projects.slice(4);
-  if(others.length) projs.push({name:t("others",others.length),cost:others.reduce((a,p)=>a+p.cost,0)});
+  if(others.length) projs.push({base:t("others",others.length),src:null,
+    cost:others.reduce((a,p)=>a+p.cost,0), by_model:null});
   const max=Math.max(...projs.map(p=>p.cost),0.01);
 
   let rows = projs.map((p,i)=>`
-    <div class="pitem">
-      <div class="pname"><span class="swatch" style="background:${PALETTE[i%PALETTE.length]}"></span><span>${escapeHtml(p.name)}</span></div>
+    <div class="pitem" title="${escapeHtml(modelTip(p))}">
+      <div class="pname"><span class="swatch" style="background:${PALETTE[i%PALETTE.length]}"></span><span>${escapeHtml(p.base)}</span>${p.src?`<span class="srctag">${escapeHtml(p.src)}</span>`:""}</div>
       <div class="pcost">$${p.cost.toFixed(2)}</div>
       <div class="pbar"><i style="width:${Math.round(p.cost/max*100)}%;background:${PALETTE[i%PALETTE.length]}"></i></div>
     </div>`).join("");
@@ -994,18 +1141,69 @@ function renderLocal(s){
   }
   $("plist").innerHTML = rows;
 
+  // Todos los modelos usados, por pequeño que sea su %, con su color fijo.
   const models=Object.entries(s.models).map(([m,a])=>({m,t:a.input+a.output+a.cache_write}))
     .filter(x=>x.t>0)                       // fuera modelos sin trabajo real
     .sort((a,b)=>b.t-a.t);
   const tot=models.reduce((a,x)=>a+x.t,0);
   if(tot>0){
     $("modelSect").hidden=false;
-    $("split").innerHTML=models.map((x,i)=>`<i style="width:${(x.t/tot*100).toFixed(1)}%;background:${PALETTE[i%PALETTE.length]}"></i>`).join("");
-    $("legend").innerHTML=models.slice(0,4).map((x,i)=>`<span><b style="background:${PALETTE[i%PALETTE.length]}"></b>${escapeHtml(prettyModel(x.m))} ${Math.round(x.t/tot*100)}%</span>`).join("");
+    $("split").innerHTML=models.map((x,i)=>`<i style="width:${(x.t/tot*100).toFixed(1)}%;background:${PALETTE[i%PALETTE.length]}" title="${escapeHtml(prettyModel(x.m))} ${(x.t/tot*100).toFixed(1)}%"></i>`).join("");
+    $("legend").innerHTML=models.map((x,i)=>{
+      const pct=x.t/tot*100;
+      return `<span><b style="background:${PALETTE[i%PALETTE.length]}"></b>${escapeHtml(prettyModel(x.m))} ${pct<1?"<1":Math.round(pct)}%</span>`;
+    }).join("");
     $("modelQ").textContent=t("model_leads", prettyModel(models[0].m));
   }
   $("costToday").textContent="$"+s.cost_today.toFixed(2);
   $("costWeek").textContent="$"+s.cost_week.toFixed(2);
+
+  renderTrend(s.daily||[]);
+  checkBudget(s.daily||[]);
+}
+
+// ---------- tendencia diaria (30 días, una sola serie, un solo tono) ----------
+function renderTrend(daily){
+  if(!daily.length){ $("trendSect").hidden=true; return; }
+  $("trendSect").hidden=false;
+  const map=Object.fromEntries(daily.map(d=>[d.date,d.cost]));
+  const days=[];
+  for(let i=29;i>=0;i--){
+    const d=new Date(Date.now()-i*864e5);
+    const key=d.toISOString().slice(0,10);
+    days.push({key, cost:map[key]||0});
+  }
+  const max=Math.max(...days.map(d=>d.cost),0.01);
+  $("tchart").innerHTML=days.map((d,i)=>{
+    const h=Math.max(2,Math.round(d.cost/max*54));
+    const cls=(i===days.length-1?"today":"")+(d.cost===0?" zero":"");
+    return `<i class="${cls.trim()}" style="height:${h}px" title="${d.key} · $${d.cost.toFixed(2)}"></i>`;
+  }).join("");
+  $("tFrom").textContent=days[0].key.slice(5);
+  $("tTo").textContent=days[days.length-1].key.slice(5);
+}
+
+// ---------- presupuesto semanal (toast aunque el panel esté oculto) ----------
+function checkBudget(daily){
+  const budget=+(localStorage.getItem("budgetWeek")||0);
+  if(!(budget>0)) return;
+  // gasto de los últimos 7 días desde la serie diaria (independiente del
+  // periodo seleccionado en "gasto por proyecto")
+  const cut=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+  const spent=daily.filter(d=>d.date>=cut).reduce((a,d)=>a+d.cost,0);
+  if(spent<=budget) return;
+  const week=Math.floor(Date.now()/(7*864e5));       // anti-spam: 1 aviso/semana/valor
+  const key=`notifBudget:${budget}:${week}`;
+  if(localStorage.getItem(key)) return;
+  localStorage.setItem(key,"1");
+  const notif=window.__TAURI__?.notification;
+  if(!notif) return;
+  Promise.resolve(notif.isPermissionGranted())
+    .then(g=> g ? true : notif.requestPermission().then(p=>p==="granted"))
+    .then(ok=>{ if(ok) notif.sendNotification({
+      title:"Claude Code Meter",
+      body:t("notif_budget", spent.toFixed(2), budget) }); })
+    .catch(()=>{});
 }
 
 // ---------- ciclo de refresco (auto-programado, con backoff ante fallos) ----------
@@ -1025,10 +1223,24 @@ function onQuotaFail(reason){
   if(!hadQuota || Date.now()-lastSync>STALE_MS) updateTray(null,null);
 }
 
+// periodo del gasto por proyecto (1/7/30 días), persistido
+let curDays=+(localStorage.getItem("days")||7);
+if(![1,7,30].includes(curDays)) curDays=7;
+function markDays(){
+  document.querySelectorAll(".dlink").forEach(el=>el.classList.toggle("on",+el.dataset.d===curDays));
+}
+document.querySelectorAll(".dlink").forEach(el=>{
+  el.addEventListener("click",()=>{
+    curDays=+el.dataset.d; localStorage.setItem("days",curDays);
+    markDays(); refresh();
+  });
+});
+markDays();
+
 async function refresh(){
   if(!invoke){ demo(); return; }
   try{
-    const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats")]);
+    const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats",{days:curDays})]);
     if(quota.status==="fulfilled"){
       renderQuota(quota.value); $("liveDot").classList.remove("err");
       lastSync=Date.now(); fails=0; rateLimited=false; hadQuota=true; lastErrCode=null;
@@ -1078,7 +1290,8 @@ function renderRemotes(){
   $("remList").innerHTML = remotes.map((r,i)=>`
     <div class="pitem">
       <div class="pname"><span class="swatch" style="background:var(--accent)"></span>
-        <span>${escapeHtml(r.name)} — ${escapeHtml(r.host)}</span></div>
+        <span>${escapeHtml(r.name)} — ${escapeHtml(r.host)}</span>
+        <span class="rstat" id="rstat-${i}">…</span></div>
       <button class="xbtn" data-i="${i}" title="${escapeHtml(t("remove_server"))}">✕</button>
     </div>`).join("")
     || `<div class="errbox" style="color:var(--txt-dim)">${t("no_servers")}</div>`;
@@ -1089,10 +1302,19 @@ function renderRemotes(){
       renderRemotes(); refresh();
     };
   });
+  // estado de conexión de cada servidor (✓ activo / ✗ sin conexión)
+  remotes.forEach((r,i)=>{
+    invoke("test_remote",{host:r.host}).then(()=>{
+      const el=$("rstat-"+i); if(el){ el.textContent="✓ "+t("status_active"); el.className="rstat ok"; }
+    }).catch(()=>{
+      const el=$("rstat-"+i); if(el){ el.textContent="✗ "+t("status_fail"); el.className="rstat bad"; }
+    });
+  });
 }
 $("cfgBtn").addEventListener("click",()=>{
-  $("cfgSect").hidden=!$("cfgSect").hidden;
-  if(!$("cfgSect").hidden){ loadRemotes(); $("cfgSect").scrollIntoView({behavior:"smooth"}); }
+  const show=$("cfgSect").hidden;                 // la tuerca muestra/oculta ajustes
+  $("cfgSect").hidden=!show; $("prefSect").hidden=!show;
+  if(show){ loadRemotes(); $("cfgSect").scrollIntoView({behavior:"smooth"}); }
 });
 $("rAdd").addEventListener("click",async()=>{
   const name=$("rName").value.trim()||"server";
@@ -1102,6 +1324,7 @@ $("rAdd").addEventListener("click",async()=>{
   $("rMsg").textContent=t("msg_testing");
   try{
     await invoke("test_remote",{host});
+    remotes=remotes.filter(r=>!(r.host===host&&r.command===command)); // sin duplicados
     remotes.push({name,host,command});
     await invoke("save_remotes",{remotes});
     $("rMsg").textContent=t("msg_added");
@@ -1109,6 +1332,26 @@ $("rAdd").addEventListener("click",async()=>{
     renderRemotes(); refresh();
   }catch(e){ $("rMsg").textContent="✗ "+e; }
 });
+
+// ---------- preferencias: presupuesto y exportación ----------
+$("budgetIn").value=localStorage.getItem("budgetWeek")||"";
+$("budgetIn").addEventListener("change",()=>{
+  localStorage.setItem("budgetWeek", $("budgetIn").value||"0");
+});
+$("exportDir").value=localStorage.getItem("exportDir")||"";
+$("exportDir").addEventListener("change",()=>{
+  localStorage.setItem("exportDir", $("exportDir").value.trim());
+});
+async function doExport(format){
+  if(!invoke) return;
+  $("expMsg").textContent="…";
+  try{
+    const p=await invoke("export_data",{format, dir:$("exportDir").value.trim()||null, days:curDays});
+    $("expMsg").textContent=t("msg_exported", p);
+  }catch(e){ $("expMsg").textContent="✗ "+e; }
+}
+$("expCsv").addEventListener("click",()=>doExport("csv"));
+$("expJson").addEventListener("click",()=>doExport("json"));
 
 // ---------- idioma (persistido; re-render en caliente) ----------
 $("langSel").addEventListener("change",()=>{

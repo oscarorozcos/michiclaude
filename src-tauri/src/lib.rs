@@ -181,6 +181,15 @@ struct ProjectAgg {
     name: String,
     cost: f64,
     tokens: u64,
+    /// Coste por modelo dentro del proyecto (id de modelo -> USD equiv.)
+    #[serde(default)]
+    by_model: HashMap<String, f64>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct DailyAgg {
+    date: String, // YYYY-MM-DD (UTC)
+    cost: f64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -188,10 +197,15 @@ struct LocalStats {
     projects: Vec<ProjectAgg>,
     models: HashMap<String, ModelAgg>,
     cost_today: f64,
+    /// Coste de la ventana seleccionada (1/7/30 días; el nombre se conserva
+    /// por compatibilidad con el exportador remoto).
     cost_week: f64,
     tokens_week: u64,
     files_scanned: usize,
     entries_deduped: usize,
+    /// Serie diaria de los últimos 30 días (para la gráfica de tendencia).
+    #[serde(default)]
+    daily: Vec<DailyAgg>,
 }
 
 /// Precios API por MTok: (input, output, cache_write, cache_read).
@@ -285,11 +299,11 @@ fn test_remote(host: String) -> Result<String, String> {
 
 /// Ejecuta el exportador remoto por SSH. BatchMode: jamás pide contraseña
 /// (requiere llave configurada, la misma que usa VS Code Remote-SSH).
-fn fetch_remote(r: &RemoteSource) -> Option<LocalStats> {
+fn fetch_remote(r: &RemoteSource, window_days: u32) -> Option<LocalStats> {
     let mut cmd = std::process::Command::new("ssh");
     cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
         .arg(&r.host)
-        .arg(&r.command);
+        .arg(format!("{} --days {}", r.command, window_days));
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -373,6 +387,7 @@ struct ProjSlot {
     suffix: Option<String>,
     cost: f64,
     tokens: u64,
+    by_model: HashMap<String, f64>,
 }
 
 #[derive(Default)]
@@ -380,23 +395,27 @@ struct LocalAgg {
     seen: HashSet<String>,
     projects: HashMap<String, ProjSlot>, // clave: ruta única de la carpeta
     models: HashMap<String, ModelAgg>,
+    daily: HashMap<String, f64>, // YYYY-MM-DD -> USD (últimos 30 días)
     cost_today: f64,
-    cost_week: f64,
-    tokens_week: u64,
+    cost_window: f64,
+    tokens_window: u64,
     files: usize,
     deduped: usize,
 }
 
 /// Escanea un directorio de proyectos de Claude Code y acumula en `agg`.
 /// `suffix` etiqueta el origen ("wsl") en el nombre del proyecto.
+/// `window_days` es la ventana del gasto por proyecto (1/7/30…).
 fn scan_projects_dir(
     projects_dir: &std::path::Path,
     suffix: Option<&str>,
     now: DateTime<Utc>,
+    window_days: u32,
     agg: &mut LocalAgg,
 ) {
     let day_ago = now - Duration::hours(24);
-    let week_ago = now - Duration::days(7);
+    let window_ago = now - Duration::days(window_days as i64);
+    let month_ago = now - Duration::days(30); // serie diaria de la tendencia
     let Ok(entries) = fs::read_dir(projects_dir) else { return };
 
     for proj in entries.flatten() {
@@ -413,6 +432,7 @@ fn scan_projects_dir(
             suffix: suffix.map(String::from),
             cost: 0.0,
             tokens: 0,
+            by_model: HashMap::new(),
         });
 
         let Ok(files) = fs::read_dir(proj.path()) else { continue };
@@ -476,17 +496,18 @@ fn scan_projects_dir(
                     .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                     .map(|d| d.with_timezone(&Utc));
 
-                let in_week = ts.map(|t| t >= week_ago).unwrap_or(false);
+                let in_window = ts.map(|t| t >= window_ago).unwrap_or(false);
                 let in_day = ts.map(|t| t >= day_ago).unwrap_or(false);
 
-                if in_week {
-                    agg.cost_week += cost;
+                if in_window {
+                    agg.cost_window += cost;
                     // tokens "de trabajo": excluimos cache_read (infla ~100x)
-                    agg.tokens_week += inp + out + cw;
+                    agg.tokens_window += inp + out + cw;
                     {
                         let slot = agg.projects.get_mut(&slot_key).unwrap();
                         slot.cost += cost;
                         slot.tokens += inp + out + cw;
+                        *slot.by_model.entry(model.clone()).or_insert(0.0) += cost;
                     }
                     let m = agg.models.entry(model.clone()).or_default();
                     m.input += inp;
@@ -498,21 +519,25 @@ fn scan_projects_dir(
                 if in_day {
                     agg.cost_today += cost;
                 }
+                // serie diaria (30 días), independiente de la ventana elegida
+                if let Some(t) = ts.filter(|t| *t >= month_ago) {
+                    *agg.daily.entry(t.format("%Y-%m-%d").to_string()).or_insert(0.0) += cost;
+                }
             }
         }
     }
 }
 
-#[tauri::command]
-fn get_local_stats() -> Result<LocalStats, String> {
+/// Agrega todas las fuentes (este PC + WSL + remotos) para una ventana dada.
+fn collect_local_stats(window_days: u32) -> LocalStats {
     let now = Utc::now();
     let mut agg = LocalAgg::default();
 
     // 1) Este PC
-    scan_projects_dir(&claude_dir().join("projects"), None, now, &mut agg);
+    scan_projects_dir(&claude_dir().join("projects"), None, now, window_days, &mut agg);
     // 2) Distros WSL (si existen): misma máquina, cero configuración
     for d in wsl_claude_dirs() {
-        scan_projects_dir(&d.join("projects"), Some("wsl"), now, &mut agg);
+        scan_projects_dir(&d.join("projects"), Some("wsl"), now, window_days, &mut agg);
     }
 
     let projects: Vec<ProjectAgg> = agg
@@ -528,24 +553,27 @@ fn get_local_stats() -> Result<LocalStats, String> {
                 },
                 cost: s.cost,
                 tokens: s.tokens,
+                by_model: s.by_model,
             }
         })
         .collect();
 
+    let mut daily_map = agg.daily;
     let mut stats = LocalStats {
         projects,
         models: agg.models,
         cost_today: agg.cost_today,
-        cost_week: agg.cost_week,
-        tokens_week: agg.tokens_week,
+        cost_week: agg.cost_window,
+        tokens_week: agg.tokens_window,
         files_scanned: agg.files,
         entries_deduped: agg.deduped,
+        daily: Vec::new(),
     };
 
     // Fusionar fuentes remotas (si remotes.json existe): totales sumados,
-    // proyectos etiquetados con su origen, modelos agregados.
+    // proyectos etiquetados con su origen, modelos y serie diaria agregados.
     for r in load_remotes() {
-        let Some(remote) = fetch_remote(&r) else { continue };
+        let Some(remote) = fetch_remote(&r, window_days) else { continue };
         stats.cost_today += remote.cost_today;
         stats.cost_week += remote.cost_week;
         stats.tokens_week += remote.tokens_week;
@@ -556,6 +584,7 @@ fn get_local_stats() -> Result<LocalStats, String> {
                 name: format!("{} · {}", p.name, r.name),
                 cost: p.cost,
                 tokens: p.tokens,
+                by_model: p.by_model,
             });
         }
         for (m, a) in remote.models {
@@ -566,12 +595,71 @@ fn get_local_stats() -> Result<LocalStats, String> {
             e.cache_read += a.cache_read;
             e.cost += a.cost;
         }
+        for d in remote.daily {
+            *daily_map.entry(d.date).or_insert(0.0) += d.cost;
+        }
     }
     stats
         .projects
         .sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
 
-    Ok(stats)
+    let mut daily: Vec<DailyAgg> = daily_map
+        .into_iter()
+        .map(|(date, cost)| DailyAgg { date, cost })
+        .collect();
+    daily.sort_by(|a, b| a.date.cmp(&b.date));
+    stats.daily = daily;
+
+    stats
+}
+
+#[tauri::command]
+fn get_local_stats(days: Option<u32>) -> Result<LocalStats, String> {
+    Ok(collect_local_stats(days.unwrap_or(7).clamp(1, 90)))
+}
+
+/// Exporta los datos agregados a CSV o JSON. `dir` vacío = carpeta Descargas.
+/// Devuelve la ruta del archivo escrito.
+#[tauri::command]
+fn export_data(format: String, dir: Option<String>, days: Option<u32>) -> Result<String, String> {
+    let stats = collect_local_stats(days.unwrap_or(7).clamp(1, 90));
+    let folder = dir
+        .filter(|s| !s.trim().is_empty())
+        .map(PathBuf::from)
+        .or_else(dirs::download_dir)
+        .ok_or("ERR_NO_EXPORT_DIR")?;
+    fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+    let stamp = Utc::now().format("%Y%m%d-%H%M%S");
+    let ext = if format == "csv" { "csv" } else { "json" };
+    let path = folder.join(format!("claude-code-meter-{stamp}.{ext}"));
+
+    let content = if format == "csv" {
+        let mut s = String::from("type,name_or_date,cost_usd,tokens\n");
+        for p in &stats.projects {
+            s.push_str(&format!(
+                "project,{},{:.4},{}\n",
+                p.name.replace(',', " "),
+                p.cost,
+                p.tokens
+            ));
+        }
+        for (m, a) in &stats.models {
+            s.push_str(&format!(
+                "model,{},{:.4},{}\n",
+                m,
+                a.cost,
+                a.input + a.output + a.cache_write
+            ));
+        }
+        for d in &stats.daily {
+            s.push_str(&format!("daily,{},{:.4},\n", d.date, d.cost));
+        }
+        s
+    } else {
+        serde_json::to_string_pretty(&stats).map_err(|e| e.to_string())?
+    };
+    fs::write(&path, content).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
 }
 
 // ---------- rectángulo real de la barra de tareas (Win32) ----------
@@ -624,7 +712,8 @@ pub fn run() {
             update_tray,
             get_remotes,
             save_remotes,
-            test_remote
+            test_remote,
+            export_data
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

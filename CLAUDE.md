@@ -67,7 +67,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
    del precio de input.
 4. Coste equivalente-API con la tabla `price_for()` por substring del modelo
    (opus/fable/mythos, haiku, sonnet/default).
-5. Agrega: por proyecto (7 días), por modelo (7 días), coste hoy y semana.
+5. Agrega: por proyecto (ventana 1/7/30 días, con desglose `by_model` por
+   proyecto), por modelo, coste hoy y de la ventana (`cost_week`), y la serie
+   `daily` de los últimos 30 días para la gráfica de tendencia. Los proyectos
+   llevan sufijo de origen (" · wsl", " · <servidor>"); el frontend etiqueta
+   "local" a los que no llevan sufijo.
 
 **C) Fuentes remotas opcionales (dentro de `get_local_stats`):**
 1. Si existe `%APPDATA%\com.oscarorozco.claude-code-meter\remotes.json`
@@ -96,8 +100,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 
 ## INVARIANTES — no romper nunca
 
-1. `get_quota` y `get_local_stats`: no cambiar firmas; no eliminar la
-   deduplicación ni la exclusión de `cache_read`.
+1. `get_quota` y `get_local_stats`: no cambiar firmas (get_local_stats acepta
+   `days: Option<u32>` — ventana 1/7/30, clamp 1..90 — desde 2026-07-11); no
+   eliminar la deduplicación ni la exclusión de `cache_read`. Cualquier campo
+   nuevo en LocalStats debe replicarse en `scripts/meter-export.py` y llevar
+   `#[serde(default)]` para tolerar exportadores viejos.
 2. La función `demo()` del frontend (datos ficticios: vps-infra, edge-gallery,
    rocket-code-prep, MAX 5×, $47.20…) existe SOLO para abrir `index.html`
    suelto en un navegador (cuando `window.__TAURI__` no existe). **PROHIBIDO**
@@ -185,6 +192,19 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       (proyectos "nombre · wsl") y token de respaldo desde WSL antes que los
       remotos. FALTA probar en una máquina con WSL real.
 - [x] Tema claro/oscuro con toggle ◐ persistido.
+- [x] Periodo dinámico del gasto por proyecto (1d/7d/30d, persistido) y
+      desglose por modelo de cada proyecto (tooltip al pasar el mouse).
+- [x] Gráfica de tendencia diaria (30 días, calculada de los logs — no hay
+      base de datos propia que se pueda perder).
+- [x] Presupuesto semanal con notificación toast de Windows (funciona con el
+      panel cerrado; anti-spam 1 aviso/semana). Se compara contra la suma de
+      los últimos 7 días de la serie diaria, no contra la ventana elegida.
+- [x] Export CSV/JSON a carpeta elegida por el usuario (vacía = Descargas),
+      comando `export_data`.
+- [x] Ajustes reorganizados: ⚙ muestra "Fuentes de datos" (nota incluye WSL,
+      lista de servidores con estado activo/sin conexión, alta con prueba)
+      y "Preferencias" (idioma, presupuesto, exportación) por separado.
+- [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
 - [ ] Auto-updater (tauri-plugin-updater)
 - [ ] Precios de modelos configurables (JSON externo)
 

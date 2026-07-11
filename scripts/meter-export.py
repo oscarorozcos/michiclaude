@@ -2,15 +2,19 @@
 """Exportador remoto para Claude Code Meter.
 
 Agrega los logs locales de Claude Code (~/.claude/projects/**/*.jsonl) con la
-MISMA lógica que get_local_stats en Rust (deduplicación por message.id+requestId,
-exclusión de <synthetic>, cache_read fuera de los tokens de trabajo, precios
-equivalente-API) y emite el JSON con la forma exacta de LocalStats.
+MISMA lógica que collect_local_stats en Rust (deduplicación por
+message.id+requestId, exclusión de <synthetic>, cache_read fuera de los tokens
+de trabajo, precios equivalente-API) y emite el JSON con la forma exacta de
+LocalStats: projects (con by_model), models, cost_today, cost_week (= ventana),
+tokens_week, daily (serie de 30 días).
 
-El meter en Windows lo invoca por SSH:  ssh <host> "python3 <ruta>/meter-export.py"
-Solo stdlib; sin dependencias.
+Uso:  meter-export.py [--days N]      (N = ventana del gasto por proyecto; def. 7)
+
+El meter en Windows lo invoca por SSH. Solo stdlib; sin dependencias.
 """
 import json
 import os
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -38,18 +42,28 @@ def parse_ts(s):
 
 
 def main():
+    days = 7
+    args = sys.argv[1:]
+    if "--days" in args:
+        try:
+            days = max(1, min(90, int(args[args.index("--days") + 1])))
+        except (IndexError, ValueError):
+            pass
+
     claude_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
     projects_dir = claude_dir / "projects"
     now = datetime.now(timezone.utc)
-    week_ago = now - timedelta(days=7)
+    window_ago = now - timedelta(days=days)
     day_ago = now - timedelta(hours=24)
+    month_ago = now - timedelta(days=30)
 
     seen = set()
     display = {}
-    per_project = {}
+    per_project = {}   # raw -> [cost, tokens, {model: cost}]
     models = {}
-    cost_today = cost_week = 0.0
-    tokens_week = 0
+    daily = {}
+    cost_today = cost_window = 0.0
+    tokens_window = 0
     files_scanned = 0
     deduped = 0
 
@@ -96,12 +110,13 @@ def main():
                     pi, po, pcw, pcr = price_for(model)
                     cost = (inp * pi + out * po + cw * pcw + cr * pcr) / 1e6
                     ts = parse_ts(v.get("timestamp"))
-                    if ts is not None and ts >= week_ago:
-                        cost_week += cost
-                        tokens_week += inp + out + cw  # cache_read excluido
-                        e = per_project.setdefault(raw, [0.0, 0])
+                    if ts is not None and ts >= window_ago:
+                        cost_window += cost
+                        tokens_window += inp + out + cw  # cache_read excluido
+                        e = per_project.setdefault(raw, [0.0, 0, {}])
                         e[0] += cost
                         e[1] += inp + out + cw
+                        e[2][model] = e[2].get(model, 0.0) + cost
                         m = models.setdefault(model, {
                             "input": 0, "output": 0, "cache_write": 0,
                             "cache_read": 0, "cost": 0.0})
@@ -112,11 +127,14 @@ def main():
                         m["cost"] += cost
                     if ts is not None and ts >= day_ago:
                         cost_today += cost
+                    if ts is not None and ts >= month_ago:
+                        d = ts.strftime("%Y-%m-%d")
+                        daily[d] = daily.get(d, 0.0) + cost
 
     projects = [
         {"name": display.get(raw) or raw.rsplit("-", 1)[-1] or raw,
-         "cost": cost, "tokens": tokens}
-        for raw, (cost, tokens) in per_project.items()
+         "cost": cost, "tokens": tokens, "by_model": by_model}
+        for raw, (cost, tokens, by_model) in per_project.items()
     ]
     projects.sort(key=lambda p: -p["cost"])
 
@@ -124,10 +142,11 @@ def main():
         "projects": projects,
         "models": models,
         "cost_today": cost_today,
-        "cost_week": cost_week,
-        "tokens_week": tokens_week,
+        "cost_week": cost_window,
+        "tokens_week": tokens_window,
         "files_scanned": files_scanned,
         "entries_deduped": deduped,
+        "daily": [{"date": d, "cost": c} for d, c in sorted(daily.items())],
     }))
 
 
