@@ -142,6 +142,23 @@
   .rstat{font-size:10px;font-family:var(--mono);margin-left:8px;flex:0 0 auto;color:var(--txt-dim)}
   .rstat.ok{color:var(--ok)} .rstat.bad{color:var(--bad)}
 
+  /* alarmas de uso (chips) */
+  .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);
+    border:1px solid var(--stroke);border-radius:999px;padding:3px 9px;
+    font-family:var(--mono);font-size:11px}
+  .chip b{cursor:pointer;color:var(--txt-dim);font-weight:400}
+  .chip b:hover{color:var(--bad)}
+
+  /* banner de confirmación (límite restablecido) */
+  .ackbox{display:flex;align-items:center;gap:10px;margin-bottom:11px;
+    background:rgba(64,184,105,.12);border:1px solid rgba(64,184,105,.35);
+    border-radius:10px;padding:8px 11px;font-size:12px;line-height:1.4}
+  .ackbox button{flex:0 0 auto;margin-left:auto;background:rgba(64,184,105,.2);
+    color:var(--ok);border:1px solid rgba(64,184,105,.45);border-radius:7px;
+    padding:5px 12px;font-size:11.5px;cursor:pointer;font-family:var(--font);font-weight:600}
+  .ackbox button:hover{background:rgba(64,184,105,.3)}
+
   /* selector de periodo (1d/7d/30d) */
   .dlink{cursor:pointer;color:var(--txt-dim)}
   .dlink:hover{color:var(--txt)}
@@ -176,6 +193,11 @@
     <button class="xbtn" id="themeBtn">◐</button>
     <button class="xbtn" id="cfgBtn">⚙</button>
     <button class="xbtn" id="hideBtn">✕</button>
+  </div>
+
+  <div class="ackbox" id="ackBox" hidden>
+    <span id="ackTxt"></span>
+    <button id="ackBtn" data-i18n="btn_ack"></button>
   </div>
 
   <div class="sect">
@@ -255,6 +277,12 @@
       <label class="cfg-row" style="cursor:pointer;margin-top:4px">
         <input type="checkbox" id="pillChk"> <span data-i18n="pill_label"></span>
       </label>
+      <div class="cfg-lbl" data-i18n="alarms_label"></div>
+      <div class="chips" id="alarmList"></div>
+      <div class="btnrow">
+        <input id="alarmIn" type="number" min="1" max="100" step="1" style="max-width:80px" placeholder="%">
+        <button id="alarmAdd" data-i18n="btn_add"></button>
+      </div>
       <div class="cfg-lbl" data-i18n="budget_label"></div>
       <input id="budgetIn" type="number" min="0" step="1" style="max-width:120px">
       <div class="cfg-lbl" data-i18n="export_label"></div>
@@ -350,6 +378,12 @@ en:{
   status_active:"active",
   status_fail:"unreachable",
   pill_label:"Floating widget above the taskbar",
+  alarms_label:"Session alarms (notify at % used)",
+  btn_add:"Add",
+  notif_week_limit:"Weekly limit reached (100%). You'll get a notice when it resets.",
+  notif_reset_session:"Your 5 h session limit is available again.",
+  notif_reset_week:"Your weekly limit is available again.",
+  btn_ack:"Got it",
   err_no_token:"No valid token. Use Claude Code on this PC (any prompt) or on a server from your data sources to refresh it.",
   err_expired:"Token expired. Open Claude Code (any prompt) to refresh it.",
   err_rate:m=>`API rate-limited (429). Retrying in ${m} min — your quota is not affected.`,
@@ -423,6 +457,12 @@ es:{
   status_active:"activo",
   status_fail:"sin conexión",
   pill_label:"Widget flotante sobre la barra de tareas",
+  alarms_label:"Alarmas de sesión (avisar al % usado)",
+  btn_add:"Agregar",
+  notif_week_limit:"Límite semanal alcanzado (100%). Te avisaré cuando se restablezca.",
+  notif_reset_session:"Tu límite de sesión (5 h) ya está disponible de nuevo.",
+  notif_reset_week:"Tu límite semanal ya está disponible de nuevo.",
+  btn_ack:"Enterado",
   err_no_token:"Sin token vigente. Usa Claude Code en este PC (cualquier consulta) o en un servidor de tus fuentes para refrescarlo.",
   err_expired:"Token expirado. Abre Claude Code (cualquier consulta) para refrescarlo.",
   err_rate:m=>`La API limitó las peticiones (429). Reintento en ${m} min — tu cuota no se ve afectada.`,
@@ -496,6 +536,12 @@ pt:{
   status_active:"ativo",
   status_fail:"sem conexão",
   pill_label:"Widget flutuante sobre a barra de tarefas",
+  alarms_label:"Alarmes de sessão (avisar no % usado)",
+  btn_add:"Adicionar",
+  notif_week_limit:"Limite semanal atingido (100%). Você será avisado quando for restabelecido.",
+  notif_reset_session:"Seu limite de sessão (5 h) já está disponível novamente.",
+  notif_reset_week:"Seu limite semanal já está disponível novamente.",
+  btn_ack:"Entendi",
   err_no_token:"Sem token válido. Use o Claude Code neste PC (qualquer prompt) ou em um servidor das suas fontes para renová-lo.",
   err_expired:"Token expirado. Abra o Claude Code (qualquer prompt) para renová-lo.",
   err_rate:m=>`API limitou as requisições (429). Nova tentativa em ${m} min — sua cota não é afetada.`,
@@ -569,6 +615,12 @@ fr:{
   status_active:"actif",
   status_fail:"injoignable",
   pill_label:"Widget flottant au-dessus de la barre des tâches",
+  alarms_label:"Alarmes de session (alerter au % utilisé)",
+  btn_add:"Ajouter",
+  notif_week_limit:"Limite hebdo atteinte (100 %). Vous serez prévenu à la réinitialisation.",
+  notif_reset_session:"Votre limite de session (5 h) est de nouveau disponible.",
+  notif_reset_week:"Votre limite hebdo est de nouveau disponible.",
+  btn_ack:"Compris",
   err_no_token:"Aucun jeton valide. Utilisez Claude Code sur ce PC (n'importe quel prompt) ou sur un serveur de vos sources pour le renouveler.",
   err_expired:"Jeton expiré. Ouvrez Claude Code (n'importe quel prompt) pour le renouveler.",
   err_rate:m=>`API limitée (429). Nouvel essai dans ${m} min — votre quota n'est pas affecté.`,
@@ -642,6 +694,12 @@ de:{
   status_active:"aktiv",
   status_fail:"nicht erreichbar",
   pill_label:"Schwebendes Widget über der Taskleiste",
+  alarms_label:"Sitzungsalarme (bei % Nutzung melden)",
+  btn_add:"Hinzufügen",
+  notif_week_limit:"Wochenlimit erreicht (100 %). Du wirst beim Reset benachrichtigt.",
+  notif_reset_session:"Dein Sitzungslimit (5 Std) ist wieder verfügbar.",
+  notif_reset_week:"Dein Wochenlimit ist wieder verfügbar.",
+  btn_ack:"Verstanden",
   err_no_token:"Kein gültiges Token. Nutze Claude Code auf diesem PC (beliebiger Prompt) oder auf einem Server deiner Quellen, um es zu erneuern.",
   err_expired:"Token abgelaufen. Öffne Claude Code (beliebiger Prompt), um es zu erneuern.",
   err_rate:m=>`API drosselt Anfragen (429). Neuer Versuch in ${m} Min — dein Kontingent ist nicht betroffen.`,
@@ -715,6 +773,12 @@ ja:{
   status_active:"接続中",
   status_fail:"接続不可",
   pill_label:"タスクバー上のフローティングウィジェット",
+  alarms_label:"セッションアラーム（使用%で通知）",
+  btn_add:"追加",
+  notif_week_limit:"週間上限に達しました（100%）。リセット時に通知します。",
+  notif_reset_session:"セッション上限（5時間）が再び利用可能になりました。",
+  notif_reset_week:"週間上限が再び利用可能になりました。",
+  btn_ack:"確認",
   err_no_token:"有効なトークンがありません。このPCで Claude Code を使うか（任意のプロンプト）、データソースのサーバーで使って更新してください。",
   err_expired:"トークンの期限切れ。Claude Code を開いて（任意のプロンプト）更新してください。",
   err_rate:m=>`API がレート制限中 (429)。${m}分後に再試行 — クォータには影響しません。`,
@@ -788,6 +852,12 @@ ko:{
   status_active:"연결됨",
   status_fail:"연결 불가",
   pill_label:"작업 표시줄 위 플로팅 위젯",
+  alarms_label:"세션 알람 (사용 %에서 알림)",
+  btn_add:"추가",
+  notif_week_limit:"주간 한도 도달 (100%). 초기화되면 알려드립니다.",
+  notif_reset_session:"세션 한도(5시간)를 다시 사용할 수 있습니다.",
+  notif_reset_week:"주간 한도를 다시 사용할 수 있습니다.",
+  btn_ack:"확인",
   err_no_token:"유효한 토큰이 없습니다. 이 PC에서 Claude Code를 사용하거나(아무 프롬프트) 데이터 소스의 서버에서 사용해 갱신하세요.",
   err_expired:"토큰이 만료되었습니다. Claude Code를 열어(아무 프롬프트) 갱신하세요.",
   err_rate:m=>`API 요청 제한 (429). ${m}분 후 재시도 — 쿼터에는 영향이 없습니다.`,
@@ -861,6 +931,12 @@ zh:{
   status_active:"已连接",
   status_fail:"无法连接",
   pill_label:"任务栏上方的浮动小组件",
+  alarms_label:"会话闹钟（在使用%时提醒）",
+  btn_add:"添加",
+  notif_week_limit:"已达每周上限（100%）。重置时会通知你。",
+  notif_reset_session:"你的会话额度（5小时）已恢复可用。",
+  notif_reset_week:"你的每周额度已恢复可用。",
+  btn_ack:"知道了",
   err_no_token:"没有有效令牌。请在本机使用 Claude Code（任意提问），或在数据源中的服务器上使用以刷新。",
   err_expired:"令牌已过期。打开 Claude Code（任意提问）以刷新。",
   err_rate:m=>`API 限流 (429)。${m}分钟后重试 — 你的配额不受影响。`,
@@ -1045,6 +1121,7 @@ function renderQuota(data){
   const weekly=buckets.filter(b=>b.kind!=="session")
     .sort((a,b)=>(WRANK[a.kind]??9)-(WRANK[b.kind]??9));
   weeklyAllPct = (weekly.find(b=>b.kind==="weekly_all") || weekly[0] || {}).pct ?? null;
+  trackResets(ses, weekly.find(b=>b.kind==="weekly_all"));
 
   if(ses){
     const pace=elapsedPct(ses.resets,5);
@@ -1079,27 +1156,91 @@ function renderQuota(data){
   emitPill(sesInfo, weeklyAllPct);
 }
 
-// ---------- avisos de sesión (una vez por umbral por ventana de sesión) ----------
-function maybeNotify(pct,resets){
+// ---------- notificaciones ----------
+function toast(body){
   const notif=window.__TAURI__?.notification;
   if(!notif) return;
-  const win=resets||"sesion";                 // clave = ventana de sesión actual
-  for(const thr of [95,80]){                  // el umbral más alto primero
+  Promise.resolve(notif.isPermissionGranted())
+    .then(g=> g ? true : notif.requestPermission().then(p=>p==="granted"))
+    .then(ok=>{ if(ok) notif.sendNotification({title:"Claude Code Meter", body}); })
+    .catch(()=>{});
+}
+
+// Alarmas de sesión configurables (como alarmas del celular, pero en % usado).
+function getAlarms(){
+  try{ const a=JSON.parse(localStorage.getItem("alarms")||"[80,95]");
+    return Array.isArray(a)?a.filter(x=>x>=1&&x<=100):[80,95]; }
+  catch(e){ return [80,95]; }
+}
+function saveAlarms(a){ localStorage.setItem("alarms", JSON.stringify(a.sort((x,y)=>x-y))); }
+
+// Aviso una vez por umbral por ventana de sesión; al cruzar varios de golpe,
+// suena solo el más alto (los menores quedan marcados como avisados).
+function maybeNotify(pct,resets){
+  const win=resets||"sesion";
+  const alarms=[...getAlarms()].sort((a,b)=>b-a);   // el más alto primero
+  for(const thr of alarms){
     if(pct>=thr){
-      const key=`notif:${thr}:${win}`;
-      if(!localStorage.getItem(key)){
-        localStorage.setItem(key,"1");        // anti-spam: uno por umbral y ventana
-        Promise.resolve(notif.isPermissionGranted())
-          .then(g=> g ? true : notif.requestPermission().then(p=>p==="granted"))
-          .then(ok=>{ if(ok) notif.sendNotification({
-            title:"Claude Code Meter",
-            body: thr>=95 ? t("notif_hi",pct) : t("notif_lo",pct) }); })
-          .catch(()=>{});
+      if(!localStorage.getItem(`notif:${thr}:${win}`)){
+        alarms.filter(x=>x<=thr).forEach(x=>localStorage.setItem(`notif:${x}:${win}`,"1"));
+        toast(thr>=95 ? t("notif_hi",Math.round(pct)) : t("notif_lo",Math.round(pct)));
       }
       break;
     }
   }
 }
+
+// Límite alcanzado y restablecimiento (sesión y semanal). El aviso de
+// "restablecido" se repite cada 5 min + banner en el panel HASTA que el
+// usuario pulse "Enterado" — por si no estaba frente a la pantalla.
+function trackResets(ses, wk){
+  if(ses && ses.resets){
+    const prev=localStorage.getItem("lastRes:session");
+    if(prev && prev!==ses.resets && localStorage.getItem("hit:session:"+prev)){
+      localStorage.setItem("ackPending:session","1");
+      localStorage.removeItem("hit:session:"+prev);
+    }
+    localStorage.setItem("lastRes:session", ses.resets);
+    if(ses.pct>=100) localStorage.setItem("hit:session:"+ses.resets,"1");
+  }
+  if(wk && wk.resets){
+    const prev=localStorage.getItem("lastRes:week");
+    if(prev && prev!==wk.resets && localStorage.getItem("hit:week:"+prev)){
+      localStorage.setItem("ackPending:week","1");
+      localStorage.removeItem("hit:week:"+prev);
+    }
+    localStorage.setItem("lastRes:week", wk.resets);
+    if(wk.pct>=100){
+      localStorage.setItem("hit:week:"+wk.resets,"1");
+      const kk="notifW:"+wk.resets;                  // límite semanal: 1 aviso por ventana
+      if(!localStorage.getItem(kk)){ localStorage.setItem(kk,"1"); toast(t("notif_week_limit")); }
+    }
+  }
+}
+
+function processAcks(){
+  const pend=[];
+  if(localStorage.getItem("ackPending:session")==="1") pend.push(t("notif_reset_session"));
+  if(localStorage.getItem("ackPending:week")==="1") pend.push(t("notif_reset_week"));
+  if(!pend.length){ $("ackBox").hidden=true; return; }
+  $("ackTxt").textContent=pend.join(" ");
+  $("ackBox").hidden=false;
+  for(const k of ["session","week"]){
+    if(localStorage.getItem("ackPending:"+k)!=="1") continue;
+    const last=+localStorage.getItem("ackLastToast:"+k)||0;
+    if(Date.now()-last>5*60000){
+      localStorage.setItem("ackLastToast:"+k, String(Date.now()));
+      toast(t(k==="session"?"notif_reset_session":"notif_reset_week"));
+    }
+  }
+}
+$("ackBtn").addEventListener("click",()=>{
+  for(const k of ["session","week"]){
+    localStorage.removeItem("ackPending:"+k);
+    localStorage.removeItem("ackLastToast:"+k);
+  }
+  $("ackBox").hidden=true;
+});
 
 // proyección simple: burn rate de la sesión vs tiempo restante
 let lastSes=null, lastTs=null;
@@ -1222,14 +1363,7 @@ function checkBudget(daily){
   const key=`notifBudget:${budget}:${week}`;
   if(localStorage.getItem(key)) return;
   localStorage.setItem(key,"1");
-  const notif=window.__TAURI__?.notification;
-  if(!notif) return;
-  Promise.resolve(notif.isPermissionGranted())
-    .then(g=> g ? true : notif.requestPermission().then(p=>p==="granted"))
-    .then(ok=>{ if(ok) notif.sendNotification({
-      title:"Claude Code Meter",
-      body:t("notif_budget", spent.toFixed(2), budget) }); })
-    .catch(()=>{});
+  toast(t("notif_budget", spent.toFixed(2), budget));
 }
 
 // ---------- ciclo de refresco (auto-programado, con backoff ante fallos) ----------
@@ -1278,7 +1412,7 @@ async function refresh(){
     }
     if(local.status==="fulfilled") renderLocal(local.value);
   }catch(e){ onQuotaFail(e); }
-  finally{ scheduleNext(); }
+  finally{ processAcks(); scheduleNext(); }
 }
 function scheduleNext(){
   // 3 min en régimen normal; errores de red: backoff 5→10→20→40 s (máx 60 s);
@@ -1362,6 +1496,22 @@ $("rAdd").addEventListener("click",async()=>{
   }catch(e){ $("rMsg").textContent="✗ "+e; }
 });
 
+// ---------- preferencias: alarmas de uso ----------
+function renderAlarms(){
+  const a=getAlarms();
+  $("alarmList").innerHTML=a.map(x=>`<span class="chip">${x}% <b data-a="${x}" title="✕">✕</b></span>`).join("");
+  document.querySelectorAll("#alarmList b").forEach(b=>{
+    b.onclick=()=>{ saveAlarms(getAlarms().filter(x=>x!==+b.dataset.a)); renderAlarms(); };
+  });
+}
+$("alarmAdd").addEventListener("click",()=>{
+  const v=Math.round(+$("alarmIn").value);
+  if(!(v>=1&&v<=100)) return;
+  const a=getAlarms(); if(!a.includes(v)) a.push(v);
+  saveAlarms(a); $("alarmIn").value=""; renderAlarms();
+});
+renderAlarms();
+
 // ---------- preferencias: widget flotante, presupuesto y exportación ----------
 if(invoke){ invoke("get_pill_visible").then(v=>{ $("pillChk").checked=!!v; }).catch(()=>{}); }
 $("pillChk").addEventListener("change",()=>{
@@ -1418,6 +1568,7 @@ function demo(){
 applyI18n();
 $("syncTxt").textContent=t("connecting");
 $("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
+processAcks();          // si quedó un "restablecido" sin confirmar, retómalo
 refresh();
 </script>
 </body>

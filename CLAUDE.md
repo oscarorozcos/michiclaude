@@ -151,8 +151,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - Arrastre del panel desde el encabezado (con guarda anti-blur durante drag).
 - ✕ oculta a bandeja; clic en tray reabre; flyout se oculta al perder foco.
 - Estados de error legibles con punto rojo en la línea de estado.
-- Notificaciones de umbral: máx. una por umbral por ventana de sesión
-  (`maybeNotify`, clave en localStorage).
+- Notificaciones de umbral CONFIGURABLES: el usuario define sus alarmas de
+  sesión en % (chips en ⚙ Preferencias, localStorage `alarms`, default
+  [80,95]); máx. un aviso por umbral por ventana; al cruzar varios de golpe
+  suena solo el más alto. Límite semanal al 100%: un aviso por ventana.
+- Avisos de RESTABLECIMIENTO (sesión y semanal): solo si la ventana anterior
+  llegó al 100% (`hit:*`); el toast se repite cada 5 min + banner verde en el
+  panel HASTA que el usuario pulse "Enterado" (`ackPending:*` en
+  localStorage). Nunca quitar el mecanismo de confirmación.
 - El panel es el ÚNICO que llama al endpoint; el icono del tray se actualiza
   desde su mismo ciclo de refresco (`updateTray` en cada render).
 
@@ -215,6 +221,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       lista de servidores con estado activo/sin conexión, alta con prueba)
       y "Preferencias" (idioma, presupuesto, exportación) por separado.
 - [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
+- [~] Alarmas de uso configurables + avisos de límite/restablecimiento con
+      confirmación "Enterado" — implementado (2026-07-11); FALTA probar en
+      vivo el ciclo completo (cruce de umbral, 100%, reset, banner).
 - [~] Widget flotante (pill) sobre la barra — implementado (2026-07-11);
       FALTA probar en vivo: posición por defecto junto al reloj, arrastre con
       ⠿, persistencia de posición, no robar foco, tema sincronizado.
