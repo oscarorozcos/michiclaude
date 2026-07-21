@@ -8,46 +8,56 @@
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
     --bg:#181a20; --stroke:rgba(255,255,255,.12);
-    --txt:#e9ebef; --txt-dim:#7b818c;
-    --brand:#d97757; --track:rgba(255,255,255,.16);
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41; --dim:#9aa0aa;
+    /* la "pantalla" del laptop del gif es clara SIEMPRE (colores horneados en
+       el gif), así que el texto sobre ella es oscuro en ambos temas */
+    --scr-ink:#2a2f39; --scr-track:rgba(0,0,0,.16);
+    /* zona de la pantalla del laptop dentro de la tarjeta (ajustable) */
+    --sx:14%; --sy:27%; --sw:38%;
   }
-  body.light{
-    --bg:#f3f4f7; --stroke:rgba(0,0,0,.14);
-    --txt:#1b1e24; --txt-dim:#8a909b; --track:rgba(0,0,0,.12);
-  }
+  body.light{ --bg:#f3f4f7; --stroke:rgba(0,0,0,.14); }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  body{font-family:var(--font);color:var(--txt);user-select:none;-webkit-user-select:none}
+  body{font-family:var(--font);user-select:none;-webkit-user-select:none}
 
-  .pill{display:flex;align-items:center;gap:8px;height:100%;padding:0 10px 0 4px;
-    background:var(--bg);border:1px solid var(--stroke);border-radius:12px;cursor:pointer}
-  .grip{width:14px;height:70%;display:grid;place-items:center;color:var(--txt-dim);
-    cursor:grab;font-size:11px;letter-spacing:-1px}
-  .grip:active{cursor:grabbing}
-  /* mascota animada (gato Bongo): reemplaza la marca ✳; fondo crema del gif
-     combina bien en claro, en oscuro queda como una viñeta redondeada */
-  .mk{width:34px;height:34px;flex:0 0 auto;display:block;border-radius:8px;
-    object-fit:cover;border:1px solid var(--stroke);-webkit-user-drag:none}
-  .ses{font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.3px;white-space:nowrap}
-  .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--txt-dim)}
-  .grp{display:flex;align-items:center;gap:4px;flex:0 0 auto}
-  .grp .tag{font-size:9px;font-weight:700;color:var(--txt-dim)}
-  .grp .track{position:relative;width:30px;height:5px;border-radius:3px;background:var(--track);overflow:hidden}
+  /* tarjeta: escena del gato Bongo de fondo, métricas superpuestas */
+  .pill{position:relative;height:100%;border-radius:14px;overflow:hidden;cursor:pointer;
+    background:var(--bg) url("bongo.gif") center/cover no-repeat;
+    border:1px solid var(--stroke)}
+
+  /* métricas dibujadas sobre la pantalla del laptop */
+  .screen{position:absolute;left:var(--sx);top:var(--sy);width:var(--sw);
+    display:flex;flex-direction:column;gap:3px;align-items:flex-start;pointer-events:none}
+  .ses{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:.3px;
+    line-height:1;color:var(--ok);text-shadow:0 1px 2px rgba(255,255,255,.85)}
+  .grp{display:flex;align-items:center;gap:4px;width:100%}
+  .grp .tag{font-size:9px;font-weight:800;color:var(--scr-ink);width:8px;flex:0 0 auto;
+    text-shadow:0 1px 2px rgba(255,255,255,.85)}
+  .grp .track{position:relative;flex:1 1 auto;height:5px;border-radius:3px;
+    background:var(--scr-track);overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.4)}
   .grp .fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;
     background:var(--ok);transition:width .5s,background .3s}
-  body.loading .ses,body.stale .ses{color:var(--txt-dim)}
+
+  /* asa de arrastre (esquina) y punto de estado */
+  .grip{position:absolute;left:5px;top:3px;width:15px;height:15px;display:grid;
+    place-items:center;color:rgba(0,0,0,.4);font-size:11px;letter-spacing:-1px;
+    cursor:grab;z-index:3;text-shadow:0 1px 1px rgba(255,255,255,.6)}
+  .grip:active{cursor:grabbing}
+  .dot{position:absolute;right:6px;top:6px;width:8px;height:8px;border-radius:50%;
+    z-index:3;background:var(--ok);box-shadow:0 0 0 1px rgba(255,255,255,.5)}
+  body.loading .ses{color:var(--scr-ink)}
   body.stale .dot{background:var(--bad)}
 </style>
 </head>
 <body class="loading">
 <div class="pill" id="pill">
   <span class="grip" id="grip" title="⠿">⠿</span>
-  <img class="mk" id="mk" src="bongo.gif" alt="" draggable="false">
-  <span class="ses" id="ses">…</span>
   <span class="dot" id="dot"></span>
-  <div class="grp"><span class="tag">S</span><div class="track"><div class="fill" id="sFill"></div></div></div>
-  <div class="grp"><span class="tag">W</span><div class="track"><div class="fill" id="wFill"></div></div></div>
+  <div class="screen">
+    <span class="ses" id="ses">…</span>
+    <div class="grp"><span class="tag">S</span><div class="track"><div class="fill" id="sFill"></div></div></div>
+    <div class="grp"><span class="tag">W</span><div class="track"><div class="fill" id="wFill"></div></div></div>
+  </div>
 </div>
 
 <script>
@@ -73,13 +83,14 @@ function render(d){
   document.body.classList.toggle("light", d?.theme==="light");
   if(!d || d.ok===false){
     document.body.classList.add("stale");
-    $("ses").textContent="—"; $("dot").style.background="";
+    $("ses").textContent="—"; $("ses").style.color=""; $("dot").style.background="";
     setFill($("sFill"),null); setFill($("wFill"),null); return;
   }
   document.body.classList.remove("stale");
   const s=d.session, w=d.weekly;
   $("ses").textContent = s ? Math.round(s.pct)+"%" : "—";
-  $("dot").style.background = s ? col(Math.round(s.pct), s.pace) : "var(--txt-dim)";
+  $("ses").style.color = s ? col(Math.round(s.pct), s.pace) : "var(--scr-ink)";
+  $("dot").style.background = s ? col(Math.round(s.pct), s.pace) : "var(--dim)";
   setFill($("sFill"), s?Math.round(s.pct):null, s?s.pace:null);
   setFill($("wFill"), w?Math.round(w.pct):null, null);
   if(d.tip) $("pill").title=d.tip;
@@ -89,7 +100,7 @@ if(EVENT){
   EVENT.listen("quota:update", e=>render(e.payload));
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{
-  render({ok:true, session:{pct:24,pace:30}, weekly:{pct:10}});  // preview en navegador
+  render({ok:true, session:{pct:44,pace:30}, weekly:{pct:10}});  // preview en navegador
 }
 
 // arrastre solo desde el asa ⠿ (clic en el resto abre el panel)
