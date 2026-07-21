@@ -667,20 +667,33 @@ fn export_data(format: String, dir: Option<String>, days: Option<u32>) -> Result
 #[cfg(windows)]
 mod win_taskbar {
     use windows::core::{w, PCWSTR};
-    use windows::Win32::Foundation::RECT;
-    use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, GetWindowRect};
+    use windows::Win32::Foundation::{HWND, RECT};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        FindWindowW, GetWindowLongPtrW, GetWindowRect, SetWindowLongPtrW, GWL_EXSTYLE,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+    };
 
     pub struct Taskbar {
         pub rect: RECT,
     }
 
-    /// Lee el rectángulo de Shell_TrayWnd (para apoyar el panel encima de la barra).
+    /// Lee el rectángulo de Shell_TrayWnd (para apoyar panel y widget encima de la barra).
     pub fn query() -> Option<Taskbar> {
         unsafe {
             let tray = FindWindowW(w!("Shell_TrayWnd"), PCWSTR::null()).ok()?;
             let mut rect = RECT::default();
             GetWindowRect(tray, &mut rect).ok()?;
             Some(Taskbar { rect })
+        }
+    }
+
+    /// Evita que el widget flotante robe el foco al hacer clic.
+    pub fn make_noactivate(hwnd_raw: isize) {
+        unsafe {
+            let hwnd = HWND(hwnd_raw as *mut core::ffi::c_void);
+            let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+            let add = (WS_EX_NOACTIVATE.0 as isize) | (WS_EX_TOOLWINDOW.0 as isize);
+            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | add);
         }
     }
 }
@@ -713,10 +726,15 @@ pub fn run() {
             get_remotes,
             save_remotes,
             test_remote,
-            export_data
+            export_data,
+            show_panel,
+            set_pill_visible,
+            get_pill_visible,
+            pill_moved
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),
+            "tray_pill" => set_pill_visible_impl(app, !load_pill_config().visible),
             "tray_quit" => app.exit(0),
             _ => {}
         })
@@ -739,6 +757,7 @@ pub fn run() {
                 app,
                 &[
                     &MenuItem::with_id(app, "tray_panel", "Open panel", true, None::<&str>)?,
+                    &MenuItem::with_id(app, "tray_pill", "Floating widget", true, None::<&str>)?,
                     &MenuItem::with_id(app, "tray_quit", "Quit", true, None::<&str>)?,
                 ],
             )?;
@@ -755,6 +774,21 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            // Widget flotante: sin robo de foco; se muestra si el usuario lo dejó activo.
+            {
+                use tauri::Manager;
+                if let Some(pill) = app.get_webview_window("pill") {
+                    #[cfg(windows)]
+                    if let Ok(h) = pill.hwnd() {
+                        win_taskbar::make_noactivate(h.0 as isize);
+                    }
+                    if load_pill_config().visible {
+                        position_pill(app.handle());
+                        let _ = pill.show();
+                    }
+                }
+            }
 
             Ok(())
         })
@@ -776,6 +810,103 @@ pub fn run() {
 const MARGIN_X: u32 = 16;
 const TASKBAR_H: u32 = 56; // respaldo si no hay rect real de la barra
 const PANEL_GAP: u32 = 8;
+
+// ---------- widget flotante (pill): pastilla SIEMPRE visible sobre la barra ----------
+// No va DENTRO de la barra (Windows 11 lo impide y un overlay tapa los iconos);
+// vive justo encima, arrastrable, y recuerda posición y visibilidad.
+
+#[derive(Serialize, Deserialize, Default)]
+struct PillConfig {
+    visible: bool,
+    x: Option<i32>,
+    y: Option<i32>,
+}
+
+fn pill_config_path() -> PathBuf {
+    app_data_dir().join("pill_config.json")
+}
+
+fn load_pill_config() -> PillConfig {
+    fs::read_to_string(pill_config_path())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn save_pill_config(c: &PillConfig) {
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(s) = serde_json::to_string_pretty(c) {
+        let _ = fs::write(pill_config_path(), s);
+    }
+}
+
+/// Coloca el widget: posición guardada, o esquina inferior derecha encima de la barra.
+fn position_pill(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let Some(pill) = app.get_webview_window("pill") else { return };
+    let cfg = load_pill_config();
+    if let (Some(x), Some(y)) = (cfg.x, cfg.y) {
+        let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
+        return;
+    }
+    if let (Ok(Some(mon)), Ok(size)) = (pill.current_monitor(), pill.outer_size()) {
+        let s = mon.size();
+        let x = s.width.saturating_sub(size.width + MARGIN_X) as i32;
+        #[allow(unused_mut)]
+        let mut y = s.height.saturating_sub(size.height + TASKBAR_H + PANEL_GAP) as i32;
+        #[cfg(windows)]
+        if let Some(tb) = win_taskbar::query() {
+            y = (tb.rect.top - size.height as i32 - PANEL_GAP as i32).max(0);
+        }
+        let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
+    }
+}
+
+fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
+    use tauri::Manager;
+    let mut cfg = load_pill_config();
+    cfg.visible = visible;
+    save_pill_config(&cfg);
+    if let Some(pill) = app.get_webview_window("pill") {
+        if visible {
+            position_pill(app);
+            let _ = pill.set_always_on_top(true);
+            let _ = pill.show();
+        } else {
+            let _ = pill.hide();
+        }
+    }
+}
+
+#[tauri::command]
+fn set_pill_visible(app: tauri::AppHandle, visible: bool) {
+    set_pill_visible_impl(&app, visible);
+}
+
+#[tauri::command]
+fn get_pill_visible() -> bool {
+    load_pill_config().visible
+}
+
+/// El widget avisa tras un arrastre; persistimos su nueva posición.
+#[tauri::command]
+fn pill_moved(app: tauri::AppHandle) {
+    use tauri::Manager;
+    if let Some(pill) = app.get_webview_window("pill") {
+        if let Ok(p) = pill.outer_position() {
+            let mut cfg = load_pill_config();
+            cfg.x = Some(p.x);
+            cfg.y = Some(p.y);
+            save_pill_config(&cfg);
+        }
+    }
+}
+
+/// Abre el panel (clic en el widget flotante).
+#[tauri::command]
+fn show_panel(app: tauri::AppHandle) {
+    show_main_panel(&app);
+}
 
 /// Redibuja el icono del tray con el % actual (RGBA renderizado por el panel en
 /// un canvas) y actualiza el tooltip. Así el número vive junto al reloj, como

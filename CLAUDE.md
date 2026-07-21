@@ -89,6 +89,16 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - **Panel** (`main`): flyout sin decoraciones, transparente, alwaysOnTop,
   skipTaskbar. Se abre con clic en el tray; se oculta al perder foco (excepto
   durante arrastre); ✕ oculta a bandeja; arrastrable desde el encabezado.
+- **Widget flotante** (`pill`, src/pill.html): pastilla opcional SIEMPRE
+  visible (marca + % de sesión + barras S/W + punto de estado) que vive
+  ENCIMA de la barra de tareas — nunca dentro ni tapando iconos (lección
+  aprendida de la franja descartada). No roba foco (`WS_EX_NOACTIVATE`),
+  arrastrable solo desde el asa ⠿ (al soltar persiste posición vía
+  `pill_moved`), clic abre el panel, clic derecho la oculta. Visibilidad y
+  posición en `pill_config.json`; se activa desde ⚙ Preferencias o el menú
+  del tray ("Floating widget"). NUNCA llama al endpoint: el panel le emite
+  `quota:update` (con tema y tooltip localizados) y la pill pide el último
+  dato con `pill:ready` al cargar.
 - **Tray icon dinámico**: única presencia permanente en la barra. El panel
   dibuja el % de sesión en un canvas 32×32 (número coloreado por estado +
   barrita semanal al pie) y lo manda por el comando `update_tray`
@@ -205,6 +215,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       lista de servidores con estado activo/sin conexión, alta con prueba)
       y "Preferencias" (idioma, presupuesto, exportación) por separado.
 - [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
+- [~] Widget flotante (pill) sobre la barra — implementado (2026-07-11);
+      FALTA probar en vivo: posición por defecto junto al reloj, arrastre con
+      ⠿, persistencia de posición, no robar foco, tema sincronizado.
 - [ ] MODO HUB (decidido 2026-07-11, pendiente de implementar tras la semana
       de pruebas): el VPS consolida los datos de todas las máquinas para que
       los totales cuadren en cualquier PC. Diseño acordado: (1) cada meter

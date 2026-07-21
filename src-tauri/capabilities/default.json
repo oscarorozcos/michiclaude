@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Permisos del panel principal: solo invocar comandos propios.",
-  "windows": ["main"],
+  "windows": ["main", "pill"],
   "permissions": [
     "core:default",
     "core:window:allow-hide",

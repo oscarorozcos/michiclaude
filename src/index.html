@@ -252,6 +252,9 @@
           <option value="zh">中文</option>
         </select>
       </div>
+      <label class="cfg-row" style="cursor:pointer;margin-top:4px">
+        <input type="checkbox" id="pillChk"> <span data-i18n="pill_label"></span>
+      </label>
       <div class="cfg-lbl" data-i18n="budget_label"></div>
       <input id="budgetIn" type="number" min="0" step="1" style="max-width:120px">
       <div class="cfg-lbl" data-i18n="export_label"></div>
@@ -346,6 +349,7 @@ en:{
   msg_exported:p=>`✓ saved to ${p}`,
   status_active:"active",
   status_fail:"unreachable",
+  pill_label:"Floating widget above the taskbar",
   err_no_token:"No valid token. Use Claude Code on this PC (any prompt) or on a server from your data sources to refresh it.",
   err_expired:"Token expired. Open Claude Code (any prompt) to refresh it.",
   err_rate:m=>`API rate-limited (429). Retrying in ${m} min — your quota is not affected.`,
@@ -418,6 +422,7 @@ es:{
   msg_exported:p=>`✓ guardado en ${p}`,
   status_active:"activo",
   status_fail:"sin conexión",
+  pill_label:"Widget flotante sobre la barra de tareas",
   err_no_token:"Sin token vigente. Usa Claude Code en este PC (cualquier consulta) o en un servidor de tus fuentes para refrescarlo.",
   err_expired:"Token expirado. Abre Claude Code (cualquier consulta) para refrescarlo.",
   err_rate:m=>`La API limitó las peticiones (429). Reintento en ${m} min — tu cuota no se ve afectada.`,
@@ -490,6 +495,7 @@ pt:{
   msg_exported:p=>`✓ salvo em ${p}`,
   status_active:"ativo",
   status_fail:"sem conexão",
+  pill_label:"Widget flutuante sobre a barra de tarefas",
   err_no_token:"Sem token válido. Use o Claude Code neste PC (qualquer prompt) ou em um servidor das suas fontes para renová-lo.",
   err_expired:"Token expirado. Abra o Claude Code (qualquer prompt) para renová-lo.",
   err_rate:m=>`API limitou as requisições (429). Nova tentativa em ${m} min — sua cota não é afetada.`,
@@ -562,6 +568,7 @@ fr:{
   msg_exported:p=>`✓ enregistré dans ${p}`,
   status_active:"actif",
   status_fail:"injoignable",
+  pill_label:"Widget flottant au-dessus de la barre des tâches",
   err_no_token:"Aucun jeton valide. Utilisez Claude Code sur ce PC (n'importe quel prompt) ou sur un serveur de vos sources pour le renouveler.",
   err_expired:"Jeton expiré. Ouvrez Claude Code (n'importe quel prompt) pour le renouveler.",
   err_rate:m=>`API limitée (429). Nouvel essai dans ${m} min — votre quota n'est pas affecté.`,
@@ -634,6 +641,7 @@ de:{
   msg_exported:p=>`✓ gespeichert in ${p}`,
   status_active:"aktiv",
   status_fail:"nicht erreichbar",
+  pill_label:"Schwebendes Widget über der Taskleiste",
   err_no_token:"Kein gültiges Token. Nutze Claude Code auf diesem PC (beliebiger Prompt) oder auf einem Server deiner Quellen, um es zu erneuern.",
   err_expired:"Token abgelaufen. Öffne Claude Code (beliebiger Prompt), um es zu erneuern.",
   err_rate:m=>`API drosselt Anfragen (429). Neuer Versuch in ${m} Min — dein Kontingent ist nicht betroffen.`,
@@ -706,6 +714,7 @@ ja:{
   msg_exported:p=>`✓ 保存先: ${p}`,
   status_active:"接続中",
   status_fail:"接続不可",
+  pill_label:"タスクバー上のフローティングウィジェット",
   err_no_token:"有効なトークンがありません。このPCで Claude Code を使うか（任意のプロンプト）、データソースのサーバーで使って更新してください。",
   err_expired:"トークンの期限切れ。Claude Code を開いて（任意のプロンプト）更新してください。",
   err_rate:m=>`API がレート制限中 (429)。${m}分後に再試行 — クォータには影響しません。`,
@@ -778,6 +787,7 @@ ko:{
   msg_exported:p=>`✓ 저장됨: ${p}`,
   status_active:"연결됨",
   status_fail:"연결 불가",
+  pill_label:"작업 표시줄 위 플로팅 위젯",
   err_no_token:"유효한 토큰이 없습니다. 이 PC에서 Claude Code를 사용하거나(아무 프롬프트) 데이터 소스의 서버에서 사용해 갱신하세요.",
   err_expired:"토큰이 만료되었습니다. Claude Code를 열어(아무 프롬프트) 갱신하세요.",
   err_rate:m=>`API 요청 제한 (429). ${m}분 후 재시도 — 쿼터에는 영향이 없습니다.`,
@@ -850,6 +860,7 @@ zh:{
   msg_exported:p=>`✓ 已保存到 ${p}`,
   status_active:"已连接",
   status_fail:"无法连接",
+  pill_label:"任务栏上方的浮动小组件",
   err_no_token:"没有有效令牌。请在本机使用 Claude Code（任意提问），或在数据源中的服务器上使用以刷新。",
   err_expired:"令牌已过期。打开 Claude Code（任意提问）以刷新。",
   err_rate:m=>`API 限流 (429)。${m}分钟后重试 — 你的配额不受影响。`,
@@ -889,6 +900,8 @@ if(localStorage.getItem("theme")==="light") document.body.classList.add("light")
 $("themeBtn").addEventListener("click",()=>{
   const light=document.body.classList.toggle("light");
   localStorage.setItem("theme", light?"light":"dark");
+  // sincroniza el tema del widget flotante reemitiendo el último dato
+  if(typeof lastPill!=="undefined" && lastPill){ lastPill.theme=light?"light":"dark"; EVENT?.emit("quota:update",lastPill); }
 });
 
 // ---------- marca ----------
@@ -908,8 +921,20 @@ $("mark").innerHTML=sunburst(22);
 // ---------- entorno ----------
 const TAURI = window.__TAURI__?.core;
 const invoke = TAURI ? TAURI.invoke : null;
+const EVENT = window.__TAURI__?.event;   // el panel alimenta al widget flotante por evento
 const PALETTE = ["var(--accent)","var(--brand)","var(--ok)","var(--warn)","var(--txt-dim)"];
 let lastQuotaData=null, lastLocalData=null;   // caché para re-render al cambiar idioma
+
+// ---------- widget flotante: el panel es el ÚNICO que consulta; el widget escucha ----------
+let lastPill=null;
+function emitPill(ses, weekPct){
+  lastPill={ok:!!ses, session:ses, weekly:weekPct!=null?{pct:weekPct}:null,
+    theme:document.body.classList.contains("light")?"light":"dark",
+    tip: ses?t("tray_tip",Math.round(ses.pct),fmtReset(ses.resets),weekPct!=null?Math.round(weekPct):null):t("tray_no_data")};
+  EVENT?.emit("quota:update", lastPill);
+}
+// Cuando el widget (re)carga, pide el último dato conocido para no esperar el ciclo.
+EVENT?.listen("pill:ready",()=>{ if(lastPill) EVENT.emit("quota:update", lastPill); });
 
 // ---------- icono de bandeja dinámico ----------
 // El % de sesión vive junto al reloj, como los medidores de batería/CPU: se
@@ -1049,8 +1074,9 @@ function renderQuota(data){
     </div>`;
   }).join("") || `<div class="errbox">${t("no_buckets")}</div>`;
 
-  updateTray(ses ? {pct:ses.pct, resets:ses.resets, pace:elapsedPct(ses.resets,5)} : null,
-             weeklyAllPct);
+  const sesInfo = ses ? {pct:ses.pct, resets:ses.resets, pace:elapsedPct(ses.resets,5)} : null;
+  updateTray(sesInfo, weeklyAllPct);
+  emitPill(sesInfo, weeklyAllPct);
 }
 
 // ---------- avisos de sesión (una vez por umbral por ventana de sesión) ----------
@@ -1218,9 +1244,12 @@ function onQuotaFail(reason){
   rateLimited=lastErrCode.startsWith("ERR_RATE_LIMITED");
   // respeta el Retry-After del servidor, con piso de 3 min
   rateWaitMs=Math.max(REFRESH_MS, (+lastErrCode.split(":")[1]||3)*60000);
-  // el gauge y el icono CONSERVAN el último dato bueno reciente; solo se
-  // ponen en gris si nunca hubo dato o si el último tiene más de 15 min.
-  if(!hadQuota || Date.now()-lastSync>STALE_MS) updateTray(null,null);
+  // el gauge, el icono y el widget CONSERVAN el último dato bueno reciente;
+  // solo pasan a gris si nunca hubo dato o si el último tiene más de 15 min.
+  if(!hadQuota || Date.now()-lastSync>STALE_MS){
+    updateTray(null,null);
+    EVENT?.emit("quota:update",{ok:false});
+  }
 }
 
 // periodo del gasto por proyecto (1/7/30 días), persistido
@@ -1333,7 +1362,11 @@ $("rAdd").addEventListener("click",async()=>{
   }catch(e){ $("rMsg").textContent="✗ "+e; }
 });
 
-// ---------- preferencias: presupuesto y exportación ----------
+// ---------- preferencias: widget flotante, presupuesto y exportación ----------
+if(invoke){ invoke("get_pill_visible").then(v=>{ $("pillChk").checked=!!v; }).catch(()=>{}); }
+$("pillChk").addEventListener("change",()=>{
+  invoke?.("set_pill_visible",{visible:$("pillChk").checked});
+});
 $("budgetIn").value=localStorage.getItem("budgetWeek")||"";
 $("budgetIn").addEventListener("change",()=>{
   localStorage.setItem("budgetWeek", $("budgetIn").value||"0");
