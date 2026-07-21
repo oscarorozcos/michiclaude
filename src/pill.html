@@ -25,7 +25,10 @@
   .grip{width:14px;height:70%;display:grid;place-items:center;color:var(--txt-dim);
     cursor:grab;font-size:11px;letter-spacing:-1px}
   .grip:active{cursor:grabbing}
-  .mk{width:16px;height:16px;flex:0 0 auto;display:block}
+  /* mascota animada (gato Bongo): reemplaza la marca ✳; fondo crema del gif
+     combina bien en claro, en oscuro queda como una viñeta redondeada */
+  .mk{width:34px;height:34px;flex:0 0 auto;display:block;border-radius:8px;
+    object-fit:cover;border:1px solid var(--stroke);-webkit-user-drag:none}
   .ses{font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.3px;white-space:nowrap}
   .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--txt-dim)}
   .grp{display:flex;align-items:center;gap:4px;flex:0 0 auto}
@@ -40,7 +43,7 @@
 <body class="loading">
 <div class="pill" id="pill">
   <span class="grip" id="grip" title="⠿">⠿</span>
-  <span class="mk" id="mk"></span>
+  <img class="mk" id="mk" src="bongo.gif" alt="" draggable="false">
   <span class="ses" id="ses">…</span>
   <span class="dot" id="dot"></span>
   <div class="grp"><span class="tag">S</span><div class="track"><div class="fill" id="sFill"></div></div></div>
@@ -53,19 +56,6 @@ const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
-
-// marca (mini sunburst, igual que el panel)
-(function(){
-  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="16" height="16" viewBox="0 0 ${S} ${S}">`;
-  for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
-    const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
-    const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
-    const pts=[[cx+ux*base,cy+uy*base],[cx+ux*mid+px*hw,cy+uy*mid+py*hw],
-      [cx+ux*tip,cy+uy*tip],[cx+ux*mid-px*hw,cy+uy*mid-py*hw]]
-      .map(q=>q.map(n=>n.toFixed(2)).join(",")).join(" ");
-    p+=`<polygon points="${pts}" fill="var(--brand)"/>`}
-  $("mk").innerHTML=p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
-})();
 
 // mismo código de color que el panel (pct vs ritmo)
 function col(p,pace){ if(p>=95) return "var(--bad)";

@@ -25,7 +25,7 @@
         "label": "pill",
         "title": "Claude Code Meter — widget",
         "url": "pill.html",
-        "width": 210,
+        "width": 234,
         "height": 46,
         "resizable": false,
         "decorations": false,
