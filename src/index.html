@@ -14,6 +14,7 @@
     --stroke-soft:rgba(255,255,255,.055);
     --txt:#e9ebef; --txt-mut:#969ba6; --txt-dim:#6c717c;
     --brand:#d97757; --accent:#56c7d6;
+    --accent-weak:rgba(86,199,214,.14); --accent-line:rgba(86,199,214,.35);
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
     --track:rgba(255,255,255,.08);
   }
@@ -23,6 +24,10 @@
     --stroke:rgba(0,0,0,.1);
     --stroke-soft:rgba(0,0,0,.06);
     --txt:#1b1e24; --txt-mut:#575d68; --txt-dim:#8a909b;
+    /* teal profundo: el #56c7d6 brillante queda lavado sobre blanco (contraste
+       ~1.7:1). Este da ~4.7:1 — legible en pestañas, enlaces y barras. */
+    --accent:#0b7c8c;
+    --accent-weak:rgba(11,124,140,.12); --accent-line:rgba(11,124,140,.30);
     --track:rgba(0,0,0,.09);
   }
   *{box-sizing:border-box}
@@ -58,8 +63,8 @@
   .live.err{background:var(--bad);animation:none}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(64,184,105,.5)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
   .plan{margin-left:auto;flex:0 0 auto;font-size:10.5px;font-weight:650;letter-spacing:.4px;
-    color:var(--accent);background:rgba(86,199,214,.14);
-    border:1px solid rgba(86,199,214,.35);padding:3px 8px;border-radius:7px}
+    color:var(--accent);background:var(--accent-weak);
+    border:1px solid var(--accent-line);padding:3px 8px;border-radius:7px}
   .xbtn{margin-left:8px;width:24px;height:24px;border-radius:6px;border:0;cursor:pointer;
     background:transparent;color:var(--txt-mut);font-size:14px;line-height:1}
   .xbtn:hover{background:var(--surface);color:var(--txt)}
@@ -140,10 +145,10 @@
   .cfg-form input{background:var(--surface);border:1px solid var(--stroke);border-radius:7px;
     padding:6px 9px;color:var(--txt);font-family:var(--mono);font-size:11px;outline:none}
   .cfg-form input:focus{border-color:var(--accent)}
-  .cfg-form button{align-self:flex-start;background:rgba(86,199,214,.14);color:var(--accent);
-    border:1px solid rgba(86,199,214,.35);border-radius:7px;padding:6px 12px;
+  .cfg-form button{align-self:flex-start;background:var(--accent-weak);color:var(--accent);
+    border:1px solid var(--accent-line);border-radius:7px;padding:6px 12px;
     font-size:11.5px;cursor:pointer;font-family:var(--font)}
-  .cfg-form button:hover{background:rgba(86,199,214,.22)}
+  .cfg-form button:hover{background:var(--accent-line)}
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
   #remList .pitem{grid-template-columns:1fr auto}
   .cfg-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt-mut)}
