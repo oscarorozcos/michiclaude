@@ -26,7 +26,11 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:transparent;height:100%}
-  body{font-family:var(--font);color:var(--txt);padding:8px;overflow:hidden}
+  /* color-scheme: los controles nativos (desplegables, spinners, scrollbars)
+     se pintan a juego con el tema — sin esto, la lista del idioma se ve mal
+     en oscuro */
+  body{font-family:var(--font);color:var(--txt);padding:8px;overflow:hidden;color-scheme:dark}
+  body.light{color-scheme:light}
   /* si el contenido crece (ajustes abiertos), el panel hace scroll interno */
   .panel{max-height:calc(100vh - 16px);overflow-y:auto;scrollbar-width:thin}
 
@@ -150,14 +154,6 @@
   .chip b{cursor:pointer;color:var(--txt-dim);font-weight:400}
   .chip b:hover{color:var(--bad)}
 
-  /* banner de confirmación (límite restablecido) */
-  .ackbox{display:flex;align-items:center;gap:10px;margin-bottom:11px;
-    background:rgba(64,184,105,.12);border:1px solid rgba(64,184,105,.35);
-    border-radius:10px;padding:8px 11px;font-size:12px;line-height:1.4}
-  .ackbox button{flex:0 0 auto;margin-left:auto;background:rgba(64,184,105,.2);
-    color:var(--ok);border:1px solid rgba(64,184,105,.45);border-radius:7px;
-    padding:5px 12px;font-size:11.5px;cursor:pointer;font-family:var(--font);font-weight:600}
-  .ackbox button:hover{background:rgba(64,184,105,.3)}
 
   /* selector de periodo (1d/7d/30d) */
   .dlink{cursor:pointer;color:var(--txt-dim)}
@@ -193,11 +189,6 @@
     <button class="xbtn" id="themeBtn">◐</button>
     <button class="xbtn" id="cfgBtn">⚙</button>
     <button class="xbtn" id="hideBtn">✕</button>
-  </div>
-
-  <div class="ackbox" id="ackBox" hidden>
-    <span id="ackTxt"></span>
-    <button id="ackBtn" data-i18n="btn_ack"></button>
   </div>
 
   <div class="sect">
@@ -381,8 +372,8 @@ en:{
   alarms_label:"Session alarms (notify at % used)",
   btn_add:"Add",
   notif_week_limit:"Weekly limit reached (100%). You'll get a notice when it resets.",
-  notif_reset_session:"Your 5 h session limit is available again.",
-  notif_reset_week:"Your weekly limit is available again.",
+  notif_reset_session:"Your 5 h session limit is available again. Open the meter panel to stop these reminders.",
+  notif_reset_week:"Your weekly limit is available again. Open the meter panel to stop these reminders.",
   btn_ack:"Got it",
   err_no_token:"No valid token. Use Claude Code on this PC (any prompt) or on a server from your data sources to refresh it.",
   err_expired:"Token expired. Open Claude Code (any prompt) to refresh it.",
@@ -460,8 +451,8 @@ es:{
   alarms_label:"Alarmas de sesión (avisar al % usado)",
   btn_add:"Agregar",
   notif_week_limit:"Límite semanal alcanzado (100%). Te avisaré cuando se restablezca.",
-  notif_reset_session:"Tu límite de sesión (5 h) ya está disponible de nuevo.",
-  notif_reset_week:"Tu límite semanal ya está disponible de nuevo.",
+  notif_reset_session:"Tu límite de sesión (5 h) ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
+  notif_reset_week:"Tu límite semanal ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   btn_ack:"Enterado",
   err_no_token:"Sin token vigente. Usa Claude Code en este PC (cualquier consulta) o en un servidor de tus fuentes para refrescarlo.",
   err_expired:"Token expirado. Abre Claude Code (cualquier consulta) para refrescarlo.",
@@ -539,8 +530,8 @@ pt:{
   alarms_label:"Alarmes de sessão (avisar no % usado)",
   btn_add:"Adicionar",
   notif_week_limit:"Limite semanal atingido (100%). Você será avisado quando for restabelecido.",
-  notif_reset_session:"Seu limite de sessão (5 h) já está disponível novamente.",
-  notif_reset_week:"Seu limite semanal já está disponível novamente.",
+  notif_reset_session:"Seu limite de sessão (5 h) já está disponível. Abra o painel do meter para parar estes lembretes.",
+  notif_reset_week:"Seu limite semanal já está disponível. Abra o painel do meter para parar estes lembretes.",
   btn_ack:"Entendi",
   err_no_token:"Sem token válido. Use o Claude Code neste PC (qualquer prompt) ou em um servidor das suas fontes para renová-lo.",
   err_expired:"Token expirado. Abra o Claude Code (qualquer prompt) para renová-lo.",
@@ -618,8 +609,8 @@ fr:{
   alarms_label:"Alarmes de session (alerter au % utilisé)",
   btn_add:"Ajouter",
   notif_week_limit:"Limite hebdo atteinte (100 %). Vous serez prévenu à la réinitialisation.",
-  notif_reset_session:"Votre limite de session (5 h) est de nouveau disponible.",
-  notif_reset_week:"Votre limite hebdo est de nouveau disponible.",
+  notif_reset_session:"Votre limite de session (5 h) est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
+  notif_reset_week:"Votre limite hebdo est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   btn_ack:"Compris",
   err_no_token:"Aucun jeton valide. Utilisez Claude Code sur ce PC (n'importe quel prompt) ou sur un serveur de vos sources pour le renouveler.",
   err_expired:"Jeton expiré. Ouvrez Claude Code (n'importe quel prompt) pour le renouveler.",
@@ -697,8 +688,8 @@ de:{
   alarms_label:"Sitzungsalarme (bei % Nutzung melden)",
   btn_add:"Hinzufügen",
   notif_week_limit:"Wochenlimit erreicht (100 %). Du wirst beim Reset benachrichtigt.",
-  notif_reset_session:"Dein Sitzungslimit (5 Std) ist wieder verfügbar.",
-  notif_reset_week:"Dein Wochenlimit ist wieder verfügbar.",
+  notif_reset_session:"Dein Sitzungslimit (5 Std) ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
+  notif_reset_week:"Dein Wochenlimit ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   btn_ack:"Verstanden",
   err_no_token:"Kein gültiges Token. Nutze Claude Code auf diesem PC (beliebiger Prompt) oder auf einem Server deiner Quellen, um es zu erneuern.",
   err_expired:"Token abgelaufen. Öffne Claude Code (beliebiger Prompt), um es zu erneuern.",
@@ -776,8 +767,8 @@ ja:{
   alarms_label:"セッションアラーム（使用%で通知）",
   btn_add:"追加",
   notif_week_limit:"週間上限に達しました（100%）。リセット時に通知します。",
-  notif_reset_session:"セッション上限（5時間）が再び利用可能になりました。",
-  notif_reset_week:"週間上限が再び利用可能になりました。",
+  notif_reset_session:"セッション上限（5時間）が再び利用可能になりました。パネルを開くと通知が止まります。",
+  notif_reset_week:"週間上限が再び利用可能になりました。パネルを開くと通知が止まります。",
   btn_ack:"確認",
   err_no_token:"有効なトークンがありません。このPCで Claude Code を使うか（任意のプロンプト）、データソースのサーバーで使って更新してください。",
   err_expired:"トークンの期限切れ。Claude Code を開いて（任意のプロンプト）更新してください。",
@@ -855,8 +846,8 @@ ko:{
   alarms_label:"세션 알람 (사용 %에서 알림)",
   btn_add:"추가",
   notif_week_limit:"주간 한도 도달 (100%). 초기화되면 알려드립니다.",
-  notif_reset_session:"세션 한도(5시간)를 다시 사용할 수 있습니다.",
-  notif_reset_week:"주간 한도를 다시 사용할 수 있습니다.",
+  notif_reset_session:"세션 한도(5시간)를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
+  notif_reset_week:"주간 한도를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   btn_ack:"확인",
   err_no_token:"유효한 토큰이 없습니다. 이 PC에서 Claude Code를 사용하거나(아무 프롬프트) 데이터 소스의 서버에서 사용해 갱신하세요.",
   err_expired:"토큰이 만료되었습니다. Claude Code를 열어(아무 프롬프트) 갱신하세요.",
@@ -934,8 +925,8 @@ zh:{
   alarms_label:"会话闹钟（在使用%时提醒）",
   btn_add:"添加",
   notif_week_limit:"已达每周上限（100%）。重置时会通知你。",
-  notif_reset_session:"你的会话额度（5小时）已恢复可用。",
-  notif_reset_week:"你的每周额度已恢复可用。",
+  notif_reset_session:"你的会话额度（5小时）已恢复可用。打开面板即可停止提醒。",
+  notif_reset_week:"你的每周额度已恢复可用。打开面板即可停止提醒。",
   btn_ack:"知道了",
   err_no_token:"没有有效令牌。请在本机使用 Claude Code（任意提问），或在数据源中的服务器上使用以刷新。",
   err_expired:"令牌已过期。打开 Claude Code（任意提问）以刷新。",
@@ -1218,13 +1209,9 @@ function trackResets(ses, wk){
   }
 }
 
+// Recordatorio de restablecimiento: SOLO notificaciones de Windows, repetidas
+// cada 5 min hasta que el usuario abra el panel (eso cuenta como "enterado").
 function processAcks(){
-  const pend=[];
-  if(localStorage.getItem("ackPending:session")==="1") pend.push(t("notif_reset_session"));
-  if(localStorage.getItem("ackPending:week")==="1") pend.push(t("notif_reset_week"));
-  if(!pend.length){ $("ackBox").hidden=true; return; }
-  $("ackTxt").textContent=pend.join(" ");
-  $("ackBox").hidden=false;
   for(const k of ["session","week"]){
     if(localStorage.getItem("ackPending:"+k)!=="1") continue;
     const last=+localStorage.getItem("ackLastToast:"+k)||0;
@@ -1234,13 +1221,6 @@ function processAcks(){
     }
   }
 }
-$("ackBtn").addEventListener("click",()=>{
-  for(const k of ["session","week"]){
-    localStorage.removeItem("ackPending:"+k);
-    localStorage.removeItem("ackLastToast:"+k);
-  }
-  $("ackBox").hidden=true;
-});
 
 // proyección simple: burn rate de la sesión vs tiempo restante
 let lastSes=null, lastTs=null;
@@ -1435,8 +1415,16 @@ $("pHead").addEventListener("mousedown",(e)=>{
   setTimeout(()=>{ dragging=false; },500); // el arrastre nativo se traga el mouseup
 });
 
-// flyout: el panel se oculta al perder el foco, EXCEPTO mientras se arrastra
-window.addEventListener("focus",()=>{ dragging=false; });
+// flyout: el panel se oculta al perder el foco, EXCEPTO mientras se arrastra.
+// Además, abrir/enfocar el panel confirma los avisos de restablecimiento
+// pendientes (deja de repetirse la notificación de Windows).
+window.addEventListener("focus",()=>{
+  dragging=false;
+  for(const k of ["session","week"]){
+    localStorage.removeItem("ackPending:"+k);
+    localStorage.removeItem("ackLastToast:"+k);
+  }
+});
 window.addEventListener("blur",()=>{ if(!dragging) APPWIN?.hide(); });
 
 // ocultar a bandeja

@@ -156,9 +156,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   [80,95]); máx. un aviso por umbral por ventana; al cruzar varios de golpe
   suena solo el más alto. Límite semanal al 100%: un aviso por ventana.
 - Avisos de RESTABLECIMIENTO (sesión y semanal): solo si la ventana anterior
-  llegó al 100% (`hit:*`); el toast se repite cada 5 min + banner verde en el
-  panel HASTA que el usuario pulse "Enterado" (`ackPending:*` en
-  localStorage). Nunca quitar el mecanismo de confirmación.
+  llegó al 100% (`hit:*`); la notificación de WINDOWS se repite cada 5 min
+  HASTA que el usuario abra/enfoque el panel (eso confirma y limpia
+  `ackPending:*`). Sin banners dentro de la app (decisión de Oscar
+  2026-07-11). Nunca quitar el mecanismo de confirmación.
+- Controles nativos (select, spinners): `color-scheme` en body sigue el tema
+  para que los desplegables se vean bien en oscuro.
 - El panel es el ÚNICO que llama al endpoint; el icono del tray se actualiza
   desde su mismo ciclo de refresco (`updateTray` en cada render).
 
