@@ -7,7 +7,8 @@
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
-    --mica:rgba(30,33,40,.96);
+    /* fondo SÓLIDO: con alpha se transparenta lo que haya detrás del panel */
+    --mica:#1e2128;
     --surface:rgba(255,255,255,.045);
     --stroke:rgba(255,255,255,.09);
     --stroke-soft:rgba(255,255,255,.055);
@@ -17,7 +18,7 @@
     --track:rgba(255,255,255,.08);
   }
   body.light{
-    --mica:rgba(243,244,247,.98);
+    --mica:#f3f4f7;
     --surface:rgba(0,0,0,.035);
     --stroke:rgba(0,0,0,.1);
     --stroke-soft:rgba(0,0,0,.06);
@@ -138,8 +139,13 @@
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
   #remList .pitem{grid-template-columns:1fr auto}
   .cfg-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt-mut)}
-  .cfg-row select{background:var(--surface);border:1px solid var(--stroke);border-radius:7px;
-    padding:4px 8px;color:var(--txt);font-family:var(--font);font-size:11.5px;outline:none}
+  /* select con colores SÓLIDOS explícitos: el popup nativo de opciones no
+     hereda bien — oscuro: fondo oscuro/letra blanca; claro: al revés */
+  .cfg-row select{background:#262a33;border:1px solid var(--stroke);border-radius:7px;
+    padding:4px 8px;color:#e9ebef;font-family:var(--font);font-size:11.5px;outline:none}
+  .cfg-row select option{background:#262a33;color:#e9ebef}
+  body.light .cfg-row select{background:#ffffff;color:#1b1e24}
+  body.light .cfg-row select option{background:#ffffff;color:#1b1e24}
   .cfg-lbl{font-size:10.5px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
   .btnrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .btnrow button{align-self:auto}
