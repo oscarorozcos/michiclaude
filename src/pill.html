@@ -25,17 +25,18 @@
     background:var(--bg) url("bongo.gif") center/cover no-repeat;
     border:1px solid var(--stroke)}
 
-  /* métricas dibujadas sobre la pantalla del laptop */
+  /* mini-dashboard sobre la pantalla del laptop: fila = etiqueta + valor + barra */
   .screen{position:absolute;left:var(--sx);top:var(--sy);width:var(--sw);
-    display:flex;flex-direction:column;gap:3px;align-items:flex-start;pointer-events:none}
-  .ses{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:.3px;
-    line-height:1;color:var(--ok);text-shadow:0 1px 2px rgba(255,255,255,.85)}
-  .grp{display:flex;align-items:center;gap:4px;width:100%}
-  .grp .tag{font-size:9px;font-weight:800;color:var(--scr-ink);width:8px;flex:0 0 auto;
-    text-shadow:0 1px 2px rgba(255,255,255,.85)}
-  .grp .track{position:relative;flex:1 1 auto;height:5px;border-radius:3px;
-    background:var(--scr-track);overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.4)}
-  .grp .fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;
+    display:flex;flex-direction:column;gap:5px;pointer-events:none}
+  .row{display:flex;align-items:center;gap:5px;width:100%}
+  .lab{font-size:9px;font-weight:800;letter-spacing:.3px;color:var(--scr-ink);
+    width:15px;flex:0 0 auto;text-shadow:0 1px 2px rgba(255,255,255,.9)}
+  .val{font-family:var(--mono);font-weight:700;font-size:12px;line-height:1;
+    width:31px;flex:0 0 auto;color:var(--scr-ink);text-align:right;
+    text-shadow:0 1px 2px rgba(255,255,255,.9)}
+  .track{position:relative;flex:1 1 auto;height:6px;border-radius:3px;
+    background:var(--scr-track);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+  .fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;
     background:var(--ok);transition:width .5s,background .3s}
 
   /* asa de arrastre (esquina) y punto de estado */
@@ -45,7 +46,6 @@
   .grip:active{cursor:grabbing}
   .dot{position:absolute;right:6px;top:6px;width:8px;height:8px;border-radius:50%;
     z-index:3;background:var(--ok);box-shadow:0 0 0 1px rgba(255,255,255,.5)}
-  body.loading .ses{color:var(--scr-ink)}
   body.stale .dot{background:var(--bad)}
 </style>
 </head>
@@ -54,9 +54,8 @@
   <span class="grip" id="grip" title="⠿">⠿</span>
   <span class="dot" id="dot"></span>
   <div class="screen">
-    <span class="ses" id="ses">…</span>
-    <div class="grp"><span class="tag">S</span><div class="track"><div class="fill" id="sFill"></div></div></div>
-    <div class="grp"><span class="tag">W</span><div class="track"><div class="fill" id="wFill"></div></div></div>
+    <div class="row"><span class="lab" title="Sesión · 5 h">5H</span><b class="val" id="ses">…</b><div class="track"><i class="fill" id="sFill"></i></div></div>
+    <div class="row"><span class="lab" title="Semanal · 7 días">7D</span><b class="val" id="wes">—</b><div class="track"><i class="fill" id="wFill"></i></div></div>
   </div>
 </div>
 
@@ -83,13 +82,17 @@ function render(d){
   document.body.classList.toggle("light", d?.theme==="light");
   if(!d || d.ok===false){
     document.body.classList.add("stale");
-    $("ses").textContent="—"; $("ses").style.color=""; $("dot").style.background="";
+    $("ses").textContent="—"; $("ses").style.color="var(--scr-ink)";
+    $("wes").textContent="—"; $("wes").style.color="var(--scr-ink)";
+    $("dot").style.background="";
     setFill($("sFill"),null); setFill($("wFill"),null); return;
   }
   document.body.classList.remove("stale");
   const s=d.session, w=d.weekly;
   $("ses").textContent = s ? Math.round(s.pct)+"%" : "—";
   $("ses").style.color = s ? col(Math.round(s.pct), s.pace) : "var(--scr-ink)";
+  $("wes").textContent = w ? Math.round(w.pct)+"%" : "—";
+  $("wes").style.color = w ? col(Math.round(w.pct), null) : "var(--scr-ink)";
   $("dot").style.background = s ? col(Math.round(s.pct), s.pace) : "var(--dim)";
   setFill($("sFill"), s?Math.round(s.pct):null, s?s.pace:null);
   setFill($("wFill"), w?Math.round(w.pct):null, null);
