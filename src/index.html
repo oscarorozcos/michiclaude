@@ -315,7 +315,7 @@
   <div class="p-foot">
     <div class="totals">
       <div class="t"><span data-i18n="today"></span><b id="costToday">–</b></div>
-      <div class="t"><span data-i18n="week"></span><b id="costWeek">–</b></div>
+      <div class="t"><span id="winLbl"></span><b id="costWeek">–</b></div>
     </div>
     <div class="foot-note" data-i18n="footnote"></div>
   </div>
@@ -1319,6 +1319,15 @@ function renderProjection(pct,pace,resets){
 }
 function fmtDur(m){m=Math.round(m);const h=Math.floor(m/60);return h?`${h} h ${m%60} min`:`${m} min`;}
 
+// Fecha corta legible: "21/Jul/26" (mes abreviado en el idioma activo)
+function fmtDate(iso, withYear=true){
+  const d=new Date(iso+"T00:00:00");
+  let mon=d.toLocaleDateString(lang,{month:"short"}).replace(".","");
+  mon=mon.charAt(0).toUpperCase()+mon.slice(1);
+  const dd=String(d.getDate()).padStart(2,"0");
+  return withYear ? `${dd}/${mon}/${String(d.getFullYear()).slice(2)}` : `${dd}/${mon}`;
+}
+
 // ---------- detalle local ----------
 // Separa "nombre · origen" que arma el backend (local no lleva sufijo).
 function splitSrc(name){
@@ -1394,10 +1403,10 @@ function renderTrend(daily){
   $("tchart").innerHTML=days.map((d,i)=>{
     const h=Math.max(2,Math.round(d.cost/max*54));
     const cls=(i===days.length-1?"today":"")+(d.cost===0?" zero":"");
-    return `<i class="${cls.trim()}" style="height:${h}px" title="${d.key} · $${d.cost.toFixed(2)}"></i>`;
+    return `<i class="${cls.trim()}" style="height:${h}px" title="${fmtDate(d.key)} · $${d.cost.toFixed(2)}"></i>`;
   }).join("");
-  $("tFrom").textContent=days[0].key.slice(5);
-  $("tTo").textContent=days[days.length-1].key.slice(5);
+  $("tFrom").textContent=fmtDate(days[0].key,false);
+  $("tTo").textContent=fmtDate(days[days.length-1].key,false);
 }
 
 // ---------- presupuesto semanal (toast aunque el panel esté oculto) ----------
@@ -1441,11 +1450,17 @@ let curDays=+(localStorage.getItem("days")||7);
 if(![1,7,30].includes(curDays)) curDays=7;
 function markDays(){
   document.querySelectorAll(".dlink").forEach(el=>el.classList.toggle("on",+el.dataset.d===curDays));
+  // la etiqueta del pie refleja la ventana activa (1d/7d/30d), no siempre "semana"
+  const w=$("winLbl"); if(w) w.textContent = curDays===7 ? t("week") : curDays+"d";
 }
 document.querySelectorAll(".dlink").forEach(el=>{
   el.addEventListener("click",()=>{
     curDays=+el.dataset.d; localStorage.setItem("days",curDays);
-    markDays(); refresh();
+    markDays();
+    // feedback inmediato mientras recalcula (el remoto por SSH tarda ~1-2 s)
+    $("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
+    $("costWeek").textContent="–";
+    refresh();
   });
 });
 markDays();
@@ -1604,7 +1619,7 @@ $("langSel").addEventListener("change",()=>{
   if(lastQuotaData) renderQuota(lastQuotaData);
   if(lastLocalData) renderLocal(lastLocalData);
   if(lastErrCode) $("syncTxt").textContent=errText(lastErrCode);
-  renderRemotes();
+  renderRemotes(); markDays();
 });
 
 // ---------- modo demo (SOLO al abrir index.html suelto en un navegador, sin Tauri) ----------
