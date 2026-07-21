@@ -226,9 +226,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       los últimos 7 días de la serie diaria, no contra la ventana elegida.
 - [x] Export CSV/JSON a carpeta elegida por el usuario (vacía = Descargas),
       comando `export_data`.
-- [x] Ajustes reorganizados: ⚙ muestra "Fuentes de datos" (nota incluye WSL,
-      lista de servidores con estado activo/sin conexión, alta con prueba)
-      y "Preferencias" (idioma, presupuesto, exportación) por separado.
+- [x] Panel en 3 PESTAÑAS (2026-07-21, decisión de Oscar): Principal
+      (cuota/proyección/gasto/tendencia/modelos) · Fuentes de datos
+      (nota + servidores con estado y alta) · Preferencias (idioma, widget,
+      alarmas, presupuesto, export). Pie con Hoy/Semana fijo en todas. El
+      botón ⚙ se eliminó — las pestañas siempre están visibles.
 - [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
 - [~] Alarmas de uso configurables + avisos de límite/restablecimiento con
       confirmación "Enterado" — implementado (2026-07-11); FALTA probar en

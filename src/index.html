@@ -65,6 +65,14 @@
   .xbtn:hover{background:var(--surface);color:var(--txt)}
   .p-head .xbtn{margin-left:4px}
 
+  /* pestañas (subrayado activo, estilo navegación) */
+  .tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--stroke-soft)}
+  .tab{background:transparent;border:0;border-bottom:2px solid transparent;
+    color:var(--txt-mut);font-family:var(--font);font-size:12px;font-weight:600;
+    padding:7px 10px;cursor:pointer;letter-spacing:.2px}
+  .tab:hover{color:var(--txt)}
+  .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
   .sect{border-top:1px solid var(--stroke-soft);padding-top:11px;margin-top:11px}
   .sect:first-of-type{border-top:0;margin-top:0;padding-top:0}
   .eyebrow{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt-dim);
@@ -193,9 +201,16 @@
     </div>
     <span class="plan" id="planTag">—</span>
     <button class="xbtn" id="themeBtn">◐</button>
-    <button class="xbtn" id="cfgBtn">⚙</button>
     <button class="xbtn" id="hideBtn">✕</button>
   </div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="main" data-i18n="tab_main"></button>
+    <button class="tab" data-tab="sources" data-i18n="sources_title"></button>
+    <button class="tab" data-tab="prefs" data-i18n="prefs_title"></button>
+  </div>
+
+  <div id="tab-main">
 
   <div class="sect">
     <div class="eyebrow"><span data-i18n="quota_title"></span> <span class="q" id="remQ"></span></div>
@@ -242,8 +257,10 @@
     <div class="legend" id="legend"></div>
   </div>
 
-  <div class="sect" id="cfgSect" hidden>
-    <div class="eyebrow" data-i18n="sources_title"></div>
+  </div><!-- /tab-main -->
+
+  <div id="tab-sources" hidden>
+  <div class="sect" id="cfgSect">
     <div class="cfg-note" data-i18n-html="cfg_note"></div>
     <div class="plist" id="remList"></div>
     <div class="cfg-form">
@@ -255,8 +272,10 @@
     </div>
   </div>
 
-  <div class="sect" id="prefSect" hidden>
-    <div class="eyebrow" data-i18n="prefs_title"></div>
+  </div><!-- /tab-sources -->
+
+  <div id="tab-prefs" hidden>
+  <div class="sect" id="prefSect">
     <div class="cfg-form">
       <div class="cfg-row">
         <span data-i18n="lang_label"></span>
@@ -291,6 +310,7 @@
       </div>
     </div>
   </div>
+  </div><!-- /tab-prefs -->
 
   <div class="p-foot">
     <div class="totals">
@@ -376,6 +396,7 @@ en:{
   status_active:"active",
   status_fail:"unreachable",
   pill_label:"Floating widget above the taskbar",
+  tab_main:"Overview",
   alarms_label:"Session alarms (notify at % used)",
   btn_add:"Add",
   notif_week_limit:"Weekly limit reached (100%). You'll get a notice when it resets.",
@@ -456,6 +477,7 @@ es:{
   status_active:"activo",
   status_fail:"sin conexión",
   pill_label:"Widget flotante sobre la barra de tareas",
+  tab_main:"Principal",
   alarms_label:"Alarmas de sesión (avisar al % usado)",
   btn_add:"Agregar",
   notif_week_limit:"Límite semanal alcanzado (100%). Te avisaré cuando se restablezca.",
@@ -536,6 +558,7 @@ pt:{
   status_active:"ativo",
   status_fail:"sem conexão",
   pill_label:"Widget flutuante sobre a barra de tarefas",
+  tab_main:"Principal",
   alarms_label:"Alarmes de sessão (avisar no % usado)",
   btn_add:"Adicionar",
   notif_week_limit:"Limite semanal atingido (100%). Você será avisado quando for restabelecido.",
@@ -616,6 +639,7 @@ fr:{
   status_active:"actif",
   status_fail:"injoignable",
   pill_label:"Widget flottant au-dessus de la barre des tâches",
+  tab_main:"Principal",
   alarms_label:"Alarmes de session (alerter au % utilisé)",
   btn_add:"Ajouter",
   notif_week_limit:"Limite hebdo atteinte (100 %). Vous serez prévenu à la réinitialisation.",
@@ -696,6 +720,7 @@ de:{
   status_active:"aktiv",
   status_fail:"nicht erreichbar",
   pill_label:"Schwebendes Widget über der Taskleiste",
+  tab_main:"Übersicht",
   alarms_label:"Sitzungsalarme (bei % Nutzung melden)",
   btn_add:"Hinzufügen",
   notif_week_limit:"Wochenlimit erreicht (100 %). Du wirst beim Reset benachrichtigt.",
@@ -776,6 +801,7 @@ ja:{
   status_active:"接続中",
   status_fail:"接続不可",
   pill_label:"タスクバー上のフローティングウィジェット",
+  tab_main:"メイン",
   alarms_label:"セッションアラーム（使用%で通知）",
   btn_add:"追加",
   notif_week_limit:"週間上限に達しました（100%）。リセット時に通知します。",
@@ -856,6 +882,7 @@ ko:{
   status_active:"연결됨",
   status_fail:"연결 불가",
   pill_label:"작업 표시줄 위 플로팅 위젯",
+  tab_main:"메인",
   alarms_label:"세션 알람 (사용 %에서 알림)",
   btn_add:"추가",
   notif_week_limit:"주간 한도 도달 (100%). 초기화되면 알려드립니다.",
@@ -936,6 +963,7 @@ zh:{
   status_active:"已连接",
   status_fail:"无法连接",
   pill_label:"任务栏上方的浮动小组件",
+  tab_main:"主页",
   alarms_label:"会话闹钟（在使用%时提醒）",
   btn_add:"添加",
   notif_week_limit:"已达每周上限（100%）。重置时会通知你。",
@@ -963,7 +991,7 @@ function applyI18n(){
   document.querySelectorAll("[data-i18n-html]").forEach(el=>{ el.innerHTML=t(el.dataset.i18nHtml); });
   document.querySelectorAll("[data-i18n-ph]").forEach(el=>{ el.placeholder=t(el.dataset.i18nPh); });
   document.querySelectorAll("[data-i18n-title]").forEach(el=>{ el.title=t(el.dataset.i18nTitle); });
-  $("hideBtn").title=t("hide_title"); $("cfgBtn").title=t("cfg_title"); $("themeBtn").title=t("theme_title");
+  $("hideBtn").title=t("hide_title"); $("themeBtn").title=t("theme_title");
   $("langSel").value=lang;
 }
 
@@ -1504,11 +1532,14 @@ function renderRemotes(){
     });
   });
 }
-$("cfgBtn").addEventListener("click",()=>{
-  const show=$("cfgSect").hidden;                 // la tuerca muestra/oculta ajustes
-  $("cfgSect").hidden=!show; $("prefSect").hidden=!show;
-  if(show){ loadRemotes(); $("cfgSect").scrollIntoView({behavior:"smooth"}); }
-});
+// ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
+function showTab(name){
+  for(const k of ["main","sources","prefs"]) $("tab-"+k).hidden = (k!==name);
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
+  if(name==="sources") loadRemotes();             // refresca estado de servidores
+  document.querySelector(".panel").scrollTop=0;
+}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
 $("rAdd").addEventListener("click",async()=>{
   const name=$("rName").value.trim()||"server";
   const host=$("rHost").value.trim();
