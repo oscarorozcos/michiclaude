@@ -1171,59 +1171,86 @@ function getAlarms(){
 }
 function saveAlarms(a){ localStorage.setItem("alarms", JSON.stringify(a.sort((x,y)=>x-y))); }
 
-// Aviso una vez por umbral por ventana de sesión; al cruzar varios de golpe,
-// suena solo el más alto (los menores quedan marcados como avisados).
+// ¿Cambió la ventana (sesión/semana)? Con TOLERANCIA: el resets_at del
+// endpoint trae pequeñas variaciones entre consultas; solo un salto grande
+// significa ventana nueva (si no, las alarmas se re-dispararían cada ciclo).
+function windowChanged(storeKey, curIso, tolMin){
+  const prev=localStorage.getItem(storeKey);
+  localStorage.setItem(storeKey, curIso);
+  if(!prev) return false;
+  return Math.abs(new Date(curIso)-new Date(prev)) > tolMin*60000;
+}
+
+// Alarma de umbral: al cruzar un % configurado arranca un recordatorio que se
+// REPITE cada 5 min hasta que el usuario abra el panel ("enterado"). Después,
+// silencio hasta el siguiente umbral o la siguiente ventana de sesión.
 function maybeNotify(pct,resets){
-  const win=resets||"sesion";
-  const alarms=[...getAlarms()].sort((a,b)=>b-a);   // el más alto primero
+  if(resets && windowChanged("alarmWin", resets, 10)){
+    localStorage.setItem("alarmFired","[]");          // ventana nueva: rearmar todo
+    localStorage.removeItem("ackPending:alarm");
+    localStorage.removeItem("ackLastToast:alarm");
+  }
+  let fired=[]; try{ fired=JSON.parse(localStorage.getItem("alarmFired")||"[]"); }catch(e){}
+  const alarms=[...getAlarms()].sort((a,b)=>b-a);     // el más alto primero
   for(const thr of alarms){
     if(pct>=thr){
-      if(!localStorage.getItem(`notif:${thr}:${win}`)){
-        alarms.filter(x=>x<=thr).forEach(x=>localStorage.setItem(`notif:${x}:${win}`,"1"));
-        toast(thr>=95 ? t("notif_hi",Math.round(pct)) : t("notif_lo",Math.round(pct)));
+      if(!fired.includes(thr)){
+        // marca este umbral y los menores como disparados (sin ráfagas)
+        fired=Array.from(new Set([...fired, ...alarms.filter(x=>x<=thr)]));
+        localStorage.setItem("alarmFired", JSON.stringify(fired));
+        localStorage.setItem("ackBody:alarm",
+          thr>=95 ? t("notif_hi",Math.round(pct)) : t("notif_lo",Math.round(pct)));
+        localStorage.setItem("ackPending:alarm","1");
+        localStorage.removeItem("ackLastToast:alarm"); // dispara ya, no en 5 min
       }
       break;
     }
   }
 }
 
-// Límite alcanzado y restablecimiento (sesión y semanal). El aviso de
-// "restablecido" se repite cada 5 min + banner en el panel HASTA que el
-// usuario pulse "Enterado" — por si no estaba frente a la pantalla.
+// Límite alcanzado (100%) y restablecimiento, sesión y semanal.
 function trackResets(ses, wk){
   if(ses && ses.resets){
-    const prev=localStorage.getItem("lastRes:session");
-    if(prev && prev!==ses.resets && localStorage.getItem("hit:session:"+prev)){
-      localStorage.setItem("ackPending:session","1");
-      localStorage.removeItem("hit:session:"+prev);
+    if(windowChanged("lastRes:session", ses.resets, 10)){
+      if(localStorage.getItem("hit:session")==="1"){
+        localStorage.setItem("ackPending:session","1");
+        localStorage.removeItem("ackLastToast:session");
+      }
+      localStorage.removeItem("hit:session");
     }
-    localStorage.setItem("lastRes:session", ses.resets);
-    if(ses.pct>=100) localStorage.setItem("hit:session:"+ses.resets,"1");
+    if(ses.pct>=100) localStorage.setItem("hit:session","1");
   }
   if(wk && wk.resets){
-    const prev=localStorage.getItem("lastRes:week");
-    if(prev && prev!==wk.resets && localStorage.getItem("hit:week:"+prev)){
-      localStorage.setItem("ackPending:week","1");
-      localStorage.removeItem("hit:week:"+prev);
+    if(windowChanged("lastRes:week", wk.resets, 360)){
+      if(localStorage.getItem("hit:week")==="1"){
+        localStorage.setItem("ackPending:week","1");
+        localStorage.removeItem("ackLastToast:week");
+      }
+      localStorage.removeItem("hit:week");
+      localStorage.removeItem("notifW");
     }
-    localStorage.setItem("lastRes:week", wk.resets);
     if(wk.pct>=100){
-      localStorage.setItem("hit:week:"+wk.resets,"1");
-      const kk="notifW:"+wk.resets;                  // límite semanal: 1 aviso por ventana
-      if(!localStorage.getItem(kk)){ localStorage.setItem(kk,"1"); toast(t("notif_week_limit")); }
+      localStorage.setItem("hit:week","1");
+      if(!localStorage.getItem("notifW")){ localStorage.setItem("notifW","1"); toast(t("notif_week_limit")); }
     }
   }
 }
 
-// Recordatorio de restablecimiento: SOLO notificaciones de Windows, repetidas
-// cada 5 min hasta que el usuario abra el panel (eso cuenta como "enterado").
+// Recordatorios pendientes (alarma de %, sesión restablecida, semana
+// restablecida): SOLO notificaciones de Windows, repetidas cada 5 min hasta
+// que el usuario abra el panel (eso cuenta como "enterado").
+const ACK_KINDS=["alarm","session","week"];
+function ackBody(k){
+  if(k==="alarm") return localStorage.getItem("ackBody:alarm")||"";
+  return t(k==="session"?"notif_reset_session":"notif_reset_week");
+}
 function processAcks(){
-  for(const k of ["session","week"]){
+  for(const k of ACK_KINDS){
     if(localStorage.getItem("ackPending:"+k)!=="1") continue;
     const last=+localStorage.getItem("ackLastToast:"+k)||0;
     if(Date.now()-last>5*60000){
       localStorage.setItem("ackLastToast:"+k, String(Date.now()));
-      toast(t(k==="session"?"notif_reset_session":"notif_reset_week"));
+      const b=ackBody(k); if(b) toast(b);
     }
   }
 }
@@ -1426,7 +1453,7 @@ $("pHead").addEventListener("mousedown",(e)=>{
 // pendientes (deja de repetirse la notificación de Windows).
 window.addEventListener("focus",()=>{
   dragging=false;
-  for(const k of ["session","week"]){
+  for(const k of ACK_KINDS){
     localStorage.removeItem("ackPending:"+k);
     localStorage.removeItem("ackLastToast:"+k);
   }

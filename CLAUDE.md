@@ -153,8 +153,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - Estados de error legibles con punto rojo en la línea de estado.
 - Notificaciones de umbral CONFIGURABLES: el usuario define sus alarmas de
   sesión en % (chips en ⚙ Preferencias, localStorage `alarms`, default
-  [80,95]); máx. un aviso por umbral por ventana; al cruzar varios de golpe
-  suena solo el más alto. Límite semanal al 100%: un aviso por ventana.
+  [80,95]). Al cruzar un umbral, el toast se REPITE cada 5 min hasta que el
+  usuario abra el panel; confirmado, silencio hasta el siguiente umbral o la
+  siguiente ventana. Al cruzar varios de golpe suena solo el más alto.
+  Límite semanal al 100%: un aviso por ventana.
+- CRÍTICO: el `resets_at` del endpoint trae jitter entre consultas — la
+  detección de "ventana nueva" SIEMPRE con tolerancia (`windowChanged`,
+  10 min sesión / 360 min semana), nunca comparación exacta de strings
+  (causaba re-disparos de alarmas cada ciclo).
 - Avisos de RESTABLECIMIENTO (sesión y semanal): solo si la ventana anterior
   llegó al 100% (`hit:*`); la notificación de WINDOWS se repite cada 5 min
   HASTA que el usuario abra/enfoque el panel (eso confirma y limpia
