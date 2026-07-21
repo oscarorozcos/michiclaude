@@ -1405,8 +1405,8 @@ function renderTrend(daily){
     const cls=(i===days.length-1?"today":"")+(d.cost===0?" zero":"");
     return `<i class="${cls.trim()}" style="height:${h}px" title="${fmtDate(d.key)} · $${d.cost.toFixed(2)}"></i>`;
   }).join("");
-  $("tFrom").textContent=fmtDate(days[0].key,false);
-  $("tTo").textContent=fmtDate(days[days.length-1].key,false);
+  $("tFrom").textContent=fmtDate(days[0].key);
+  $("tTo").textContent=fmtDate(days[days.length-1].key);
 }
 
 // ---------- presupuesto semanal (toast aunque el panel esté oculto) ----------
