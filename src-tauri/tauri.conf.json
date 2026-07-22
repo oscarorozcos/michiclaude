@@ -27,7 +27,7 @@
         "url": "pill.html",
         "width": 210,
         "height": 46,
-        "resizable": false,
+        "resizable": true,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
