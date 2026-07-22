@@ -98,7 +98,31 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   posición en `pill_config.json`; se activa desde ⚙ Preferencias o el menú
   del tray ("Floating widget"). NUNCA llama al endpoint: el panel le emite
   `quota:update` (con tema y tooltip localizados) y la pill pide el último
-  dato con `pill:ready` al cargar.
+  dato con `pill:ready` al cargar. Diseño elegible en Preferencias
+  (`pillDesign`): "classic" o "coral" (tokens Grafito/Papel, barras en
+  acento coral).
+- **Widget gatito** (estilo `cat` en `PillConfig.style`, elegible en
+  Preferencias; validado en vivo 2026-07-22): el gato Bongo SUSTITUYE a la
+  pastilla (nunca conviven). Cuatro ventanas fijas: `cat` (gif animado +
+  cápsula "Sesión X%" sobre la cabeza + botón sticker.png en la pantalla
+  que abre el panel), `card` (globo cómic de información al hover, con
+  buckets semanales extra DINÁMICOS — Fable, futuros), `notif` (globo de
+  alarma persistente con ✕) y la pastilla oculta. Estados del gif según
+  los avisos: normal / cat-fire (alarma de % pendiente = `ackPending:alarm`,
+  se calma al abrir el panel o cerrar el globo) / cat-zzz (semana al 100%,
+  hasta el reset). En modo gatito las alarmas de % NO van a toast de
+  Windows: salen como globo `notif` (los demás avisos y la pastilla normal
+  siguen con toasts). Los gifs (800², transparentes) se recortan por CSS
+  (unión visible x[39,748] y[0,530] medida con decodificador propio) — NO
+  editar los archivos. `place_balloon()` coloca los globos con pose
+  automática (arriba/abajo según espacio en el monitor ACTUAL del gato,
+  origen+tamaño = multi-monitor OK) y cola dinámica (`balloon:pose` →
+  `--tailx`) que siempre apunta al gato; nunca dos globos a la vez.
+- **CRÍTICO — ventanas transparentes**: NUNCA redimensionar en vivo una
+  ventana transparente (`set_size` con la ventana visible u oculta): WebView2
+  deja de pintar el contenido aunque la geometría quede bien (bug sufrido
+  2026-07-22, tres intentos de fix fallidos). El patrón correcto es SIEMPRE
+  ventanas de tamaño fijo que se muestran/ocultan.
 - **Tray icon dinámico**: única presencia permanente en la barra. El panel
   dibuja el % de sesión en un canvas 32×32 (número coloreado por estado +
   barrita semanal al pie) y lo manda por el comando `update_tray`
@@ -235,9 +259,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [~] Alarmas de uso configurables + avisos de límite/restablecimiento con
       confirmación "Enterado" — implementado (2026-07-11); FALTA probar en
       vivo el ciclo completo (cruce de umbral, 100%, reset, banner).
-- [~] Widget flotante (pill) sobre la barra — implementado (2026-07-11);
-      FALTA probar en vivo: posición por defecto junto al reloj, arrastre con
-      ⠿, persistencia de posición, no robar foco, tema sincronizado.
+- [x] Widget flotante (pill) sobre la barra — probado en vivo (2026-07-22):
+      arrastre, persistencia, sin robo de foco, tema OK.
+- [x] Widget gatito (2026-07-22, validado en vivo por Oscar): mascota con
+      estados normal/llamas/zzz ligados a los avisos, cápsula de %, sticker
+      que abre el panel, globo de información al hover (buckets dinámicos)
+      y globo de notificación con ✕ en vez de toasts. Pose automática de
+      globos, cola dinámica y soporte multi-monitor. Ver sección Ventanas.
 - [ ] MODO HUB (decidido 2026-07-11, pendiente de implementar tras la semana
       de pruebas): el VPS consolida los datos de todas las máquinas para que
       los totales cuadren en cualquier PC. Diseño acordado: (1) cada meter
