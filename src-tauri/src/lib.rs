@@ -937,9 +937,11 @@ fn hover_card(app: tauri::AppHandle, hovering: bool) {
             (cat.outer_position(), cat.outer_size(), card.outer_size())
         {
             let scale = cat.scale_factor().unwrap_or(1.0);
-            // arriba-derecha del gato, con un pequeño solape para la cola
-            let mut x = p.x + (ks.width as f64 * 0.45).round() as i32;
-            let y = (p.y - cs.height as i32 + (18.0 * scale).round() as i32).max(0);
+            // arriba-derecha del gato; el solape de 48px deja la cola del
+            // globo casi tocando la cabeza (que queda a ~39% de la ventana
+            // por el espacio que reservan las llamas del estado fire)
+            let mut x = p.x + (ks.width as f64 * 0.35).round() as i32;
+            let y = (p.y - cs.height as i32 + (48.0 * scale).round() as i32).max(0);
             if let Ok(Some(mon)) = cat.current_monitor() {
                 let max_x = mon.size().width as i32 - cs.width as i32;
                 x = x.min(max_x).max(0);
