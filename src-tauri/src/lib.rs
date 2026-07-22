@@ -854,26 +854,31 @@ fn save_pill_config(c: &PillConfig) {
     }
 }
 
-/// Coloca el widget: posición guardada, o esquina inferior derecha encima de la barra.
+/// Coloca el widget anclando su borde INFERIOR justo encima de la barra de
+/// tareas; solo la X es arrastrable (posición guardada) o, si no, esquina
+/// derecha. El alto se calcula de `pill_dims * escala` (no de `outer_size()`,
+/// que tras un `set_size` puede venir desactualizada y dejaba la pastilla por
+/// debajo de la barra en modo gatito). Así siempre queda visible.
 fn position_pill(app: &tauri::AppHandle) {
     use tauri::Manager;
     let Some(pill) = app.get_webview_window("pill") else { return };
     let cfg = load_pill_config();
-    if let (Some(x), Some(y)) = (cfg.x, cfg.y) {
-        let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
-        return;
+    let (lw, lh) = pill_dims(&cfg);
+    let scale = pill.scale_factor().unwrap_or(1.0);
+    let w_phys = (lw * scale).round() as i32;
+    let h_phys = (lh * scale).round() as i32;
+    let (mon_w, mon_h) = match pill.current_monitor() {
+        Ok(Some(mon)) => (mon.size().width as i32, mon.size().height as i32),
+        _ => (1920, 1080),
+    };
+    let x = cfg.x.unwrap_or((mon_w - w_phys - MARGIN_X as i32).max(0));
+    #[allow(unused_mut)]
+    let mut y = (mon_h - h_phys - TASKBAR_H as i32 - PANEL_GAP as i32).max(0);
+    #[cfg(windows)]
+    if let Some(tb) = win_taskbar::query() {
+        y = (tb.rect.top - h_phys - PANEL_GAP as i32).max(0);
     }
-    if let (Ok(Some(mon)), Ok(size)) = (pill.current_monitor(), pill.outer_size()) {
-        let s = mon.size();
-        let x = s.width.saturating_sub(size.width + MARGIN_X) as i32;
-        #[allow(unused_mut)]
-        let mut y = s.height.saturating_sub(size.height + TASKBAR_H + PANEL_GAP) as i32;
-        #[cfg(windows)]
-        if let Some(tb) = win_taskbar::query() {
-            y = (tb.rect.top - size.height as i32 - PANEL_GAP as i32).max(0);
-        }
-        let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
-    }
+    let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
 }
 
 fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
@@ -916,22 +921,12 @@ fn set_pill_style(app: tauri::AppHandle, style: String) {
     use tauri::Manager;
     let mut cfg = load_pill_config();
     cfg.style = if style == "cat" { "cat".into() } else { "plain".into() };
-    if let Some(pill) = app.get_webview_window("pill") {
-        let scale = pill.scale_factor().unwrap_or(1.0);
-        let (lw, lh) = pill_dims(&cfg);
-        let new_h_phys = (lh * scale).round() as i32;
-        let old_pos = pill.outer_position().ok();
-        let old_size = pill.outer_size().ok();
-        let _ = pill.set_size(tauri::LogicalSize::new(lw, lh));
-        if let (Some(p), Some(s)) = (old_pos, old_size) {
-            let bottom = p.y + s.height as i32;
-            let new_y = (bottom - new_h_phys).max(0);
-            let _ = pill.set_position(tauri::PhysicalPosition::new(p.x, new_y));
-            cfg.x = Some(p.x);
-            cfg.y = Some(new_y);
-        }
-    }
     save_pill_config(&cfg);
+    if let Some(pill) = app.get_webview_window("pill") {
+        let (lw, lh) = pill_dims(&cfg);
+        let _ = pill.set_size(tauri::LogicalSize::new(lw, lh));
+        position_pill(&app);
+    }
 }
 
 /// El widget avisa tras un arrastre; persistimos su nueva posición.
