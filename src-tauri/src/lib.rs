@@ -828,7 +828,14 @@ pub fn run() {
                     }
                     // la notificación cómic acompaña al gatito al arrastrarlo
                     if window.label() == "cat" {
-                        position_notif(window.app_handle());
+                        let visible = window
+                            .app_handle()
+                            .get_webview_window("notif")
+                            .and_then(|n| n.is_visible().ok())
+                            .unwrap_or(false);
+                        if visible {
+                            place_balloon(window.app_handle(), "notif", -194.0, 40.0);
+                        }
                     }
                 }
             }
@@ -937,40 +944,67 @@ fn hover_card(app: tauri::AppHandle, hovering: bool) {
         let _ = card.hide();
         return;
     }
-    if let Some(cat) = app.get_webview_window("cat") {
-        if let (Ok(p), Ok(cs)) = (cat.outer_position(), card.outer_size()) {
-            let scale = cat.scale_factor().unwrap_or(1.0);
-            // retícula de la maqueta de Oscar: el globo arranca ~79px (lóg.)
-            // a la derecha del grupo y su cola (vértice en y=218 de la
-            // ventana card) aterriza sobre la tapa de la laptop (~cat+70)
-            let mut x = p.x + (79.0 * scale).round() as i32;
-            let y = (p.y - cs.height as i32 + (70.0 * scale).round() as i32).max(0);
-            if let Ok(Some(mon)) = cat.current_monitor() {
-                let max_x = mon.size().width as i32 - cs.width as i32;
-                x = x.min(max_x).max(0);
-            }
-            let _ = card.set_position(tauri::PhysicalPosition::new(x, y));
-        }
+    place_balloon(&app, "card", 79.0, 70.0);
+    // prioridad: nunca dos globos a la vez — la notificación se esconde
+    // mientras el de información está abierto; al plegarse, el gatito la
+    // vuelve a pedir (emite notif:ready y el panel la re-muestra)
+    if let Some(n) = app.get_webview_window("notif") {
+        let _ = n.hide();
     }
     let _ = card.set_always_on_top(true);
     let _ = card.show();
 }
 
-/// Coloca el globo de notificación arriba-IZQUIERDA del gatito (lado
-/// opuesto al globo del hover), con la cola cayendo hacia el gato.
-fn position_notif(app: &tauri::AppHandle) {
-    use tauri::Manager;
+/// Coloca un globo (información o notificación) junto al gatito:
+/// - pose vertical automática: ARRIBA del gato si cabe en el monitor,
+///   ABAJO con la cola volteada si no (gato pegado al borde superior);
+/// - X preferida sujetada a los límites del monitor ACTUAL del gato,
+///   usando su ORIGEN + tamaño — en multi-monitor el globo acompaña al
+///   gato (el clamp anterior contra [0, ancho] lo devolvía al monitor 1);
+/// - la cola se reposiciona (evento balloon:pose hacia esa ventana) para
+///   apuntar SIEMPRE a la cabeza del gato aunque el globo se haya corrido.
+fn place_balloon(app: &tauri::AppHandle, label: &str, prefer_dx: f64, overlap_up: f64) {
+    use tauri::{Emitter, Manager};
     let (Some(cat), Some(w)) =
-        (app.get_webview_window("cat"), app.get_webview_window("notif"))
+        (app.get_webview_window("cat"), app.get_webview_window(label))
     else {
         return;
     };
-    if let (Ok(p), Ok(ns)) = (cat.outer_position(), w.outer_size()) {
-        let scale = cat.scale_factor().unwrap_or(1.0);
-        let x = (p.x - ns.width as i32 + (58.0 * scale).round() as i32).max(0);
-        let y = (p.y - ns.height as i32 + (40.0 * scale).round() as i32).max(0);
-        let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
-    }
+    let (Ok(p), Ok(ks), Ok(ws)) =
+        (cat.outer_position(), cat.outer_size(), w.outer_size())
+    else {
+        return;
+    };
+    let scale = cat.scale_factor().unwrap_or(1.0);
+    let (mx0, my0, mx1, my1) = match cat.current_monitor() {
+        Ok(Some(m)) => {
+            let mp = m.position();
+            let ms = m.size();
+            (mp.x, mp.y, mp.x + ms.width as i32, mp.y + ms.height as i32)
+        }
+        _ => (i32::MIN / 2, i32::MIN / 2, i32::MAX / 2, i32::MAX / 2),
+    };
+    // pose vertical: la altura efectiva arriba descuenta el solape de la cola
+    let up_h = ws.height as i32 - (overlap_up * scale).round() as i32;
+    let pose_up = p.y - my0 >= up_h;
+    let y = if pose_up {
+        p.y - up_h
+    } else {
+        (p.y + ks.height as i32 - (10.0 * scale).round() as i32)
+            .min(my1 - ws.height as i32)
+            .max(my0)
+    };
+    let mut x = p.x + (prefer_dx * scale).round() as i32;
+    x = x.min(mx1 - ws.width as i32).max(mx0);
+    let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
+    // cola apuntando a la cabeza del gato (~62% del ancho de su ventana)
+    let anchor = p.x as f64 + ks.width as f64 * 0.62;
+    let wlog = ws.width as f64 / scale;
+    let tailx = ((anchor - x as f64) / scale).round().clamp(24.0, wlog - 64.0);
+    let _ = app.emit_to(label, "balloon:pose", serde_json::json!({
+        "pose": if pose_up { "up" } else { "down" },
+        "tailx": tailx,
+    }));
 }
 
 /// Notificación cómic del gatito (modo cat): el PANEL decide cuándo
@@ -981,7 +1015,7 @@ fn set_notif_visible(app: tauri::AppHandle, visible: bool) {
     let Some(w) = app.get_webview_window("notif") else { return };
     let cfg = load_pill_config();
     if visible && cfg.visible && cfg.style == "cat" {
-        position_notif(&app);
+        place_balloon(&app, "notif", -194.0, 40.0);
         let _ = w.set_always_on_top(true);
         let _ = w.show();
     } else {

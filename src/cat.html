@@ -91,6 +91,8 @@ function foldBubble(){
   clearTimeout(hoverT);
   document.body.classList.remove("hovering");
   invoke?.("hover_card",{hovering:false});
+  // si había una alarma pendiente, su globo vuelve (el panel la re-muestra)
+  EVENT?.emit("notif:ready");
 }
 document.body.addEventListener("mouseenter",()=>{
   clearTimeout(hoverT);

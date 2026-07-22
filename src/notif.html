@@ -5,10 +5,10 @@
 <title>Claude Code Meter — notif</title>
 <style>
   /* Notificación cómic del gatito (modo mascota): sustituye al toast de
-     Windows para las alarmas de % de sesión. Mismo estilo que el globo del
-     hover, con la cola hacia abajo-derecha (el gato queda a la derecha) y
-     un ✕ para cerrarla — NO desaparece sola: la cierra el usuario (o abrir
-     el panel, que confirma la alarma). El PANEL decide cuándo mostrarla. */
+     Windows para las alarmas de % de sesión. NO desaparece sola: la cierra
+     el usuario (✕) o abrir el panel. El PANEL decide cuándo mostrarla.
+     La pose (arriba/abajo del gato) y la posición de la cola llegan del
+     backend por el evento balloon:pose, igual que el globo de información. */
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
@@ -16,28 +16,36 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none}
+  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;
+    --tailx:188px}
   .box{position:absolute;left:0;right:0;top:0;bottom:32px;
     background:var(--paper);border:3px solid var(--ink);border-radius:16px;
     padding:11px 34px 10px 14px;display:flex;align-items:center;cursor:pointer}
+  body.down .box{top:32px;bottom:0}
   .msg{font-size:12px;font-weight:700;line-height:1.35}
-  .x{position:absolute;right:9px;top:9px;width:20px;height:20px;border-radius:50%;
+  .x{position:absolute;right:6px;top:6px;width:20px;height:20px;border-radius:50%;
     border:2px solid var(--ink);background:var(--paper);color:var(--ink);
     font-size:11px;font-weight:800;line-height:1;display:grid;place-items:center;
     cursor:pointer;padding:0}
   .x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
-  /* cola hacia abajo-derecha, apuntando al gatito */
-  .tail-b{position:absolute;right:44px;bottom:0;width:0;height:0;
-    border-style:solid;border-width:36px 20px 0 11px;
+  /* cola: vértice en var(--tailx), hacia abajo por defecto; volteada en "down" */
+  .tail-b{position:absolute;left:calc(var(--tailx) - 21px);bottom:0;width:0;height:0;
+    border-style:solid;border-width:38px 12px 0 21px;
     border-color:var(--ink) transparent transparent transparent}
-  .tail-w{position:absolute;right:49px;bottom:7px;width:0;height:0;
-    border-style:solid;border-width:28px 14px 0 7px;
+  .tail-w{position:absolute;left:calc(var(--tailx) - 17px);bottom:6px;width:0;height:0;
+    border-style:solid;border-width:30px 8px 0 15px;
     border-color:var(--paper) transparent transparent transparent}
+  body.down .tail-b{bottom:auto;top:0;border-width:0 12px 38px 21px;
+    border-color:transparent transparent var(--ink) transparent}
+  body.down .tail-w{bottom:auto;top:6px;border-width:0 8px 30px 15px;
+    border-color:transparent transparent var(--paper) transparent}
 </style>
 </head>
 <body>
-<div class="box" id="box"><span class="msg" id="msg"></span></div>
-<button class="x" id="x">✕</button>
+<div class="box" id="box">
+  <span class="msg" id="msg"></span>
+  <button class="x" id="x">✕</button>
+</div>
 <div class="tail-b"></div><div class="tail-w"></div>
 
 <script>
@@ -50,6 +58,11 @@ const EVENT=TAURI?.event;
 
 if(EVENT){
   EVENT.listen("notif:update", e=>{ $("msg").textContent=e.payload?.body||""; });
+  EVENT.listen("balloon:pose", e=>{
+    const p=e.payload||{};
+    document.body.classList.toggle("down", p.pose==="down");
+    if(p.tailx!=null) document.body.style.setProperty("--tailx", p.tailx+"px");
+  });
   EVENT.emit("notif:ready");   // por si la alarma quedó pendiente de antes
 }else{
   $("msg").textContent="Sesión al 80% de tu límite de 5 h.";  // preview

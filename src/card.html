@@ -19,10 +19,14 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;cursor:pointer}
+  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;cursor:pointer;
+    --tailx:57px}  /* la cola sigue a la cabeza del gato (evento balloon:pose) */
   .box{position:absolute;left:0;right:0;bottom:33px;background:var(--paper);
     border:3px solid var(--ink);border-radius:21px;padding:15px 19px 13px;
     display:flex;flex-direction:column;gap:9px}
+  /* pose "down": el gato está pegado al borde superior — el globo va DEBAJO
+     y la cola se voltea hacia arriba */
+  body.down .box{bottom:auto;top:33px}
   .head{display:flex;align-items:center;gap:9px}
   .mk{width:15px;height:15px;flex:0 0 auto}
   .title{font-size:13px;font-weight:800;flex:1 1 auto;white-space:nowrap}
@@ -39,13 +43,17 @@
   .rst{font-family:var(--mono);font-size:10px;color:var(--accent)}
   #extras{display:flex;flex-direction:column;gap:9px}
   #extras:empty{display:none}
-  /* cola: pegada al borde inferior de la caja, vértice en el fondo */
-  .tail-b{position:absolute;left:36px;bottom:0;width:0;height:0;
+  /* cola: vértice en var(--tailx), apuntando al gato (abajo por defecto) */
+  .tail-b{position:absolute;left:calc(var(--tailx) - 21px);bottom:0;width:0;height:0;
     border-style:solid;border-width:38px 12px 0 21px;
     border-color:var(--ink) transparent transparent transparent}
-  .tail-w{position:absolute;left:40px;bottom:6px;width:0;height:0;
+  .tail-w{position:absolute;left:calc(var(--tailx) - 17px);bottom:6px;width:0;height:0;
     border-style:solid;border-width:30px 8px 0 15px;
     border-color:var(--paper) transparent transparent transparent}
+  body.down .tail-b{bottom:auto;top:0;border-width:0 12px 38px 21px;
+    border-color:transparent transparent var(--ink) transparent}
+  body.down .tail-w{bottom:auto;top:6px;border-width:0 8px 30px 15px;
+    border-color:transparent transparent var(--paper) transparent}
 </style>
 </head>
 <body>
@@ -123,6 +131,12 @@ function render(d){
 
 if(EVENT){
   EVENT.listen("quota:update", e=>render(e.payload));
+  // el backend avisa la pose (arriba/abajo) y dónde debe caer la cola
+  EVENT.listen("balloon:pose", e=>{
+    const p=e.payload||{};
+    document.body.classList.toggle("down", p.pose==="down");
+    if(p.tailx!=null) document.body.style.setProperty("--tailx", p.tailx+"px");
+  });
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{
   render({ok:true, session:{pct:51,pace:30}, weekly:{pct:26},
