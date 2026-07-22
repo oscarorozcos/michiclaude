@@ -139,22 +139,10 @@ if(EVENT){
     labels:{ses:"sesión",week:"semana"}});  // preview en navegador
 }
 
-// hover (solo diseño coral): tras una pausa breve, la tarjeta expandida
-// sustituye a la pastilla; la pausa evita disparos al pasar de largo o al
-// iniciar un arrastre desde el asa
-let hoverT=null;
-$("pill").addEventListener("mouseenter",()=>{
-  if(curDesign!=="coral") return;
-  clearTimeout(hoverT);
-  hoverT=setTimeout(()=>invoke?.("hover_card",{hovering:true}),350);
-});
-$("pill").addEventListener("mouseleave",()=>clearTimeout(hoverT));
-
 // arrastre solo desde el asa ⠿ (clic en el resto abre el panel)
 let dragging=false;
 $("grip").addEventListener("mousedown",e=>{
   if(e.button!==0) return;
-  clearTimeout(hoverT);
   e.stopPropagation(); dragging=true;
   APPWIN?.startDragging();
   setTimeout(()=>{ dragging=false; invoke?.("pill_moved"); },600);

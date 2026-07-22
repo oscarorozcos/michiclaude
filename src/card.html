@@ -4,45 +4,49 @@
 <meta charset="utf-8">
 <title>Claude Code Meter — card</title>
 <style>
-  /* Tarjeta expandida del diseño "coral" (hover de la pastilla). Ventana
-     FIJA que sustituye a la pastilla mientras el mouse está encima — nunca
-     se redimensiona nada (el resize en vivo rompía el pintado de WebView2).
-     Tokens de tema: oscuro "Grafito" / claro "Papel", acento coral. */
+  /* Globo de diálogo del gatito (hover): estética cómic — papel blanco,
+     trazo negro grueso y cola apuntando abajo-izquierda hacia el gato.
+     Ventana FIJA (nunca se redimensiona; el resize rompía el pintado).
+     No sigue el tema: el blanco cómic pega con el gato en claro y oscuro. */
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
-    --bg:rgba(23,23,27,.92); --stroke:rgba(255,255,255,.14);
-    --txt:#F5F4F2; --mut:#96948E;
-    --accent:#D97757; --wk:rgba(217,119,87,.55); --track:rgba(255,255,255,.15);
+    --ink:#111; --paper:#FDFCF9; --mut:#6F6D66;
+    --accent:#C15F3C; --wk:rgba(193,95,60,.55); --track:rgba(0,0,0,.1);
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
-  }
-  body.light{
-    --bg:rgba(252,251,248,.94); --stroke:rgba(0,0,0,.13);
-    --txt:#26251F; --mut:#6F6D66;
-    --accent:#C15F3C; --wk:rgba(193,95,60,.5); --track:rgba(0,0,0,.12);
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  body{font-family:var(--font);color:var(--txt);user-select:none;-webkit-user-select:none}
-  .card{height:100%;display:flex;flex-direction:column;gap:8px;padding:12px 14px;
-    background:var(--bg);border:1px solid var(--stroke);border-radius:16px;cursor:pointer}
-  .head{display:flex;align-items:center;gap:8px}
-  .mk{width:18px;height:18px;flex:0 0 auto}
-  .title{font-size:13px;font-weight:700;flex:1 1 auto;white-space:nowrap}
-  .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--mut)}
-  .row{display:flex;flex-direction:column;gap:4px}
+  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none}
+  .bubble{position:absolute;left:0;right:0;top:0;height:154px;
+    background:var(--paper);border:3px solid var(--ink);border-radius:18px;
+    padding:10px 13px;display:flex;flex-direction:column;gap:6px;cursor:pointer}
+  /* cola del globo: triángulo negro (borde) con triángulo papel encima */
+  .tail-b{position:absolute;left:30px;top:150px;width:0;height:0;
+    border-style:solid;border-width:34px 9px 0 20px;
+    border-color:var(--ink) transparent transparent transparent}
+  .tail-w{position:absolute;left:35px;top:147px;width:0;height:0;
+    border-style:solid;border-width:26px 6px 0 14px;
+    border-color:var(--paper) transparent transparent transparent}
+  .head{display:flex;align-items:center;gap:7px}
+  .mk{width:17px;height:17px;flex:0 0 auto}
+  .title{font-size:13px;font-weight:800;flex:1 1 auto;white-space:nowrap}
+  .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--mut);
+    box-shadow:0 0 0 1.5px var(--ink)}
+  .row{display:flex;flex-direction:column;gap:3px}
   .r-top{display:flex;align-items:baseline;justify-content:space-between}
-  .lab{font-size:11.5px;color:var(--mut);font-weight:600}
+  .lab{font-size:11px;color:var(--mut);font-weight:700}
   .pct{font-family:var(--mono);font-size:13px;font-weight:700}
   .track{position:relative;height:5px;border-radius:3px;background:var(--track);overflow:hidden}
   .fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;
     background:var(--accent);transition:width .4s}
   .row.wk .fill{background:var(--wk)}
-  .rst{font-size:10.5px;color:var(--mut);font-family:var(--mono)}
+  .rst{font-size:10px;color:var(--mut);font-family:var(--mono)}
 </style>
 </head>
 <body>
-<div class="card" id="card">
+<div class="tail-b"></div><div class="tail-w"></div>
+<div class="bubble" id="bubble">
   <div class="head">
     <span class="mk" id="mk"></span>
     <span class="title">Claude Code</span>
@@ -66,9 +70,9 @@ const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 
-// marca (mini sunburst, en coral)
+// marca (mini sunburst) en la cabecera del globo
 (function(){
-  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="18" height="18" viewBox="0 0 ${S} ${S}">`;
+  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="17" height="17" viewBox="0 0 ${S} ${S}">`;
   for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
     const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
     const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
@@ -87,7 +91,6 @@ function col(p,pace){ if(p>=95) return "var(--bad)";
 // Pinta desde el resumen del panel (nunca llama al endpoint). % SIEMPRE enteros.
 function render(d){
   if(!d || d.ok===false) return;           // conserva el último dato bueno
-  document.body.classList.toggle("light", d.theme==="light");
   if(d.labels){ $("sLab").textContent=d.labels.cardSes||"Session";
     $("wLab").textContent=d.labels.cardWeek||"Weekly"; }
   const s=d.session, w=d.weekly;
@@ -104,13 +107,12 @@ if(EVENT){
   EVENT.listen("quota:update", e=>render(e.payload));
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{
-  document.body.classList.add("light");
-  render({ok:true, theme:"light", session:{pct:23,pace:30}, weekly:{pct:23},
-    sesReset:"reset en 2 h 31 min", wkReset:"reset el lunes",
+  render({ok:true, session:{pct:34,pace:30}, weekly:{pct:24},
+    sesReset:"reset en 2 h 8 min", wkReset:"reset en 31 h 30 min",
     labels:{cardSes:"Sesión",cardWeek:"Semanal"}});  // preview en navegador
 }
 
-// al salir el mouse, la tarjeta se pliega y vuelve la pastilla
+// si el mouse entra al globo y sale, también se pliega
 document.body.addEventListener("mouseleave",()=>invoke?.("hover_card",{hovering:false}));
 // clic abre el panel; clic derecho oculta el widget
 document.body.addEventListener("click",()=>invoke?.("show_panel"));

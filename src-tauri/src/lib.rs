@@ -813,23 +813,20 @@ pub fn run() {
                     api.prevent_close();
                 }
             }
-            // Arrastre en vivo: pastilla y gatito se siguen mutuamente. Sin
-            // bucles: position_* solo escriben si la posición difiere.
-            tauri::WindowEvent::Moved(_) => match window.label() {
-                "pill" => {
-                    if window.is_visible().unwrap_or(false) {
-                        if let Ok(p) = window.outer_position() {
-                            let mut cfg = load_pill_config();
-                            cfg.x = Some(p.x);
-                            cfg.y = Some(p.y);
-                            save_pill_config(&cfg);
-                        }
+            // El widget visible (pastilla o gatito) persiste su posición al
+            // arrastrarse; ambos comparten la misma posición guardada.
+            tauri::WindowEvent::Moved(_) => {
+                if matches!(window.label(), "pill" | "cat")
+                    && window.is_visible().unwrap_or(false)
+                {
+                    if let Ok(p) = window.outer_position() {
+                        let mut cfg = load_pill_config();
+                        cfg.x = Some(p.x);
+                        cfg.y = Some(p.y);
+                        save_pill_config(&cfg);
                     }
-                    position_cat(window.app_handle());
                 }
-                "cat" => position_pill_under_cat(window.app_handle()),
-                _ => {}
-            },
+            }
             _ => {}
         })
         .run(tauri::generate_context!())
@@ -898,124 +895,60 @@ fn position_pill(app: &tauri::AppHandle) {
     }
 }
 
-// El gif trae margen transparente inferior: el gatito se solapa estos px
-// lógicos con la pastilla para verse "sentado" sobre ella.
-const CAT_OVERLAP: u32 = 30;
-
-/// Coloca la ventana del gatito pegada ENCIMA de la pastilla (misma X).
-/// El gatito vive en su propia ventana fija: redimensionar la de la pastilla
-/// disparaba un fallo de WebView2 que dejaba el contenido sin pintar.
-/// Solo escribe la posición si difiere (evita bucles con el evento Moved).
+/// Coloca el gatito (modo mascota): posición guardada, o esquina inferior
+/// derecha encima de la barra. El gatito SUSTITUYE a la pastilla — es un
+/// widget independiente y arrastrable a cualquier parte del escritorio.
 fn position_cat(app: &tauri::AppHandle) {
     use tauri::Manager;
-    let (Some(pill), Some(cat)) =
-        (app.get_webview_window("pill"), app.get_webview_window("cat"))
-    else {
+    let Some(cat) = app.get_webview_window("cat") else { return };
+    let cfg = load_pill_config();
+    if let (Some(x), Some(y)) = (cfg.x, cfg.y) {
+        let _ = cat.set_position(tauri::PhysicalPosition::new(x, y));
         return;
-    };
-    if let (Ok(p), Ok(cs)) = (pill.outer_position(), cat.outer_size()) {
-        let ov = (CAT_OVERLAP as f64 * pill.scale_factor().unwrap_or(1.0)).round() as i32;
-        let y = (p.y - cs.height as i32 + ov).max(0);
-        if cat.outer_position().ok().map(|c| (c.x, c.y)) != Some((p.x, y)) {
-            let _ = cat.set_position(tauri::PhysicalPosition::new(p.x, y));
+    }
+    if let (Ok(Some(mon)), Ok(size)) = (cat.current_monitor(), cat.outer_size()) {
+        let s = mon.size();
+        let x = s.width.saturating_sub(size.width + MARGIN_X) as i32;
+        #[allow(unused_mut)]
+        let mut y = s.height.saturating_sub(size.height + TASKBAR_H + PANEL_GAP) as i32;
+        #[cfg(windows)]
+        if let Some(tb) = win_taskbar::query() {
+            y = (tb.rect.top - size.height as i32 - PANEL_GAP as i32).max(0);
         }
+        let _ = cat.set_position(tauri::PhysicalPosition::new(x, y));
     }
 }
 
-/// Inverso: al arrastrar el gatito, la pastilla lo sigue por debajo.
-fn position_pill_under_cat(app: &tauri::AppHandle) {
-    use tauri::Manager;
-    let (Some(pill), Some(cat)) =
-        (app.get_webview_window("pill"), app.get_webview_window("cat"))
-    else {
-        return;
-    };
-    // con la pastilla oculta (tarjeta al hover) su posición la manda cfg
-    if !cat.is_visible().unwrap_or(false) || !pill.is_visible().unwrap_or(false) {
-        return;
-    }
-    if let (Ok(c), Ok(cs)) = (cat.outer_position(), cat.outer_size()) {
-        let ov = (CAT_OVERLAP as f64 * pill.scale_factor().unwrap_or(1.0)).round() as i32;
-        let y = c.y + cs.height as i32 - ov;
-        if pill.outer_position().ok().map(|p| (p.x, p.y)) != Some((c.x, y)) {
-            let _ = pill.set_position(tauri::PhysicalPosition::new(c.x, y));
-        }
-    }
-}
-
-/// Coloca la tarjeta expandida (hover) centrada sobre la pastilla, con el
-/// borde inferior alineado al de la pastilla (la "reemplaza" al crecer).
-fn position_card(app: &tauri::AppHandle) {
-    use tauri::Manager;
-    let (Some(pill), Some(card)) =
-        (app.get_webview_window("pill"), app.get_webview_window("card"))
-    else {
-        return;
-    };
-    if let (Ok(p), Ok(ps), Ok(cs)) =
-        (pill.outer_position(), pill.outer_size(), card.outer_size())
-    {
-        let x = (p.x - (cs.width as i32 - ps.width as i32) / 2).max(0);
-        let y = (p.y + ps.height as i32 - cs.height as i32).max(0);
-        let _ = card.set_position(tauri::PhysicalPosition::new(x, y));
-    }
-}
-
-/// El gatito se sube a la tarjeta mientras está expandida.
-fn position_cat_over_card(app: &tauri::AppHandle) {
-    use tauri::Manager;
-    let (Some(card), Some(cat)) =
-        (app.get_webview_window("card"), app.get_webview_window("cat"))
-    else {
-        return;
-    };
-    if let (Ok(c), Ok(cs), Ok(ks)) =
-        (card.outer_position(), card.outer_size(), cat.outer_size())
-    {
-        let ov = (CAT_OVERLAP as f64 * card.scale_factor().unwrap_or(1.0)).round() as i32;
-        let x = c.x + (cs.width as i32 - ks.width as i32) / 2;
-        let y = (c.y - ks.height as i32 + ov).max(0);
-        if cat.outer_position().ok().map(|k| (k.x, k.y)) != Some((x, y)) {
-            let _ = cat.set_position(tauri::PhysicalPosition::new(x, y));
-        }
-    }
-}
-
-/// Hover de la pastilla (diseño coral): al entrar el mouse la tarjeta fija
-/// sustituye a la pastilla; al salir, vuelve la pastilla. NUNCA se
-/// redimensiona ninguna ventana (el resize en vivo rompía el pintado).
+/// Globo de diálogo del gatito: al pasar el mouse por el gatito se muestra
+/// la ventana 'card' (burbuja cómic) arriba a la derecha, con la cola
+/// apuntando al gato; al salir el mouse se oculta. Ventana FIJA — nunca se
+/// redimensiona nada (el resize en vivo rompía el pintado de WebView2).
 #[tauri::command]
 fn hover_card(app: tauri::AppHandle, hovering: bool) {
     use tauri::Manager;
     let cfg = load_pill_config();
-    if !cfg.visible {
+    let Some(card) = app.get_webview_window("card") else { return };
+    if !hovering || !cfg.visible || cfg.style != "cat" {
+        let _ = card.hide();
         return;
     }
-    let pill = app.get_webview_window("pill");
-    let card = app.get_webview_window("card");
-    if hovering {
-        position_card(&app);
-        if let Some(c) = &card {
-            let _ = c.set_always_on_top(true);
-            let _ = c.show();
+    if let Some(cat) = app.get_webview_window("cat") {
+        if let (Ok(p), Ok(ks), Ok(cs)) =
+            (cat.outer_position(), cat.outer_size(), card.outer_size())
+        {
+            let scale = cat.scale_factor().unwrap_or(1.0);
+            // arriba-derecha del gato, con un pequeño solape para la cola
+            let mut x = p.x + (ks.width as f64 * 0.45).round() as i32;
+            let y = (p.y - cs.height as i32 + (18.0 * scale).round() as i32).max(0);
+            if let Ok(Some(mon)) = cat.current_monitor() {
+                let max_x = mon.size().width as i32 - cs.width as i32;
+                x = x.min(max_x).max(0);
+            }
+            let _ = card.set_position(tauri::PhysicalPosition::new(x, y));
         }
-        if let Some(p) = &pill {
-            let _ = p.hide();
-        }
-        if cfg.style == "cat" {
-            position_cat_over_card(&app);
-        }
-    } else {
-        if let Some(p) = &pill {
-            position_pill(&app);
-            let _ = p.set_always_on_top(true);
-            let _ = p.show();
-        }
-        if let Some(c) = &card {
-            let _ = c.hide();
-        }
-        position_cat(&app);
     }
+    let _ = card.set_always_on_top(true);
+    let _ = card.show();
 }
 
 #[tauri::command]
@@ -1036,8 +969,10 @@ fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
     let mut cfg = load_pill_config();
     cfg.visible = visible;
     save_pill_config(&cfg);
+    // el widget es UNO: pastilla (estilo plain) o gatito (estilo cat)
+    let cat_mode = cfg.style == "cat";
     if let Some(pill) = app.get_webview_window("pill") {
-        if visible {
+        if visible && !cat_mode {
             position_pill(app);
             let _ = pill.set_always_on_top(true);
             let _ = pill.show();
@@ -1045,9 +980,8 @@ fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
             let _ = pill.hide();
         }
     }
-    // el gatito acompaña a la pastilla solo si el estilo lo pide
     if let Some(cat) = app.get_webview_window("cat") {
-        if visible && cfg.style == "cat" {
+        if visible && cat_mode {
             position_cat(app);
             let _ = cat.set_always_on_top(true);
             let _ = cat.show();
@@ -1055,7 +989,7 @@ fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
             let _ = cat.hide();
         }
     }
-    // la tarjeta del hover nunca sobrevive a un cambio de visibilidad
+    // la burbuja del hover nunca sobrevive a un cambio de visibilidad
     if let Some(card) = app.get_webview_window("card") {
         let _ = card.hide();
     }
@@ -1084,19 +1018,26 @@ fn get_pill_style() -> String {
 fn set_pill_style(app: tauri::AppHandle, style: String) {
     use tauri::Manager;
     let mut cfg = load_pill_config();
-    cfg.style = if style == "cat" { "cat".into() } else { "plain".into() };
-    save_pill_config(&cfg);
-    // La pastilla NUNCA cambia de tamaño (redimensionarla dejaba el WebView
-    // sin pintar); solo se muestra u oculta la ventana fija del gatito.
-    if let Some(cat) = app.get_webview_window("cat") {
-        if cfg.style == "cat" && cfg.visible {
-            position_cat(&app);
-            let _ = cat.set_always_on_top(true);
-            let _ = cat.show();
-        } else {
-            let _ = cat.hide();
+    let new_style = if style == "cat" { "cat" } else { "plain" };
+    // al alternar pastilla ↔ gatito (alturas distintas) se conserva el borde
+    // INFERIOR de la posición guardada, para que el widget no "salte"
+    if cfg.style != new_style {
+        if let (Some(x), Some(y)) = (cfg.x, cfg.y) {
+            let (from, to) = if new_style == "cat" { ("pill", "cat") } else { ("cat", "pill") };
+            if let (Some(fw), Some(tw)) =
+                (app.get_webview_window(from), app.get_webview_window(to))
+            {
+                if let (Ok(fs), Ok(ts)) = (fw.outer_size(), tw.outer_size()) {
+                    cfg.x = Some(x);
+                    cfg.y = Some((y + fs.height as i32 - ts.height as i32).max(0));
+                }
+            }
         }
     }
+    cfg.style = new_style.into();
+    save_pill_config(&cfg);
+    // muestra/oculta la ventana que corresponda (pastilla O gatito)
+    set_pill_visible_impl(&app, cfg.visible);
 }
 
 /// El widget avisa tras un arrastre; persistimos su nueva posición.
@@ -1111,7 +1052,6 @@ fn pill_moved(app: tauri::AppHandle) {
             save_pill_config(&cfg);
         }
     }
-    position_cat(&app); // el gatito sigue a la pastilla
 }
 
 /// Abre el panel (clic en el widget flotante).

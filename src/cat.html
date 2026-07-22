@@ -4,41 +4,107 @@
 <meta charset="utf-8">
 <title>Claude Code Meter — cat</title>
 <style>
+  /* Widget mascota: el gatito SUSTITUYE a la pastilla. Sobre el gif van un
+     chip con el % de sesión (con etiqueta, para que se entienda) y el botón
+     del logo que abre el panel. Hover → globo de diálogo (ventana 'card').
+     Estética cómic (blanco + trazo negro) a juego con el gato, en ambos temas. */
+  :root{
+    --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
+    --ink:#111; --paper:#FDFCF9; --brand:#d97757;
+    --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
+  }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  body{cursor:grab;user-select:none;-webkit-user-select:none}
+  body{font-family:var(--font);cursor:grab;user-select:none;-webkit-user-select:none}
   body:active{cursor:grabbing}
-  img{width:100%;height:100%;object-fit:contain;display:block;-webkit-user-drag:none;
-    filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
+  .cat{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+    display:block;-webkit-user-drag:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
+  /* botón del logo: esquina superior, sobre la tapa de la laptop */
+  .logo{position:absolute;left:12%;top:10%;width:28px;height:28px;border-radius:50%;
+    background:var(--paper);border:2px solid var(--ink);display:grid;place-items:center;
+    cursor:pointer;z-index:3;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .logo:hover{transform:scale(1.08)}
+  .logo svg{width:17px;height:17px;display:block}
+  /* chip del % de sesión: abajo a la izquierda, fuera de la animación */
+  .chip{position:absolute;left:4px;bottom:2px;display:flex;align-items:baseline;gap:5px;
+    background:var(--paper);border:2px solid var(--ink);border-radius:999px;
+    padding:2px 10px;z-index:3;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .chip .lab{font-size:10px;font-weight:600;color:#6F6D66}
+  .chip b{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)}
 </style>
 </head>
 <body>
-<img id="cat" src="cat.gif" alt="" draggable="false">
+<img class="cat" id="cat" src="cat.gif" alt="" draggable="false">
+<button class="logo" id="logo" title="Claude Code Meter"></button>
+<div class="chip"><span class="lab" id="chipLab">session</span><b id="chipPct">—</b></div>
 <script>
-// Mascota del widget: vive en su PROPIA ventana fija encima de la pastilla
-// (redimensionar la ventana de la pastilla dejaba el WebView sin pintar).
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
+const $=id=>document.getElementById(id);
 const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
 const GIF={normal:"cat.gif",fire:"cat-fire.gif",zzz:"cat-zzz.gif"};
+
+// marca (mini sunburst, igual que el panel) dentro del botón
+(function(){
+  const S=64,cx=32,cy=32,rays=11;let p=`<svg viewBox="0 0 ${S} ${S}">`;
+  for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
+    const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
+    const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
+    const pts=[[cx+ux*base,cy+uy*base],[cx+ux*mid+px*hw,cy+uy*mid+py*hw],
+      [cx+ux*tip,cy+uy*tip],[cx+ux*mid-px*hw,cy+uy*mid-py*hw]]
+      .map(q=>q.map(n=>n.toFixed(2)).join(",")).join(" ");
+    p+=`<polygon points="${pts}" fill="var(--brand)"/>`}
+  $("logo").innerHTML=p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
+})();
+
+// mismo código de color de estado que el panel (para el % del chip)
+function col(p,pace){ if(p>=95) return "var(--bad)";
+  if(pace!=null && p>pace+8) return p>85?"var(--bad)":"var(--warn)";
+  if(p>=80) return "var(--warn)"; return "var(--ink)"; }
+
 function apply(d){
-  if(!d || !d.mascot) return;             // en errores transitorios conserva el estado
-  const g=GIF[d.mascot]||"cat.gif";
-  const el=document.getElementById("cat");
-  if(el.getAttribute("src")!==g) el.setAttribute("src",g);
+  if(!d) return;
+  if(d.labels && d.labels.ses) $("chipLab").textContent=d.labels.ses;
+  if(d.tip) document.body.title=d.tip;
+  if(d.mascot){ const g=GIF[d.mascot]||"cat.gif";
+    if($("cat").getAttribute("src")!==g) $("cat").setAttribute("src",g); }
+  if(d.ok===false) return;                 // conserva el último % bueno
+  const s=d.session;
+  $("chipPct").textContent = s ? Math.round(s.pct)+"%" : "—";
+  $("chipPct").style.color = s ? col(Math.round(s.pct), s.pace) : "var(--ink)";
 }
+
 if(EVENT){
   EVENT.listen("quota:update", e=>apply(e.payload));
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }
-// el gatito entero es ASA DE ARRASTRE: mueve el conjunto (la pastilla lo
-// sigue desde el backend vía el evento Moved). Para abrir el panel, clic en
-// la pastilla. Clic derecho oculta el widget.
-document.body.addEventListener("mousedown",e=>{
-  if(e.button===0) APPWIN?.startDragging();
+
+// hover: tras una pausa breve aparece el globo de diálogo; al salir, se pliega
+let hoverT=null;
+document.body.addEventListener("mouseenter",()=>{
+  clearTimeout(hoverT);
+  hoverT=setTimeout(()=>invoke?.("hover_card",{hovering:true}),300);
 });
+document.body.addEventListener("mouseleave",()=>{
+  clearTimeout(hoverT);
+  invoke?.("hover_card",{hovering:false});
+});
+
+// el gatito entero es asa de arrastre (se puede llevar a cualquier parte);
+// al empezar a arrastrar, el globo se pliega
+document.body.addEventListener("mousedown",e=>{
+  if(e.button!==0 || e.target.closest("#logo")) return;
+  clearTimeout(hoverT);
+  invoke?.("hover_card",{hovering:false});
+  APPWIN?.startDragging();
+});
+// el botón del logo abre el panel (como el clic en la pastilla)
+$("logo").addEventListener("mousedown",e=>e.stopPropagation());
+$("logo").addEventListener("click",e=>{ e.stopPropagation(); invoke?.("show_panel"); });
+// clic derecho oculta el widget (se reactiva desde Preferencias o el tray)
 window.addEventListener("contextmenu",e=>{
   e.preventDefault(); invoke?.("set_pill_visible",{visible:false});
 });
