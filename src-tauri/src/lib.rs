@@ -730,6 +730,8 @@ pub fn run() {
             show_panel,
             set_pill_visible,
             get_pill_visible,
+            get_pill_style,
+            set_pill_style,
             pill_moved
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -783,7 +785,10 @@ pub fn run() {
                     if let Ok(h) = pill.hwnd() {
                         win_taskbar::make_noactivate(h.0 as isize);
                     }
-                    if load_pill_config().visible {
+                    let cfg = load_pill_config();
+                    let (lw, lh) = pill_dims(&cfg);
+                    let _ = pill.set_size(tauri::LogicalSize::new(lw, lh));
+                    if cfg.visible {
                         position_pill(app.handle());
                         let _ = pill.show();
                     }
@@ -820,6 +825,15 @@ struct PillConfig {
     visible: bool,
     x: Option<i32>,
     y: Option<i32>,
+    // "plain" (solo pastilla) o "cat" (gatito animado encima de la pastilla).
+    #[serde(default)]
+    style: String,
+}
+
+/// Tamaño lógico del widget según el estilo: en modo "cat" la ventana crece
+/// hacia arriba para dejar sitio al gatito sobre la pastilla.
+fn pill_dims(cfg: &PillConfig) -> (f64, f64) {
+    if cfg.style == "cat" { (210.0, 250.0) } else { (210.0, 46.0) }
 }
 
 fn pill_config_path() -> PathBuf {
@@ -886,6 +900,38 @@ fn set_pill_visible(app: tauri::AppHandle, visible: bool) {
 #[tauri::command]
 fn get_pill_visible() -> bool {
     load_pill_config().visible
+}
+
+#[tauri::command]
+fn get_pill_style() -> String {
+    let s = load_pill_config().style;
+    if s == "cat" { "cat".into() } else { "plain".into() }
+}
+
+/// Cambia el estilo del widget (pastilla sola / con gatito): guarda la
+/// preferencia y redimensiona la ventana conservando el borde inferior
+/// (para que siga pegada encima de la barra) y la posición horizontal.
+#[tauri::command]
+fn set_pill_style(app: tauri::AppHandle, style: String) {
+    use tauri::Manager;
+    let mut cfg = load_pill_config();
+    cfg.style = if style == "cat" { "cat".into() } else { "plain".into() };
+    if let Some(pill) = app.get_webview_window("pill") {
+        let scale = pill.scale_factor().unwrap_or(1.0);
+        let (lw, lh) = pill_dims(&cfg);
+        let new_h_phys = (lh * scale).round() as i32;
+        let old_pos = pill.outer_position().ok();
+        let old_size = pill.outer_size().ok();
+        let _ = pill.set_size(tauri::LogicalSize::new(lw, lh));
+        if let (Some(p), Some(s)) = (old_pos, old_size) {
+            let bottom = p.y + s.height as i32;
+            let new_y = (bottom - new_h_phys).max(0);
+            let _ = pill.set_position(tauri::PhysicalPosition::new(p.x, new_y));
+            cfg.x = Some(p.x);
+            cfg.y = Some(new_y);
+        }
+    }
+    save_pill_config(&cfg);
 }
 
 /// El widget avisa tras un arrastre; persistimos su nueva posición.

@@ -298,6 +298,13 @@
       <label class="cfg-row" style="cursor:pointer;margin-top:4px">
         <input type="checkbox" id="pillChk"> <span data-i18n="pill_label"></span>
       </label>
+      <div class="cfg-row" id="pillStyleRow" style="margin-top:2px">
+        <span data-i18n="pill_style_label"></span>
+        <select id="pillStyleSel">
+          <option value="plain" data-i18n="pill_style_plain"></option>
+          <option value="cat" data-i18n="pill_style_cat"></option>
+        </select>
+      </div>
       <div class="cfg-lbl" data-i18n="alarms_label"></div>
       <div class="chips" id="alarmList"></div>
       <div class="btnrow">
@@ -401,6 +408,9 @@ en:{
   status_active:"active",
   status_fail:"unreachable",
   pill_label:"Floating widget above the taskbar",
+  pill_style_label:"Widget style",
+  pill_style_plain:"Pill only",
+  pill_style_cat:"Pill with cat 🐱",
   tab_main:"Overview",
   alarms_label:"Session alarms (notify at % used)",
   btn_add:"Add",
@@ -482,6 +492,9 @@ es:{
   status_active:"activo",
   status_fail:"sin conexión",
   pill_label:"Widget flotante sobre la barra de tareas",
+  pill_style_label:"Estilo del widget",
+  pill_style_plain:"Solo la pastilla",
+  pill_style_cat:"Pastilla con gatito 🐱",
   tab_main:"Principal",
   alarms_label:"Alarmas de sesión (avisar al % usado)",
   btn_add:"Agregar",
@@ -563,6 +576,9 @@ pt:{
   status_active:"ativo",
   status_fail:"sem conexão",
   pill_label:"Widget flutuante sobre a barra de tarefas",
+  pill_style_label:"Estilo do widget",
+  pill_style_plain:"Somente a pílula",
+  pill_style_cat:"Pílula com gatinho 🐱",
   tab_main:"Principal",
   alarms_label:"Alarmes de sessão (avisar no % usado)",
   btn_add:"Adicionar",
@@ -644,6 +660,9 @@ fr:{
   status_active:"actif",
   status_fail:"injoignable",
   pill_label:"Widget flottant au-dessus de la barre des tâches",
+  pill_style_label:"Style du widget",
+  pill_style_plain:"Pastille seule",
+  pill_style_cat:"Pastille avec chat 🐱",
   tab_main:"Principal",
   alarms_label:"Alarmes de session (alerter au % utilisé)",
   btn_add:"Ajouter",
@@ -725,6 +744,9 @@ de:{
   status_active:"aktiv",
   status_fail:"nicht erreichbar",
   pill_label:"Schwebendes Widget über der Taskleiste",
+  pill_style_label:"Widget-Stil",
+  pill_style_plain:"Nur Pille",
+  pill_style_cat:"Pille mit Katze 🐱",
   tab_main:"Übersicht",
   alarms_label:"Sitzungsalarme (bei % Nutzung melden)",
   btn_add:"Hinzufügen",
@@ -806,6 +828,9 @@ ja:{
   status_active:"接続中",
   status_fail:"接続不可",
   pill_label:"タスクバー上のフローティングウィジェット",
+  pill_style_label:"ウィジェットのスタイル",
+  pill_style_plain:"ピルのみ",
+  pill_style_cat:"ピルと猫 🐱",
   tab_main:"メイン",
   alarms_label:"セッションアラーム（使用%で通知）",
   btn_add:"追加",
@@ -887,6 +912,9 @@ ko:{
   status_active:"연결됨",
   status_fail:"연결 불가",
   pill_label:"작업 표시줄 위 플로팅 위젯",
+  pill_style_label:"위젯 스타일",
+  pill_style_plain:"알약만",
+  pill_style_cat:"알약과 고양이 🐱",
   tab_main:"메인",
   alarms_label:"세션 알람 (사용 %에서 알림)",
   btn_add:"추가",
@@ -968,6 +996,9 @@ zh:{
   status_active:"已连接",
   status_fail:"无法连接",
   pill_label:"任务栏上方的浮动小组件",
+  pill_style_label:"小组件样式",
+  pill_style_plain:"仅药丸",
+  pill_style_cat:"药丸配小猫 🐱",
   tab_main:"主页",
   alarms_label:"会话闹钟（在使用%时提醒）",
   btn_add:"添加",
@@ -1042,9 +1073,19 @@ let lastQuotaData=null, lastLocalData=null;   // caché para re-render al cambia
 
 // ---------- widget flotante: el panel es el ÚNICO que consulta; el widget escucha ----------
 let lastPill=null;
+function getPillStyle(){ return localStorage.getItem("pillStyle")==="cat"?"cat":"plain"; }
+// Estado del gatito: dormido si tocaste el límite semanal, en llamas si la
+// sesión alcanzó tu alarma más baja, normal en cualquier otro caso.
+function mascotState(ses, weekPct){
+  if(weekPct!=null && Math.round(weekPct)>=100) return "zzz";
+  const al=getAlarms(); const low=al.length?Math.min(...al):80;
+  if(ses && Math.round(ses.pct)>=low) return "fire";
+  return "normal";
+}
 function emitPill(ses, weekPct){
   lastPill={ok:!!ses, session:ses, weekly:weekPct!=null?{pct:weekPct}:null,
     theme:document.body.classList.contains("light")?"light":"dark",
+    style:getPillStyle(), mascot:mascotState(ses,weekPct),
     tip: ses?t("tray_tip",Math.round(ses.pct),fmtReset(ses.resets),weekPct!=null?Math.round(weekPct):null):t("tray_no_data")};
   EVENT?.emit("quota:update", lastPill);
 }
@@ -1597,6 +1638,17 @@ renderAlarms();
 if(invoke){ invoke("get_pill_visible").then(v=>{ $("pillChk").checked=!!v; }).catch(()=>{}); }
 $("pillChk").addEventListener("change",()=>{
   invoke?.("set_pill_visible",{visible:$("pillChk").checked});
+});
+// Estilo del widget (pastilla sola / con gatito): backend redimensiona la
+// ventana; el panel reemite el último dato para que el widget cambie ya.
+$("pillStyleSel").value=getPillStyle();
+if(invoke){ invoke("get_pill_style").then(s=>{ const st=(s==="cat")?"cat":"plain";
+  localStorage.setItem("pillStyle",st); $("pillStyleSel").value=st; }).catch(()=>{}); }
+$("pillStyleSel").addEventListener("change",()=>{
+  const st=$("pillStyleSel").value==="cat"?"cat":"plain";
+  localStorage.setItem("pillStyle",st);
+  invoke?.("set_pill_style",{style:st});
+  if(lastPill){ lastPill.style=st; EVENT?.emit("quota:update",lastPill); }
 });
 $("budgetIn").value=localStorage.getItem("budgetWeek")||"";
 $("budgetIn").addEventListener("change",()=>{

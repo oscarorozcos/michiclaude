@@ -20,8 +20,15 @@
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   body{font-family:var(--font);color:var(--txt);user-select:none;-webkit-user-select:none}
 
-  .pill{display:flex;align-items:center;gap:8px;height:100%;padding:0 10px 0 4px;
+  /* la pastilla vive pegada al fondo de la ventana; en modo gatito la ventana
+     crece hacia arriba y el gif (fondo transparente) aparece encima. */
+  .pill{position:absolute;left:0;right:0;bottom:0;height:46px;
+    display:flex;align-items:center;gap:8px;padding:0 10px 0 4px;
     background:var(--bg);border:1px solid var(--stroke);border-radius:12px;cursor:pointer}
+  .cat{position:absolute;top:0;left:0;right:0;height:198px;width:100%;
+    object-fit:contain;display:none;pointer-events:none;-webkit-user-drag:none;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
+  body.cat .cat{display:block}
   .grip{width:14px;height:70%;display:grid;place-items:center;color:var(--txt-dim);
     cursor:grab;font-size:11px;letter-spacing:-1px}
   .grip:active{cursor:grabbing}
@@ -38,6 +45,7 @@
 </style>
 </head>
 <body class="loading">
+<img class="cat" id="cat" src="cat.gif" alt="" draggable="false">
 <div class="pill" id="pill">
   <span class="grip" id="grip" title="⠿">⠿</span>
   <span class="mk" id="mk"></span>
@@ -78,9 +86,15 @@ function setFill(el,pct,pace){
 
 // Renderiza desde el resumen que emite el panel (nunca llama al endpoint).
 // Los porcentajes SIEMPRE enteros (Math.round).
+const CAT_GIF={normal:"cat.gif",fire:"cat-fire.gif",zzz:"cat-zzz.gif"};
 function render(d){
   document.body.classList.remove("loading");
   document.body.classList.toggle("light", d?.theme==="light");
+  // estilo (pastilla sola / con gatito) y estado del gatito. Solo se tocan si
+  // vienen en el dato: en un error transitorio (sin style) se conserva lo que hay.
+  if(d && d.style!==undefined) document.body.classList.toggle("cat", d.style==="cat");
+  if(d && d.mascot){ const g=CAT_GIF[d.mascot]||"cat.gif";
+    if($("cat").getAttribute("src")!==g) $("cat").setAttribute("src",g); }
   if(!d || d.ok===false){
     document.body.classList.add("stale");
     $("ses").textContent="—"; $("dot").style.background="";
@@ -96,10 +110,12 @@ function render(d){
 }
 
 if(EVENT){
+  // estilo inmediato al cargar (la ventana ya viene dimensionada por el backend)
+  if(invoke){ invoke("get_pill_style").then(s=>document.body.classList.toggle("cat", s==="cat")).catch(()=>{}); }
   EVENT.listen("quota:update", e=>render(e.payload));
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{
-  render({ok:true, session:{pct:24,pace:30}, weekly:{pct:10}});  // preview en navegador
+  render({ok:true, session:{pct:44,pace:30}, weekly:{pct:10}, style:"cat", mascot:"normal"});  // preview en navegador
 }
 
 // arrastre solo desde el asa ⠿ (clic en el resto abre el panel)
