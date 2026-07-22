@@ -4,65 +4,60 @@
 <meta charset="utf-8">
 <title>Claude Code Meter — card</title>
 <style>
-  /* Globo de diálogo del gatito (hover): estética cómic — papel blanco,
-     trazo negro grueso y cola apuntando abajo-izquierda hacia el gato.
-     Ventana FIJA (nunca se redimensiona; el resize rompía el pintado).
-     No sigue el tema: el blanco cómic pega con el gato en claro y oscuro. */
+  /* Globo de diálogo del gatito — construido con la retícula medida por
+     Oscar sobre su maqueta (lienzo 474x438, globo 310x195, ritmo vertical
+     55px, padding 20/23), escalada x0.948 a esta ventana de 294x218.
+     Ventana FIJA (nunca se redimensiona; el resize rompía el pintado). */
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
-    --ink:#111; --paper:#FDFCF9; --mut:#6F6D66;
+    --ink:#111; --paper:#FDFCF9; --mut:#5c5a53;
     --accent:#C15F3C; --wk:rgba(193,95,60,.55); --track:rgba(0,0,0,.1);
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none}
-  .bubble{position:absolute;left:0;right:0;top:0;height:154px;
-    background:var(--paper);border:3px solid var(--ink);border-radius:18px;
-    padding:10px 13px;display:flex;flex-direction:column;gap:6px;cursor:pointer}
-  /* cola del globo: triángulo negro (borde) con triángulo papel encima */
-  .tail-b{position:absolute;left:30px;top:150px;width:0;height:0;
-    border-style:solid;border-width:34px 9px 0 20px;
+  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;cursor:pointer}
+  .bubble{position:absolute;left:0;top:0;width:294px;height:185px;
+    background:var(--paper);border:3px solid var(--ink);border-radius:21px}
+  /* cola: base x36-69 sobre el borde inferior, vértice hacia (58,218) */
+  .tail-b{position:absolute;left:36px;top:180px;width:0;height:0;
+    border-style:solid;border-width:38px 12px 0 21px;
     border-color:var(--ink) transparent transparent transparent}
-  .tail-w{position:absolute;left:35px;top:147px;width:0;height:0;
-    border-style:solid;border-width:26px 6px 0 14px;
+  .tail-w{position:absolute;left:40px;top:177px;width:0;height:0;
+    border-style:solid;border-width:30px 8px 0 15px;
     border-color:var(--paper) transparent transparent transparent}
-  .head{display:flex;align-items:center;gap:7px}
-  .mk{width:17px;height:17px;flex:0 0 auto}
-  .title{font-size:13px;font-weight:800;flex:1 1 auto;white-space:nowrap}
-  .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--mut);
-    box-shadow:0 0 0 1.5px var(--ink)}
-  .row{display:flex;flex-direction:column;gap:3px}
-  .r-top{display:flex;align-items:baseline;justify-content:space-between}
-  .lab{font-size:11px;color:var(--mut);font-weight:700}
-  .pct{font-family:var(--mono);font-size:13px;font-weight:700}
-  .track{position:relative;height:5px;border-radius:3px;background:var(--track);overflow:hidden}
+  /* contenido: columna útil x19→275 (256px), posiciones de la retícula */
+  .mk{position:absolute;left:20px;top:21px;width:15px;height:15px}
+  .title{position:absolute;left:47px;top:19px;font-size:13px;font-weight:800}
+  .dot{position:absolute;left:265px;top:23px;width:9px;height:9px;border-radius:50%;
+    background:var(--mut);box-shadow:0 0 0 1.5px var(--ink)}
+  .lab{position:absolute;left:19px;font-size:11px;font-weight:700;color:var(--ink)}
+  .pct{position:absolute;right:19px;font-family:var(--mono);font-size:12px;font-weight:800}
+  .track{position:absolute;left:19px;width:256px;height:6px;border-radius:3px;
+    background:var(--track);overflow:hidden}
   .fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;
     background:var(--accent);transition:width .4s}
-  .row.wk .fill{background:var(--wk)}
-  .rst{font-size:10px;color:var(--mut);font-family:var(--mono)}
+  .fill.wk{background:var(--wk)}
+  .rst{position:absolute;left:19px;font-family:var(--mono);font-size:10px;color:var(--accent)}
+  /* retícula vertical (escala 0.948 de la maqueta): sesión y49/67/79,
+     semanal y101/119/132 — ritmo de 52px entre bloques */
+  #sLab{top:47px} #sPct{top:46px} #sTrack{top:67px} #sRst{top:79px}
+  #wLab{top:99px} #wPct{top:98px} #wTrack{top:119px} #wRst{top:132px}
 </style>
 </head>
 <body>
 <div class="tail-b"></div><div class="tail-w"></div>
-<div class="bubble" id="bubble">
-  <div class="head">
-    <span class="mk" id="mk"></span>
-    <span class="title">Claude Code</span>
-    <span class="dot" id="dot"></span>
-  </div>
-  <div class="row">
-    <div class="r-top"><span class="lab" id="sLab">Session</span><b class="pct" id="sPct">—</b></div>
-    <div class="track"><i class="fill" id="sFill"></i></div>
-    <div class="rst" id="sRst"></div>
-  </div>
-  <div class="row wk">
-    <div class="r-top"><span class="lab" id="wLab">Weekly</span><b class="pct" id="wPct">—</b></div>
-    <div class="track"><i class="fill" id="wFill"></i></div>
-    <div class="rst" id="wRst"></div>
-  </div>
-</div>
+<div class="bubble"></div>
+<span class="mk" id="mk"></span>
+<span class="title">Claude Code</span>
+<span class="dot" id="dot"></span>
+<span class="lab" id="sLab">Session</span><b class="pct" id="sPct">—</b>
+<div class="track" id="sTrack"><i class="fill" id="sFill"></i></div>
+<span class="rst" id="sRst"></span>
+<span class="lab" id="wLab">Weekly</span><b class="pct" id="wPct">—</b>
+<div class="track" id="wTrack"><i class="fill wk" id="wFill"></i></div>
+<span class="rst" id="wRst"></span>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -70,9 +65,9 @@ const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 
-// marca (mini sunburst) en la cabecera del globo
+// marca (mini sunburst) — mismo centro vertical que el punto de estado
 (function(){
-  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="17" height="17" viewBox="0 0 ${S} ${S}">`;
+  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="15" height="15" viewBox="0 0 ${S} ${S}">`;
   for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
     const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
     const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
@@ -107,8 +102,8 @@ if(EVENT){
   EVENT.listen("quota:update", e=>render(e.payload));
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{
-  render({ok:true, session:{pct:34,pace:30}, weekly:{pct:24},
-    sesReset:"reset en 2 h 8 min", wkReset:"reset en 31 h 30 min",
+  render({ok:true, session:{pct:39,pace:30}, weekly:{pct:25},
+    sesReset:"reset en 1 h 31 min", wkReset:"reset en 31 h 1 min",
     labels:{cardSes:"Sesión",cardWeek:"Semanal"}});  // preview en navegador
 }
 

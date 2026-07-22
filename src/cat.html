@@ -25,19 +25,23 @@
      pegados al gato y los 3 gifs no saltan entre sí. NO editar los gifs. */
   .cat{position:absolute;width:112.7%;height:150.7%;left:-5.5%;top:0;
     display:block;-webkit-user-drag:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
-  /* logo sobre la tapa de la laptop (inclinado como ella): abre el panel */
-  .logo{position:absolute;left:7%;top:38%;width:26px;height:26px;border:0;
-    background:transparent;padding:0;cursor:pointer;z-index:3;
-    transform:rotate(-14deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
-  .logo:hover{transform:rotate(-14deg) scale(1.15)}
+  /* Posiciones según la maqueta medida por Oscar (grupo laptop+gato
+     193x113 → aquí ~183x95, factor 0.948/0.841). */
+  /* spark del logo SOBRE la pantalla de la laptop: abre el panel */
+  .logo{position:absolute;left:5.5%;top:44%;width:22px;height:22px;border:0;
+    background:transparent;padding:3px;cursor:pointer;z-index:3;
+    transform:rotate(-10deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+  .logo:hover{transform:rotate(-10deg) scale(1.15)}
   .logo svg{width:100%;height:100%;display:block}
-  /* chip del % de sesión sobre el frente de la laptop, en NEGRITAS */
-  .chip{position:absolute;left:20%;bottom:4%;display:flex;align-items:baseline;gap:5px;
-    background:var(--paper);border:2px solid var(--ink);border-radius:999px;
-    padding:1px 9px;z-index:3;transform:rotate(-8deg);
-    box-shadow:0 1px 3px rgba(0,0,0,.3)}
-  .chip .lab{font-size:10px;font-weight:700;color:var(--ink)}
-  .chip b{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--ink)}
+  /* chip "sesión 39%" como DECAL sobre la tapa: rotación + cizalla para que
+     herede el plano de la laptop (baseline 11.3° = borde inferior de la
+     tapa; skew 20° en vez de 27° por legibilidad a tamaño widget) */
+  .chip{position:absolute;left:10.4%;top:79%;transform-origin:0 0;
+    transform:rotate(11.3deg) skewX(20deg);
+    display:flex;align-items:baseline;gap:4px;white-space:nowrap;
+    background:#EFEDE7;border-radius:3px;padding:1px 7px;z-index:3}
+  .chip .lab{font-size:11px;font-weight:600;color:var(--ink)}
+  .chip b{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--ink)}
 </style>
 </head>
 <body>
