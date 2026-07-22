@@ -785,13 +785,16 @@ pub fn run() {
                     if let Ok(h) = pill.hwnd() {
                         win_taskbar::make_noactivate(h.0 as isize);
                     }
-                    let cfg = load_pill_config();
-                    let (lw, lh) = pill_dims(&cfg);
-                    let _ = pill.set_size(tauri::LogicalSize::new(lw, lh));
-                    if cfg.visible {
-                        position_pill(app.handle());
-                        let _ = pill.show();
+                }
+                // la ventana del gatito tampoco debe robar foco
+                if let Some(cat) = app.get_webview_window("cat") {
+                    #[cfg(windows)]
+                    if let Ok(h) = cat.hwnd() {
+                        win_taskbar::make_noactivate(h.0 as isize);
                     }
+                }
+                if load_pill_config().visible {
+                    set_pill_visible_impl(app.handle(), true);
                 }
             }
 
@@ -830,12 +833,6 @@ struct PillConfig {
     style: String,
 }
 
-/// Tamaño lógico del widget según el estilo: en modo "cat" la ventana crece
-/// hacia arriba para dejar sitio al gatito sobre la pastilla.
-fn pill_dims(cfg: &PillConfig) -> (f64, f64) {
-    if cfg.style == "cat" { (210.0, 250.0) } else { (210.0, 46.0) }
-}
-
 fn pill_config_path() -> PathBuf {
     app_data_dir().join("pill_config.json")
 }
@@ -854,31 +851,42 @@ fn save_pill_config(c: &PillConfig) {
     }
 }
 
-/// Coloca el widget anclando su borde INFERIOR justo encima de la barra de
-/// tareas; solo la X es arrastrable (posición guardada) o, si no, esquina
-/// derecha. El alto se calcula de `pill_dims * escala` (no de `outer_size()`,
-/// que tras un `set_size` puede venir desactualizada y dejaba la pastilla por
-/// debajo de la barra en modo gatito). Así siempre queda visible.
+/// Coloca el widget: posición guardada, o esquina inferior derecha encima de la barra.
 fn position_pill(app: &tauri::AppHandle) {
     use tauri::Manager;
     let Some(pill) = app.get_webview_window("pill") else { return };
     let cfg = load_pill_config();
-    let (lw, lh) = pill_dims(&cfg);
-    let scale = pill.scale_factor().unwrap_or(1.0);
-    let w_phys = (lw * scale).round() as i32;
-    let h_phys = (lh * scale).round() as i32;
-    let (mon_w, mon_h) = match pill.current_monitor() {
-        Ok(Some(mon)) => (mon.size().width as i32, mon.size().height as i32),
-        _ => (1920, 1080),
-    };
-    let x = cfg.x.unwrap_or((mon_w - w_phys - MARGIN_X as i32).max(0));
-    #[allow(unused_mut)]
-    let mut y = (mon_h - h_phys - TASKBAR_H as i32 - PANEL_GAP as i32).max(0);
-    #[cfg(windows)]
-    if let Some(tb) = win_taskbar::query() {
-        y = (tb.rect.top - h_phys - PANEL_GAP as i32).max(0);
+    if let (Some(x), Some(y)) = (cfg.x, cfg.y) {
+        let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
+        return;
     }
-    let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
+    if let (Ok(Some(mon)), Ok(size)) = (pill.current_monitor(), pill.outer_size()) {
+        let s = mon.size();
+        let x = s.width.saturating_sub(size.width + MARGIN_X) as i32;
+        #[allow(unused_mut)]
+        let mut y = s.height.saturating_sub(size.height + TASKBAR_H + PANEL_GAP) as i32;
+        #[cfg(windows)]
+        if let Some(tb) = win_taskbar::query() {
+            y = (tb.rect.top - size.height as i32 - PANEL_GAP as i32).max(0);
+        }
+        let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
+    }
+}
+
+/// Coloca la ventana del gatito pegada ENCIMA de la pastilla (misma X).
+/// El gatito vive en su propia ventana fija: redimensionar la de la pastilla
+/// disparaba un fallo de WebView2 que dejaba el contenido sin pintar.
+fn position_cat(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let (Some(pill), Some(cat)) =
+        (app.get_webview_window("pill"), app.get_webview_window("cat"))
+    else {
+        return;
+    };
+    if let (Ok(p), Ok(cs)) = (pill.outer_position(), cat.outer_size()) {
+        let y = (p.y - cs.height as i32).max(0);
+        let _ = cat.set_position(tauri::PhysicalPosition::new(p.x, y));
+    }
 }
 
 fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
@@ -893,6 +901,16 @@ fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
             let _ = pill.show();
         } else {
             let _ = pill.hide();
+        }
+    }
+    // el gatito acompaña a la pastilla solo si el estilo lo pide
+    if let Some(cat) = app.get_webview_window("cat") {
+        if visible && cfg.style == "cat" {
+            position_cat(app);
+            let _ = cat.set_always_on_top(true);
+            let _ = cat.show();
+        } else {
+            let _ = cat.hide();
         }
     }
 }
@@ -922,50 +940,16 @@ fn set_pill_style(app: tauri::AppHandle, style: String) {
     let mut cfg = load_pill_config();
     cfg.style = if style == "cat" { "cat".into() } else { "plain".into() };
     save_pill_config(&cfg);
-    if let Some(pill) = app.get_webview_window("pill") {
-        let scale = pill.scale_factor().unwrap_or(1.0);
-        let (lw, lh) = pill_dims(&cfg);
-        let w_phys = (lw * scale).round() as u32;
-        let h_phys = (lh * scale).round() as u32;
-        // ocultar → redimensionar → recolocar → mostrar: al redimensionar una
-        // ventana transparente visible, WebView2 dejaba el contenido sin
-        // pintar (la ventana quedaba bien puesta pero "vacía"); el ciclo
-        // hide/show la obliga a recomponer.
-        let _ = pill.hide();
-        let _ = pill.set_size(tauri::PhysicalSize::new(w_phys, h_phys));
-        position_pill(&app);
-        // aplica el layout del gatito directamente en el webview (no depende
-        // de que el panel haya emitido ya un dato)
-        let _ = pill.eval(&format!(
-            "document.body.classList.toggle('cat',{});",
-            cfg.style == "cat"
-        ));
-        if cfg.visible {
-            let _ = pill.set_always_on_top(true);
-            let _ = pill.show();
+    // La pastilla NUNCA cambia de tamaño (redimensionarla dejaba el WebView
+    // sin pintar); solo se muestra u oculta la ventana fija del gatito.
+    if let Some(cat) = app.get_webview_window("cat") {
+        if cfg.style == "cat" && cfg.visible {
+            position_cat(&app);
+            let _ = cat.set_always_on_top(true);
+            let _ = cat.show();
+        } else {
+            let _ = cat.hide();
         }
-        // diagnóstico: geometría real tras el cambio (pill_debug.json junto a
-        // quota_debug.json) — para depurar el modo gatito en vivo
-        #[cfg(windows)]
-        let tb_top: Option<i32> = win_taskbar::query().map(|t| t.rect.top);
-        #[cfg(not(windows))]
-        let tb_top: Option<i32> = None;
-        let dbg = serde_json::json!({
-            "style": cfg.style,
-            "scale": scale,
-            "logical_wanted": [lw, lh],
-            "phys_wanted": [w_phys, h_phys],
-            "outer_size_after": pill.outer_size().ok().map(|s| [s.width, s.height]),
-            "inner_size_after": pill.inner_size().ok().map(|s| [s.width, s.height]),
-            "outer_position_after": pill.outer_position().ok().map(|p| [p.x, p.y]),
-            "monitor": pill.current_monitor().ok().flatten().map(|m| [m.size().width, m.size().height]),
-            "taskbar_top": tb_top,
-            "visible": pill.is_visible().ok(),
-        });
-        let _ = fs::write(
-            app_data_dir().join("pill_debug.json"),
-            serde_json::to_string_pretty(&dbg).unwrap_or_default(),
-        );
     }
 }
 
@@ -981,6 +965,7 @@ fn pill_moved(app: tauri::AppHandle) {
             save_pill_config(&cfg);
         }
     }
+    position_cat(&app); // el gatito sigue a la pastilla
 }
 
 /// Abre el panel (clic en el widget flotante).
