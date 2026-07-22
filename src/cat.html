@@ -25,29 +25,33 @@
      pegados al gato y los 3 gifs no saltan entre sí. NO editar los gifs. */
   .cat{position:absolute;width:112.7%;height:150.7%;left:-5.5%;top:0;
     display:block;-webkit-user-drag:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
-  /* Posiciones según la maqueta medida por Oscar (grupo laptop+gato
-     193x113 → aquí ~183x95, factor 0.948/0.841). */
-  /* spark del logo SOBRE la pantalla de la laptop: abre el panel */
-  .logo{position:absolute;left:5.5%;top:44%;width:22px;height:22px;border:0;
-    background:transparent;padding:3px;cursor:pointer;z-index:3;
-    transform:rotate(-10deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
-  .logo:hover{transform:rotate(-10deg) scale(1.15)}
-  .logo svg{width:100%;height:100%;display:block}
-  /* chip "sesión 39%" como DECAL sobre la tapa: rotación + cizalla para que
-     herede el plano de la laptop (baseline 11.3° = borde inferior de la
-     tapa; skew 20° en vez de 27° por legibilidad a tamaño widget) */
-  .chip{position:absolute;left:10.4%;top:79%;transform-origin:0 0;
-    transform:rotate(11.3deg) skewX(20deg);
+  /* Retícula de la maqueta 304x219 de Oscar, escalada x0.691 a 210x157. */
+  /* badge circular con el spark, CENTRADO en la pantalla de la laptop
+     (centro de la maqueta (126.5,118) → 41.6%/53.9%); abre el panel */
+  .logo{position:absolute;left:36.8%;top:47.5%;width:20px;height:20px;
+    border:1.5px solid var(--ink);border-radius:50%;background:var(--paper);
+    padding:0;display:grid;place-items:center;cursor:pointer;z-index:3;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
+  .logo:hover{transform:scale(1.15)}
+  .logo svg{width:9px;height:9px;display:block}  /* spark = 45% del Ø, centrado */
+  /* cápsula "sesión 39%" flotando sobre la cabeza del gato: stadium
+     (radio = altura/2) rotada +15.5°, rótulo anclado al gato (deliberado).
+     Se oculta mientras el globo del hover está desplegado. */
+  .plabel{position:absolute;left:72.4%;top:37.9%;
+    transform:translate(-50%,-50%) rotate(15.5deg);
     display:flex;align-items:baseline;gap:4px;white-space:nowrap;
-    background:#EFEDE7;border-radius:3px;padding:1px 7px;z-index:3}
-  .chip .lab{font-size:11px;font-weight:600;color:var(--ink)}
-  .chip b{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--ink)}
+    background:var(--paper);border:1.5px solid var(--ink);border-radius:999px;
+    padding:2px 10px;z-index:3;transition:opacity .15s;
+    box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .plabel .lab{font-size:8.5px;font-weight:500;color:var(--ink)}
+  .plabel b{font-family:var(--mono);font-size:10.5px;font-weight:800;color:var(--ink)}
+  body.hovering .plabel{opacity:0}
 </style>
 </head>
 <body>
 <img class="cat" id="cat" src="cat.gif" alt="" draggable="false">
 <button class="logo" id="logo"></button>
-<div class="chip"><span class="lab" id="chipLab">session</span><b id="chipPct">—</b></div>
+<div class="plabel"><span class="lab" id="chipLab">session</span><b id="chipPct">—</b></div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
 const $=id=>document.getElementById(id);
@@ -92,23 +96,28 @@ if(EVENT){
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }
 
-// hover: tras una pausa breve aparece el globo de diálogo; al salir, se pliega
+// hover: tras una pausa breve aparece el globo de diálogo (y la cápsula del
+// % se oculta para no duplicar la info); al salir, se pliega y vuelve
 let hoverT=null;
+function foldBubble(){
+  clearTimeout(hoverT);
+  document.body.classList.remove("hovering");
+  invoke?.("hover_card",{hovering:false});
+}
 document.body.addEventListener("mouseenter",()=>{
   clearTimeout(hoverT);
-  hoverT=setTimeout(()=>invoke?.("hover_card",{hovering:true}),300);
+  hoverT=setTimeout(()=>{
+    document.body.classList.add("hovering");
+    invoke?.("hover_card",{hovering:true});
+  },300);
 });
-document.body.addEventListener("mouseleave",()=>{
-  clearTimeout(hoverT);
-  invoke?.("hover_card",{hovering:false});
-});
+document.body.addEventListener("mouseleave",foldBubble);
 
 // el gatito entero es asa de arrastre (se puede llevar a cualquier parte);
 // al empezar a arrastrar, el globo se pliega
 document.body.addEventListener("mousedown",e=>{
   if(e.button!==0 || e.target.closest("#logo")) return;
-  clearTimeout(hoverT);
-  invoke?.("hover_card",{hovering:false});
+  foldBubble();
   APPWIN?.startDragging();
 });
 // el botón del logo abre el panel (como el clic en la pastilla)
