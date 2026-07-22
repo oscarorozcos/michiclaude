@@ -4,10 +4,12 @@
 <meta charset="utf-8">
 <title>Claude Code Meter — card</title>
 <style>
-  /* Globo de diálogo del gatito — construido con la retícula medida por
-     Oscar sobre su maqueta (lienzo 474x438, globo 310x195, ritmo vertical
-     55px, padding 20/23), escalada x0.948 a esta ventana de 294x218.
-     Ventana FIJA (nunca se redimensiona; el resize rompía el pintado). */
+  /* Globo de diálogo del gatito — retícula de la maqueta de Oscar (globo
+     294x185, borde 3, radio 21, cola en x36 con vértice abajo). La caja se
+     ANCLA ABAJO (junto a la cola) y crece hacia arriba para acomodar los
+     buckets semanales extra (Fable, futuros…) que reporte el endpoint —
+     filas dinámicas, nunca nombres hardcodeados. Ventana FIJA de 294x322
+     (hueco de sobra arriba); nunca se redimensiona (rompía el pintado). */
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
@@ -18,46 +20,54 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;cursor:pointer}
-  .bubble{position:absolute;left:0;top:0;width:294px;height:185px;
-    background:var(--paper);border:3px solid var(--ink);border-radius:21px}
-  /* cola: base x36-69 sobre el borde inferior, vértice hacia (58,218) */
-  .tail-b{position:absolute;left:36px;top:180px;width:0;height:0;
-    border-style:solid;border-width:38px 12px 0 21px;
-    border-color:var(--ink) transparent transparent transparent}
-  .tail-w{position:absolute;left:40px;top:177px;width:0;height:0;
-    border-style:solid;border-width:30px 8px 0 15px;
-    border-color:var(--paper) transparent transparent transparent}
-  /* contenido: columna útil x19→275 (256px), posiciones de la retícula */
-  .mk{position:absolute;left:20px;top:21px;width:15px;height:15px}
-  .title{position:absolute;left:47px;top:19px;font-size:13px;font-weight:800}
-  .dot{position:absolute;left:265px;top:23px;width:9px;height:9px;border-radius:50%;
+  .box{position:absolute;left:0;right:0;bottom:33px;background:var(--paper);
+    border:3px solid var(--ink);border-radius:21px;padding:15px 19px 13px;
+    display:flex;flex-direction:column;gap:9px}
+  .head{display:flex;align-items:center;gap:9px}
+  .mk{width:15px;height:15px;flex:0 0 auto}
+  .title{font-size:13px;font-weight:800;flex:1 1 auto;white-space:nowrap}
+  .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;
     background:var(--mut);box-shadow:0 0 0 1.5px var(--ink)}
-  .lab{position:absolute;left:19px;font-size:11px;font-weight:700;color:var(--ink)}
-  .pct{position:absolute;right:19px;font-family:var(--mono);font-size:12px;font-weight:800}
-  .track{position:absolute;left:19px;width:256px;height:6px;border-radius:3px;
-    background:var(--track);overflow:hidden}
+  .blk{display:flex;flex-direction:column;gap:4px}
+  .r{display:flex;justify-content:space-between;align-items:baseline}
+  .lab{font-size:11.5px;font-weight:700}
+  .pct{font-family:var(--mono);font-size:12.5px;font-weight:800}
+  .track{position:relative;height:6px;border-radius:3px;background:var(--track);overflow:hidden}
   .fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;
     background:var(--accent);transition:width .4s}
   .fill.wk{background:var(--wk)}
-  .rst{position:absolute;left:19px;font-family:var(--mono);font-size:10px;color:var(--accent)}
-  /* retícula vertical (escala 0.948 de la maqueta): sesión y49/67/79,
-     semanal y101/119/132 — ritmo de 52px entre bloques */
-  #sLab{top:47px} #sPct{top:46px} #sTrack{top:67px} #sRst{top:79px}
-  #wLab{top:99px} #wPct{top:98px} #wTrack{top:119px} #wRst{top:132px}
+  .rst{font-family:var(--mono);font-size:10px;color:var(--accent)}
+  #extras{display:flex;flex-direction:column;gap:9px}
+  #extras:empty{display:none}
+  /* cola: pegada al borde inferior de la caja, vértice en el fondo */
+  .tail-b{position:absolute;left:36px;bottom:0;width:0;height:0;
+    border-style:solid;border-width:38px 12px 0 21px;
+    border-color:var(--ink) transparent transparent transparent}
+  .tail-w{position:absolute;left:40px;bottom:6px;width:0;height:0;
+    border-style:solid;border-width:30px 8px 0 15px;
+    border-color:var(--paper) transparent transparent transparent}
 </style>
 </head>
 <body>
+<div class="box">
+  <div class="head">
+    <span class="mk" id="mk"></span>
+    <span class="title">Claude Code</span>
+    <span class="dot" id="dot"></span>
+  </div>
+  <div class="blk">
+    <div class="r"><span class="lab" id="sLab">Session</span><b class="pct" id="sPct">—</b></div>
+    <div class="track"><i class="fill" id="sFill"></i></div>
+    <div class="rst" id="sRst"></div>
+  </div>
+  <div class="blk">
+    <div class="r"><span class="lab" id="wLab">Weekly</span><b class="pct" id="wPct">—</b></div>
+    <div class="track"><i class="fill wk" id="wFill"></i></div>
+    <div class="rst" id="wRst"></div>
+  </div>
+  <div id="extras"></div>
+</div>
 <div class="tail-b"></div><div class="tail-w"></div>
-<div class="bubble"></div>
-<span class="mk" id="mk"></span>
-<span class="title">Claude Code</span>
-<span class="dot" id="dot"></span>
-<span class="lab" id="sLab">Session</span><b class="pct" id="sPct">—</b>
-<div class="track" id="sTrack"><i class="fill" id="sFill"></i></div>
-<span class="rst" id="sRst"></span>
-<span class="lab" id="wLab">Weekly</span><b class="pct" id="wPct">—</b>
-<div class="track" id="wTrack"><i class="fill wk" id="wFill"></i></div>
-<span class="rst" id="wRst"></span>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -96,14 +106,28 @@ function render(d){
   $("wFill").style.width = w ? Math.min(100,Math.round(w.pct))+"%" : "0";
   $("wRst").textContent = d.wkReset||"";
   $("dot").style.background = s ? col(Math.round(s.pct), s.pace) : "var(--mut)";
+  // buckets semanales extra (Fable, futuros…): filas dinámicas con la
+  // etiqueta tal cual la reporta el endpoint (textContent = sin HTML)
+  const ex=$("extras"); ex.innerHTML="";
+  (d.extras||[]).slice(0,2).forEach(e=>{
+    const pct=Math.round(e.pct);
+    const div=document.createElement("div"); div.className="blk";
+    div.innerHTML=`<div class="r"><span class="lab"></span><b class="pct">${pct}%</b></div>
+      <div class="track"><i class="fill wk" style="width:${Math.min(100,pct)}%"></i></div>
+      <div class="rst"></div>`;
+    div.querySelector(".lab").textContent=e.label||"";
+    div.querySelector(".rst").textContent=e.resets||"";
+    ex.appendChild(div);
+  });
 }
 
 if(EVENT){
   EVENT.listen("quota:update", e=>render(e.payload));
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{
-  render({ok:true, session:{pct:39,pace:30}, weekly:{pct:25},
-    sesReset:"reset en 1 h 31 min", wkReset:"reset en 31 h 1 min",
+  render({ok:true, session:{pct:51,pace:30}, weekly:{pct:26},
+    sesReset:"reset en 19 min", wkReset:"reset en 29 h 49 min",
+    extras:[{label:"Semanal · Fable", pct:23, resets:"reset en 29 h 49 min"}],
     labels:{cardSes:"Sesión",cardWeek:"Semanal"}});  // preview en navegador
 }
 

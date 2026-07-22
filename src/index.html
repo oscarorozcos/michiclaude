@@ -1135,7 +1135,7 @@ function mascotState(ses, weekPct){
   if(localStorage.getItem("ackPending:alarm")==="1") return "fire";
   return "normal";
 }
-function emitPill(ses, wk){
+function emitPill(ses, wk, extras){
   const weekPct = wk ? wk.pct : null;
   lastPill={ok:!!ses, session:ses, weekly:wk?{pct:wk.pct}:null,
     theme:document.body.classList.contains("light")?"light":"dark",
@@ -1143,6 +1143,9 @@ function emitPill(ses, wk){
     labels:pillLabels(),
     sesReset: ses&&ses.resets?fmtReset(ses.resets):"",
     wkReset: wk&&wk.resets?fmtReset(wk.resets):"",
+    // buckets semanales extra (Fable, futuros…) tal como los reporte el
+    // endpoint — DINÁMICO, nunca nombres hardcodeados (invariante #6)
+    extras: extras||[],
     tip: ses?t("tray_tip",Math.round(ses.pct),fmtReset(ses.resets),weekPct!=null?Math.round(weekPct):null):t("tray_no_data")};
   EVENT?.emit("quota:update", lastPill);
 }
@@ -1291,7 +1294,10 @@ function renderQuota(data){
 
   const sesInfo = ses ? {pct:ses.pct, resets:ses.resets, pace:elapsedPct(ses.resets,5)} : null;
   updateTray(sesInfo, weeklyAllPct);
-  emitPill(sesInfo, wkAll?{pct:wkAll.pct, resets:wkAll.resets}:null);
+  // buckets semanales por modelo (todos menos el "hero"), para el globo
+  const wkExtras = weekly.filter(b=>b!==wkAll)
+    .map(b=>({label:b.label, pct:b.pct, resets:b.resets?fmtReset(b.resets):""}));
+  emitPill(sesInfo, wkAll?{pct:wkAll.pct, resets:wkAll.resets}:null, wkExtras);
 }
 
 // ---------- notificaciones ----------
