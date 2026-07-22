@@ -1074,12 +1074,14 @@ let lastQuotaData=null, lastLocalData=null;   // caché para re-render al cambia
 // ---------- widget flotante: el panel es el ÚNICO que consulta; el widget escucha ----------
 let lastPill=null;
 function getPillStyle(){ return localStorage.getItem("pillStyle")==="cat"?"cat":"plain"; }
-// Estado del gatito: dormido si tocaste el límite semanal, en llamas si la
-// sesión alcanzó tu alarma más baja, normal en cualquier otro caso.
+// Estado del gatito — misma lógica que las notificaciones:
+// 😴 sin cuota semanal (hit:week): se queda dormido hasta que la semana se
+//    restablezca. 🔥 alarma de % pendiente de "enterado" (ackPending:alarm):
+//    arde hasta que el usuario abra el panel. 🐱 normal en cualquier otro caso.
 function mascotState(ses, weekPct){
-  if(weekPct!=null && Math.round(weekPct)>=100) return "zzz";
-  const al=getAlarms(); const low=al.length?Math.min(...al):80;
-  if(ses && Math.round(ses.pct)>=low) return "fire";
+  if((weekPct!=null && Math.round(weekPct)>=100) || localStorage.getItem("hit:week")==="1")
+    return "zzz";
+  if(localStorage.getItem("ackPending:alarm")==="1") return "fire";
   return "normal";
 }
 function emitPill(ses, weekPct){
@@ -1554,6 +1556,12 @@ window.addEventListener("focus",()=>{
   for(const k of ACK_KINDS){
     localStorage.removeItem("ackPending:"+k);
     localStorage.removeItem("ackLastToast:"+k);
+  }
+  // el gatito se calma al confirmar (misma regla que los toasts): reemite
+  // el último dato con el estado recalculado, sin esperar al próximo ciclo
+  if(lastPill){
+    lastPill.mascot=mascotState(lastPill.session, lastPill.weekly?lastPill.weekly.pct:null);
+    EVENT?.emit("quota:update", lastPill);
   }
 });
 window.addEventListener("blur",()=>{ if(!dragging) APPWIN?.hide(); });
