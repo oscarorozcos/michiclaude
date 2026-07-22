@@ -735,6 +735,7 @@ pub fn run() {
             get_pill_design,
             set_pill_design,
             hover_card,
+            set_notif_visible,
             pill_moved
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -789,8 +790,8 @@ pub fn run() {
                         win_taskbar::make_noactivate(h.0 as isize);
                     }
                 }
-                // ni el gatito ni la tarjeta del hover deben robar foco
-                for label in ["cat", "card"] {
+                // ni el gatito ni sus globos (hover/notificación) roban foco
+                for label in ["cat", "card", "notif"] {
                     if let Some(w) = app.get_webview_window(label) {
                         #[cfg(windows)]
                         if let Ok(h) = w.hwnd() {
@@ -824,6 +825,10 @@ pub fn run() {
                         cfg.x = Some(p.x);
                         cfg.y = Some(p.y);
                         save_pill_config(&cfg);
+                    }
+                    // la notificación cómic acompaña al gatito al arrastrarlo
+                    if window.label() == "cat" {
+                        position_notif(window.app_handle());
                     }
                 }
             }
@@ -951,6 +956,39 @@ fn hover_card(app: tauri::AppHandle, hovering: bool) {
     let _ = card.show();
 }
 
+/// Coloca el globo de notificación arriba-IZQUIERDA del gatito (lado
+/// opuesto al globo del hover), con la cola cayendo hacia el gato.
+fn position_notif(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let (Some(cat), Some(w)) =
+        (app.get_webview_window("cat"), app.get_webview_window("notif"))
+    else {
+        return;
+    };
+    if let (Ok(p), Ok(ns)) = (cat.outer_position(), w.outer_size()) {
+        let scale = cat.scale_factor().unwrap_or(1.0);
+        let x = (p.x - ns.width as i32 + (58.0 * scale).round() as i32).max(0);
+        let y = (p.y - ns.height as i32 + (40.0 * scale).round() as i32).max(0);
+        let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
+    }
+}
+
+/// Notificación cómic del gatito (modo cat): el PANEL decide cuándo
+/// mostrarla (alarma de % pendiente) y el globo se cierra con su ✕.
+#[tauri::command]
+fn set_notif_visible(app: tauri::AppHandle, visible: bool) {
+    use tauri::Manager;
+    let Some(w) = app.get_webview_window("notif") else { return };
+    let cfg = load_pill_config();
+    if visible && cfg.visible && cfg.style == "cat" {
+        position_notif(&app);
+        let _ = w.set_always_on_top(true);
+        let _ = w.show();
+    } else {
+        let _ = w.hide();
+    }
+}
+
 #[tauri::command]
 fn get_pill_design() -> String {
     let d = load_pill_config().design;
@@ -989,9 +1027,12 @@ fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
             let _ = cat.hide();
         }
     }
-    // la burbuja del hover nunca sobrevive a un cambio de visibilidad
-    if let Some(card) = app.get_webview_window("card") {
-        let _ = card.hide();
+    // los globos (hover y notificación) nunca sobreviven a un cambio de
+    // visibilidad; el panel re-muestra la notificación si sigue pendiente
+    for label in ["card", "notif"] {
+        if let Some(w) = app.get_webview_window(label) {
+            let _ = w.hide();
+        }
     }
 }
 

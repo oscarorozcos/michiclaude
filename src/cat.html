@@ -26,14 +26,14 @@
   .cat{position:absolute;width:112.7%;height:150.7%;left:-5.5%;top:0;
     display:block;-webkit-user-drag:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
   /* Retícula de la maqueta 304x219 de Oscar, escalada x0.691 a 210x157. */
-  /* badge circular con el spark, CENTRADO en la pantalla de la laptop
-     (centro de la maqueta (126.5,118) → 41.6%/53.9%); abre el panel */
-  .logo{position:absolute;left:15%;top:51.5%;width:20px;height:20px;
-    border:1.5px solid var(--ink);border-radius:50%;background:var(--paper);
-    padding:0;display:grid;place-items:center;cursor:pointer;z-index:3;
+  /* sticker (src/sticker.png) centrado en la pantalla de la laptop; sigue
+     siendo el botón que abre el panel */
+  .logo{position:absolute;left:15%;top:51.5%;width:24px;height:24px;
+    border:0;background:transparent;padding:0;cursor:pointer;z-index:3;
     filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
   .logo:hover{transform:scale(1.15)}
-  .logo svg{width:9px;height:9px;display:block}  /* spark = 45% del Ø, centrado */
+  .logo img{width:100%;height:100%;object-fit:contain;display:block;
+    -webkit-user-drag:none}
   /* cápsula "sesión 39%" flotando sobre la cabeza del gato: stadium
      (radio = altura/2) rotada +15.5°, rótulo anclado al gato (deliberado).
      Se oculta mientras el globo del hover está desplegado. */
@@ -50,7 +50,7 @@
 </head>
 <body>
 <img class="cat" id="cat" src="cat.gif" alt="" draggable="false">
-<button class="logo" id="logo"></button>
+<button class="logo" id="logo"><img src="sticker.png" alt="" draggable="false"></button>
 <div class="plabel"><span class="lab" id="chipLab">session</span><b id="chipPct">—</b></div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
@@ -60,19 +60,6 @@ const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
 const GIF={normal:"cat.gif",fire:"cat-fire.gif",zzz:"cat-zzz.gif"};
-
-// marca (mini sunburst, igual que el panel) dentro del botón
-(function(){
-  const S=64,cx=32,cy=32,rays=11;let p=`<svg viewBox="0 0 ${S} ${S}">`;
-  for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
-    const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
-    const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
-    const pts=[[cx+ux*base,cy+uy*base],[cx+ux*mid+px*hw,cy+uy*mid+py*hw],
-      [cx+ux*tip,cy+uy*tip],[cx+ux*mid-px*hw,cy+uy*mid-py*hw]]
-      .map(q=>q.map(n=>n.toFixed(2)).join(",")).join(" ");
-    p+=`<polygon points="${pts}" fill="var(--brand)"/>`}
-  $("logo").innerHTML=p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
-})();
 
 // mismo código de color de estado que el panel (para el % del chip)
 function col(p,pace){ if(p>=95) return "var(--bad)";
@@ -121,9 +108,11 @@ document.body.addEventListener("mousedown",e=>{
   foldBubble();
   APPWIN?.startDragging();
 });
-// el botón del logo abre el panel (como el clic en la pastilla)
+// el botón del sticker abre el panel; el globo se pliega mientras tanto
 $("logo").addEventListener("mousedown",e=>e.stopPropagation());
-$("logo").addEventListener("click",e=>{ e.stopPropagation(); invoke?.("show_panel"); });
+$("logo").addEventListener("click",e=>{
+  e.stopPropagation(); foldBubble(); invoke?.("show_panel");
+});
 // clic derecho oculta el widget (se reactiva desde Preferencias o el tray)
 window.addEventListener("contextmenu",e=>{
   e.preventDefault(); invoke?.("set_pill_visible",{visible:false});

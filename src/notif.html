@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claude Code Meter — notif</title>
+<style>
+  /* Notificación cómic del gatito (modo mascota): sustituye al toast de
+     Windows para las alarmas de % de sesión. Mismo estilo que el globo del
+     hover, con la cola hacia abajo-derecha (el gato queda a la derecha) y
+     un ✕ para cerrarla — NO desaparece sola: la cierra el usuario (o abrir
+     el panel, que confirma la alarma). El PANEL decide cuándo mostrarla. */
+  :root{
+    --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
+    --ink:#111; --paper:#FDFCF9; --accent:#C15F3C;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
+  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none}
+  .box{position:absolute;left:0;right:0;top:0;bottom:32px;
+    background:var(--paper);border:3px solid var(--ink);border-radius:16px;
+    padding:11px 34px 10px 14px;display:flex;align-items:center;cursor:pointer}
+  .msg{font-size:12px;font-weight:700;line-height:1.35}
+  .x{position:absolute;right:9px;top:9px;width:20px;height:20px;border-radius:50%;
+    border:2px solid var(--ink);background:var(--paper);color:var(--ink);
+    font-size:11px;font-weight:800;line-height:1;display:grid;place-items:center;
+    cursor:pointer;padding:0}
+  .x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+  /* cola hacia abajo-derecha, apuntando al gatito */
+  .tail-b{position:absolute;right:44px;bottom:0;width:0;height:0;
+    border-style:solid;border-width:36px 20px 0 11px;
+    border-color:var(--ink) transparent transparent transparent}
+  .tail-w{position:absolute;right:49px;bottom:7px;width:0;height:0;
+    border-style:solid;border-width:28px 14px 0 7px;
+    border-color:var(--paper) transparent transparent transparent}
+</style>
+</head>
+<body>
+<div class="box" id="box"><span class="msg" id="msg"></span></div>
+<button class="x" id="x">✕</button>
+<div class="tail-b"></div><div class="tail-w"></div>
+
+<script>
+// El panel manda el texto (ya localizado) por evento; el ✕ avisa de vuelta
+// y el panel confirma la alarma ("enterado") y oculta esta ventana.
+const $=id=>document.getElementById(id);
+const TAURI=window.__TAURI__;
+const invoke=TAURI?.core?.invoke;
+const EVENT=TAURI?.event;
+
+if(EVENT){
+  EVENT.listen("notif:update", e=>{ $("msg").textContent=e.payload?.body||""; });
+  EVENT.emit("notif:ready");   // por si la alarma quedó pendiente de antes
+}else{
+  $("msg").textContent="Sesión al 80% de tu límite de 5 h.";  // preview
+}
+
+$("x").addEventListener("click",e=>{ e.stopPropagation(); EVENT?.emit("notif:ack"); });
+// clic en el globo abre el panel (enfocarlo también confirma la alarma)
+$("box").addEventListener("click",()=>invoke?.("show_panel"));
+window.addEventListener("contextmenu",e=>e.preventDefault());
+</script>
+</body>
+</html>

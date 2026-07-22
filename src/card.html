@@ -133,8 +133,11 @@ if(EVENT){
 
 // si el mouse entra al globo y sale, también se pliega
 document.body.addEventListener("mouseleave",()=>invoke?.("hover_card",{hovering:false}));
-// clic abre el panel; clic derecho oculta el widget
-document.body.addEventListener("click",()=>invoke?.("show_panel"));
+// clic abre el panel (y este globo se pliega); clic derecho oculta el widget
+document.body.addEventListener("click",()=>{
+  invoke?.("hover_card",{hovering:false});
+  invoke?.("show_panel");
+});
 window.addEventListener("contextmenu",e=>{
   e.preventDefault(); invoke?.("set_pill_visible",{visible:false});
 });

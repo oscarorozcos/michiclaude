@@ -1394,6 +1394,14 @@ function ackBody(k){
 function processAcks(){
   for(const k of ACK_KINDS){
     if(localStorage.getItem("ackPending:"+k)!=="1") continue;
+    // Modo gatito: la alarma de % NO va a Windows — se muestra como globo
+    // cómic persistente sobre el gato, que solo cierra el usuario (✕ o
+    // abrir el panel). En pastilla normal siguen los toasts de siempre.
+    if(k==="alarm" && getPillStyle()==="cat"){
+      EVENT?.emit("notif:update",{body:ackBody(k)});
+      invoke?.("set_notif_visible",{visible:true});
+      continue;
+    }
     const last=+localStorage.getItem("ackLastToast:"+k)||0;
     if(Date.now()-last>5*60000){
       localStorage.setItem("ackLastToast:"+k, String(Date.now()));
@@ -1401,6 +1409,25 @@ function processAcks(){
     }
   }
 }
+
+// El globo de notificación del gatito se comunica por eventos: al cargar
+// pide el pendiente; su ✕ confirma la alarma ("enterado") y lo cierra.
+EVENT?.listen("notif:ready",()=>{
+  if(getPillStyle()==="cat" && localStorage.getItem("ackPending:alarm")==="1"){
+    EVENT.emit("notif:update",{body:ackBody("alarm")});
+    invoke?.("set_notif_visible",{visible:true});
+  }
+});
+EVENT?.listen("notif:ack",()=>{
+  localStorage.removeItem("ackPending:alarm");
+  localStorage.removeItem("ackLastToast:alarm");
+  invoke?.("set_notif_visible",{visible:false});
+  // el gatito se calma también (misma regla que abrir el panel)
+  if(lastPill){
+    lastPill.mascot=mascotState(lastPill.session, lastPill.weekly?lastPill.weekly.pct:null);
+    EVENT.emit("quota:update", lastPill);
+  }
+});
 
 // proyección simple: burn rate de la sesión vs tiempo restante
 let lastSes=null, lastTs=null;
@@ -1619,6 +1646,7 @@ window.addEventListener("focus",()=>{
     localStorage.removeItem("ackPending:"+k);
     localStorage.removeItem("ackLastToast:"+k);
   }
+  invoke?.("set_notif_visible",{visible:false});  // globo del gatito, adiós
   // el gatito se calma al confirmar (misma regla que los toasts): reemite
   // el último dato con el estado recalculado, sin esperar al próximo ciclo
   if(lastPill){
@@ -1719,6 +1747,7 @@ $("pillStyleSel").addEventListener("change",()=>{
   localStorage.setItem("pillStyle",st);
   invoke?.("set_pill_style",{style:st});
   if(lastPill){ lastPill.style=st; EVENT?.emit("quota:update",lastPill); }
+  processAcks();   // re-enruta al instante la alarma pendiente (globo/toast)
 });
 // Diseño de la pastilla (clásico / tarjeta coral): el backend guarda la
 // preferencia (la lee pill.html al cargar) y el panel reemite el último dato.

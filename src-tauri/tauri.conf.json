@@ -65,6 +65,21 @@
         "shadow": false,
         "focus": false,
         "visible": false
+      },
+      {
+        "label": "notif",
+        "title": "Claude Code Meter — notif",
+        "url": "notif.html",
+        "width": 252,
+        "height": 128,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "focus": false,
+        "visible": false
       }
     ],
     "security": {
