@@ -808,6 +808,23 @@ pub fn run() {
                     api.prevent_close();
                 }
             }
+            // Arrastre en vivo: pastilla y gatito se siguen mutuamente. Sin
+            // bucles: position_* solo escriben si la posición difiere.
+            tauri::WindowEvent::Moved(_) => match window.label() {
+                "pill" => {
+                    if window.is_visible().unwrap_or(false) {
+                        if let Ok(p) = window.outer_position() {
+                            let mut cfg = load_pill_config();
+                            cfg.x = Some(p.x);
+                            cfg.y = Some(p.y);
+                            save_pill_config(&cfg);
+                        }
+                    }
+                    position_cat(window.app_handle());
+                }
+                "cat" => position_pill_under_cat(window.app_handle()),
+                _ => {}
+            },
             _ => {}
         })
         .run(tauri::generate_context!())
@@ -873,9 +890,14 @@ fn position_pill(app: &tauri::AppHandle) {
     }
 }
 
+// El gif trae margen transparente inferior: el gatito se solapa estos px
+// lógicos con la pastilla para verse "sentado" sobre ella.
+const CAT_OVERLAP: u32 = 30;
+
 /// Coloca la ventana del gatito pegada ENCIMA de la pastilla (misma X).
 /// El gatito vive en su propia ventana fija: redimensionar la de la pastilla
 /// disparaba un fallo de WebView2 que dejaba el contenido sin pintar.
+/// Solo escribe la posición si difiere (evita bucles con el evento Moved).
 fn position_cat(app: &tauri::AppHandle) {
     use tauri::Manager;
     let (Some(pill), Some(cat)) =
@@ -884,8 +906,31 @@ fn position_cat(app: &tauri::AppHandle) {
         return;
     };
     if let (Ok(p), Ok(cs)) = (pill.outer_position(), cat.outer_size()) {
-        let y = (p.y - cs.height as i32).max(0);
-        let _ = cat.set_position(tauri::PhysicalPosition::new(p.x, y));
+        let ov = (CAT_OVERLAP as f64 * pill.scale_factor().unwrap_or(1.0)).round() as i32;
+        let y = (p.y - cs.height as i32 + ov).max(0);
+        if cat.outer_position().ok().map(|c| (c.x, c.y)) != Some((p.x, y)) {
+            let _ = cat.set_position(tauri::PhysicalPosition::new(p.x, y));
+        }
+    }
+}
+
+/// Inverso: al arrastrar el gatito, la pastilla lo sigue por debajo.
+fn position_pill_under_cat(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let (Some(pill), Some(cat)) =
+        (app.get_webview_window("pill"), app.get_webview_window("cat"))
+    else {
+        return;
+    };
+    if !cat.is_visible().unwrap_or(false) {
+        return;
+    }
+    if let (Ok(c), Ok(cs)) = (cat.outer_position(), cat.outer_size()) {
+        let ov = (CAT_OVERLAP as f64 * pill.scale_factor().unwrap_or(1.0)).round() as i32;
+        let y = c.y + cs.height as i32 - ov;
+        if pill.outer_position().ok().map(|p| (p.x, p.y)) != Some((c.x, y)) {
+            let _ = pill.set_position(tauri::PhysicalPosition::new(c.x, y));
+        }
     }
 }
 

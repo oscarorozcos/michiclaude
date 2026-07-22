@@ -6,7 +6,8 @@
 <style>
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  body{cursor:pointer;user-select:none;-webkit-user-select:none}
+  body{cursor:grab;user-select:none;-webkit-user-select:none}
+  body:active{cursor:grabbing}
   img{width:100%;height:100%;object-fit:contain;display:block;-webkit-user-drag:none;
     filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
 </style>
@@ -20,6 +21,7 @@
 const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
+const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
 const GIF={normal:"cat.gif",fire:"cat-fire.gif",zzz:"cat-zzz.gif"};
 function apply(d){
   if(!d || !d.mascot) return;             // en errores transitorios conserva el estado
@@ -31,8 +33,12 @@ if(EVENT){
   EVENT.listen("quota:update", e=>apply(e.payload));
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }
-// mismos gestos que la pastilla: clic abre el panel, clic derecho oculta el widget
-document.body.addEventListener("click",()=>invoke?.("show_panel"));
+// el gatito entero es ASA DE ARRASTRE: mueve el conjunto (la pastilla lo
+// sigue desde el backend vía el evento Moved). Para abrir el panel, clic en
+// la pastilla. Clic derecho oculta el widget.
+document.body.addEventListener("mousedown",e=>{
+  if(e.button===0) APPWIN?.startDragging();
+});
 window.addEventListener("contextmenu",e=>{
   e.preventDefault(); invoke?.("set_pill_visible",{visible:false});
 });
