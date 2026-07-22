@@ -923,9 +923,36 @@ fn set_pill_style(app: tauri::AppHandle, style: String) {
     cfg.style = if style == "cat" { "cat".into() } else { "plain".into() };
     save_pill_config(&cfg);
     if let Some(pill) = app.get_webview_window("pill") {
+        let scale = pill.scale_factor().unwrap_or(1.0);
         let (lw, lh) = pill_dims(&cfg);
-        let _ = pill.set_size(tauri::LogicalSize::new(lw, lh));
+        let w_phys = (lw * scale).round() as u32;
+        let h_phys = (lh * scale).round() as u32;
+        // tamaño en px FÍSICOS (determinista con cualquier escala de Windows)
+        let _ = pill.set_size(tauri::PhysicalSize::new(w_phys, h_phys));
         position_pill(&app);
+        let _ = pill.set_always_on_top(true);
+        let _ = pill.show();
+        // diagnóstico: geometría real tras el cambio (pill_debug.json junto a
+        // quota_debug.json) — para depurar el modo gatito en vivo
+        #[cfg(windows)]
+        let tb_top: Option<i32> = win_taskbar::query().map(|t| t.rect.top);
+        #[cfg(not(windows))]
+        let tb_top: Option<i32> = None;
+        let dbg = serde_json::json!({
+            "style": cfg.style,
+            "scale": scale,
+            "logical_wanted": [lw, lh],
+            "phys_wanted": [w_phys, h_phys],
+            "outer_size_after": pill.outer_size().ok().map(|s| [s.width, s.height]),
+            "outer_position_after": pill.outer_position().ok().map(|p| [p.x, p.y]),
+            "monitor": pill.current_monitor().ok().flatten().map(|m| [m.size().width, m.size().height]),
+            "taskbar_top": tb_top,
+            "visible": pill.is_visible().ok(),
+        });
+        let _ = fs::write(
+            app_data_dir().join("pill_debug.json"),
+            serde_json::to_string_pretty(&dbg).unwrap_or_default(),
+        );
     }
 }
 
