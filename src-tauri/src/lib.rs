@@ -927,11 +927,23 @@ fn set_pill_style(app: tauri::AppHandle, style: String) {
         let (lw, lh) = pill_dims(&cfg);
         let w_phys = (lw * scale).round() as u32;
         let h_phys = (lh * scale).round() as u32;
-        // tamaño en px FÍSICOS (determinista con cualquier escala de Windows)
+        // ocultar → redimensionar → recolocar → mostrar: al redimensionar una
+        // ventana transparente visible, WebView2 dejaba el contenido sin
+        // pintar (la ventana quedaba bien puesta pero "vacía"); el ciclo
+        // hide/show la obliga a recomponer.
+        let _ = pill.hide();
         let _ = pill.set_size(tauri::PhysicalSize::new(w_phys, h_phys));
         position_pill(&app);
-        let _ = pill.set_always_on_top(true);
-        let _ = pill.show();
+        // aplica el layout del gatito directamente en el webview (no depende
+        // de que el panel haya emitido ya un dato)
+        let _ = pill.eval(&format!(
+            "document.body.classList.toggle('cat',{});",
+            cfg.style == "cat"
+        ));
+        if cfg.visible {
+            let _ = pill.set_always_on_top(true);
+            let _ = pill.show();
+        }
         // diagnóstico: geometría real tras el cambio (pill_debug.json junto a
         // quota_debug.json) — para depurar el modo gatito en vivo
         #[cfg(windows)]
@@ -944,6 +956,7 @@ fn set_pill_style(app: tauri::AppHandle, style: String) {
             "logical_wanted": [lw, lh],
             "phys_wanted": [w_phys, h_phys],
             "outer_size_after": pill.outer_size().ok().map(|s| [s.width, s.height]),
+            "inner_size_after": pill.inner_size().ok().map(|s| [s.width, s.height]),
             "outer_position_after": pill.outer_position().ok().map(|p| [p.x, p.y]),
             "monitor": pill.current_monitor().ok().flatten().map(|m| [m.size().width, m.size().height]),
             "taskbar_top": tb_top,
