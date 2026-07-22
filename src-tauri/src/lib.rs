@@ -732,6 +732,9 @@ pub fn run() {
             get_pill_visible,
             get_pill_style,
             set_pill_style,
+            get_pill_design,
+            set_pill_design,
+            hover_card,
             pill_moved
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -786,11 +789,13 @@ pub fn run() {
                         win_taskbar::make_noactivate(h.0 as isize);
                     }
                 }
-                // la ventana del gatito tampoco debe robar foco
-                if let Some(cat) = app.get_webview_window("cat") {
-                    #[cfg(windows)]
-                    if let Ok(h) = cat.hwnd() {
-                        win_taskbar::make_noactivate(h.0 as isize);
+                // ni el gatito ni la tarjeta del hover deben robar foco
+                for label in ["cat", "card"] {
+                    if let Some(w) = app.get_webview_window(label) {
+                        #[cfg(windows)]
+                        if let Ok(h) = w.hwnd() {
+                            win_taskbar::make_noactivate(h.0 as isize);
+                        }
                     }
                 }
                 if load_pill_config().visible {
@@ -848,6 +853,9 @@ struct PillConfig {
     // "plain" (solo pastilla) o "cat" (gatito animado encima de la pastilla).
     #[serde(default)]
     style: String,
+    // "classic" (pastilla original) o "coral" (rediseño con tarjeta al hover).
+    #[serde(default)]
+    design: String,
 }
 
 fn pill_config_path() -> PathBuf {
@@ -922,7 +930,8 @@ fn position_pill_under_cat(app: &tauri::AppHandle) {
     else {
         return;
     };
-    if !cat.is_visible().unwrap_or(false) {
+    // con la pastilla oculta (tarjeta al hover) su posición la manda cfg
+    if !cat.is_visible().unwrap_or(false) || !pill.is_visible().unwrap_or(false) {
         return;
     }
     if let (Ok(c), Ok(cs)) = (cat.outer_position(), cat.outer_size()) {
@@ -932,6 +941,94 @@ fn position_pill_under_cat(app: &tauri::AppHandle) {
             let _ = pill.set_position(tauri::PhysicalPosition::new(c.x, y));
         }
     }
+}
+
+/// Coloca la tarjeta expandida (hover) centrada sobre la pastilla, con el
+/// borde inferior alineado al de la pastilla (la "reemplaza" al crecer).
+fn position_card(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let (Some(pill), Some(card)) =
+        (app.get_webview_window("pill"), app.get_webview_window("card"))
+    else {
+        return;
+    };
+    if let (Ok(p), Ok(ps), Ok(cs)) =
+        (pill.outer_position(), pill.outer_size(), card.outer_size())
+    {
+        let x = (p.x - (cs.width as i32 - ps.width as i32) / 2).max(0);
+        let y = (p.y + ps.height as i32 - cs.height as i32).max(0);
+        let _ = card.set_position(tauri::PhysicalPosition::new(x, y));
+    }
+}
+
+/// El gatito se sube a la tarjeta mientras está expandida.
+fn position_cat_over_card(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let (Some(card), Some(cat)) =
+        (app.get_webview_window("card"), app.get_webview_window("cat"))
+    else {
+        return;
+    };
+    if let (Ok(c), Ok(cs), Ok(ks)) =
+        (card.outer_position(), card.outer_size(), cat.outer_size())
+    {
+        let ov = (CAT_OVERLAP as f64 * card.scale_factor().unwrap_or(1.0)).round() as i32;
+        let x = c.x + (cs.width as i32 - ks.width as i32) / 2;
+        let y = (c.y - ks.height as i32 + ov).max(0);
+        if cat.outer_position().ok().map(|k| (k.x, k.y)) != Some((x, y)) {
+            let _ = cat.set_position(tauri::PhysicalPosition::new(x, y));
+        }
+    }
+}
+
+/// Hover de la pastilla (diseño coral): al entrar el mouse la tarjeta fija
+/// sustituye a la pastilla; al salir, vuelve la pastilla. NUNCA se
+/// redimensiona ninguna ventana (el resize en vivo rompía el pintado).
+#[tauri::command]
+fn hover_card(app: tauri::AppHandle, hovering: bool) {
+    use tauri::Manager;
+    let cfg = load_pill_config();
+    if !cfg.visible {
+        return;
+    }
+    let pill = app.get_webview_window("pill");
+    let card = app.get_webview_window("card");
+    if hovering {
+        position_card(&app);
+        if let Some(c) = &card {
+            let _ = c.set_always_on_top(true);
+            let _ = c.show();
+        }
+        if let Some(p) = &pill {
+            let _ = p.hide();
+        }
+        if cfg.style == "cat" {
+            position_cat_over_card(&app);
+        }
+    } else {
+        if let Some(p) = &pill {
+            position_pill(&app);
+            let _ = p.set_always_on_top(true);
+            let _ = p.show();
+        }
+        if let Some(c) = &card {
+            let _ = c.hide();
+        }
+        position_cat(&app);
+    }
+}
+
+#[tauri::command]
+fn get_pill_design() -> String {
+    let d = load_pill_config().design;
+    if d == "coral" { "coral".into() } else { "classic".into() }
+}
+
+#[tauri::command]
+fn set_pill_design(design: String) {
+    let mut cfg = load_pill_config();
+    cfg.design = if design == "coral" { "coral".into() } else { "classic".into() };
+    save_pill_config(&cfg);
 }
 
 fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
@@ -957,6 +1054,10 @@ fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
         } else {
             let _ = cat.hide();
         }
+    }
+    // la tarjeta del hover nunca sobrevive a un cambio de visibilidad
+    if let Some(card) = app.get_webview_window("card") {
+        let _ = card.hide();
     }
 }
 

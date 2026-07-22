@@ -50,6 +50,21 @@
         "shadow": false,
         "focus": false,
         "visible": false
+      },
+      {
+        "label": "card",
+        "title": "Claude Code Meter — card",
+        "url": "card.html",
+        "width": 232,
+        "height": 196,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "focus": false,
+        "visible": false
       }
     ],
     "security": {

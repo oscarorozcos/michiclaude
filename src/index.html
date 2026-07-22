@@ -305,6 +305,13 @@
           <option value="cat" data-i18n="pill_style_cat"></option>
         </select>
       </div>
+      <div class="cfg-row" id="pillDesignRow" style="margin-top:2px">
+        <span data-i18n="pill_design_label"></span>
+        <select id="pillDesignSel">
+          <option value="classic" data-i18n="pill_design_classic"></option>
+          <option value="coral" data-i18n="pill_design_coral"></option>
+        </select>
+      </div>
       <div class="cfg-lbl" data-i18n="alarms_label"></div>
       <div class="chips" id="alarmList"></div>
       <div class="btnrow">
@@ -411,6 +418,11 @@ en:{
   pill_style_label:"Widget style",
   pill_style_plain:"Pill only",
   pill_style_cat:"Pill with cat 🐱",
+  pill_design_label:"Pill design",
+  pill_design_classic:"Classic",
+  pill_design_coral:"Coral card",
+  pill_ses:"session", pill_week:"week",
+  card_ses:"Session", card_week:"Weekly",
   tab_main:"Overview",
   alarms_label:"Session alarms (notify at % used)",
   btn_add:"Add",
@@ -495,6 +507,11 @@ es:{
   pill_style_label:"Estilo del widget",
   pill_style_plain:"Solo la pastilla",
   pill_style_cat:"Pastilla con gatito 🐱",
+  pill_design_label:"Diseño de la pastilla",
+  pill_design_classic:"Clásico",
+  pill_design_coral:"Tarjeta coral",
+  pill_ses:"sesión", pill_week:"semana",
+  card_ses:"Sesión", card_week:"Semanal",
   tab_main:"Principal",
   alarms_label:"Alarmas de sesión (avisar al % usado)",
   btn_add:"Agregar",
@@ -579,6 +596,11 @@ pt:{
   pill_style_label:"Estilo do widget",
   pill_style_plain:"Somente a pílula",
   pill_style_cat:"Pílula com gatinho 🐱",
+  pill_design_label:"Design da pílula",
+  pill_design_classic:"Clássico",
+  pill_design_coral:"Cartão coral",
+  pill_ses:"sessão", pill_week:"semana",
+  card_ses:"Sessão", card_week:"Semanal",
   tab_main:"Principal",
   alarms_label:"Alarmes de sessão (avisar no % usado)",
   btn_add:"Adicionar",
@@ -663,6 +685,11 @@ fr:{
   pill_style_label:"Style du widget",
   pill_style_plain:"Pastille seule",
   pill_style_cat:"Pastille avec chat 🐱",
+  pill_design_label:"Design de la pastille",
+  pill_design_classic:"Classique",
+  pill_design_coral:"Carte corail",
+  pill_ses:"session", pill_week:"semaine",
+  card_ses:"Session", card_week:"Hebdo",
   tab_main:"Principal",
   alarms_label:"Alarmes de session (alerter au % utilisé)",
   btn_add:"Ajouter",
@@ -747,6 +774,11 @@ de:{
   pill_style_label:"Widget-Stil",
   pill_style_plain:"Nur Pille",
   pill_style_cat:"Pille mit Katze 🐱",
+  pill_design_label:"Widget-Design",
+  pill_design_classic:"Klassisch",
+  pill_design_coral:"Korallen-Karte",
+  pill_ses:"Sitzung", pill_week:"Woche",
+  card_ses:"Sitzung", card_week:"Woche",
   tab_main:"Übersicht",
   alarms_label:"Sitzungsalarme (bei % Nutzung melden)",
   btn_add:"Hinzufügen",
@@ -831,6 +863,11 @@ ja:{
   pill_style_label:"ウィジェットのスタイル",
   pill_style_plain:"ピルのみ",
   pill_style_cat:"ピルと猫 🐱",
+  pill_design_label:"ピルのデザイン",
+  pill_design_classic:"クラシック",
+  pill_design_coral:"コーラルカード",
+  pill_ses:"セッション", pill_week:"週",
+  card_ses:"セッション", card_week:"週間",
   tab_main:"メイン",
   alarms_label:"セッションアラーム（使用%で通知）",
   btn_add:"追加",
@@ -915,6 +952,11 @@ ko:{
   pill_style_label:"위젯 스타일",
   pill_style_plain:"알약만",
   pill_style_cat:"알약과 고양이 🐱",
+  pill_design_label:"알약 디자인",
+  pill_design_classic:"클래식",
+  pill_design_coral:"코럴 카드",
+  pill_ses:"세션", pill_week:"주",
+  card_ses:"세션", card_week:"주간",
   tab_main:"메인",
   alarms_label:"세션 알람 (사용 %에서 알림)",
   btn_add:"추가",
@@ -999,6 +1041,11 @@ zh:{
   pill_style_label:"小组件样式",
   pill_style_plain:"仅药丸",
   pill_style_cat:"药丸配小猫 🐱",
+  pill_design_label:"药丸设计",
+  pill_design_classic:"经典",
+  pill_design_coral:"珊瑚卡片",
+  pill_ses:"会话", pill_week:"周",
+  card_ses:"会话", card_week:"每周",
   tab_main:"主页",
   alarms_label:"会话闹钟（在使用%时提醒）",
   btn_add:"添加",
@@ -1074,6 +1121,10 @@ let lastQuotaData=null, lastLocalData=null;   // caché para re-render al cambia
 // ---------- widget flotante: el panel es el ÚNICO que consulta; el widget escucha ----------
 let lastPill=null;
 function getPillStyle(){ return localStorage.getItem("pillStyle")==="cat"?"cat":"plain"; }
+function getPillDesign(){ return localStorage.getItem("pillDesign")==="coral"?"coral":"classic"; }
+function pillLabels(){
+  return {ses:t("pill_ses"), week:t("pill_week"), cardSes:t("card_ses"), cardWeek:t("card_week")};
+}
 // Estado del gatito — misma lógica que las notificaciones:
 // 😴 sin cuota semanal (hit:week): se queda dormido hasta que la semana se
 //    restablezca. 🔥 alarma de % pendiente de "enterado" (ackPending:alarm):
@@ -1084,10 +1135,14 @@ function mascotState(ses, weekPct){
   if(localStorage.getItem("ackPending:alarm")==="1") return "fire";
   return "normal";
 }
-function emitPill(ses, weekPct){
-  lastPill={ok:!!ses, session:ses, weekly:weekPct!=null?{pct:weekPct}:null,
+function emitPill(ses, wk){
+  const weekPct = wk ? wk.pct : null;
+  lastPill={ok:!!ses, session:ses, weekly:wk?{pct:wk.pct}:null,
     theme:document.body.classList.contains("light")?"light":"dark",
-    style:getPillStyle(), mascot:mascotState(ses,weekPct),
+    style:getPillStyle(), design:getPillDesign(), mascot:mascotState(ses,weekPct),
+    labels:pillLabels(),
+    sesReset: ses&&ses.resets?fmtReset(ses.resets):"",
+    wkReset: wk&&wk.resets?fmtReset(wk.resets):"",
     tip: ses?t("tray_tip",Math.round(ses.pct),fmtReset(ses.resets),weekPct!=null?Math.round(weekPct):null):t("tray_no_data")};
   EVENT?.emit("quota:update", lastPill);
 }
@@ -1202,7 +1257,8 @@ function renderQuota(data){
   const ses=buckets.find(b=>b.kind==="session");
   const weekly=buckets.filter(b=>b.kind!=="session")
     .sort((a,b)=>(WRANK[a.kind]??9)-(WRANK[b.kind]??9));
-  weeklyAllPct = (weekly.find(b=>b.kind==="weekly_all") || weekly[0] || {}).pct ?? null;
+  const wkAll = weekly.find(b=>b.kind==="weekly_all") || weekly[0] || null;
+  weeklyAllPct = wkAll ? wkAll.pct : null;
   trackResets(ses, weekly.find(b=>b.kind==="weekly_all"));
 
   if(ses){
@@ -1235,7 +1291,7 @@ function renderQuota(data){
 
   const sesInfo = ses ? {pct:ses.pct, resets:ses.resets, pace:elapsedPct(ses.resets,5)} : null;
   updateTray(sesInfo, weeklyAllPct);
-  emitPill(sesInfo, weeklyAllPct);
+  emitPill(sesInfo, wkAll?{pct:wkAll.pct, resets:wkAll.resets}:null);
 }
 
 // ---------- notificaciones ----------
@@ -1657,6 +1713,17 @@ $("pillStyleSel").addEventListener("change",()=>{
   localStorage.setItem("pillStyle",st);
   invoke?.("set_pill_style",{style:st});
   if(lastPill){ lastPill.style=st; EVENT?.emit("quota:update",lastPill); }
+});
+// Diseño de la pastilla (clásico / tarjeta coral): el backend guarda la
+// preferencia (la lee pill.html al cargar) y el panel reemite el último dato.
+$("pillDesignSel").value=getPillDesign();
+if(invoke){ invoke("get_pill_design").then(dsn=>{ const d=(dsn==="coral")?"coral":"classic";
+  localStorage.setItem("pillDesign",d); $("pillDesignSel").value=d; }).catch(()=>{}); }
+$("pillDesignSel").addEventListener("change",()=>{
+  const d=$("pillDesignSel").value==="coral"?"coral":"classic";
+  localStorage.setItem("pillDesign",d);
+  invoke?.("set_pill_design",{design:d});
+  if(lastPill){ lastPill.design=d; lastPill.labels=pillLabels(); EVENT?.emit("quota:update",lastPill); }
 });
 $("budgetIn").value=localStorage.getItem("budgetWeek")||"";
 $("budgetIn").addEventListener("change",()=>{

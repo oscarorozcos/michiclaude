@@ -35,6 +35,23 @@
     background:var(--ok);transition:width .5s,background .3s}
   body.loading .ses,body.stale .ses{color:var(--txt-dim)}
   body.stale .dot{background:var(--bad)}
+
+  /* ---- diseño "coral" opcional: % grande + barras etiquetadas + tarjeta al
+     hover. Tokens: oscuro "Grafito" / claro "Papel", acento coral de la
+     marca; el estado (verde/ámbar/rojo) vive en el punto de la tarjeta. */
+  body.coral{ --bg:rgba(23,23,27,.92); --stroke:rgba(255,255,255,.14);
+    --txt:#F5F4F2; --txt-dim:#96948E; --track:rgba(255,255,255,.15);
+    --accent:#D97757; --wk:rgba(217,119,87,.55); }
+  body.coral.light{ --bg:rgba(252,251,248,.94); --stroke:rgba(0,0,0,.13);
+    --txt:#26251F; --txt-dim:#6F6D66; --track:rgba(0,0,0,.12);
+    --accent:#C15F3C; --wk:rgba(193,95,60,.5); }
+  body.coral .pill{gap:9px;border-radius:14px}
+  body.coral .ses{font-size:16px}
+  body.coral .dot{display:none}
+  body.coral .grp{flex-direction:column;align-items:flex-start;gap:2px}
+  body.coral .grp .tag{font-size:9px;font-weight:600;letter-spacing:.2px;text-transform:none}
+  body.coral .grp .track{width:52px;height:4px}
+  body.coral .dot+.grp{border-left:1px solid var(--stroke);padding-left:9px}
 </style>
 </head>
 <body class="loading">
@@ -43,8 +60,8 @@
   <span class="mk" id="mk"></span>
   <span class="ses" id="ses">…</span>
   <span class="dot" id="dot"></span>
-  <div class="grp"><span class="tag">S</span><div class="track"><div class="fill" id="sFill"></div></div></div>
-  <div class="grp"><span class="tag">W</span><div class="track"><div class="fill" id="wFill"></div></div></div>
+  <div class="grp"><span class="tag" id="sTag">S</span><div class="track"><div class="fill" id="sFill"></div></div></div>
+  <div class="grp"><span class="tag" id="wTag">W</span><div class="track"><div class="fill" id="wFill"></div></div></div>
 </div>
 
 <script>
@@ -81,6 +98,14 @@ function setFill(el,pct,pace){
 function render(d){
   document.body.classList.remove("loading");
   document.body.classList.toggle("light", d?.theme==="light");
+  // diseño (clásico/coral): solo se toca si viene en el dato
+  if(d && d.design!==undefined){
+    const coral=d.design==="coral";
+    document.body.classList.toggle("coral", coral);
+    curDesign=coral?"coral":"classic";
+    $("sTag").textContent=coral?((d.labels&&d.labels.ses)||"session"):"S";
+    $("wTag").textContent=coral?((d.labels&&d.labels.week)||"week"):"W";
+  }
   if(!d || d.ok===false){
     document.body.classList.add("stale");
     $("ses").textContent="—"; $("dot").style.background="";
@@ -92,20 +117,44 @@ function render(d){
   $("dot").style.background = s ? col(Math.round(s.pct), s.pace) : "var(--txt-dim)";
   setFill($("sFill"), s?Math.round(s.pct):null, s?s.pace:null);
   setFill($("wFill"), w?Math.round(w.pct):null, null);
+  // en coral las barras van SIEMPRE en acento (el estado vive en la tarjeta)
+  if(document.body.classList.contains("coral")){
+    $("sFill").style.background="var(--accent)";
+    $("wFill").style.background="var(--wk)";
+  }
   if(d.tip) $("pill").title=d.tip;
 }
 
+let curDesign="classic";
 if(EVENT){
+  // diseño inmediato al cargar, sin esperar el primer dato del panel
+  if(invoke){ invoke("get_pill_design").then(dsn=>{
+    curDesign=dsn==="coral"?"coral":"classic";
+    document.body.classList.toggle("coral", curDesign==="coral");
+  }).catch(()=>{}); }
   EVENT.listen("quota:update", e=>render(e.payload));
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{
-  render({ok:true, session:{pct:24,pace:30}, weekly:{pct:10}});  // preview en navegador
+  render({ok:true, design:"coral", session:{pct:23,pace:30}, weekly:{pct:23},
+    labels:{ses:"sesión",week:"semana"}});  // preview en navegador
 }
+
+// hover (solo diseño coral): tras una pausa breve, la tarjeta expandida
+// sustituye a la pastilla; la pausa evita disparos al pasar de largo o al
+// iniciar un arrastre desde el asa
+let hoverT=null;
+$("pill").addEventListener("mouseenter",()=>{
+  if(curDesign!=="coral") return;
+  clearTimeout(hoverT);
+  hoverT=setTimeout(()=>invoke?.("hover_card",{hovering:true}),350);
+});
+$("pill").addEventListener("mouseleave",()=>clearTimeout(hoverT));
 
 // arrastre solo desde el asa ⠿ (clic en el resto abre el panel)
 let dragging=false;
 $("grip").addEventListener("mousedown",e=>{
   if(e.button!==0) return;
+  clearTimeout(hoverT);
   e.stopPropagation(); dragging=true;
   APPWIN?.startDragging();
   setTimeout(()=>{ dragging=false; invoke?.("pill_moved"); },600);
