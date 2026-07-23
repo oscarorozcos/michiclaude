@@ -312,6 +312,14 @@
           <option value="coral" data-i18n="pill_design_coral"></option>
         </select>
       </div>
+      <div class="cfg-row" id="pillLayerRow" style="margin-top:2px">
+        <span data-i18n="pill_layer_label"></span>
+        <select id="pillLayerSel">
+          <option value="top" data-i18n="pill_layer_top"></option>
+          <option value="normal" data-i18n="pill_layer_normal"></option>
+          <option value="bottom" data-i18n="pill_layer_bottom"></option>
+        </select>
+      </div>
       <div class="cfg-lbl" data-i18n="alarms_label"></div>
       <div class="chips" id="alarmList"></div>
       <div class="btnrow">
@@ -423,6 +431,10 @@ en:{
   pill_design_coral:"Coral card",
   pill_ses:"session", pill_week:"week",
   card_ses:"Session", card_week:"Weekly",
+  pill_layer_label:"On-screen position",
+  pill_layer_top:"Always on top (recommended)",
+  pill_layer_normal:"Normal window",
+  pill_layer_bottom:"Pinned to desktop",
   tab_main:"Overview",
   alarms_label:"Session alarms (notify at % used)",
   btn_add:"Add",
@@ -512,6 +524,10 @@ es:{
   pill_design_coral:"Tarjeta coral",
   pill_ses:"sesión", pill_week:"semana",
   card_ses:"Sesión", card_week:"Semanal",
+  pill_layer_label:"Posición en pantalla",
+  pill_layer_top:"Siempre al frente (recomendado)",
+  pill_layer_normal:"Ventana normal",
+  pill_layer_bottom:"Pegado al escritorio",
   tab_main:"Principal",
   alarms_label:"Alarmas de sesión (avisar al % usado)",
   btn_add:"Agregar",
@@ -601,6 +617,10 @@ pt:{
   pill_design_coral:"Cartão coral",
   pill_ses:"sessão", pill_week:"semana",
   card_ses:"Sessão", card_week:"Semanal",
+  pill_layer_label:"Posição na tela",
+  pill_layer_top:"Sempre à frente (recomendado)",
+  pill_layer_normal:"Janela normal",
+  pill_layer_bottom:"Fixado na área de trabalho",
   tab_main:"Principal",
   alarms_label:"Alarmes de sessão (avisar no % usado)",
   btn_add:"Adicionar",
@@ -690,6 +710,10 @@ fr:{
   pill_design_coral:"Carte corail",
   pill_ses:"session", pill_week:"semaine",
   card_ses:"Session", card_week:"Hebdo",
+  pill_layer_label:"Position à l'écran",
+  pill_layer_top:"Toujours devant (recommandé)",
+  pill_layer_normal:"Fenêtre normale",
+  pill_layer_bottom:"Épinglé au bureau",
   tab_main:"Principal",
   alarms_label:"Alarmes de session (alerter au % utilisé)",
   btn_add:"Ajouter",
@@ -779,6 +803,10 @@ de:{
   pill_design_coral:"Korallen-Karte",
   pill_ses:"Sitzung", pill_week:"Woche",
   card_ses:"Sitzung", card_week:"Woche",
+  pill_layer_label:"Bildschirmposition",
+  pill_layer_top:"Immer im Vordergrund (empfohlen)",
+  pill_layer_normal:"Normales Fenster",
+  pill_layer_bottom:"Am Desktop angeheftet",
   tab_main:"Übersicht",
   alarms_label:"Sitzungsalarme (bei % Nutzung melden)",
   btn_add:"Hinzufügen",
@@ -868,6 +896,10 @@ ja:{
   pill_design_coral:"コーラルカード",
   pill_ses:"セッション", pill_week:"週",
   card_ses:"セッション", card_week:"週間",
+  pill_layer_label:"画面上の位置",
+  pill_layer_top:"常に最前面（推奨）",
+  pill_layer_normal:"通常ウィンドウ",
+  pill_layer_bottom:"デスクトップに固定",
   tab_main:"メイン",
   alarms_label:"セッションアラーム（使用%で通知）",
   btn_add:"追加",
@@ -957,6 +989,10 @@ ko:{
   pill_design_coral:"코럴 카드",
   pill_ses:"세션", pill_week:"주",
   card_ses:"세션", card_week:"주간",
+  pill_layer_label:"화면 위치",
+  pill_layer_top:"항상 위 (권장)",
+  pill_layer_normal:"일반 창",
+  pill_layer_bottom:"바탕 화면에 고정",
   tab_main:"메인",
   alarms_label:"세션 알람 (사용 %에서 알림)",
   btn_add:"추가",
@@ -1046,6 +1082,10 @@ zh:{
   pill_design_coral:"珊瑚卡片",
   pill_ses:"会话", pill_week:"周",
   card_ses:"会话", card_week:"每周",
+  pill_layer_label:"屏幕位置",
+  pill_layer_top:"始终置顶（推荐）",
+  pill_layer_normal:"普通窗口",
+  pill_layer_bottom:"固定到桌面",
   tab_main:"主页",
   alarms_label:"会话闹钟（在使用%时提醒）",
   btn_add:"添加",
@@ -1759,6 +1799,11 @@ $("pillDesignSel").addEventListener("change",()=>{
   localStorage.setItem("pillDesign",d);
   invoke?.("set_pill_design",{design:d});
   if(lastPill){ lastPill.design=d; lastPill.labels=pillLabels(); EVENT?.emit("quota:update",lastPill); }
+});
+// Capa en pantalla (al frente / normal / fondo del escritorio)
+if(invoke){ invoke("get_pill_layer").then(l=>{ $("pillLayerSel").value=l; }).catch(()=>{}); }
+$("pillLayerSel").addEventListener("change",()=>{
+  invoke?.("set_pill_layer",{layer:$("pillLayerSel").value});
 });
 $("budgetIn").value=localStorage.getItem("budgetWeek")||"";
 $("budgetIn").addEventListener("change",()=>{

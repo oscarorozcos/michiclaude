@@ -734,6 +734,8 @@ pub fn run() {
             set_pill_style,
             get_pill_design,
             set_pill_design,
+            get_pill_layer,
+            set_pill_layer,
             hover_card,
             set_notif_visible,
             pill_moved
@@ -865,6 +867,49 @@ struct PillConfig {
     // "classic" (pastilla original) o "coral" (rediseño con tarjeta al hover).
     #[serde(default)]
     design: String,
+    // capa en pantalla: "top" (siempre al frente, default) | "normal" |
+    // "bottom" (pegado al fondo del escritorio, estilo Rainmeter).
+    #[serde(default)]
+    layer: String,
+}
+
+/// Aplica la capa elegida a una ventana del widget. Windows a veces
+/// "degrada" el siempre-visible, así que esto se re-afirma periódicamente
+/// (update_tray) y cada vez que un globo aparece — no solo al mostrar.
+fn apply_layer(w: &tauri::WebviewWindow, layer: &str) {
+    match layer {
+        "bottom" => {
+            let _ = w.set_always_on_top(false);
+            let _ = w.set_always_on_bottom(true);
+        }
+        "normal" => {
+            let _ = w.set_always_on_bottom(false);
+            let _ = w.set_always_on_top(false);
+        }
+        _ => {
+            let _ = w.set_always_on_bottom(false);
+            let _ = w.set_always_on_top(true);
+        }
+    }
+}
+
+/// Re-afirma la capa del widget visible (pastilla o gatito) y del globo de
+/// información. El globo de ALARMA (notif) no pasa por aquí: siempre va al
+/// frente, elija lo que elija el usuario — una alarma tapada no sirve.
+fn reassert_layers(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let cfg = load_pill_config();
+    if !cfg.visible {
+        return;
+    }
+    let widget = if cfg.style == "cat" { "cat" } else { "pill" };
+    for label in [widget, "card"] {
+        if let Some(w) = app.get_webview_window(label) {
+            if w.is_visible().unwrap_or(false) {
+                apply_layer(&w, &cfg.layer);
+            }
+        }
+    }
 }
 
 fn pill_config_path() -> PathBuf {
@@ -951,8 +996,9 @@ fn hover_card(app: tauri::AppHandle, hovering: bool) {
     if let Some(n) = app.get_webview_window("notif") {
         let _ = n.hide();
     }
-    let _ = card.set_always_on_top(true);
+    apply_layer(&card, &cfg.layer);
     let _ = card.show();
+    reassert_layers(&app); // el gatito no debe quedarse atrás del globo
 }
 
 /// Coloca un globo (información o notificación) junto al gatito:
@@ -1016,11 +1062,35 @@ fn set_notif_visible(app: tauri::AppHandle, visible: bool) {
     let cfg = load_pill_config();
     if visible && cfg.visible && cfg.style == "cat" {
         place_balloon(&app, "notif", -194.0, 40.0);
+        // la ALARMA siempre va al frente, elija la capa que elija el
+        // usuario: una notificación tapada no sirve (como los toasts)
+        let _ = w.set_always_on_bottom(false);
         let _ = w.set_always_on_top(true);
         let _ = w.show();
+        reassert_layers(&app); // el gatito no debe quedarse atrás del globo
     } else {
         let _ = w.hide();
     }
+}
+
+#[tauri::command]
+fn get_pill_layer() -> String {
+    let l = load_pill_config().layer;
+    if l == "normal" || l == "bottom" { l } else { "top".into() }
+}
+
+/// Cambia la capa del widget (al frente / normal / fondo) y la aplica al
+/// instante a las ventanas visibles.
+#[tauri::command]
+fn set_pill_layer(app: tauri::AppHandle, layer: String) {
+    let mut cfg = load_pill_config();
+    cfg.layer = match layer.as_str() {
+        "normal" => "normal".into(),
+        "bottom" => "bottom".into(),
+        _ => "top".into(),
+    };
+    save_pill_config(&cfg);
+    reassert_layers(&app);
 }
 
 #[tauri::command]
@@ -1046,7 +1116,7 @@ fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
     if let Some(pill) = app.get_webview_window("pill") {
         if visible && !cat_mode {
             position_pill(app);
-            let _ = pill.set_always_on_top(true);
+            apply_layer(&pill, &cfg.layer);
             let _ = pill.show();
         } else {
             let _ = pill.hide();
@@ -1055,7 +1125,7 @@ fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
     if let Some(cat) = app.get_webview_window("cat") {
         if visible && cat_mode {
             position_cat(app);
-            let _ = cat.set_always_on_top(true);
+            apply_layer(&cat, &cfg.layer);
             let _ = cat.show();
         } else {
             let _ = cat.hide();
@@ -1150,6 +1220,9 @@ fn update_tray(
     if rgba.len() != (width as usize) * (height as usize) * 4 {
         return Err("buffer RGBA de tamaño inesperado".into());
     }
+    // "curación" periódica: Windows a veces degrada el siempre-visible del
+    // widget (quedaba detrás de otras apps); cada ciclo se re-afirma la capa
+    reassert_layers(&app);
     let tray = app
         .tray_by_id("main-tray")
         .ok_or("icono de bandeja no encontrado")?;
