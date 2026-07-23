@@ -19,3 +19,20 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+ASSETS EXCEPTION / EXCEPCIÓN DE ASSETS
+
+The mascot image files (src/cat.gif, src/cat-fire.gif, src/cat-zzz.gif and
+src/sticker.png) are fan-art derived from the "Bongo Cat" meme (original cat
+artwork by @StrayRogue, meme animation by @DitzyFlama). They are NOT covered
+by the MIT license above and are included solely as part of this application.
+All rights to the underlying character remain with their respective authors.
+
+Los archivos de imagen de la mascota (src/cat.gif, src/cat-fire.gif,
+src/cat-zzz.gif y src/sticker.png) son fan-art derivado del meme "Bongo Cat"
+(arte original del gato de @StrayRogue, animación del meme de @DitzyFlama).
+NO están cubiertos por la licencia MIT anterior y se incluyen únicamente
+como parte de esta aplicación. Todos los derechos sobre el personaje
+pertenecen a sus respectivos autores.

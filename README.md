@@ -1,5 +1,9 @@
 # Claude Code Meter
 
+> 🚧 **En desarrollo activo** — la app ya es funcional y se usa a diario,
+> pero siguen llegando mejoras (ver [Roadmap](#roadmap)). Issues y
+> sugerencias son bienvenidos.
+
 Widget de bandeja para **Windows 11** que muestra, en tiempo real, cuánto has
 usado de tu suscripción de Claude y cuánto te queda:
 
@@ -201,4 +205,11 @@ git tag v0.1.0 && git push origin v0.1.0
 
 ## Licencia
 
-MIT
+**Código: [MIT](LICENSE)** — úsalo, modifícalo y compártelo libremente.
+
+**Excepción**: los gifs de la mascota y el sticker (`src/cat*.gif`,
+`src/sticker.png`) son **fan-art derivado del meme Bongo Cat** (arte
+original de [@StrayRogue](https://twitter.com/StrayRogue), meme de
+[@DitzyFlama](https://twitter.com/DitzyFlama)). **No** están cubiertos por
+la licencia MIT; se incluyen solo como parte de la app y los derechos del
+personaje pertenecen a sus autores. Ver el detalle en [LICENSE](LICENSE).
