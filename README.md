@@ -83,6 +83,27 @@ Sonnet → 2×$3 + 0.5×$15 = **$13.50 equivalente API**.
 > API. Sirve para saber qué proyecto consume más y cuánto te ahorra la
 > suscripción. Solo es gasto real si usas API key.
 
+### ¿Qué cuenta como "proyecto"?
+
+Un proyecto **no** es cada terminal que abres: es **la carpeta desde donde
+ejecutas `claude`** (el directorio de trabajo). Así agrupa Claude Code sus
+registros, y la app hereda esa agrupación:
+
+- 5 terminales abiertas en la misma carpeta, todo el día → **un solo
+  proyecto** que acumula todo ese gasto.
+- Corres `claude` en otra carpeta → aparece **otro proyecto** en la lista.
+- Corres `claude` parado en tu carpeta de usuario "solo para una pregunta
+  rápida" → eso también crea su proyecto (con nombres raros tipo `oscar` o
+  `Downloads`). Si ves proyectos extraños en la lista, vienen de ahí.
+
+> ✅ **Tip**: ejecuta `claude` siempre **dentro de la carpeta del proyecto**
+> en el que trabajas — así el desglose de costos queda limpio y con sentido.
+
+**¿De dónde salen los nombres?** De la ruta real de trabajo registrada en
+los logs: la app toma el último segmento (`/opt/projects/mi-web` → `mi-web`).
+Cuando el gasto viene de otra máquina, se añade el origen: `mi-web · wsl`,
+`mi-web · vps`.
+
 ## Configuración (pestaña Preferencias)
 
 | Opción | Qué hace |
