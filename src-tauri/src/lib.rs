@@ -1216,7 +1216,6 @@ fn update_tray(
     height: u32,
     tooltip: String,
 ) -> Result<(), String> {
-    use tauri::Manager;
     if rgba.len() != (width as usize) * (height as usize) * 4 {
         return Err("buffer RGBA de tamaño inesperado".into());
     }
