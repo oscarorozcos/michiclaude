@@ -231,7 +231,7 @@ fn cost_of(model: &str, inp: u64, out: u64, cw: u64, cr: u64) -> f64 {
 // ---------- fuentes remotas opcionales (otras máquinas vía SSH) ----------
 // %APPDATA%\com.oscarorozco.michiclaude\remotes.json:
 //   { "remotes": [ { "name": "vps", "host": "<alias ssh>",
-//       "command": "python3 /opt/projects/claude-code-meter/scripts/meter-export.py" } ] }
+//       "command": "python3 /opt/projects/michiclaude/scripts/meter-export.py" } ] }
 // Cada fuente devuelve un LocalStats por stdout; se fusiona con lo local y sus
 // proyectos se etiquetan "nombre · vps". Sin remotes.json la función no hace nada.
 

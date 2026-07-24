@@ -75,7 +75,7 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 
 **C) Fuentes remotas opcionales (dentro de `get_local_stats`):**
 1. Si existe `%APPDATA%\com.oscarorozco.michiclaude\remotes.json`
-   (`{"remotes":[{"name":"vps","host":"<alias ssh>","command":"python3 /opt/projects/claude-code-meter/scripts/meter-export.py"}]}`),
+   (`{"remotes":[{"name":"vps","host":"<alias ssh>","command":"python3 /opt/projects/michiclaude/scripts/meter-export.py"}]}`),
    por cada fuente se ejecuta `ssh -o BatchMode=yes <host> <command>`.
 2. `scripts/meter-export.py` replica en Python la MISMA agregación que
    `get_local_stats` (dedup, `<synthetic>` fuera, cache_read excluido, precios)
@@ -239,8 +239,8 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       productName, identifier (com.oscarorozco.michiclaude — se cambió
       porque aún no había usuarios; la config vieja de %APPDATA% no migra),
       exe (michiclaude.exe), crates, títulos de ventanas y marca en UI.
-      OJO: la carpeta del VPS sigue siendo /opt/projects/claude-code-meter
-      (renombrarla rompería el command de remotes.json de Oscar).
+      La carpeta del VPS se renombró a /opt/projects/michiclaude (con
+      symlink de compatibilidad desde la ruta vieja claude-code-meter).
 - [x] Multiidioma (8): EN default, ES, PT, FR, DE, JA, KO, ZH — diccionario
       I18N, autodetección, selector en ajustes, errores del backend como
       códigos ERR_* traducidos en el frontend.
@@ -303,7 +303,7 @@ limpio dentro de `src-tauri`, y listar archivos tocados con el motivo.
 
 - Remoto: `https://github.com/oscarorozcos/michiclaude` (público desde 2026-07-24; URL vieja redirige).
 - El desarrollo y las pruebas ocurren en el PC Windows de Oscar; en el VPS vive
-  un clon espejo (`/opt/projects/claude-code-meter`) para revisión de código.
+  un clon espejo (`/opt/projects/michiclaude`) para revisión de código.
 - Antes de empezar a trabajar en cualquiera de los dos lados: `git pull`.
   Al terminar y verificar: commit (Conventional Commits en español) y push.
 
