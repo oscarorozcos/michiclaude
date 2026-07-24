@@ -22,6 +22,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "Claude Code Meter ${{ github.ref_name }}"
+          releaseName: "MichiClaude ${{ github.ref_name }}"
           releaseDraft: false
           prerelease: false

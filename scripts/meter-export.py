@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exportador remoto para Claude Code Meter.
+"""Exportador remoto para MichiClaude.
 
 Agrega los logs locales de Claude Code (~/.claude/projects/**/*.jsonl) con la
 MISMA lógica que collect_local_stats en Rust (deduplicación por

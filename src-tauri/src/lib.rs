@@ -1,4 +1,4 @@
-// Claude Code Meter — backend
+// MichiClaude — backend
 // Dos fuentes de datos:
 //   1) Cuota real (5h / semanal, compartida entre claude.ai y Claude Code)
 //      -> endpoint OAuth con el token de ~/.claude/.credentials.json
@@ -14,7 +14,7 @@ use std::path::PathBuf;
 // ---------- rutas ----------
 
 /// Debe coincidir con `identifier` en tauri.conf.json.
-const APP_IDENTIFIER: &str = "com.oscarorozco.claude-code-meter";
+const APP_IDENTIFIER: &str = "com.oscarorozco.michiclaude";
 
 /// Directorio de datos de la app (Windows: %APPDATA%\<identifier>).
 fn app_data_dir() -> PathBuf {
@@ -101,7 +101,7 @@ async fn get_quota() -> Result<serde_json::Value, String> {
         .get("https://api.anthropic.com/api/oauth/usage")
         .bearer_auth(token)
         .header("anthropic-beta", "oauth-2025-04-20")
-        .header("user-agent", "claude-code-meter/0.1.0")
+        .header("user-agent", "michiclaude/0.1.0")
         .send()
         .await
         .map_err(|_| "ERR_NET".to_string())?;
@@ -143,7 +143,7 @@ async fn get_quota() -> Result<serde_json::Value, String> {
     // buckets reales devuelve el endpoint. Los nombres de modelo (p. ej. "Fable")
     // viven en el array `limits[].scope.model.display_name`, no en las claves
     // seven_day_* (que suelen venir null). Se escribe en el directorio de datos de
-    // la app:  %APPDATA%\com.oscarorozco.claude-code-meter\quota_debug.json
+    // la app:  %APPDATA%\com.oscarorozco.michiclaude\quota_debug.json
     // (con respaldo junto al ejecutable y, en último caso, el directorio actual).
     if let Ok(pretty) = serde_json::to_string_pretty(&data) {
         let dir = app_data_dir();
@@ -229,7 +229,7 @@ fn cost_of(model: &str, inp: u64, out: u64, cw: u64, cr: u64) -> f64 {
 }
 
 // ---------- fuentes remotas opcionales (otras máquinas vía SSH) ----------
-// %APPDATA%\com.oscarorozco.claude-code-meter\remotes.json:
+// %APPDATA%\com.oscarorozco.michiclaude\remotes.json:
 //   { "remotes": [ { "name": "vps", "host": "<alias ssh>",
 //       "command": "python3 /opt/projects/claude-code-meter/scripts/meter-export.py" } ] }
 // Cada fuente devuelve un LocalStats por stdout; se fusiona con lo local y sus
@@ -631,7 +631,7 @@ fn export_data(format: String, dir: Option<String>, days: Option<u32>) -> Result
     fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
     let stamp = Utc::now().format("%Y%m%d-%H%M%S");
     let ext = if format == "csv" { "csv" } else { "json" };
-    let path = folder.join(format!("claude-code-meter-{stamp}.{ext}"));
+    let path = folder.join(format!("michiclaude-{stamp}.{ext}"));
 
     let content = if format == "csv" {
         let mut s = String::from("type,name_or_date,cost_usd,tokens\n");
@@ -773,7 +773,7 @@ pub fn run() {
             // Icono en la bandeja; clic izquierdo abre el panel, clic derecho el menú.
             TrayIconBuilder::with_id("main-tray")
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("Claude Code Meter")
+                .tooltip("MichiClaude")
                 .menu(&tray_menu)
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
@@ -844,7 +844,7 @@ pub fn run() {
             _ => {}
         })
         .run(tauri::generate_context!())
-        .expect("error al iniciar Claude Code Meter");
+        .expect("error al iniciar MichiClaude");
 }
 
 // Márgenes (px físicos aprox.).

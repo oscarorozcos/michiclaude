@@ -1,4 +1,4 @@
-# Claude Code Meter
+# MichiClaude 🐱
 
 > 🚧 **En desarrollo activo** — la app ya es funcional y se usa a diario,
 > pero siguen llegando mejoras (ver [Roadmap](#roadmap)). Issues y

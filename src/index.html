@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Claude Code Meter</title>
+<title>MichiClaude</title>
 <style>
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
@@ -201,7 +201,7 @@
   <div class="p-head" id="pHead">
     <span class="mark" id="mark"></span>
     <div class="p-htext">
-      <div class="p-title">Claude Code Meter</div>
+      <div class="p-title">MichiClaude</div>
       <div class="p-sub" id="syncLine"><span class="live" id="liveDot"></span><span id="syncTxt"></span></div>
     </div>
     <span class="plan" id="planTag">—</span>
@@ -409,7 +409,7 @@ en:{
   notif_hi:p=>`Session at ${p}% — almost exhausted. Consider pausing or switching models.`,
   notif_lo:p=>`Session at ${p}% of your 5 h limit.`,
   tray_tip:(s,r,w)=>`Session ${s}%${r?` · ${r}`:""}${w!=null?` · Weekly ${w}%`:""}`,
-  tray_no_data:"Claude Code Meter — no quota data",
+  tray_no_data:"MichiClaude — no quota data",
   demo_mode:"demo mode (no Tauri)",
   src_local:"local",
   trend_title:"Daily trend",
@@ -502,7 +502,7 @@ es:{
   notif_hi:p=>`Sesión al ${p}% — casi agotada. Considera parar o cambiar de modelo.`,
   notif_lo:p=>`Sesión al ${p}% de tu límite de 5 h.`,
   tray_tip:(s,r,w)=>`Sesión ${s}%${r?` · ${r}`:""}${w!=null?` · Semanal ${w}%`:""}`,
-  tray_no_data:"Claude Code Meter — sin datos de cuota",
+  tray_no_data:"MichiClaude — sin datos de cuota",
   demo_mode:"modo demo (sin Tauri)",
   src_local:"local",
   trend_title:"Tendencia diaria",
@@ -595,7 +595,7 @@ pt:{
   notif_hi:p=>`Sessão em ${p}% — quase esgotada. Considere pausar ou trocar de modelo.`,
   notif_lo:p=>`Sessão em ${p}% do seu limite de 5 h.`,
   tray_tip:(s,r,w)=>`Sessão ${s}%${r?` · ${r}`:""}${w!=null?` · Semanal ${w}%`:""}`,
-  tray_no_data:"Claude Code Meter — sem dados de cota",
+  tray_no_data:"MichiClaude — sem dados de cota",
   demo_mode:"modo demo (sem Tauri)",
   src_local:"local",
   trend_title:"Tendência diária",
@@ -688,7 +688,7 @@ fr:{
   notif_hi:p=>`Session à ${p} % — presque épuisée. Pensez à faire une pause ou changer de modèle.`,
   notif_lo:p=>`Session à ${p} % de votre limite de 5 h.`,
   tray_tip:(s,r,w)=>`Session ${s}%${r?` · ${r}`:""}${w!=null?` · Hebdo ${w}%`:""}`,
-  tray_no_data:"Claude Code Meter — pas de données de quota",
+  tray_no_data:"MichiClaude — pas de données de quota",
   demo_mode:"mode démo (sans Tauri)",
   src_local:"local",
   trend_title:"Tendance quotidienne",
@@ -781,7 +781,7 @@ de:{
   notif_hi:p=>`Sitzung bei ${p} % — fast aufgebraucht. Pause machen oder Modell wechseln.`,
   notif_lo:p=>`Sitzung bei ${p} % deines 5-Std-Limits.`,
   tray_tip:(s,r,w)=>`Sitzung ${s}%${r?` · ${r}`:""}${w!=null?` · Woche ${w}%`:""}`,
-  tray_no_data:"Claude Code Meter — keine Kontingentdaten",
+  tray_no_data:"MichiClaude — keine Kontingentdaten",
   demo_mode:"Demo-Modus (ohne Tauri)",
   src_local:"lokal",
   trend_title:"Täglicher Trend",
@@ -874,7 +874,7 @@ ja:{
   notif_hi:p=>`セッションが${p}% — ほぼ上限です。休憩するかモデルの切り替えを検討してください。`,
   notif_lo:p=>`セッションが5時間制限の${p}%に達しました。`,
   tray_tip:(s,r,w)=>`セッション ${s}%${r?` · ${r}`:""}${w!=null?` · 週間 ${w}%`:""}`,
-  tray_no_data:"Claude Code Meter — クォータデータなし",
+  tray_no_data:"MichiClaude — クォータデータなし",
   demo_mode:"デモモード（Tauri なし）",
   src_local:"ローカル",
   trend_title:"日次トレンド",
@@ -967,7 +967,7 @@ ko:{
   notif_hi:p=>`세션 ${p}% — 거의 소진되었습니다. 잠시 멈추거나 모델 변경을 고려하세요.`,
   notif_lo:p=>`세션이 5시간 한도의 ${p}%에 도달했습니다.`,
   tray_tip:(s,r,w)=>`세션 ${s}%${r?` · ${r}`:""}${w!=null?` · 주간 ${w}%`:""}`,
-  tray_no_data:"Claude Code Meter — 쿼터 데이터 없음",
+  tray_no_data:"MichiClaude — 쿼터 데이터 없음",
   demo_mode:"데모 모드 (Tauri 없음)",
   src_local:"로컬",
   trend_title:"일별 추세",
@@ -1060,7 +1060,7 @@ zh:{
   notif_hi:p=>`会话已达${p}% — 即将用尽。考虑暂停或切换模型。`,
   notif_lo:p=>`会话已达5小时限额的${p}%。`,
   tray_tip:(s,r,w)=>`会话 ${s}%${r?` · ${r}`:""}${w!=null?` · 每周 ${w}%`:""}`,
-  tray_no_data:"Claude Code Meter — 无配额数据",
+  tray_no_data:"MichiClaude — 无配额数据",
   demo_mode:"演示模式（无 Tauri）",
   src_local:"本机",
   trend_title:"每日趋势",
@@ -1346,7 +1346,7 @@ function toast(body){
   if(!notif) return;
   Promise.resolve(notif.isPermissionGranted())
     .then(g=> g ? true : notif.requestPermission().then(p=>p==="granted"))
-    .then(ok=>{ if(ok) notif.sendNotification({title:"Claude Code Meter", body}); })
+    .then(ok=>{ if(ok) notif.sendNotification({title:"MichiClaude", body}); })
     .catch(()=>{});
 }
 

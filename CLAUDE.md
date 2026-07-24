@@ -1,4 +1,4 @@
-# CLAUDE.md — Claude Code Meter
+# CLAUDE.md — MichiClaude (antes Claude Code Meter)
 
 Contexto del proyecto para Claude Code. **Léelo completo antes de modificar nada.**
 
@@ -74,7 +74,7 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
    "local" a los que no llevan sufijo.
 
 **C) Fuentes remotas opcionales (dentro de `get_local_stats`):**
-1. Si existe `%APPDATA%\com.oscarorozco.claude-code-meter\remotes.json`
+1. Si existe `%APPDATA%\com.oscarorozco.michiclaude\remotes.json`
    (`{"remotes":[{"name":"vps","host":"<alias ssh>","command":"python3 /opt/projects/claude-code-meter/scripts/meter-export.py"}]}`),
    por cada fuente se ejecuta `ssh -o BatchMode=yes <host> <command>`.
 2. `scripts/meter-export.py` replica en Python la MISMA agregación que
@@ -235,6 +235,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] LICENSE GPL-3.0 con excepción de assets Bongo Cat (2026-07-24; antes
       MIT — Oscar eligió copyleft para que los derivados sigan abiertos y
       con crédito). Los gifs/sticker de la mascota quedan fuera de la GPL.
+- [x] RENOMBRADO a "MichiClaude" (2026-07-24, decisión de Oscar): repo,
+      productName, identifier (com.oscarorozco.michiclaude — se cambió
+      porque aún no había usuarios; la config vieja de %APPDATA% no migra),
+      exe (michiclaude.exe), crates, títulos de ventanas y marca en UI.
+      OJO: la carpeta del VPS sigue siendo /opt/projects/claude-code-meter
+      (renombrarla rompería el command de remotes.json de Oscar).
 - [x] Multiidioma (8): EN default, ES, PT, FR, DE, JA, KO, ZH — diccionario
       I18N, autodetección, selector en ajustes, errores del backend como
       códigos ERR_* traducidos en el frontend.
@@ -271,7 +277,7 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [ ] MODO HUB (decidido 2026-07-11, pendiente de implementar tras la semana
       de pruebas): el VPS consolida los datos de todas las máquinas para que
       los totales cuadren en cualquier PC. Diseño acordado: (1) cada meter
-      sube su resumen local por SSH a ~/.claude-code-meter/hosts/<hostname>.json
+      sube su resumen local por SSH a ~/.michiclaude/hosts/<hostname>.json
       en el VPS en cada ciclo; (2) meter-export.py devuelve sus logs + los
       resúmenes de los demás hosts, excluyendo el del host que pregunta
       (--exclude-host <hostname>) para no contar doble; (3) opcional: config
@@ -295,7 +301,7 @@ limpio dentro de `src-tauri`, y listar archivos tocados con el motivo.
 
 ## Flujo de trabajo del repo
 
-- Remoto: `https://github.com/oscarorozcos/claude-code-meter` (privado).
+- Remoto: `https://github.com/oscarorozcos/michiclaude` (público desde 2026-07-24; URL vieja redirige).
 - El desarrollo y las pruebas ocurren en el PC Windows de Oscar; en el VPS vive
   un clon espejo (`/opt/projects/claude-code-meter`) para revisión de código.
 - Antes de empezar a trabajar en cualquiera de los dos lados: `git pull`.
