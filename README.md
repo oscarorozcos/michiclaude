@@ -134,6 +134,24 @@ tu PC, pero todo pasa **en esa otra máquina**, y los recibos quedan **allá**.
 En 2 de los 3 casos no haces nada: instalas MichiClaude y ya. Solo el servidor
 pide un pasito de configuración.
 
+### ¿Y si uso VS Code, Cursor u otro editor? (no un terminal)
+
+**Da igual el editor — funciona igual.** Uses lo que uses (VS Code, Cursor,
+JetBrains o la terminal a secas), por dentro todos ejecutan el **mismo Claude
+Code**, que deja sus "recibos" en la misma carpeta. MichiClaude no mira *con
+qué* lo usas, sino *en qué máquina* corre. Así que:
+
+- **VS Code / Cursor local en tu PC** (sin conectarte a nada) → automático,
+  sale como **"Este PC"**, igual que si usaras la terminal.
+- **VS Code trabajando dentro de WSL** (abajo a la izquierda dice `WSL: …`) →
+  automático, sale como **"· wsl"**.
+- **VS Code Remote-SSH** (abajo a la izquierda dice `SSH: …`) → es el caso del
+  servidor: agrégalo una vez en Fuentes de datos.
+
+> 🔑 **Regla de oro:** no importa **con qué** uses Claude Code, sino **dónde
+> corre**. Misma PC → local automático; WSL → "· wsl" automático; servidor por
+> SSH → agregarlo una vez.
+
 ## ¿De dónde salen los dólares? (costo estimado)
 
 De dos ingredientes, **ambos en tu equipo**:
