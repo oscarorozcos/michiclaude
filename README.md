@@ -61,6 +61,79 @@ El panel tiene **tres pestañas**:
 
 El pie (Hoy / periodo) siempre está visible.
 
+## ¿Dónde usas Claude Code? (Windows nativo, WSL o servidor)
+
+Explicación sin tecnicismos, por si estos términos no te suenan. La idea de
+fondo es simple:
+
+> Claude Code siempre deja un "recibo" de lo que gastas en una carpeta de la
+> computadora donde lo usaste. **MichiClaude es como un lector de esos
+> recibos.** Lo único que cambia entre los tres casos es **en qué computadora
+> están los recibos.**
+
+Piensa que usar Claude Code es **cocinar**, y los recibos son los tickets de
+lo que gastaste:
+
+### 🪟 Windows nativo — cocinas en TU cocina normal
+
+Instalas Claude Code **directamente en Windows** (como cualquier programa) y lo
+usas en la terminal de Windows (PowerShell). Los recibos quedan en tu PC.
+
+- *Ejemplo:* María abre PowerShell, escribe `claude` y le pide "arréglame este
+  error". Todo pasó en su PC.
+- *En MichiClaude:* **nada, automático.** Vive en el mismo Windows, encuentra
+  los recibos solo. Aparece como **"Este PC"**.
+
+### 🐧 WSL — una "mini-computadora Linux" DENTRO de tu Windows
+
+WSL (Windows Subsystem for Linux) es una herramienta de Windows que crea una
+especie de **segunda computadora con Linux, escondida dentro de tu Windows**.
+Mucha gente la usa porque antes Claude Code solo funcionaba en Linux. Es como
+tener en tu casa una cocina aparte, de otro estilo, y cocinar ahí: sigue siendo
+tu casa, pero es otro "cuartito".
+
+- *Ejemplo:* Juan abre su "Ubuntu" (WSL se ve como una app más), escribe
+  `claude` ahí dentro y trabaja. Los recibos quedan en ese cuartito Linux.
+- *En MichiClaude:* **también automático.** Se asoma a ese Linux dentro de tu
+  Windows y los lee. Aparecen con el sufijo **"· wsl"** (ej: *mi-proyecto · wsl*).
+
+> 💡 **Nativo vs WSL en una frase:** *nativo* = Claude Code corre en Windows a
+> secas; *WSL* = corre en un Linux que vive dentro de tu Windows. Para ti,
+> ambos están en la **misma PC física** y MichiClaude los lee **solos**.
+
+### 🌐 SSH — cocinas en la casa de OTRA persona (un servidor), a distancia
+
+SSH es una forma de **conectarte a otra computadora que está en otro lado** (un
+servidor en internet, un "VPS") y usarla como si estuvieras ahí. Tú tecleas en
+tu PC, pero todo pasa **en esa otra máquina**, y los recibos quedan **allá**.
+
+- *Ejemplo:* Lucía, desde su Windows, se conecta a su servidor y usa `claude`
+  allá. Su PC es solo el control remoto; el trabajo y los recibos viven en el
+  servidor. (En VS Code lo reconoces porque abajo a la izquierda dice
+  `SSH: <algo>`.)
+- *En MichiClaude:* aquí **sí hay un paso manual, una sola vez.** Como los
+  recibos están en otra máquina, le dices a MichiClaude que también la revise:
+  pestaña **Fuentes de datos → agregar servidor** (nombre + dirección SSH, la
+  misma con la que ya te conectas). Después aparecen con **"· vps"**.
+
+### Resumen
+
+| Caso | ¿Dónde corre Claude Code? | ¿Qué haces en MichiClaude? |
+|---|---|---|
+| 🪟 Windows nativo | En tu PC, directo | Nada — automático ("Este PC") |
+| 🐧 WSL | En un Linux dentro de tu PC | Nada — automático ("· wsl") |
+| 🌐 SSH | En otra computadora (servidor) | Agregarla una vez en Fuentes de datos ("· vps") |
+
+**¿Cómo sé cuál tengo yo?** Mira qué abres para usar Claude Code:
+
+- Abres **PowerShell** (el azul de Windows) y escribes `claude` → **nativo**.
+- Abres una app que dice **"Ubuntu"** o una ventana de Linux → **WSL**.
+- Primero te **conectas a un servidor** (o VS Code muestra `SSH: …` abajo a la
+  izquierda) → **SSH**.
+
+En 2 de los 3 casos no haces nada: instalas MichiClaude y ya. Solo el servidor
+pide un pasito de configuración.
+
 ## ¿De dónde salen los dólares? (costo estimado)
 
 De dos ingredientes, **ambos en tu equipo**:
