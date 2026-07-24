@@ -173,6 +173,19 @@ Cuando el gasto viene de otra máquina, se añade el origen: `mi-web · wsl`,
 | Solo API key | ✗ (no hay ventanas de suscriptor) | ✅ (gasto real) |
 | Solo claude.ai web, sin Claude Code | ✗ | ✗ |
 
+### ¿Funciona con el plan gratuito de Claude?
+
+**No.** MichiClaude mide el uso de **Claude Code**, y Claude Code requiere
+suscripción Pro/Max (o una API key de pago) — no está disponible en el plan
+gratuito de claude.ai. Sin Claude Code no existe ni el token de cuota ni los
+logs locales: **no hay nada que medir** (la app mostraría "inicia sesión en
+Claude Code" y $0.00).
+
+La alternativa sin suscripción: usar Claude Code con una **API key** de
+[console.anthropic.com](https://console.anthropic.com) (pago por consumo).
+En ese caso verás los costos por proyecto — y serían **dólares reales**, no
+estimados — aunque no los medidores de cuota, que son de suscriptores.
+
 ---
 
 ## Desarrollo
