@@ -6,4 +6,14 @@ dist/
 .env
 .env.*
 !.env.example
+
+# defensivos: archivos con datos personales/credenciales que viven fuera del
+# repo (AppData), por si algún día se copian aquí "para debuggear"
 quota_debug.json
+pill_debug.json
+pill_config.json
+remotes.json
+.credentials.json
+*.log
+*.pem
+*.key
