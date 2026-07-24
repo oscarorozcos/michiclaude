@@ -205,11 +205,13 @@ git tag v0.1.0 && git push origin v0.1.0
 
 ## Licencia
 
-**Código: [MIT](LICENSE)** — úsalo, modifícalo y compártelo libremente.
+**Código: [GPL-3.0](LICENSE)** — úsalo, modifícalo y compártelo libremente;
+si distribuyes una versión modificada, debe seguir siendo open source bajo
+esta misma licencia y conservar los créditos. © 2026 Oscar Orozco.
 
 **Excepción**: los gifs de la mascota y el sticker (`src/cat*.gif`,
 `src/sticker.png`) son **fan-art derivado del meme Bongo Cat** (arte
 original de [@StrayRogue](https://twitter.com/StrayRogue), meme de
 [@DitzyFlama](https://twitter.com/DitzyFlama)). **No** están cubiertos por
-la licencia MIT; se incluyen solo como parte de la app y los derechos del
-personaje pertenecen a sus autores. Ver el detalle en [LICENSE](LICENSE).
+la GPL; se incluyen solo como parte de la app y los derechos del personaje
+pertenecen a sus autores. Ver el detalle al final de [LICENSE](LICENSE).

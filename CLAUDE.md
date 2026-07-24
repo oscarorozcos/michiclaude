@@ -232,7 +232,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] Autostart (tauri-plugin-autostart): solo builds release, se activa una
       única vez (marker `autostart_configured`); si el usuario lo desactiva
       en el Administrador de tareas, se respeta.
-- [x] LICENSE MIT (preparación para repo público).
+- [x] LICENSE GPL-3.0 con excepción de assets Bongo Cat (2026-07-24; antes
+      MIT — Oscar eligió copyleft para que los derivados sigan abiertos y
+      con crédito). Los gifs/sticker de la mascota quedan fuera de la GPL.
 - [x] Multiidioma (8): EN default, ES, PT, FR, DE, JA, KO, ZH — diccionario
       I18N, autodetección, selector en ajustes, errores del backend como
       códigos ERR_* traducidos en el frontend.
@@ -310,6 +312,6 @@ limpio dentro de `src-tauri`, y listar archivos tocados con el motivo.
   usage-monitor-for-claude (tray Windows con cuota real). Diferenciadores de
   esta app: marcador de ritmo + proyección + fila claude.ai/otros + franja
   sobre la barra.
-- Se publicará en GitHub (MIT, releases automáticas por tag). La confianza del
+- Se publicará en GitHub (GPL-3.0, releases automáticas por tag). La confianza del
   usuario es prioridad: transparencia total sobre el manejo del token y el
   disclaimer del endpoint no oficial.
