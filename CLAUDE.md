@@ -226,6 +226,15 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       VS Code SSH): exportador + fusión implementados y el script probado
       contra los logs reales del VPS. FALTA: crear remotes.json en Windows y
       verificar en vivo la fusión (proyectos "· vps").
+- [ ] USABILIDAD fuente remota (detectado 2026-07-24): el campo "comando" del
+      formulario de servidores viene por defecto con la ruta PERSONAL de Oscar
+      (`python3 /opt/projects/michiclaude/scripts/meter-export.py`), que no
+      sirve para otros usuarios y confunde. Además hoy el usuario tendría que
+      copiar meter-export.py al servidor a mano y saber su ruta — no está
+      explicado ni automatizado. Arreglo mínimo: default genérico
+      (`python3 ~/meter-export.py`) + nota corta. Ideal: que MichiClaude SUBA
+      el script solo por SSH la primera vez (nombre + host y listo). Encaja
+      naturalmente con el Modo HUB — resolver ahí.
 - [ ] Lectura incremental de .jsonl por offset (hoy: escaneo completo por ciclo)
 - [x] Token de respaldo desde remotes.json cuando el local venció (2026-07-10):
       el meter ya no depende de usar Claude Code en Windows.
