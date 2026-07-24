@@ -195,11 +195,16 @@
   .tspan{display:flex;justify-content:space-between;font-size:9px;color:var(--txt-dim);
     font-family:var(--mono);margin-top:4px}
 
-  /* pantalla de bienvenida/setup: se muestra cuando no hay Claude Code
-     (sin token Y sin datos locales); oculta el resto de la pestaña Principal */
-  #welcomeBox{display:none}
-  body.setup #welcomeBox{display:block}
+  /* bienvenida/guía adaptativa:
+     - body.setup   (sin token Y sin datos locales = no hay Claude Code):
+       tarjeta completa, oculta el resto de Principal.
+     - body.tokenhint (sin token pero CON datos locales = token vencido):
+       banner compacto arriba, NO oculta los datos que sí hay. */
+  #welcomeBox,.w-new,.w-expired{display:none}
+  body.setup #welcomeBox,body.setup .w-new{display:block}
   body.setup #tab-main > .sect:not(#welcomeBox){display:none}
+  body.tokenhint #welcomeBox,body.tokenhint .w-expired{display:block}
+  body.tokenhint #welcomeBox{padding-bottom:0}
   .setup-p{font-size:12.5px;color:var(--txt-mut);line-height:1.5;margin:0 0 11px}
   .setup-steps{margin:0 0 11px;padding-left:20px;font-size:12.5px;line-height:1.7;color:var(--txt)}
   .setup-url{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--accent);
@@ -230,16 +235,22 @@
   <div id="tab-main">
 
   <div class="sect" id="welcomeBox">
-    <div class="eyebrow" data-i18n="setup_title"></div>
-    <p class="setup-p" data-i18n="setup_body"></p>
-    <ol class="setup-steps">
-      <li data-i18n="setup_s1"></li>
-      <li data-i18n="setup_s2"></li>
-      <li data-i18n="setup_s3"></li>
-    </ol>
-    <div class="setup-url">claude.com/claude-code</div>
-    <p class="setup-note" data-i18n="setup_remote"></p>
-    <p class="setup-note" data-i18n="setup_free"></p>
+    <div class="w-new">
+      <div class="eyebrow" data-i18n="setup_title"></div>
+      <p class="setup-p" data-i18n="setup_body"></p>
+      <ol class="setup-steps">
+        <li data-i18n="setup_s1"></li>
+        <li data-i18n="setup_s2"></li>
+        <li data-i18n="setup_s3"></li>
+      </ol>
+      <div class="setup-url">claude.com/claude-code</div>
+      <p class="setup-note" data-i18n="setup_remote"></p>
+      <p class="setup-note" data-i18n="setup_free"></p>
+    </div>
+    <div class="w-expired">
+      <div class="eyebrow" data-i18n="setup_expired_title"></div>
+      <p class="setup-p" data-i18n="setup_expired"></p>
+    </div>
   </div>
 
   <div class="sect">
@@ -476,6 +487,8 @@ en:{
   setup_remote:"Already using Claude Code on a server? Add it under Data sources.",
   setup_free:"The free claude.ai plan doesn't include Claude Code, so there'd be nothing to measure.",
   setup_sub:"Waiting for Claude Code",
+  setup_expired_title:"Token expired",
+  setup_expired:"Claude Code detected, but the token expired. Run `claude` here once (any prompt) to refresh it, or add your server under Data sources.",
   err_expired:"Token expired. Open Claude Code (any prompt) to refresh it.",
   err_rate:m=>`API rate-limited (429). Retrying in ${m} min — your quota is not affected.`,
   err_net:"No connection to the API.",
@@ -577,6 +590,8 @@ es:{
   setup_remote:"¿Ya usas Claude Code en un servidor? Agrégalo en Fuentes de datos.",
   setup_free:"El plan gratuito de claude.ai no incluye Claude Code, así que no habría datos que medir.",
   setup_sub:"Esperando a Claude Code",
+  setup_expired_title:"Token vencido",
+  setup_expired:"Claude Code detectado, pero el token venció. Corre `claude` aquí una vez (cualquier consulta) para refrescarlo, o agrega tu servidor en Fuentes de datos.",
   err_expired:"Token expirado. Abre Claude Code (cualquier consulta) para refrescarlo.",
   err_rate:m=>`La API limitó las peticiones (429). Reintento en ${m} min — tu cuota no se ve afectada.`,
   err_net:"Sin conexión con la API.",
@@ -678,6 +693,8 @@ pt:{
   setup_remote:"Já usa o Claude Code num servidor? Adicione em Fontes de dados.",
   setup_free:"O plano gratuito do claude.ai não inclui o Claude Code, então não haveria dados para medir.",
   setup_sub:"Aguardando o Claude Code",
+  setup_expired_title:"Token expirado",
+  setup_expired:"Claude Code detectado, mas o token expirou. Rode `claude` aqui uma vez (qualquer prompt) para renová-lo, ou adicione seu servidor em Fontes de dados.",
   err_expired:"Token expirado. Abra o Claude Code (qualquer prompt) para renová-lo.",
   err_rate:m=>`API limitou as requisições (429). Nova tentativa em ${m} min — sua cota não é afetada.`,
   err_net:"Sem conexão com a API.",
@@ -779,6 +796,8 @@ fr:{
   setup_remote:"Vous utilisez déjà Claude Code sur un serveur ? Ajoutez-le dans Sources de données.",
   setup_free:"Le plan gratuit de claude.ai n'inclut pas Claude Code, il n'y aurait donc rien à mesurer.",
   setup_sub:"En attente de Claude Code",
+  setup_expired_title:"Jeton expiré",
+  setup_expired:"Claude Code détecté, mais le jeton a expiré. Lancez `claude` ici une fois (n'importe quel prompt) pour le renouveler, ou ajoutez votre serveur dans Sources de données.",
   err_expired:"Jeton expiré. Ouvrez Claude Code (n'importe quel prompt) pour le renouveler.",
   err_rate:m=>`API limitée (429). Nouvel essai dans ${m} min — votre quota n'est pas affecté.`,
   err_net:"Pas de connexion à l'API.",
@@ -880,6 +899,8 @@ de:{
   setup_remote:"Nutzt du Claude Code bereits auf einem Server? Füge ihn unter Datenquellen hinzu.",
   setup_free:"Der kostenlose claude.ai-Plan enthält kein Claude Code, es gäbe also nichts zu messen.",
   setup_sub:"Warte auf Claude Code",
+  setup_expired_title:"Token abgelaufen",
+  setup_expired:"Claude Code erkannt, aber das Token ist abgelaufen. Führe `claude` hier einmal aus (beliebiger Prompt), um es zu erneuern, oder füge deinen Server unter Datenquellen hinzu.",
   err_expired:"Token abgelaufen. Öffne Claude Code (beliebiger Prompt), um es zu erneuern.",
   err_rate:m=>`API drosselt Anfragen (429). Neuer Versuch in ${m} Min — dein Kontingent ist nicht betroffen.`,
   err_net:"Keine Verbindung zur API.",
@@ -981,6 +1002,8 @@ ja:{
   setup_remote:"すでにサーバーで Claude Code を使っていますか？「データソース」で追加してください。",
   setup_free:"無料の claude.ai プランには Claude Code が含まれないため、計測するデータがありません。",
   setup_sub:"Claude Code を待機中",
+  setup_expired_title:"トークンの期限切れ",
+  setup_expired:"Claude Code を検出しましたが、トークンの期限が切れています。ここで一度 `claude` を実行するか（任意のプロンプト）、「データソース」でサーバーを追加してください。",
   err_expired:"トークンの期限切れ。Claude Code を開いて（任意のプロンプト）更新してください。",
   err_rate:m=>`API がレート制限中 (429)。${m}分後に再試行 — クォータには影響しません。`,
   err_net:"API に接続できません。",
@@ -1082,6 +1105,8 @@ ko:{
   setup_remote:"이미 서버에서 Claude Code를 쓰고 있나요? '데이터 소스'에서 추가하세요.",
   setup_free:"무료 claude.ai 요금제에는 Claude Code가 없어 측정할 데이터가 없습니다.",
   setup_sub:"Claude Code 대기 중",
+  setup_expired_title:"토큰 만료",
+  setup_expired:"Claude Code를 감지했지만 토큰이 만료되었습니다. 여기서 `claude`를 한 번 실행하거나(아무 프롬프트) '데이터 소스'에서 서버를 추가하세요.",
   err_expired:"토큰이 만료되었습니다. Claude Code를 열어(아무 프롬프트) 갱신하세요.",
   err_rate:m=>`API 요청 제한 (429). ${m}분 후 재시도 — 쿼터에는 영향이 없습니다.`,
   err_net:"API에 연결할 수 없습니다.",
@@ -1183,6 +1208,8 @@ zh:{
   setup_remote:"已在服务器上使用 Claude Code？在“数据源”中添加它。",
   setup_free:"claude.ai 免费套餐不包含 Claude Code，因此没有可测量的数据。",
   setup_sub:"等待 Claude Code",
+  setup_expired_title:"令牌已过期",
+  setup_expired:"已检测到 Claude Code，但令牌已过期。在此运行一次 `claude`（任意提问）以刷新，或在“数据源”中添加你的服务器。",
   err_expired:"令牌已过期。打开 Claude Code（任意提问）以刷新。",
   err_rate:m=>`API 限流 (429)。${m}分钟后重试 — 你的配额不受影响。`,
   err_net:"无法连接 API。",
@@ -1748,9 +1775,10 @@ async function refresh(){
     // Con datos locales (Claude Code sí, solo token vencido) NO se activa.
     const noToken = quota.status==="rejected" && String(quota.reason).startsWith("ERR_NO_TOKEN");
     const hasLocal = local.status==="fulfilled" && local.value.projects && local.value.projects.length>0;
-    const setup = noToken && !hasLocal;
-    document.body.classList.toggle("setup", setup);
-    if(setup){ $("liveDot").classList.remove("err"); $("syncTxt").textContent=t("setup_sub"); }
+    document.body.classList.toggle("setup", noToken && !hasLocal);      // no hay Claude Code
+    document.body.classList.toggle("tokenhint", noToken && hasLocal);   // token vencido
+    if(noToken){ $("liveDot").classList.remove("err");
+      $("syncTxt").textContent = t(hasLocal ? "setup_expired_title" : "setup_sub"); }
   }catch(e){ onQuotaFail(e); }
   finally{ processAcks(); scheduleNext(); }
 }
@@ -1761,8 +1789,9 @@ function scheduleNext(){
     : fails>0 ? Math.min(60000, 5000*2**(fails-1)) : REFRESH_MS;
   clearTimeout(refreshTimer); refreshTimer=setTimeout(refresh, delay);
 }
-setInterval(()=>{ if(!$("liveDot").classList.contains("err") && !document.body.classList.contains("setup"))
-  $("syncTxt").textContent=t("live_ago", Math.round((Date.now()-lastSync)/1000)); },1000);
+setInterval(()=>{ const b=document.body.classList;
+  if(!$("liveDot").classList.contains("err") && !b.contains("setup") && !b.contains("tokenhint"))
+    $("syncTxt").textContent=t("live_ago", Math.round((Date.now()-lastSync)/1000)); },1000);
 
 // arrastrar la ventana desde el encabezado (ventana sin decoraciones)
 const APPWIN = window.__TAURI__?.window ? window.__TAURI__.window.getCurrentWindow() : null;
