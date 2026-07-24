@@ -286,6 +286,38 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [ ] Auto-updater (tauri-plugin-updater)
 - [ ] Precios de modelos configurables (JSON externo)
 
+## Diferenciadores estratégicos (post-pulido Windows, decididos 2026-07-24)
+
+Tras investigar la competencia (Mac saturado con 8+ apps de menu bar; Windows
+competido pero ganable; Linux sin app gráfica nativa = hueco). El combo actual
+—cuota real + costo por proyecto + multi-máquina + gatito— ya es único; casi
+nadie junta cuota Y costo, casi nadie hace multi-máquina, y NADIE tiene mascota.
+Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
+
+- [ ] **APUESTA #1 — Terminar el Modo HUB** (ver arriba). Es el foso técnico
+      real y lo más difícil de copiar; los demás leen una sola máquina. Además
+      es lo más vendible en el CV de Oscar ("sistema distribuido que consolida
+      uso entre máquinas"). Prioridad #1: no es función nueva, es rematar lo
+      que ya lo hace único.
+- [ ] **APUESTA #2 — El gatito como motor de marketing** (lo único que 0
+      competidores tienen). (a) **Tarjeta semanal para compartir**: botón que
+      genera una imagen bonita del resumen (cuota, proyecto top, gatito en su
+      estado) lista para redes → marketing viral incorporado (Oscar ya postea
+      el gato a mano). (b) **Gamificación ligera**: rachas ("N días sin pasarte
+      del presupuesto → gato feliz"), estados de ánimo con el tiempo. Barato,
+      imposible de copiar (es la marca), ataca el problema real: que nadie
+      conoce un proyecto nuevo. Empezar por la tarjeta (mejor esfuerzo/impacto).
+- [ ] **APUESTA #3 — De "medidor" a "asesor"** (más ambicioso, tras el Hub):
+      insights accionables — proyección SEMANAL ("a este ritmo llegas al límite
+      el jueves"), desglose caro por proyecto ("60% es lectura de caché"),
+      sugerencia de ahorro por modelo ("usaste Opus donde Haiku bastaba →
+      ahorro $X", con cuidado). Eleva de "app de gauges" a "app que me ayuda a
+      no quedarme sin cuota / gastar menos".
+
+NO hacer (dilución de foco): rastrear otras herramientas (Codex/Gemini/Copilot),
+base de datos de historial largo (contradice "nada que se pueda perder"), modo
+equipo/empresa (fuera del público Pro/Max individual).
+
 ## Comandos
 
 ```powershell
