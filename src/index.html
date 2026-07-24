@@ -194,6 +194,18 @@
   .tchart i.zero{background:var(--track);opacity:1}
   .tspan{display:flex;justify-content:space-between;font-size:9px;color:var(--txt-dim);
     font-family:var(--mono);margin-top:4px}
+
+  /* pantalla de bienvenida/setup: se muestra cuando no hay Claude Code
+     (sin token Y sin datos locales); oculta el resto de la pestaña Principal */
+  #welcomeBox{display:none}
+  body.setup #welcomeBox{display:block}
+  body.setup #tab-main > .sect:not(#welcomeBox){display:none}
+  .setup-p{font-size:12.5px;color:var(--txt-mut);line-height:1.5;margin:0 0 11px}
+  .setup-steps{margin:0 0 11px;padding-left:20px;font-size:12.5px;line-height:1.7;color:var(--txt)}
+  .setup-url{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--accent);
+    background:var(--surface);border:1px solid var(--stroke);border-radius:7px;padding:6px 10px;
+    margin-bottom:11px;user-select:text;-webkit-user-select:text;cursor:text}
+  .setup-note{font-size:11.5px;color:var(--txt-dim);line-height:1.5;margin:0 0 6px}
 </style>
 </head>
 <body>
@@ -216,6 +228,19 @@
   </div>
 
   <div id="tab-main">
+
+  <div class="sect" id="welcomeBox">
+    <div class="eyebrow" data-i18n="setup_title"></div>
+    <p class="setup-p" data-i18n="setup_body"></p>
+    <ol class="setup-steps">
+      <li data-i18n="setup_s1"></li>
+      <li data-i18n="setup_s2"></li>
+      <li data-i18n="setup_s3"></li>
+    </ol>
+    <div class="setup-url">claude.com/claude-code</div>
+    <p class="setup-note" data-i18n="setup_remote"></p>
+    <p class="setup-note" data-i18n="setup_free"></p>
+  </div>
 
   <div class="sect">
     <div class="eyebrow"><span data-i18n="quota_title"></span> <span class="q" id="remQ"></span></div>
@@ -443,6 +468,14 @@ en:{
   notif_reset_week:"Your weekly limit is available again. Open the meter panel to stop these reminders.",
   btn_ack:"Got it",
   err_no_token:"No valid token. Use Claude Code on this PC (any prompt) or on a server from your data sources to refresh it.",
+  setup_title:"Connect Claude Code",
+  setup_body:"MichiClaude reads your Claude Code usage. To see your quota and per-project costs you need Claude Code with a Pro/Max plan (or a paid API key).",
+  setup_s1:"Install Claude Code",
+  setup_s2:"Sign in with your account",
+  setup_s3:"Use it once (any prompt), then reopen this panel",
+  setup_remote:"Already using Claude Code on a server? Add it under Data sources.",
+  setup_free:"The free claude.ai plan doesn't include Claude Code, so there'd be nothing to measure.",
+  setup_sub:"Waiting for Claude Code",
   err_expired:"Token expired. Open Claude Code (any prompt) to refresh it.",
   err_rate:m=>`API rate-limited (429). Retrying in ${m} min — your quota is not affected.`,
   err_net:"No connection to the API.",
@@ -536,6 +569,14 @@ es:{
   notif_reset_week:"Tu límite semanal ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   btn_ack:"Enterado",
   err_no_token:"Sin token vigente. Usa Claude Code en este PC (cualquier consulta) o en un servidor de tus fuentes para refrescarlo.",
+  setup_title:"Conecta Claude Code",
+  setup_body:"MichiClaude lee tu uso de Claude Code. Para ver tu cuota y los costos por proyecto necesitas Claude Code con plan Pro/Max (o una API key de pago).",
+  setup_s1:"Instala Claude Code",
+  setup_s2:"Inicia sesión con tu cuenta",
+  setup_s3:"Úsalo una vez (cualquier consulta) y reabre este panel",
+  setup_remote:"¿Ya usas Claude Code en un servidor? Agrégalo en Fuentes de datos.",
+  setup_free:"El plan gratuito de claude.ai no incluye Claude Code, así que no habría datos que medir.",
+  setup_sub:"Esperando a Claude Code",
   err_expired:"Token expirado. Abre Claude Code (cualquier consulta) para refrescarlo.",
   err_rate:m=>`La API limitó las peticiones (429). Reintento en ${m} min — tu cuota no se ve afectada.`,
   err_net:"Sin conexión con la API.",
@@ -629,6 +670,14 @@ pt:{
   notif_reset_week:"Seu limite semanal já está disponível. Abra o painel do meter para parar estes lembretes.",
   btn_ack:"Entendi",
   err_no_token:"Sem token válido. Use o Claude Code neste PC (qualquer prompt) ou em um servidor das suas fontes para renová-lo.",
+  setup_title:"Conecte o Claude Code",
+  setup_body:"O MichiClaude lê o seu uso do Claude Code. Para ver sua cota e os custos por projeto você precisa do Claude Code com plano Pro/Max (ou uma API key paga).",
+  setup_s1:"Instale o Claude Code",
+  setup_s2:"Entre com sua conta",
+  setup_s3:"Use uma vez (qualquer prompt) e reabra este painel",
+  setup_remote:"Já usa o Claude Code num servidor? Adicione em Fontes de dados.",
+  setup_free:"O plano gratuito do claude.ai não inclui o Claude Code, então não haveria dados para medir.",
+  setup_sub:"Aguardando o Claude Code",
   err_expired:"Token expirado. Abra o Claude Code (qualquer prompt) para renová-lo.",
   err_rate:m=>`API limitou as requisições (429). Nova tentativa em ${m} min — sua cota não é afetada.`,
   err_net:"Sem conexão com a API.",
@@ -722,6 +771,14 @@ fr:{
   notif_reset_week:"Votre limite hebdo est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   btn_ack:"Compris",
   err_no_token:"Aucun jeton valide. Utilisez Claude Code sur ce PC (n'importe quel prompt) ou sur un serveur de vos sources pour le renouveler.",
+  setup_title:"Connectez Claude Code",
+  setup_body:"MichiClaude lit votre utilisation de Claude Code. Pour voir votre quota et les coûts par projet, il vous faut Claude Code avec un plan Pro/Max (ou une clé API payante).",
+  setup_s1:"Installez Claude Code",
+  setup_s2:"Connectez-vous avec votre compte",
+  setup_s3:"Utilisez-le une fois (n'importe quel prompt), puis rouvrez ce panneau",
+  setup_remote:"Vous utilisez déjà Claude Code sur un serveur ? Ajoutez-le dans Sources de données.",
+  setup_free:"Le plan gratuit de claude.ai n'inclut pas Claude Code, il n'y aurait donc rien à mesurer.",
+  setup_sub:"En attente de Claude Code",
   err_expired:"Jeton expiré. Ouvrez Claude Code (n'importe quel prompt) pour le renouveler.",
   err_rate:m=>`API limitée (429). Nouvel essai dans ${m} min — votre quota n'est pas affecté.`,
   err_net:"Pas de connexion à l'API.",
@@ -815,6 +872,14 @@ de:{
   notif_reset_week:"Dein Wochenlimit ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   btn_ack:"Verstanden",
   err_no_token:"Kein gültiges Token. Nutze Claude Code auf diesem PC (beliebiger Prompt) oder auf einem Server deiner Quellen, um es zu erneuern.",
+  setup_title:"Claude Code verbinden",
+  setup_body:"MichiClaude liest deine Claude-Code-Nutzung. Um Kontingent und Kosten pro Projekt zu sehen, brauchst du Claude Code mit Pro/Max-Plan (oder einen kostenpflichtigen API-Schlüssel).",
+  setup_s1:"Claude Code installieren",
+  setup_s2:"Mit deinem Konto anmelden",
+  setup_s3:"Einmal nutzen (beliebiger Prompt), dann dieses Panel neu öffnen",
+  setup_remote:"Nutzt du Claude Code bereits auf einem Server? Füge ihn unter Datenquellen hinzu.",
+  setup_free:"Der kostenlose claude.ai-Plan enthält kein Claude Code, es gäbe also nichts zu messen.",
+  setup_sub:"Warte auf Claude Code",
   err_expired:"Token abgelaufen. Öffne Claude Code (beliebiger Prompt), um es zu erneuern.",
   err_rate:m=>`API drosselt Anfragen (429). Neuer Versuch in ${m} Min — dein Kontingent ist nicht betroffen.`,
   err_net:"Keine Verbindung zur API.",
@@ -908,6 +973,14 @@ ja:{
   notif_reset_week:"週間上限が再び利用可能になりました。パネルを開くと通知が止まります。",
   btn_ack:"確認",
   err_no_token:"有効なトークンがありません。このPCで Claude Code を使うか（任意のプロンプト）、データソースのサーバーで使って更新してください。",
+  setup_title:"Claude Code を接続",
+  setup_body:"MichiClaude は Claude Code の使用状況を読み取ります。クォータやプロジェクト別コストを見るには、Pro/Max プラン（または有料 API キー）の Claude Code が必要です。",
+  setup_s1:"Claude Code をインストール",
+  setup_s2:"アカウントでサインイン",
+  setup_s3:"一度使ってから（任意のプロンプト）このパネルを再度開く",
+  setup_remote:"すでにサーバーで Claude Code を使っていますか？「データソース」で追加してください。",
+  setup_free:"無料の claude.ai プランには Claude Code が含まれないため、計測するデータがありません。",
+  setup_sub:"Claude Code を待機中",
   err_expired:"トークンの期限切れ。Claude Code を開いて（任意のプロンプト）更新してください。",
   err_rate:m=>`API がレート制限中 (429)。${m}分後に再試行 — クォータには影響しません。`,
   err_net:"API に接続できません。",
@@ -1001,6 +1074,14 @@ ko:{
   notif_reset_week:"주간 한도를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   btn_ack:"확인",
   err_no_token:"유효한 토큰이 없습니다. 이 PC에서 Claude Code를 사용하거나(아무 프롬프트) 데이터 소스의 서버에서 사용해 갱신하세요.",
+  setup_title:"Claude Code 연결",
+  setup_body:"MichiClaude는 Claude Code 사용량을 읽습니다. 쿼터와 프로젝트별 비용을 보려면 Pro/Max 요금제(또는 유료 API 키)의 Claude Code가 필요합니다.",
+  setup_s1:"Claude Code 설치",
+  setup_s2:"계정으로 로그인",
+  setup_s3:"한 번 사용한 뒤(아무 프롬프트) 이 패널을 다시 열기",
+  setup_remote:"이미 서버에서 Claude Code를 쓰고 있나요? '데이터 소스'에서 추가하세요.",
+  setup_free:"무료 claude.ai 요금제에는 Claude Code가 없어 측정할 데이터가 없습니다.",
+  setup_sub:"Claude Code 대기 중",
   err_expired:"토큰이 만료되었습니다. Claude Code를 열어(아무 프롬프트) 갱신하세요.",
   err_rate:m=>`API 요청 제한 (429). ${m}분 후 재시도 — 쿼터에는 영향이 없습니다.`,
   err_net:"API에 연결할 수 없습니다.",
@@ -1094,6 +1175,14 @@ zh:{
   notif_reset_week:"你的每周额度已恢复可用。打开面板即可停止提醒。",
   btn_ack:"知道了",
   err_no_token:"没有有效令牌。请在本机使用 Claude Code（任意提问），或在数据源中的服务器上使用以刷新。",
+  setup_title:"连接 Claude Code",
+  setup_body:"MichiClaude 读取你的 Claude Code 使用情况。要查看配额和各项目成本，需要 Pro/Max 套餐（或付费 API 密钥）的 Claude Code。",
+  setup_s1:"安装 Claude Code",
+  setup_s2:"用你的账户登录",
+  setup_s3:"使用一次（任意提问），然后重新打开此面板",
+  setup_remote:"已在服务器上使用 Claude Code？在“数据源”中添加它。",
+  setup_free:"claude.ai 免费套餐不包含 Claude Code，因此没有可测量的数据。",
+  setup_sub:"等待 Claude Code",
   err_expired:"令牌已过期。打开 Claude Code（任意提问）以刷新。",
   err_rate:m=>`API 限流 (429)。${m}分钟后重试 — 你的配额不受影响。`,
   err_net:"无法连接 API。",
@@ -1653,6 +1742,15 @@ async function refresh(){
       onQuotaFail(quota.reason);
     }
     if(local.status==="fulfilled") renderLocal(local.value);
+    // Modo setup: sin token vigente Y sin ningún proyecto local = no hay
+    // Claude Code en juego (usuario gratuito, o aún sin iniciar sesión, o
+    // sin fuentes remotas). Mostramos la bienvenida en vez del gauge vacío.
+    // Con datos locales (Claude Code sí, solo token vencido) NO se activa.
+    const noToken = quota.status==="rejected" && String(quota.reason).startsWith("ERR_NO_TOKEN");
+    const hasLocal = local.status==="fulfilled" && local.value.projects && local.value.projects.length>0;
+    const setup = noToken && !hasLocal;
+    document.body.classList.toggle("setup", setup);
+    if(setup){ $("liveDot").classList.remove("err"); $("syncTxt").textContent=t("setup_sub"); }
   }catch(e){ onQuotaFail(e); }
   finally{ processAcks(); scheduleNext(); }
 }
@@ -1663,7 +1761,7 @@ function scheduleNext(){
     : fails>0 ? Math.min(60000, 5000*2**(fails-1)) : REFRESH_MS;
   clearTimeout(refreshTimer); refreshTimer=setTimeout(refresh, delay);
 }
-setInterval(()=>{ if(!$("liveDot").classList.contains("err"))
+setInterval(()=>{ if(!$("liveDot").classList.contains("err") && !document.body.classList.contains("setup"))
   $("syncTxt").textContent=t("live_ago", Math.round((Date.now()-lastSync)/1000)); },1000);
 
 // arrastrar la ventana desde el encabezado (ventana sin decoraciones)
