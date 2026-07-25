@@ -227,6 +227,28 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       VS Code SSH): exportador + fusión implementados y el script probado
       contra los logs reales del VPS. FALTA: crear remotes.json en Windows y
       verificar en vivo la fusión (proyectos "· vps").
+- [x] PULIDO Windows ronda 1 (2026-07-24/25, validado por Oscar): barrido de
+      mayúsculas/gramática en TODAS las cadenas visibles de los 8 idiomas
+      (JA/KO/ZH sin caja); nota de Fuentes de datos como lista con viñetas;
+      formulario de servidores con etiquetas+pistas y lista con pastilla de
+      estado, chip contador, icono de bote y CONFIRMACIÓN en dos pasos al
+      eliminar; pantalla de bienvenida adaptativa (setup sin Claude Code /
+      banner Token vencido con datos); "Diseño de la pastilla" (coral)
+      ELIMINADO a petición de Oscar; arte del gatito y sticker en variantes
+      -black/-white según tema (geometría verificada idéntica al recorte
+      CSS); sticker translúcido al 40% con hover a 100%; el tag del plan
+      confirmado como dinámico-con-respaldo (el endpoint NO envía el plan —
+      verificado con quota_debug.json real de Oscar; los campos con nombres
+      en clave tipo iguana_necktie confirman API interna inestable).
+      Experimento revertido: apagar el texto turquesa de la pantalla en los
+      gifs oscuros vía parche de paleta (funcionó, pero a Oscar no le
+      convenció el resultado — el parche queda documentado en el historial
+      af16d6d por si se retoma con otra mezcla).
+- [ ] Micro-pendientes de pulido: quitar los backticks de \`claude\` en el
+      banner "Token vencido"; nota sobre subagentes en README/tooltip (el
+      costo local puede subestimar con agentes — limitación compartida con
+      ccusage, cuota no afectada); capturas para el README; idea cancelada
+      2026-07-25: placa translúcida tras el sticker en tema oscuro.
 - [ ] USABILIDAD fuente remota (detectado 2026-07-24): el campo "comando" del
       formulario de servidores viene por defecto con la ruta PERSONAL de Oscar
       (`python3 /opt/projects/michiclaude/scripts/meter-export.py`), que no
