@@ -732,8 +732,6 @@ pub fn run() {
             get_pill_visible,
             get_pill_style,
             set_pill_style,
-            get_pill_design,
-            set_pill_design,
             get_pill_layer,
             set_pill_layer,
             hover_card,
@@ -864,9 +862,6 @@ struct PillConfig {
     // "plain" (solo pastilla) o "cat" (gatito animado encima de la pastilla).
     #[serde(default)]
     style: String,
-    // "classic" (pastilla original) o "coral" (rediseño con tarjeta al hover).
-    #[serde(default)]
-    design: String,
     // capa en pantalla: "top" (siempre al frente, default) | "normal" |
     // "bottom" (pegado al fondo del escritorio, estilo Rainmeter).
     #[serde(default)]
@@ -1091,19 +1086,6 @@ fn set_pill_layer(app: tauri::AppHandle, layer: String) {
     };
     save_pill_config(&cfg);
     reassert_layers(&app);
-}
-
-#[tauri::command]
-fn get_pill_design() -> String {
-    let d = load_pill_config().design;
-    if d == "coral" { "coral".into() } else { "classic".into() }
-}
-
-#[tauri::command]
-fn set_pill_design(design: String) {
-    let mut cfg = load_pill_config();
-    cfg.design = if design == "coral" { "coral".into() } else { "classic".into() };
-    save_pill_config(&cfg);
 }
 
 fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {

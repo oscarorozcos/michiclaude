@@ -98,13 +98,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   posición en `pill_config.json`; se activa desde ⚙ Preferencias o el menú
   del tray ("Floating widget"). NUNCA llama al endpoint: el panel le emite
   `quota:update` (con tema y tooltip localizados) y la pill pide el último
-  dato con `pill:ready` al cargar. Diseño elegible en Preferencias
-  (`pillDesign`): "classic" o "coral" (tokens Grafito/Papel, barras en
-  acento coral).
+  dato con `pill:ready` al cargar. (El "diseño coral" alternativo se
+  eliminó el 2026-07-25 a petición de Oscar: solo existe el diseño
+  original de pastilla y el gatito.)
 - **Widget gatito** (estilo `cat` en `PillConfig.style`, elegible en
   Preferencias; validado en vivo 2026-07-22): el gato Bongo SUSTITUYE a la
   pastilla (nunca conviven). Cuatro ventanas fijas: `cat` (gif animado +
-  cápsula "Sesión X%" sobre la cabeza + botón sticker.png en la pantalla
+  cápsula "Sesión X%" sobre la cabeza + botón sticker-*.png en la pantalla
   que abre el panel), `card` (globo cómic de información al hover, con
   buckets semanales extra DINÁMICOS — Fable, futuros), `notif` (globo de
   alarma persistente con ✕) y la pastilla oculta. Estados del gif según
@@ -112,7 +112,8 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   se calma al abrir el panel o cerrar el globo) / cat-zzz (semana al 100%,
   hasta el reset). En modo gatito las alarmas de % NO van a toast de
   Windows: salen como globo `notif` (los demás avisos y la pastilla normal
-  siguen con toasts). Los gifs (800², transparentes) se recortan por CSS
+  siguen con toasts). Los gifs (800², transparentes, en variantes -black/-white
+  elegidas según el tema, igual que el sticker) se recortan por CSS
   (unión visible x[39,748] y[0,530] medida con decodificador propio) — NO
   editar los archivos. `place_balloon()` coloca los globos con pose
   automática (arriba/abajo según espacio en el monitor ACTUAL del gato,

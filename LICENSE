@@ -686,15 +686,15 @@ option) any later version. See the full text above.
 
 ASSETS EXCEPTION / EXCEPCIÓN DE ASSETS
 
-The mascot image files (src/cat.gif, src/cat-fire.gif, src/cat-zzz.gif and
-src/sticker.png) are fan-art derived from the "Bongo Cat" meme (original cat
+The mascot image files (the src/cat*.gif animations and src/sticker*.png,
+in dark/light theme variants) are fan-art derived from the "Bongo Cat" meme (original cat
 artwork by @StrayRogue, meme animation by @DitzyFlama). They are NOT covered
 by the GNU GPL license above and are included solely as part of this
 application. All rights to the underlying character remain with their
 respective authors.
 
-Los archivos de imagen de la mascota (src/cat.gif, src/cat-fire.gif,
-src/cat-zzz.gif y src/sticker.png) son fan-art derivado del meme "Bongo Cat"
+Los archivos de imagen de la mascota (las animaciones src/cat*.gif y
+src/sticker*.png, en variantes de tema claro/oscuro) son fan-art derivado del meme "Bongo Cat"
 (arte original del gato de @StrayRogue, animación del meme de @DitzyFlama).
 NO están cubiertos por la licencia GNU GPL anterior y se incluyen únicamente
 como parte de esta aplicación. Todos los derechos sobre el personaje

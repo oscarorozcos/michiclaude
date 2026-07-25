@@ -314,7 +314,7 @@ si distribuyes una versión modificada, debe seguir siendo open source bajo
 esta misma licencia y conservar los créditos. © 2026 Oscar Orozco.
 
 **Excepción**: los gifs de la mascota y el sticker (`src/cat*.gif`,
-`src/sticker.png`) son **fan-art derivado del meme Bongo Cat** (arte
+`src/sticker*.png`) son **fan-art derivado del meme Bongo Cat** (arte
 original de [@StrayRogue](https://twitter.com/StrayRogue), meme de
 [@DitzyFlama](https://twitter.com/DitzyFlama)). **No** están cubiertos por
 la GPL; se incluyen solo como parte de la app y los derechos del personaje

@@ -26,8 +26,8 @@
   .cat{position:absolute;width:112.7%;height:150.7%;left:-5.5%;top:0;
     display:block;-webkit-user-drag:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
   /* Retícula de la maqueta 304x219 de Oscar, escalada x0.691 a 210x157. */
-  /* sticker (src/sticker.png) centrado en la pantalla de la laptop; sigue
-     siendo el botón que abre el panel */
+  /* sticker (sticker-black/white.png según tema) centrado en la pantalla
+     de la laptop; sigue siendo el botón que abre el panel */
   .logo{position:absolute;left:22.7%;top:58.5%;width:24px;height:24px;
     border:0;background:transparent;padding:0;cursor:pointer;z-index:3;
     filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
@@ -49,8 +49,8 @@
 </style>
 </head>
 <body>
-<img class="cat" id="cat" src="cat.gif" alt="" draggable="false">
-<button class="logo" id="logo"><img src="sticker.png" alt="" draggable="false"></button>
+<img class="cat" id="cat" src="cat-black.gif" alt="" draggable="false">
+<button class="logo" id="logo"><img id="logoImg" src="sticker-black.png" alt="" draggable="false"></button>
 <div class="plabel"><span class="lab" id="chipLab">session</span><b id="chipPct">—</b></div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
@@ -59,7 +59,18 @@ const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
-const GIF={normal:"cat.gif",fire:"cat-fire.gif",zzz:"cat-zzz.gif"};
+// arte por TEMA: oscuro → *-black, claro → *-white (gifs y sticker)
+let curTheme="dark", curMascot="normal";
+function catSrc(){
+  const base = curMascot==="fire" ? "cat-fire" : curMascot==="zzz" ? "cat-zzz" : "cat";
+  return base + (curTheme==="light" ? "-white.gif" : "-black.gif");
+}
+function stickerSrc(){ return curTheme==="light" ? "sticker-white.png" : "sticker-black.png"; }
+function syncArt(){
+  const g=catSrc(); if($("cat").getAttribute("src")!==g) $("cat").setAttribute("src",g);
+  const st=stickerSrc(); const im=$("logoImg");
+  if(im && im.getAttribute("src")!==st) im.setAttribute("src",st);
+}
 
 // mismo código de color de estado que el panel (para el % del chip)
 function col(p,pace){ if(p>=95) return "var(--bad)";
@@ -71,8 +82,9 @@ function apply(d){
   // "Sesión" con mayúscula en la cápsula (misma etiqueta que el globo)
   if(d.labels) $("chipLab").textContent=d.labels.cardSes||d.labels.ses||"Session";
   // sin title/tooltip nativo: la info completa vive en el globo del hover
-  if(d.mascot){ const g=GIF[d.mascot]||"cat.gif";
-    if($("cat").getAttribute("src")!==g) $("cat").setAttribute("src",g); }
+  if(d.theme) curTheme = d.theme==="light" ? "light" : "dark";
+  if(d.mascot) curMascot = d.mascot;
+  syncArt();
   if(d.ok===false) return;                 // conserva el último % bueno
   const s=d.session;
   $("chipPct").textContent = s ? Math.round(s.pct)+"%" : "—";

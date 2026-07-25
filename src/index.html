@@ -53,7 +53,7 @@
   .p-head .mark{width:22px;height:22px;flex:0 0 auto}
   .p-htext{min-width:0;flex:1 1 auto}
   .p-title{font-size:13.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .p-sub{font-size:11px;color:var(--txt-dim);font-family:var(--mono);margin-top:1px;
+  .p-sub{font-size:11px;color:var(--txt-dim);font-family:var(--mono);margin-top:4px;
     display:flex;align-items:center;gap:6px;transition:opacity .2s;
     min-width:0;white-space:normal;overflow-wrap:anywhere}
   .p-sub #syncTxt{min-width:0;overflow-wrap:anywhere}
@@ -235,6 +235,13 @@
   .spill.bad i{background:var(--bad)}
   .spill.wait{background:var(--surface);color:var(--txt-dim)}
   .spill.wait i{background:var(--txt-dim)}
+  .del-btn{border:0;background:transparent;color:var(--txt-dim);width:28px;height:28px;
+    display:grid;place-items:center;border-radius:7px;cursor:pointer;transition:.15s}
+  .del-btn:hover{background:rgba(240,90,65,.12);color:var(--bad)}
+  .del-btn.arm{width:auto;padding:0 9px;background:rgba(240,90,65,.15);color:var(--bad);
+    font-size:10.5px;font-weight:700}
+  #srvCount{background:var(--surface);border:1px solid var(--stroke);border-radius:20px;
+    padding:2px 9px;font-size:10px}
 </style>
 </head>
 <body>
@@ -383,13 +390,6 @@
           <option value="cat" data-i18n="pill_style_cat"></option>
         </select>
       </div>
-      <div class="cfg-row" id="pillDesignRow" style="margin-top:2px">
-        <span data-i18n="pill_design_label"></span>
-        <select id="pillDesignSel">
-          <option value="classic" data-i18n="pill_design_classic"></option>
-          <option value="coral" data-i18n="pill_design_coral"></option>
-        </select>
-      </div>
       <div class="cfg-row" id="pillLayerRow" style="margin-top:2px">
         <span data-i18n="pill_layer_label"></span>
         <select id="pillLayerSel">
@@ -486,6 +486,7 @@ en:{
   hint_cmd:"Path to scripts/meter-export.py copied onto your server.",
   srv_saved_title:"Saved servers",
   srv_count:n=>n===1?"1 saved":`${n} saved`,
+  confirm_delete:"Delete?",
   remove_server:"Remove this server",
   hide_title:"Hide to tray",
   cfg_title:"Data sources (SSH servers)",
@@ -512,9 +513,6 @@ en:{
   pill_style_label:"Widget style",
   pill_style_plain:"Pill",
   pill_style_cat:"Cat with laptop 🐱",
-  pill_design_label:"Pill design",
-  pill_design_classic:"Classic",
-  pill_design_coral:"Coral card",
   pill_ses:"session", pill_week:"week",
   card_ses:"Session", card_week:"Weekly",
   pill_layer_label:"On-screen position",
@@ -597,6 +595,7 @@ es:{
   hint_cmd:"Ruta de scripts/meter-export.py copiado en tu servidor.",
   srv_saved_title:"Servidores guardados",
   srv_count:n=>n===1?"1 guardado":`${n} guardados`,
+  confirm_delete:"¿Eliminar?",
   remove_server:"Quitar este servidor",
   hide_title:"Ocultar a la bandeja",
   cfg_title:"Fuentes de datos (servidores SSH)",
@@ -623,9 +622,6 @@ es:{
   pill_style_label:"Estilo del widget",
   pill_style_plain:"Pastilla",
   pill_style_cat:"Gatito con laptop 🐱",
-  pill_design_label:"Diseño de la pastilla",
-  pill_design_classic:"Clásico",
-  pill_design_coral:"Tarjeta coral",
   pill_ses:"sesión", pill_week:"semana",
   card_ses:"Sesión", card_week:"Semanal",
   pill_layer_label:"Posición en pantalla",
@@ -708,6 +704,7 @@ pt:{
   hint_cmd:"Caminho do scripts/meter-export.py copiado no seu servidor.",
   srv_saved_title:"Servidores salvos",
   srv_count:n=>n===1?"1 salvo":`${n} salvos`,
+  confirm_delete:"Excluir?",
   remove_server:"Remover este servidor",
   hide_title:"Ocultar na bandeja",
   cfg_title:"Fontes de dados (servidores SSH)",
@@ -734,9 +731,6 @@ pt:{
   pill_style_label:"Estilo do widget",
   pill_style_plain:"Pílula",
   pill_style_cat:"Gatinho com laptop 🐱",
-  pill_design_label:"Design da pílula",
-  pill_design_classic:"Clássico",
-  pill_design_coral:"Cartão coral",
   pill_ses:"sessão", pill_week:"semana",
   card_ses:"Sessão", card_week:"Semanal",
   pill_layer_label:"Posição na tela",
@@ -819,6 +813,7 @@ fr:{
   hint_cmd:"Chemin de scripts/meter-export.py copié sur votre serveur.",
   srv_saved_title:"Serveurs enregistrés",
   srv_count:n=>n===1?"1 enregistré":`${n} enregistrés`,
+  confirm_delete:"Supprimer ?",
   remove_server:"Retirer ce serveur",
   hide_title:"Masquer dans la barre",
   cfg_title:"Sources de données (serveurs SSH)",
@@ -845,9 +840,6 @@ fr:{
   pill_style_label:"Style du widget",
   pill_style_plain:"Pastille",
   pill_style_cat:"Chat avec ordi 🐱",
-  pill_design_label:"Design de la pastille",
-  pill_design_classic:"Classique",
-  pill_design_coral:"Carte corail",
   pill_ses:"session", pill_week:"semaine",
   card_ses:"Session", card_week:"Hebdo",
   pill_layer_label:"Position à l'écran",
@@ -930,6 +922,7 @@ de:{
   hint_cmd:"Pfad zu scripts/meter-export.py auf deinem Server.",
   srv_saved_title:"Gespeicherte Server",
   srv_count:n=>`${n} gespeichert`,
+  confirm_delete:"Löschen?",
   remove_server:"Diesen Server entfernen",
   hide_title:"In die Taskleiste minimieren",
   cfg_title:"Datenquellen (SSH-Server)",
@@ -956,9 +949,6 @@ de:{
   pill_style_label:"Widget-Stil",
   pill_style_plain:"Pille",
   pill_style_cat:"Katze mit Laptop 🐱",
-  pill_design_label:"Widget-Design",
-  pill_design_classic:"Klassisch",
-  pill_design_coral:"Korallen-Karte",
   pill_ses:"Sitzung", pill_week:"Woche",
   card_ses:"Sitzung", card_week:"Woche",
   pill_layer_label:"Bildschirmposition",
@@ -1041,6 +1031,7 @@ ja:{
   hint_cmd:"サーバーにコピーした scripts/meter-export.py のパス。",
   srv_saved_title:"保存済みサーバー",
   srv_count:n=>`${n} 件`,
+  confirm_delete:"削除する？",
   remove_server:"このサーバーを削除",
   hide_title:"トレイに隠す",
   cfg_title:"データソース（SSH サーバー）",
@@ -1067,9 +1058,6 @@ ja:{
   pill_style_label:"ウィジェットのスタイル",
   pill_style_plain:"ピル",
   pill_style_cat:"ノートPCの猫 🐱",
-  pill_design_label:"ピルのデザイン",
-  pill_design_classic:"クラシック",
-  pill_design_coral:"コーラルカード",
   pill_ses:"セッション", pill_week:"週",
   card_ses:"セッション", card_week:"週間",
   pill_layer_label:"画面上の位置",
@@ -1152,6 +1140,7 @@ ko:{
   hint_cmd:"서버에 복사한 scripts/meter-export.py 경로.",
   srv_saved_title:"저장된 서버",
   srv_count:n=>`${n}개`,
+  confirm_delete:"삭제할까요?",
   remove_server:"이 서버 제거",
   hide_title:"트레이로 숨기기",
   cfg_title:"데이터 소스 (SSH 서버)",
@@ -1178,9 +1167,6 @@ ko:{
   pill_style_label:"위젯 스타일",
   pill_style_plain:"알약",
   pill_style_cat:"노트북 고양이 🐱",
-  pill_design_label:"알약 디자인",
-  pill_design_classic:"클래식",
-  pill_design_coral:"코럴 카드",
   pill_ses:"세션", pill_week:"주",
   card_ses:"세션", card_week:"주간",
   pill_layer_label:"화면 위치",
@@ -1263,6 +1249,7 @@ zh:{
   hint_cmd:"已复制到服务器上的 scripts/meter-export.py 路径。",
   srv_saved_title:"已保存的服务器",
   srv_count:n=>`${n} 个`,
+  confirm_delete:"确定删除？",
   remove_server:"移除此服务器",
   hide_title:"隐藏到托盘",
   cfg_title:"数据源（SSH 服务器）",
@@ -1289,9 +1276,6 @@ zh:{
   pill_style_label:"小组件样式",
   pill_style_plain:"药丸",
   pill_style_cat:"笔记本小猫 🐱",
-  pill_design_label:"药丸设计",
-  pill_design_classic:"经典",
-  pill_design_coral:"珊瑚卡片",
   pill_ses:"会话", pill_week:"周",
   card_ses:"会话", card_week:"每周",
   pill_layer_label:"屏幕位置",
@@ -1383,7 +1367,6 @@ let lastQuotaData=null, lastLocalData=null;   // caché para re-render al cambia
 // ---------- widget flotante: el panel es el ÚNICO que consulta; el widget escucha ----------
 let lastPill=null;
 function getPillStyle(){ return localStorage.getItem("pillStyle")==="cat"?"cat":"plain"; }
-function getPillDesign(){ return localStorage.getItem("pillDesign")==="coral"?"coral":"classic"; }
 function pillLabels(){
   return {ses:t("pill_ses"), week:t("pill_week"), cardSes:t("card_ses"), cardWeek:t("card_week")};
 }
@@ -1401,7 +1384,7 @@ function emitPill(ses, wk, extras){
   const weekPct = wk ? wk.pct : null;
   lastPill={ok:!!ses, session:ses, weekly:wk?{pct:wk.pct}:null,
     theme:document.body.classList.contains("light")?"light":"dark",
-    style:getPillStyle(), design:getPillDesign(), mascot:mascotState(ses,weekPct),
+    style:getPillStyle(), mascot:mascotState(ses,weekPct),
     labels:pillLabels(),
     sesReset: ses&&ses.resets?fmtReset(ses.resets):"",
     wkReset: wk&&wk.resets?fmtReset(wk.resets):"",
@@ -1939,6 +1922,7 @@ async function loadRemotes(){
   try{ remotes=await invoke("get_remotes"); }catch(e){ remotes=[]; }
   renderRemotes();
 }
+const TRASH='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>';
 function renderRemotes(){
   $("srvCount").textContent = t("srv_count", remotes.length);
   $("remList").innerHTML = remotes.map((r,i)=>`
@@ -1948,11 +1932,19 @@ function renderRemotes(){
         <div class="srv-meta" title="${escapeHtml(r.host)} · ${escapeHtml(r.command||"")}">${escapeHtml(r.host)} · ${escapeHtml(r.command||"")}</div>
       </div>
       <span class="spill wait" id="rstat-${i}"><i></i>…</span>
-      <button class="xbtn" data-i="${i}" title="${escapeHtml(t("remove_server"))}">✕</button>
+      <button class="del-btn" data-i="${i}" title="${escapeHtml(t("remove_server"))}">${TRASH}</button>
     </div>`).join("")
     || `<div class="errbox" style="color:var(--txt-dim)">${t("no_servers")}</div>`;
-  document.querySelectorAll("#remList .xbtn").forEach(b=>{
+  document.querySelectorAll("#remList .del-btn").forEach(b=>{
     b.onclick=async()=>{
+      // confirmación en dos pasos: el primer clic pregunta, el segundo
+      // elimina; si no confirmas en 4 s, el botón vuelve a la normalidad
+      if(!b.classList.contains("arm")){
+        b.classList.add("arm"); b.textContent=t("confirm_delete");
+        b._t=setTimeout(()=>{ b.classList.remove("arm"); b.innerHTML=TRASH; },4000);
+        return;
+      }
+      clearTimeout(b._t);
       remotes.splice(+b.dataset.i,1);
       try{ await invoke("save_remotes",{remotes}); }catch(e){}
       renderRemotes(); refresh();
@@ -2026,17 +2018,6 @@ $("pillStyleSel").addEventListener("change",()=>{
   invoke?.("set_pill_style",{style:st});
   if(lastPill){ lastPill.style=st; EVENT?.emit("quota:update",lastPill); }
   processAcks();   // re-enruta al instante la alarma pendiente (globo/toast)
-});
-// Diseño de la pastilla (clásico / tarjeta coral): el backend guarda la
-// preferencia (la lee pill.html al cargar) y el panel reemite el último dato.
-$("pillDesignSel").value=getPillDesign();
-if(invoke){ invoke("get_pill_design").then(dsn=>{ const d=(dsn==="coral")?"coral":"classic";
-  localStorage.setItem("pillDesign",d); $("pillDesignSel").value=d; }).catch(()=>{}); }
-$("pillDesignSel").addEventListener("change",()=>{
-  const d=$("pillDesignSel").value==="coral"?"coral":"classic";
-  localStorage.setItem("pillDesign",d);
-  invoke?.("set_pill_design",{design:d});
-  if(lastPill){ lastPill.design=d; lastPill.labels=pillLabels(); EVENT?.emit("quota:update",lastPill); }
 });
 // Capa en pantalla (al frente / normal / fondo del escritorio)
 if(invoke){ invoke("get_pill_layer").then(l=>{ $("pillLayerSel").value=l; }).catch(()=>{}); }
