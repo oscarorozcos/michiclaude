@@ -211,6 +211,30 @@
     background:var(--surface);border:1px solid var(--stroke);border-radius:7px;padding:6px 10px;
     margin-bottom:11px;user-select:text;-webkit-user-select:text;cursor:text}
   .setup-note{font-size:11.5px;color:var(--txt-dim);line-height:1.5;margin:0 0 6px}
+
+  /* fuentes de datos: nota en lista + formulario etiquetado + filas de servidores */
+  .src-list{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:5px}
+  .src-list li{line-height:1.45}
+  .fld{display:flex;flex-direction:column;gap:4px}
+  .fld label{font-size:11.5px;font-weight:600}
+  .fhint{font-size:10.5px;color:var(--txt-dim);line-height:1.4}
+  .cfg-form input.mono{font-family:var(--mono);font-size:11.5px}
+  .cfg-form button:disabled{opacity:.5;cursor:default}
+  .srv-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;
+    padding:8px 0;border-bottom:1px solid var(--stroke-soft)}
+  .srv-row:last-child{border-bottom:0}
+  .srv-name{font-size:12.5px;font-weight:650}
+  .srv-meta{font-family:var(--mono);font-size:10.5px;color:var(--txt-dim);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .spill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;
+    padding:2px 8px;border-radius:20px;white-space:nowrap}
+  .spill i{width:6px;height:6px;border-radius:50%;font-style:normal}
+  .spill.ok{background:rgba(64,184,105,.14);color:var(--ok)}
+  .spill.ok i{background:var(--ok)}
+  .spill.bad{background:rgba(240,90,65,.12);color:var(--bad)}
+  .spill.bad i{background:var(--bad)}
+  .spill.wait{background:var(--surface);color:var(--txt-dim)}
+  .spill.wait i{background:var(--txt-dim)}
 </style>
 </head>
 <body>
@@ -303,16 +327,34 @@
   <div id="tab-sources" hidden>
   <div class="sect" id="cfgSect">
     <div class="cfg-note" data-i18n-html="cfg_note"></div>
-    <div class="plist" id="remList"></div>
+  </div>
+  <div class="sect">
+    <div class="eyebrow" data-i18n="srv_add_title"></div>
     <div class="cfg-form">
-      <input id="rName" data-i18n-ph="ph_name">
-      <input id="rHost" data-i18n-ph="ph_host">
-      <input id="rCmd" value="python3 /opt/projects/michiclaude/scripts/meter-export.py">
-      <button id="rAdd" data-i18n="btn_test"></button>
-      <span id="rMsg"></span>
+      <div class="fld">
+        <label for="rName" data-i18n="lbl_name"></label>
+        <input id="rName" data-i18n-ph="ph_name">
+        <div class="fhint" data-i18n="hint_name"></div>
+      </div>
+      <div class="fld">
+        <label for="rHost" data-i18n="lbl_host"></label>
+        <input id="rHost" class="mono" data-i18n-ph="ph_host">
+      </div>
+      <div class="fld">
+        <label for="rCmd" data-i18n="lbl_cmd"></label>
+        <input id="rCmd" class="mono" value="python3 /opt/projects/michiclaude/scripts/meter-export.py">
+        <div class="fhint" data-i18n="hint_cmd"></div>
+      </div>
+      <div class="btnrow">
+        <button id="rAdd" data-i18n="btn_test"></button>
+        <span id="rMsg"></span>
+      </div>
     </div>
   </div>
-
+  <div class="sect">
+    <div class="eyebrow"><span data-i18n="srv_saved_title"></span> <span class="q" id="srvCount"></span></div>
+    <div id="remList"></div>
+  </div>
   </div><!-- /tab-sources -->
 
   <div id="tab-prefs" hidden>
@@ -393,49 +435,57 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>(
 // ---------- i18n (default: English; Spanish included) ----------
 const I18N={
 en:{
-  connecting:"connecting…",
-  live_ago:s=>`live · updated ${s}s ago`,
+  connecting:"Connecting…",
+  live_ago:s=>`Live · updated ${s}s ago`,
   quota_title:"How much you have left",
   session_cap:"SESSION · 5 H",
-  reset_now:"resets now",
-  reset_in:(h,m)=>h?`resets in ${h} h ${m} min`:`resets in ${m} min`,
-  on_track:"on track",
-  ahead_clock:"you're outpacing the clock",
+  reset_now:"Resets now",
+  reset_in:(h,m)=>h?`Resets in ${h} h ${m} min`:`Resets in ${m} min`,
+  on_track:"On track",
+  ahead_clock:"You're outpacing the clock",
   session_label:"Session · 5 h",
   weekly_all:"Weekly · all models",
   weekly_x:m=>`Weekly · ${m}`,
-  pace_ok:"pace under the clock · cruising",
-  pace_watch:"watch your pace",
+  pace_ok:"Pace under the clock · cruising",
+  pace_watch:"Watch your pace",
   no_buckets:"No weekly buckets in the response.",
   at_this_rate:"At this rate",
   proj_hit:(d,r)=>`You'll hit <b>100% of the session in ~${d}</b>, before the reset (${r}). Slow down or switch models.`,
   proj_ok_rate:"You're fine. At the current rate <b>you'll reach the reset without running out</b>.",
   proj_ahead:"Heads up: you're spending <b>faster than time is passing</b>. Slow down or you may run out before the reset.",
   proj_behind:"You're fine: you're spending <b>slower than time is passing</b>. At this pace <b>you won't hit the limit</b>.",
-  burn:r=>`current burn · ${r}%/min`,
+  burn:r=>`Current burn · ${r}%/min`,
   spend_title:"Spend by project",
   spend_q:"estimated cost",
   spend_tip:"API-equivalent value: what this usage would cost at API prices. On a subscription you don't pay per token — it's a measure of how much each project consumed.",
-  reading:"reading ~/.claude…",
+  reading:"Reading ~/.claude…",
   no_activity:"No Claude Code activity in the last 7 days.",
-  others:n=>`more projects (${n})`,
+  others:n=>`More projects (${n})`,
   claudeai_row:"claude.ai / others",
   pct_quota:p=>`${p}% quota`,
   claudeai_tip:"Estimate. claude.ai chats and usage on other devices leave no local logs on this machine. This row shows the % of your global weekly limit consumed across all surfaces; the per-project spend above only covers Claude Code here. Not converted to dollars because the endpoint does not expose the cap in $.",
   model_title:"Top model",
   model_leads:m=>`${m} leads`,
-  unknown_model:"unknown",
+  unknown_model:"Unknown",
   today:"Today", week:"Week",
   footnote:"Local data + real quota. Nothing leaves your machine except to api.anthropic.com",
   sources_title:"Data sources",
-  cfg_note:"<b>This PC</b>: automatic (Claude Code logs). · <b>claude.ai</b>: automatic via your account quota. · <b>WSL</b>: automatic — its projects show as \"name · wsl\". · <b>Servers</b>: add them here over SSH (same key you use to connect); their projects show up as \"name · server\".",
-  ph_name:"short name (e.g. vps)",
-  ph_host:"SSH host (~/.ssh/config alias or user@ip)",
+  cfg_note:"<ul class='src-list'><li><b>This PC:</b> automatic — reads the Claude Code logs on this machine.</li><li><b>claude.ai:</b> automatic, via your account's real quota.</li><li><b>WSL:</b> automatic — its projects appear as “name · wsl”.</li><li><b>Servers:</b> add them below over SSH (the same key you already connect with); their projects appear as “name · server”.</li></ul>",
+  ph_name:"vps",
+  ph_host:"user@ip · or an ~/.ssh/config alias",
   btn_test:"Test & add",
-  msg_no_host:"missing SSH host",
-  msg_testing:"testing connection…",
-  msg_added:"✓ connected & saved",
+  msg_no_host:"Missing SSH host.",
+  msg_testing:"Connecting over SSH…",
+  msg_added:"✓ Connected and saved.",
   no_servers:"No servers added.",
+  srv_add_title:"Add a server",
+  lbl_name:"Short name",
+  hint_name:"How it shows in the list, e.g. vps · server",
+  lbl_host:"SSH host",
+  lbl_cmd:"Command to run",
+  hint_cmd:"Path to scripts/meter-export.py copied onto your server.",
+  srv_saved_title:"Saved servers",
+  srv_count:n=>n===1?"1 saved":`${n} saved`,
   remove_server:"Remove this server",
   hide_title:"Hide to tray",
   cfg_title:"Data sources (SSH servers)",
@@ -446,7 +496,7 @@ en:{
   notif_lo:p=>`Session at ${p}% of your 5 h limit.`,
   tray_tip:(s,r,w)=>`Session ${s}%${r?` · ${r}`:""}${w!=null?` · Weekly ${w}%`:""}`,
   tray_no_data:"MichiClaude — no quota data",
-  demo_mode:"demo mode (no Tauri)",
+  demo_mode:"Demo mode (no Tauri)",
   src_local:"local",
   trend_title:"Daily trend",
   trend_q:"last 30 days",
@@ -456,7 +506,7 @@ en:{
   export_label:"Export data (CSV/JSON)",
   export_dir_ph:"destination folder (empty = Downloads)",
   msg_exported:p=>`✓ saved to ${p}`,
-  status_active:"active",
+  status_active:"connected",
   status_fail:"unreachable",
   pill_label:"Floating widget above the taskbar",
   pill_style_label:"Widget style",
@@ -496,49 +546,57 @@ en:{
   err_bad:"Unreadable API response."
 },
 es:{
-  connecting:"conectando…",
-  live_ago:s=>`en vivo · actualizado hace ${s}s`,
+  connecting:"Conectando…",
+  live_ago:s=>`En vivo · actualizado hace ${s}s`,
   quota_title:"Cuánto te queda",
   session_cap:"SESIÓN · 5 H",
-  reset_now:"reset ya",
-  reset_in:(h,m)=>h?`reset en ${h} h ${m} min`:`reset en ${m} min`,
-  on_track:"dentro de lo previsto",
-  ahead_clock:"vas más rápido que el reloj",
+  reset_now:"Reset ya",
+  reset_in:(h,m)=>h?`Reset en ${h} h ${m} min`:`Reset en ${m} min`,
+  on_track:"Dentro de lo previsto",
+  ahead_clock:"Vas más rápido que el reloj",
   session_label:"Sesión · 5 h",
   weekly_all:"Semanal · todos los modelos",
   weekly_x:m=>`Semanal · ${m}`,
-  pace_ok:"ritmo bajo el reloj · vas holgado",
-  pace_watch:"ojo al ritmo",
+  pace_ok:"Ritmo bajo el reloj · vas holgado",
+  pace_watch:"Ojo al ritmo",
   no_buckets:"Sin buckets semanales en la respuesta.",
   at_this_rate:"A este ritmo",
   proj_hit:(d,r)=>`Llegas al <b>100% de la sesión en ~${d}</b>, antes del reset (${r}). Baja el ritmo o cambia de modelo.`,
   proj_ok_rate:"Vas al día. Al ritmo actual <b>llegas al reset sin agotar</b> la sesión.",
   proj_ahead:"Ojo: estás gastando <b>más rápido de lo que avanza el tiempo</b>. Baja el ritmo o podrías quedarte sin cuota antes del reset.",
   proj_behind:"Vas bien: gastas <b>más lento de lo que avanza el tiempo</b>. A este ritmo <b>no llegarás al límite</b>.",
-  burn:r=>`quema actual · ${r}%/min`,
+  burn:r=>`Quema actual · ${r}%/min`,
   spend_title:"Gasto por proyecto",
   spend_q:"costo estimado",
   spend_tip:"Valor equivalente a la API: lo que este uso costaría a precios de API. Con suscripción no pagas por token — es una medida de cuánto consumió cada proyecto.",
-  reading:"leyendo ~/.claude…",
+  reading:"Leyendo ~/.claude…",
   no_activity:"Sin actividad de Claude Code en los últimos 7 días.",
-  others:n=>`más proyectos (${n})`,
+  others:n=>`Más proyectos (${n})`,
   claudeai_row:"claude.ai / otros",
   pct_quota:p=>`${p}% cuota`,
   claudeai_tip:"Estimación. Los chats de claude.ai y el uso en otros dispositivos no dejan registro local en este equipo. Esta fila muestra el % de tu límite semanal consumido en total (todas las superficies); el gasto por proyecto de arriba solo cubre Claude Code aquí. No se convierte a dólares porque el endpoint no expone el tope en $.",
   model_title:"Modelo más usado",
   model_leads:m=>`${m} lidera`,
-  unknown_model:"desconocido",
+  unknown_model:"Desconocido",
   today:"Hoy", week:"Semana",
   footnote:"Datos locales + cuota real. Nada sale de tu equipo salvo hacia api.anthropic.com",
   sources_title:"Fuentes de datos",
-  cfg_note:"<b>Este PC</b>: automático (logs de Claude Code). · <b>claude.ai</b>: automático vía la cuota de tu cuenta. · <b>WSL</b>: automático — sus proyectos salen como \"nombre · wsl\". · <b>Servidores</b>: agrégalos aquí por SSH (misma llave que usas para conectarte); sus proyectos aparecen como \"nombre · servidor\".",
-  ph_name:"nombre corto (ej. vps)",
-  ph_host:"host SSH (alias de ~/.ssh/config o usuario@ip)",
+  cfg_note:"<ul class='src-list'><li><b>Este PC:</b> automático — lee los logs de Claude Code de esta máquina.</li><li><b>claude.ai:</b> automático, vía la cuota real de tu cuenta.</li><li><b>WSL:</b> automático — sus proyectos aparecen como “nombre · wsl”.</li><li><b>Servidores:</b> agrégalos abajo por SSH (la misma llave con la que ya te conectas); sus proyectos aparecen como “nombre · servidor”.</li></ul>",
+  ph_name:"vps",
+  ph_host:"usuario@ip · o alias de ~/.ssh/config",
   btn_test:"Probar y agregar",
-  msg_no_host:"falta el host SSH",
-  msg_testing:"probando conexión…",
-  msg_added:"✓ conectado y guardado",
+  msg_no_host:"Falta el host SSH.",
+  msg_testing:"Conectando por SSH…",
+  msg_added:"✓ Conectado y guardado.",
   no_servers:"Sin servidores agregados.",
+  srv_add_title:"Agregar servidor",
+  lbl_name:"Nombre corto",
+  hint_name:"Así aparecerá en la lista: p. ej. vps · servidor",
+  lbl_host:"Host SSH",
+  lbl_cmd:"Comando a ejecutar",
+  hint_cmd:"Ruta de scripts/meter-export.py copiado en tu servidor.",
+  srv_saved_title:"Servidores guardados",
+  srv_count:n=>n===1?"1 guardado":`${n} guardados`,
   remove_server:"Quitar este servidor",
   hide_title:"Ocultar a la bandeja",
   cfg_title:"Fuentes de datos (servidores SSH)",
@@ -549,7 +607,7 @@ es:{
   notif_lo:p=>`Sesión al ${p}% de tu límite de 5 h.`,
   tray_tip:(s,r,w)=>`Sesión ${s}%${r?` · ${r}`:""}${w!=null?` · Semanal ${w}%`:""}`,
   tray_no_data:"MichiClaude — sin datos de cuota",
-  demo_mode:"modo demo (sin Tauri)",
+  demo_mode:"Modo demo (sin Tauri)",
   src_local:"local",
   trend_title:"Tendencia diaria",
   trend_q:"últimos 30 días",
@@ -559,7 +617,7 @@ es:{
   export_label:"Exportar datos (CSV/JSON)",
   export_dir_ph:"carpeta destino (vacía = Descargas)",
   msg_exported:p=>`✓ guardado en ${p}`,
-  status_active:"activo",
+  status_active:"conectado",
   status_fail:"sin conexión",
   pill_label:"Widget flotante sobre la barra de tareas",
   pill_style_label:"Estilo del widget",
@@ -599,49 +657,57 @@ es:{
   err_bad:"Respuesta de la API ilegible."
 },
 pt:{
-  connecting:"conectando…",
-  live_ago:s=>`ao vivo · atualizado há ${s}s`,
+  connecting:"Conectando…",
+  live_ago:s=>`Ao vivo · atualizado há ${s}s`,
   quota_title:"Quanto ainda resta",
   session_cap:"SESSÃO · 5 H",
-  reset_now:"reinicia agora",
-  reset_in:(h,m)=>h?`reinicia em ${h} h ${m} min`:`reinicia em ${m} min`,
-  on_track:"dentro do previsto",
-  ahead_clock:"você está à frente do relógio",
+  reset_now:"Reinicia agora",
+  reset_in:(h,m)=>h?`Reinicia em ${h} h ${m} min`:`Reinicia em ${m} min`,
+  on_track:"Dentro do previsto",
+  ahead_clock:"Você está à frente do relógio",
   session_label:"Sessão · 5 h",
   weekly_all:"Semanal · todos os modelos",
   weekly_x:m=>`Semanal · ${m}`,
-  pace_ok:"ritmo abaixo do relógio · tranquilo",
-  pace_watch:"atenção ao ritmo",
+  pace_ok:"Ritmo abaixo do relógio · tranquilo",
+  pace_watch:"Atenção ao ritmo",
   no_buckets:"Sem limites semanais na resposta.",
   at_this_rate:"Neste ritmo",
   proj_hit:(d,r)=>`Você atinge <b>100% da sessão em ~${d}</b>, antes do reinício (${r}). Diminua o ritmo ou troque de modelo.`,
   proj_ok_rate:"Tudo bem. No ritmo atual <b>você chega ao reinício sem esgotar</b>.",
   proj_ahead:"Atenção: você está gastando <b>mais rápido do que o tempo passa</b>. Diminua o ritmo ou pode ficar sem cota antes do reinício.",
   proj_behind:"Tudo bem: você gasta <b>mais devagar do que o tempo passa</b>. Nesse ritmo <b>não vai atingir o limite</b>.",
-  burn:r=>`consumo atual · ${r}%/min`,
+  burn:r=>`Consumo atual · ${r}%/min`,
   spend_title:"Gasto por projeto",
   spend_q:"custo estimado",
   spend_tip:"Valor equivalente à API: o que este uso custaria a preços de API. Com assinatura você não paga por token — é uma medida de quanto cada projeto consumiu.",
-  reading:"lendo ~/.claude…",
+  reading:"Lendo ~/.claude…",
   no_activity:"Sem atividade do Claude Code nos últimos 7 dias.",
-  others:n=>`mais projetos (${n})`,
+  others:n=>`Mais projetos (${n})`,
   claudeai_row:"claude.ai / outros",
   pct_quota:p=>`${p}% da cota`,
   claudeai_tip:"Estimativa. Os chats do claude.ai e o uso em outros dispositivos não deixam registros locais nesta máquina. Esta linha mostra o % do seu limite semanal global consumido em todas as superfícies; o gasto por projeto acima cobre apenas o Claude Code aqui. Não é convertido em dólares porque o endpoint não expõe o teto em $.",
   model_title:"Modelo mais usado",
   model_leads:m=>`${m} lidera`,
-  unknown_model:"desconhecido",
+  unknown_model:"Desconhecido",
   today:"Hoje", week:"Semana",
   footnote:"Dados locais + cota real. Nada sai da sua máquina exceto para api.anthropic.com",
   sources_title:"Fontes de dados",
-  cfg_note:"<b>Este PC</b>: automático (logs do Claude Code). · <b>claude.ai</b>: automático via a cota da sua conta. · <b>WSL</b>: automático — seus projetos aparecem como \"nome · wsl\". · <b>Servidores</b>: adicione-os aqui via SSH (mesma chave que você usa para conectar); seus projetos aparecem como \"nome · servidor\".",
-  ph_name:"nome curto (ex. vps)",
-  ph_host:"host SSH (alias de ~/.ssh/config ou user@ip)",
+  cfg_note:"<ul class='src-list'><li><b>Este PC:</b> automático — lê os logs do Claude Code desta máquina.</li><li><b>claude.ai:</b> automático, via a cota real da sua conta.</li><li><b>WSL:</b> automático — seus projetos aparecem como “nome · wsl”.</li><li><b>Servidores:</b> adicione-os abaixo via SSH (a mesma chave que você já usa para conectar); seus projetos aparecem como “nome · servidor”.</li></ul>",
+  ph_name:"vps",
+  ph_host:"user@ip · ou alias de ~/.ssh/config",
   btn_test:"Testar e adicionar",
-  msg_no_host:"falta o host SSH",
-  msg_testing:"testando conexão…",
-  msg_added:"✓ conectado e salvo",
+  msg_no_host:"Falta o host SSH.",
+  msg_testing:"Conectando via SSH…",
+  msg_added:"✓ Conectado e salvo.",
   no_servers:"Nenhum servidor adicionado.",
+  srv_add_title:"Adicionar servidor",
+  lbl_name:"Nome curto",
+  hint_name:"Como aparecerá na lista: ex. vps · servidor",
+  lbl_host:"Host SSH",
+  lbl_cmd:"Comando a executar",
+  hint_cmd:"Caminho do scripts/meter-export.py copiado no seu servidor.",
+  srv_saved_title:"Servidores salvos",
+  srv_count:n=>n===1?"1 salvo":`${n} salvos`,
   remove_server:"Remover este servidor",
   hide_title:"Ocultar na bandeja",
   cfg_title:"Fontes de dados (servidores SSH)",
@@ -652,7 +718,7 @@ pt:{
   notif_lo:p=>`Sessão em ${p}% do seu limite de 5 h.`,
   tray_tip:(s,r,w)=>`Sessão ${s}%${r?` · ${r}`:""}${w!=null?` · Semanal ${w}%`:""}`,
   tray_no_data:"MichiClaude — sem dados de cota",
-  demo_mode:"modo demo (sem Tauri)",
+  demo_mode:"Modo demo (sem Tauri)",
   src_local:"local",
   trend_title:"Tendência diária",
   trend_q:"últimos 30 dias",
@@ -662,7 +728,7 @@ pt:{
   export_label:"Exportar dados (CSV/JSON)",
   export_dir_ph:"pasta de destino (vazia = Downloads)",
   msg_exported:p=>`✓ salvo em ${p}`,
-  status_active:"ativo",
+  status_active:"conectado",
   status_fail:"sem conexão",
   pill_label:"Widget flutuante sobre a barra de tarefas",
   pill_style_label:"Estilo do widget",
@@ -702,49 +768,57 @@ pt:{
   err_bad:"Resposta da API ilegível."
 },
 fr:{
-  connecting:"connexion…",
-  live_ago:s=>`en direct · mis à jour il y a ${s}s`,
+  connecting:"Connexion…",
+  live_ago:s=>`En direct · mis à jour il y a ${s}s`,
   quota_title:"Ce qu'il vous reste",
   session_cap:"SESSION · 5 H",
-  reset_now:"réinitialise maintenant",
-  reset_in:(h,m)=>h?`réinitialise dans ${h} h ${m} min`:`réinitialise dans ${m} min`,
-  on_track:"dans les temps",
-  ahead_clock:"vous devancez l'horloge",
+  reset_now:"Réinitialise maintenant",
+  reset_in:(h,m)=>h?`Réinitialise dans ${h} h ${m} min`:`Réinitialise dans ${m} min`,
+  on_track:"Dans les temps",
+  ahead_clock:"Vous devancez l'horloge",
   session_label:"Session · 5 h",
   weekly_all:"Hebdo · tous les modèles",
   weekly_x:m=>`Hebdo · ${m}`,
-  pace_ok:"rythme sous l'horloge · confortable",
-  pace_watch:"attention au rythme",
+  pace_ok:"Rythme sous l'horloge · confortable",
+  pace_watch:"Attention au rythme",
   no_buckets:"Aucune limite hebdomadaire dans la réponse.",
   at_this_rate:"À ce rythme",
   proj_hit:(d,r)=>`Vous atteindrez <b>100 % de la session dans ~${d}</b>, avant la réinitialisation (${r}). Ralentissez ou changez de modèle.`,
   proj_ok_rate:"Tout va bien. Au rythme actuel <b>vous atteindrez la réinitialisation sans épuiser</b> la session.",
   proj_ahead:"Attention : vous dépensez <b>plus vite que le temps ne passe</b>. Ralentissez ou vous risquez d'épuiser le quota avant la réinitialisation.",
   proj_behind:"Tout va bien : vous dépensez <b>plus lentement que le temps ne passe</b>. À ce rythme <b>vous n'atteindrez pas la limite</b>.",
-  burn:r=>`consommation · ${r}%/min`,
+  burn:r=>`Consommation · ${r}%/min`,
   spend_title:"Dépense par projet",
   spend_q:"coût estimé",
   spend_tip:"Valeur équivalente API : ce que cet usage coûterait aux prix de l'API. Avec un abonnement vous ne payez pas au token — c'est une mesure de la consommation de chaque projet.",
-  reading:"lecture de ~/.claude…",
+  reading:"Lecture de ~/.claude…",
   no_activity:"Aucune activité Claude Code ces 7 derniers jours.",
-  others:n=>`autres projets (${n})`,
+  others:n=>`Autres projets (${n})`,
   claudeai_row:"claude.ai / autres",
   pct_quota:p=>`${p} % du quota`,
   claudeai_tip:"Estimation. Les discussions claude.ai et l'usage sur d'autres appareils ne laissent pas de journaux locaux sur cette machine. Cette ligne montre le % de votre limite hebdomadaire globale consommé toutes surfaces confondues ; la dépense par projet ci-dessus ne couvre que Claude Code ici. Non converti en dollars car l'endpoint n'expose pas le plafond en $.",
   model_title:"Modèle le plus utilisé",
   model_leads:m=>`${m} en tête`,
-  unknown_model:"inconnu",
+  unknown_model:"Inconnu",
   today:"Aujourd'hui", week:"Semaine",
   footnote:"Données locales + quota réel. Rien ne quitte votre machine sauf vers api.anthropic.com",
   sources_title:"Sources de données",
-  cfg_note:"<b>Ce PC</b> : automatique (journaux Claude Code). · <b>claude.ai</b> : automatique via le quota de votre compte. · <b>WSL</b> : automatique — ses projets apparaissent comme « nom · wsl ». · <b>Serveurs</b> : ajoutez-les ici via SSH (même clé que pour vous connecter) ; leurs projets apparaissent comme « nom · serveur ».",
-  ph_name:"nom court (ex. vps)",
-  ph_host:"hôte SSH (alias ~/.ssh/config ou user@ip)",
+  cfg_note:"<ul class='src-list'><li><b>Ce PC :</b> automatique — lit les journaux Claude Code de cette machine.</li><li><b>claude.ai :</b> automatique, via le quota réel de votre compte.</li><li><b>WSL :</b> automatique — ses projets apparaissent comme « nom · wsl ».</li><li><b>Serveurs :</b> ajoutez-les ci-dessous via SSH (la même clé que vous utilisez déjà) ; leurs projets apparaissent comme « nom · serveur ».</li></ul>",
+  ph_name:"vps",
+  ph_host:"user@ip · ou alias ~/.ssh/config",
   btn_test:"Tester et ajouter",
-  msg_no_host:"hôte SSH manquant",
-  msg_testing:"test de connexion…",
-  msg_added:"✓ connecté et enregistré",
+  msg_no_host:"Hôte SSH manquant.",
+  msg_testing:"Connexion SSH…",
+  msg_added:"✓ Connecté et enregistré.",
   no_servers:"Aucun serveur ajouté.",
+  srv_add_title:"Ajouter un serveur",
+  lbl_name:"Nom court",
+  hint_name:"Tel qu'il apparaîtra dans la liste : p. ex. vps · serveur",
+  lbl_host:"Hôte SSH",
+  lbl_cmd:"Commande à exécuter",
+  hint_cmd:"Chemin de scripts/meter-export.py copié sur votre serveur.",
+  srv_saved_title:"Serveurs enregistrés",
+  srv_count:n=>n===1?"1 enregistré":`${n} enregistrés`,
   remove_server:"Retirer ce serveur",
   hide_title:"Masquer dans la barre",
   cfg_title:"Sources de données (serveurs SSH)",
@@ -755,7 +829,7 @@ fr:{
   notif_lo:p=>`Session à ${p} % de votre limite de 5 h.`,
   tray_tip:(s,r,w)=>`Session ${s}%${r?` · ${r}`:""}${w!=null?` · Hebdo ${w}%`:""}`,
   tray_no_data:"MichiClaude — pas de données de quota",
-  demo_mode:"mode démo (sans Tauri)",
+  demo_mode:"Mode démo (sans Tauri)",
   src_local:"local",
   trend_title:"Tendance quotidienne",
   trend_q:"30 derniers jours",
@@ -765,7 +839,7 @@ fr:{
   export_label:"Exporter les données (CSV/JSON)",
   export_dir_ph:"dossier de destination (vide = Téléchargements)",
   msg_exported:p=>`✓ enregistré dans ${p}`,
-  status_active:"actif",
+  status_active:"connecté",
   status_fail:"injoignable",
   pill_label:"Widget flottant au-dessus de la barre des tâches",
   pill_style_label:"Style du widget",
@@ -805,49 +879,57 @@ fr:{
   err_bad:"Réponse de l'API illisible."
 },
 de:{
-  connecting:"verbinde…",
-  live_ago:s=>`live · aktualisiert vor ${s}s`,
+  connecting:"Verbinde…",
+  live_ago:s=>`Live · aktualisiert vor ${s}s`,
   quota_title:"Wie viel dir bleibt",
   session_cap:"SITZUNG · 5 STD",
   reset_now:"Reset jetzt",
   reset_in:(h,m)=>h?`Reset in ${h} Std ${m} Min`:`Reset in ${m} Min`,
-  on_track:"im Plan",
-  ahead_clock:"du bist schneller als die Uhr",
+  on_track:"Im Plan",
+  ahead_clock:"Du bist schneller als die Uhr",
   session_label:"Sitzung · 5 Std",
   weekly_all:"Wöchentlich · alle Modelle",
   weekly_x:m=>`Wöchentlich · ${m}`,
   pace_ok:"Tempo unter der Uhr · entspannt",
-  pace_watch:"aufs Tempo achten",
+  pace_watch:"Aufs Tempo achten",
   no_buckets:"Keine Wochenlimits in der Antwort.",
   at_this_rate:"Bei diesem Tempo",
   proj_hit:(d,r)=>`Du erreichst <b>100 % der Sitzung in ~${d}</b>, vor dem Reset (${r}). Langsamer machen oder Modell wechseln.`,
   proj_ok_rate:"Alles gut. Beim aktuellen Tempo <b>erreichst du den Reset, ohne das Limit auszuschöpfen</b>.",
   proj_ahead:"Achtung: du verbrauchst <b>schneller, als die Zeit vergeht</b>. Mach langsamer, sonst ist das Kontingent vor dem Reset aufgebraucht.",
   proj_behind:"Alles gut: du verbrauchst <b>langsamer, als die Zeit vergeht</b>. Bei diesem Tempo <b>erreichst du das Limit nicht</b>.",
-  burn:r=>`aktueller Verbrauch · ${r}%/Min`,
+  burn:r=>`Aktueller Verbrauch · ${r}%/Min`,
   spend_title:"Ausgaben pro Projekt",
   spend_q:"geschätzte Kosten",
   spend_tip:"API-äquivalenter Wert: was diese Nutzung zu API-Preisen kosten würde. Im Abo zahlst du nicht pro Token — es ist ein Maß dafür, wie viel jedes Projekt verbraucht hat.",
-  reading:"lese ~/.claude…",
+  reading:"Lese ~/.claude…",
   no_activity:"Keine Claude-Code-Aktivität in den letzten 7 Tagen.",
-  others:n=>`weitere Projekte (${n})`,
+  others:n=>`Weitere Projekte (${n})`,
   claudeai_row:"claude.ai / andere",
   pct_quota:p=>`${p} % Kontingent`,
   claudeai_tip:"Schätzung. claude.ai-Chats und Nutzung auf anderen Geräten hinterlassen keine lokalen Logs auf diesem Rechner. Diese Zeile zeigt den % deines globalen Wochenlimits über alle Oberflächen; die Projektausgaben oben decken nur Claude Code hier ab. Keine Umrechnung in Dollar, da der Endpoint die Obergrenze in $ nicht offenlegt.",
   model_title:"Meistgenutztes Modell",
   model_leads:m=>`${m} führt`,
-  unknown_model:"unbekannt",
+  unknown_model:"Unbekannt",
   today:"Heute", week:"Woche",
   footnote:"Lokale Daten + echtes Kontingent. Nichts verlässt deinen Rechner außer zu api.anthropic.com",
   sources_title:"Datenquellen",
-  cfg_note:"<b>Dieser PC</b>: automatisch (Claude-Code-Logs). · <b>claude.ai</b>: automatisch über dein Konto-Kontingent. · <b>WSL</b>: automatisch — Projekte erscheinen als „Name · wsl“. · <b>Server</b>: hier per SSH hinzufügen (gleicher Schlüssel wie zum Verbinden); ihre Projekte erscheinen als „Name · Server“.",
-  ph_name:"Kurzname (z. B. vps)",
-  ph_host:"SSH-Host (~/.ssh/config-Alias oder user@ip)",
+  cfg_note:"<ul class='src-list'><li><b>Dieser PC:</b> automatisch — liest die Claude-Code-Logs dieser Maschine.</li><li><b>claude.ai:</b> automatisch, über das echte Kontingent deines Kontos.</li><li><b>WSL:</b> automatisch — Projekte erscheinen als „Name · wsl“.</li><li><b>Server:</b> unten per SSH hinzufügen (gleicher Schlüssel wie zum Verbinden); ihre Projekte erscheinen als „Name · Server“.</li></ul>",
+  ph_name:"vps",
+  ph_host:"user@ip · oder ~/.ssh/config-Alias",
   btn_test:"Testen & hinzufügen",
-  msg_no_host:"SSH-Host fehlt",
-  msg_testing:"teste Verbindung…",
-  msg_added:"✓ verbunden & gespeichert",
+  msg_no_host:"SSH-Host fehlt.",
+  msg_testing:"Verbinde per SSH…",
+  msg_added:"✓ Verbunden und gespeichert.",
   no_servers:"Keine Server hinzugefügt.",
+  srv_add_title:"Server hinzufügen",
+  lbl_name:"Kurzname",
+  hint_name:"So erscheint er in der Liste, z. B. vps · Server",
+  lbl_host:"SSH-Host",
+  lbl_cmd:"Auszuführender Befehl",
+  hint_cmd:"Pfad zu scripts/meter-export.py auf deinem Server.",
+  srv_saved_title:"Gespeicherte Server",
+  srv_count:n=>`${n} gespeichert`,
   remove_server:"Diesen Server entfernen",
   hide_title:"In die Taskleiste minimieren",
   cfg_title:"Datenquellen (SSH-Server)",
@@ -868,7 +950,7 @@ de:{
   export_label:"Daten exportieren (CSV/JSON)",
   export_dir_ph:"Zielordner (leer = Downloads)",
   msg_exported:p=>`✓ gespeichert in ${p}`,
-  status_active:"aktiv",
+  status_active:"verbunden",
   status_fail:"nicht erreichbar",
   pill_label:"Schwebendes Widget über der Taskleiste",
   pill_style_label:"Widget-Stil",
@@ -943,14 +1025,22 @@ ja:{
   today:"今日", week:"週間",
   footnote:"ローカルデータ + 実クォータ。api.anthropic.com 以外にデータは送信されません",
   sources_title:"データソース",
-  cfg_note:"<b>このPC</b>: 自動（Claude Code のログ）。 · <b>claude.ai</b>: アカウントのクォータ経由で自動。 · <b>WSL</b>: 自動 — プロジェクトは「名前 · wsl」と表示されます。 · <b>サーバー</b>: SSH でここに追加（接続に使う鍵と同じ）。プロジェクトは「名前 · サーバー」として表示されます。",
-  ph_name:"短い名前（例: vps）",
-  ph_host:"SSH ホスト（~/.ssh/config のエイリアスか user@ip）",
+  cfg_note:"<ul class='src-list'><li><b>このPC:</b> 自動 — このマシンの Claude Code ログを読み取ります。</li><li><b>claude.ai:</b> アカウントの実際のクォータ経由で自動。</li><li><b>WSL:</b> 自動 — プロジェクトは「名前 · wsl」と表示されます。</li><li><b>サーバー:</b> 下で SSH で追加（接続に使う鍵と同じ）。プロジェクトは「名前 · サーバー」と表示されます。</li></ul>",
+  ph_name:"vps",
+  ph_host:"user@ip · または ~/.ssh/config のエイリアス",
   btn_test:"テストして追加",
   msg_no_host:"SSH ホストが未入力です",
-  msg_testing:"接続をテスト中…",
+  msg_testing:"SSH で接続中…",
   msg_added:"✓ 接続して保存しました",
   no_servers:"サーバーは追加されていません。",
+  srv_add_title:"サーバーを追加",
+  lbl_name:"短い名前",
+  hint_name:"リストでの表示例: vps · サーバー",
+  lbl_host:"SSH ホスト",
+  lbl_cmd:"実行するコマンド",
+  hint_cmd:"サーバーにコピーした scripts/meter-export.py のパス。",
+  srv_saved_title:"保存済みサーバー",
+  srv_count:n=>`${n} 件`,
   remove_server:"このサーバーを削除",
   hide_title:"トレイに隠す",
   cfg_title:"データソース（SSH サーバー）",
@@ -1046,14 +1136,22 @@ ko:{
   today:"오늘", week:"주간",
   footnote:"로컬 데이터 + 실제 쿼터. api.anthropic.com 외에는 아무것도 전송되지 않습니다",
   sources_title:"데이터 소스",
-  cfg_note:"<b>이 PC</b>: 자동 (Claude Code 로그). · <b>claude.ai</b>: 계정 쿼터를 통해 자동. · <b>WSL</b>: 자동 — 프로젝트는 \"이름 · wsl\"로 표시됩니다. · <b>서버</b>: SSH로 여기에 추가하세요 (접속에 쓰는 키와 동일). 프로젝트는 \"이름 · 서버\"로 표시됩니다.",
-  ph_name:"짧은 이름 (예: vps)",
-  ph_host:"SSH 호스트 (~/.ssh/config 별칭 또는 user@ip)",
+  cfg_note:"<ul class='src-list'><li><b>이 PC:</b> 자동 — 이 컴퓨터의 Claude Code 로그를 읽습니다.</li><li><b>claude.ai:</b> 계정의 실제 쿼터를 통해 자동.</li><li><b>WSL:</b> 자동 — 프로젝트는 “이름 · wsl”로 표시됩니다.</li><li><b>서버:</b> 아래에서 SSH로 추가하세요 (접속에 쓰는 키와 동일). 프로젝트는 “이름 · 서버”로 표시됩니다.</li></ul>",
+  ph_name:"vps",
+  ph_host:"user@ip · 또는 ~/.ssh/config 별칭",
   btn_test:"테스트 후 추가",
   msg_no_host:"SSH 호스트가 없습니다",
-  msg_testing:"연결 테스트 중…",
+  msg_testing:"SSH로 연결 중…",
   msg_added:"✓ 연결되어 저장됨",
   no_servers:"추가된 서버가 없습니다.",
+  srv_add_title:"서버 추가",
+  lbl_name:"짧은 이름",
+  hint_name:"목록 표시 예: vps · 서버",
+  lbl_host:"SSH 호스트",
+  lbl_cmd:"실행할 명령",
+  hint_cmd:"서버에 복사한 scripts/meter-export.py 경로.",
+  srv_saved_title:"저장된 서버",
+  srv_count:n=>`${n}개`,
   remove_server:"이 서버 제거",
   hide_title:"트레이로 숨기기",
   cfg_title:"데이터 소스 (SSH 서버)",
@@ -1149,14 +1247,22 @@ zh:{
   today:"今天", week:"本周",
   footnote:"本地数据 + 真实配额。除 api.anthropic.com 外，任何数据都不会离开你的电脑",
   sources_title:"数据源",
-  cfg_note:"<b>本机</b>：自动（Claude Code 日志）。 · <b>claude.ai</b>：通过账户配额自动获取。 · <b>WSL</b>：自动 — 项目显示为「名称 · wsl」。 · <b>服务器</b>：在此通过 SSH 添加（与你连接时相同的密钥）；其项目显示为「名称 · 服务器」。",
-  ph_name:"短名称（如 vps）",
-  ph_host:"SSH 主机（~/.ssh/config 别名或 user@ip）",
+  cfg_note:"<ul class='src-list'><li><b>本机:</b> 自动 — 读取本机的 Claude Code 日志。</li><li><b>claude.ai:</b> 通过账户的真实配额自动获取。</li><li><b>WSL:</b> 自动 — 项目显示为「名称 · wsl」。</li><li><b>服务器:</b> 在下方通过 SSH 添加（与你连接时相同的密钥）；项目显示为「名称 · 服务器」。</li></ul>",
+  ph_name:"vps",
+  ph_host:"user@ip · 或 ~/.ssh/config 别名",
   btn_test:"测试并添加",
   msg_no_host:"缺少 SSH 主机",
-  msg_testing:"正在测试连接…",
+  msg_testing:"正在通过 SSH 连接…",
   msg_added:"✓ 已连接并保存",
   no_servers:"尚未添加服务器。",
+  srv_add_title:"添加服务器",
+  lbl_name:"短名称",
+  hint_name:"在列表中的显示方式，如 vps · 服务器",
+  lbl_host:"SSH 主机",
+  lbl_cmd:"要执行的命令",
+  hint_cmd:"已复制到服务器上的 scripts/meter-export.py 路径。",
+  srv_saved_title:"已保存的服务器",
+  srv_count:n=>`${n} 个`,
   remove_server:"移除此服务器",
   hide_title:"隐藏到托盘",
   cfg_title:"数据源（SSH 服务器）",
@@ -1834,11 +1940,14 @@ async function loadRemotes(){
   renderRemotes();
 }
 function renderRemotes(){
+  $("srvCount").textContent = t("srv_count", remotes.length);
   $("remList").innerHTML = remotes.map((r,i)=>`
-    <div class="pitem">
-      <div class="pname"><span class="swatch" style="background:var(--accent)"></span>
-        <span>${escapeHtml(r.name)} — ${escapeHtml(r.host)}</span>
-        <span class="rstat" id="rstat-${i}">…</span></div>
+    <div class="srv-row">
+      <div style="min-width:0">
+        <div class="srv-name">${escapeHtml(r.name)}</div>
+        <div class="srv-meta" title="${escapeHtml(r.host)} · ${escapeHtml(r.command||"")}">${escapeHtml(r.host)} · ${escapeHtml(r.command||"")}</div>
+      </div>
+      <span class="spill wait" id="rstat-${i}"><i></i>…</span>
       <button class="xbtn" data-i="${i}" title="${escapeHtml(t("remove_server"))}">✕</button>
     </div>`).join("")
     || `<div class="errbox" style="color:var(--txt-dim)">${t("no_servers")}</div>`;
@@ -1849,12 +1958,12 @@ function renderRemotes(){
       renderRemotes(); refresh();
     };
   });
-  // estado de conexión de cada servidor (✓ activo / ✗ sin conexión)
+  // estado de conexión de cada servidor (pastilla: conectado / sin conexión)
   remotes.forEach((r,i)=>{
     invoke("test_remote",{host:r.host}).then(()=>{
-      const el=$("rstat-"+i); if(el){ el.textContent="✓ "+t("status_active"); el.className="rstat ok"; }
+      const el=$("rstat-"+i); if(el){ el.className="spill ok"; el.innerHTML="<i></i>"+escapeHtml(t("status_active")); }
     }).catch(()=>{
-      const el=$("rstat-"+i); if(el){ el.textContent="✗ "+t("status_fail"); el.className="rstat bad"; }
+      const el=$("rstat-"+i); if(el){ el.className="spill bad"; el.innerHTML="<i></i>"+escapeHtml(t("status_fail")); }
     });
   });
 }
@@ -1871,6 +1980,7 @@ $("rAdd").addEventListener("click",async()=>{
   const host=$("rHost").value.trim();
   const command=$("rCmd").value.trim();
   if(!host){ $("rMsg").textContent=t("msg_no_host"); return; }
+  $("rAdd").disabled=true;
   $("rMsg").textContent=t("msg_testing");
   try{
     await invoke("test_remote",{host});
@@ -1881,6 +1991,7 @@ $("rAdd").addEventListener("click",async()=>{
     $("rName").value=""; $("rHost").value="";
     renderRemotes(); refresh();
   }catch(e){ $("rMsg").textContent="✗ "+e; }
+  finally{ $("rAdd").disabled=false; }
 });
 
 // ---------- preferencias: alarmas de uso ----------
