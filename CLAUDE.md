@@ -264,6 +264,45 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       costo local puede subestimar con agentes — limitación compartida con
       ccusage, cuota no afectada); capturas para el README; idea cancelada
       2026-07-25: placa translúcida tras el sticker en tema oscuro.
+- [ ] BUG ABIERTO — capa "Siempre al frente" no se sostiene (2026-07-26):
+      pese al ajuste, (a) el globo de información/resumen a veces queda DETRÁS
+      de otras ventanas al abrirse, y (b) tras un rato el gatito se va atrás
+      solo. Ya intentado sin éxito definitivo: `apply_layer()` en las tres
+      ventanas (cat/card/notif), `reassert_layers()` en cada `update_tray`
+      (3 min) y luego un hilo cada 2 s con guarda de panel abierto. Sigue
+      fallando de forma INTERMITENTE, así que el remedio actual (re-aplicar
+      `set_always_on_top`) no basta. Hipótesis a investigar: otras ventanas
+      TAMBIÉN son topmost y compiten dentro de esa banda (SetWindowPos con
+      HWND_TOPMOST solo reordena dentro del grupo); reaccionar al cambio de
+      ventana en primer plano con `SetWinEventHook`
+      (EVENT_SYSTEM_FOREGROUND) en vez de sondear cada 2 s; o forzar la
+      re-elevación con Win32 directo (`SetWindowPos` + `SWP_NOACTIVATE`)
+      en vez del wrapper de Tauri. Al depurar, confirmar primero el valor
+      real de `layer` en pill_config.json (en "normal"/"bottom" el
+      comportamiento observado sería el correcto).
+- [ ] PRECIOS DINÁMICOS — investigado 2026-07-26, pendiente de implementar.
+      Hallazgo URGENTE: `price_for()` cobra $15/$75 a opus/fable/mythos, que
+      es la tarifa del difunto Opus 4.1; las reales son Opus 5/4.8 $5/$25 y
+      Fable 5 $10/$50 (sonnet y haiku sí están bien). Los costes de Opus
+      salen ~3x inflados. Investigación: NO existe API oficial de precios de
+      Anthropic (`/v1/models` da id, display_name, límites y capabilities,
+      pero ningún precio). Tres fuentes públicas verificadas en vivo, todas
+      con los modelos actuales correctos: LiteLLM
+      (`model_prices_and_context_window.json`, el estándar de facto — es lo
+      que usa ccusage, y refleja hasta el precio introductorio de Sonnet 5),
+      models.dev/api.json (esquema más limpio) y openrouter.ai/api/v1/models
+      (sin auth; los más frescos porque facturan con ellos). Diseño acordado
+      (opción B): descarga diaria a un `prices_cache.json` en la carpeta de
+      datos → si falla la red, caché guardado → si no hay caché, tabla
+      embebida (CORREGIDA) → si el modelo no aparece en ninguna, marcarlo
+      como estimación en la UI en vez de cobrarlo en silencio. Con URL
+      configurable, toggle en Preferencias (por defecto activo) y nota
+      honesta en el README (es un GET anónimo, no viaja nada del usuario;
+      matiza la promesa "solo api.anthropic.com"). El exportador del VPS NO
+      debe duplicar la tabla: MichiClaude le pasa los precios frescos por
+      argumento y `meter-export.py` usa la suya solo como respaldo.
+      Alternativa descartable si se prefiere no tocar la promesa de red:
+      espejo propio en el repo actualizado por GitHub Actions.
 - [ ] USABILIDAD fuente remota (detectado 2026-07-24): el campo "comando" del
       formulario de servidores viene por defecto con la ruta PERSONAL de Oscar
       (`python3 /opt/projects/michiclaude/scripts/meter-export.py`), que no
@@ -331,7 +370,8 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       compartida (servidores/presupuesto) guardada también en el hub para que
       una PC nueva herede todo al conectar el VPS.
 - [ ] Auto-updater (tauri-plugin-updater)
-- [ ] Precios de modelos configurables (JSON externo)
+- [ ] Precios de modelos automáticos (ver el pendiente detallado arriba:
+      fuente pública + caché + tabla embebida corregida como respaldo)
 
 ## Diferenciadores estratégicos (post-pulido Windows, decididos 2026-07-24)
 
