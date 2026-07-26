@@ -804,6 +804,32 @@ pub fn run() {
                 }
             }
 
+            // "Curación" continua de la capa: Windows degrada el always-on-top
+            // cuando se activan otras apps, y el gatito o sus globos quedaban
+            // tapados hasta el siguiente ciclo de cuota (3 min). Se re-afirma
+            // cada 2 s, pero SOLO en modo "top": en "normal"/"bottom" volver a
+            // aplicarla re-elevaría la ventana y estorbaría al usuario.
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || loop {
+                    std::thread::sleep(std::time::Duration::from_secs(2));
+                    let cfg = load_pill_config();
+                    if !cfg.visible || cfg.layer == "normal" || cfg.layer == "bottom" {
+                        continue;
+                    }
+                    // con el panel abierto no se re-eleva nada: el gatito
+                    // taparía el panel (también es alwaysOnTop)
+                    use tauri::Manager;
+                    let panel_open = handle
+                        .get_webview_window("main")
+                        .and_then(|w| w.is_visible().ok())
+                        .unwrap_or(false);
+                    if !panel_open {
+                        reassert_layers(&handle);
+                    }
+                });
+            }
+
             Ok(())
         })
         .on_window_event(|window, event| match event {
