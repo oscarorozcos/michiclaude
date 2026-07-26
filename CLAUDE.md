@@ -122,6 +122,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   automática (arriba/abajo según espacio en el monitor ACTUAL del gato,
   origen+tamaño = multi-monitor OK) y cola dinámica (`balloon:pose` →
   `--tailx`) que siempre apunta al gato; nunca dos globos a la vez.
+- **Capa en pantalla** (`PillConfig.layer`, elegible en Preferencias):
+  "top" (siempre al frente, default) / "normal" / "bottom" (pegado al
+  escritorio). `apply_layer()` la aplica y `reassert_layers()` la re-afirma
+  en CADA ciclo (`update_tray`) porque Windows degrada el always-on-top.
+  REGLA: widget y globos (`card`, `notif`) van SIEMPRE en la misma capa —
+  son una sola pieza para el usuario (2026-07-26; antes la alarma se
+  forzaba al frente y se veía incoherente). El panel (`main`) no participa.
 - **CRÍTICO — ventanas transparentes**: NUNCA redimensionar en vivo una
   ventana transparente (`set_size` con la ventana visible u oculta): WebView2
   deja de pintar el contenido aunque la geometría quede bien (bug sufrido

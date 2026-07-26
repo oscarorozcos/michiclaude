@@ -888,21 +888,18 @@ fn apply_layer(w: &tauri::WebviewWindow, layer: &str) {
     }
 }
 
-/// Re-afirma la capa del widget visible (pastilla o gatito) y del globo de
-/// información. El globo de ALARMA (notif) no pasa por aquí: siempre va al
-/// frente, elija lo que elija el usuario — una alarma tapada no sirve.
+/// Re-afirma la capa elegida en TODAS las ventanas del widget: el gatito (o
+/// la pastilla) y sus globos de información y de alarma van siempre en la
+/// misma capa — el usuario espera que se comporten como una sola pieza.
+/// El orden importa: la última en aplicarse queda arriba dentro de su capa,
+/// así que los globos se re-elevan por encima del gatito.
 fn reassert_layers(app: &tauri::AppHandle) {
     use tauri::Manager;
     let cfg = load_pill_config();
-    if !cfg.visible {
-        return;
-    }
     let widget = if cfg.style == "cat" { "cat" } else { "pill" };
-    for label in [widget, "card"] {
+    for label in [widget, "card", "notif"] {
         if let Some(w) = app.get_webview_window(label) {
-            if w.is_visible().unwrap_or(false) {
-                apply_layer(&w, &cfg.layer);
-            }
+            apply_layer(&w, &cfg.layer);
         }
     }
 }
@@ -1057,10 +1054,10 @@ fn set_notif_visible(app: tauri::AppHandle, visible: bool) {
     let cfg = load_pill_config();
     if visible && cfg.visible && cfg.style == "cat" {
         place_balloon(&app, "notif", -194.0, 40.0);
-        // la ALARMA siempre va al frente, elija la capa que elija el
-        // usuario: una notificación tapada no sirve (como los toasts)
-        let _ = w.set_always_on_bottom(false);
-        let _ = w.set_always_on_top(true);
+        // misma capa que el gatito: widget y globos se comportan como una
+        // sola pieza (petición de Oscar 2026-07-26; antes la alarma se
+        // forzaba al frente y rompía la coherencia con el ajuste elegido)
+        apply_layer(&w, &cfg.layer);
         let _ = w.show();
         reassert_layers(&app); // el gatito no debe quedarse atrás del globo
     } else {
