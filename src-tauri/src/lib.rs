@@ -1277,8 +1277,9 @@ mod win_taskbar {
     use windows::core::{w, PCWSTR};
     use windows::Win32::Foundation::{HWND, RECT};
     use windows::Win32::UI::WindowsAndMessaging::{
-        FindWindowW, GetWindowLongPtrW, GetWindowRect, SetWindowLongPtrW, GWL_EXSTYLE,
-        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+        FindWindowW, GetWindowLongPtrW, GetWindowRect, SetWindowLongPtrW, SetWindowPos,
+        GWL_EXSTYLE, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, WS_EX_NOACTIVATE,
+        WS_EX_TOOLWINDOW,
     };
 
     pub struct Taskbar {
@@ -1302,6 +1303,31 @@ mod win_taskbar {
             let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
             let add = (WS_EX_NOACTIVATE.0 as isize) | (WS_EX_TOOLWINDOW.0 as isize);
             SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | add);
+        }
+    }
+
+    /// Vuelve a poner la ventana al frente, SIN pasar por Tauri.
+    ///
+    /// Por qué hace falta: `set_always_on_top(true)` de Tauri no llega al
+    /// sistema si su estado interno ya dice "esta ventana es topmost". Windows
+    /// puede degradarla por su cuenta (otra app se activa, cambia el
+    /// escritorio, se conecta un monitor), Tauri no se entera y las
+    /// re-afirmaciones se convierten en no-ops: el gatito se queda detrás para
+    /// siempre. SetWindowPos con HWND_TOPMOST siempre reinserta la ventana
+    /// arriba de la banda topmost, esté como esté el estado cacheado.
+    /// SWP_NOACTIVATE es imprescindible: el widget nunca debe robar el foco.
+    pub fn force_topmost(hwnd_raw: isize) {
+        unsafe {
+            let hwnd = HWND(hwnd_raw as *mut core::ffi::c_void);
+            let _ = SetWindowPos(
+                hwnd,
+                Some(HWND_TOPMOST),
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+            );
         }
     }
 }
@@ -1533,6 +1559,13 @@ fn apply_layer(w: &tauri::WebviewWindow, layer: &str) {
         _ => {
             let _ = w.set_always_on_bottom(false);
             let _ = w.set_always_on_top(true);
+            // ...y además por Win32 directo, porque la llamada de Tauri se
+            // ignora si su estado interno ya cree que la ventana es topmost
+            // (Windows la degrada sin avisarle). Ver force_topmost().
+            #[cfg(windows)]
+            if let Ok(h) = w.hwnd() {
+                win_taskbar::force_topmost(h.0 as isize);
+            }
         }
     }
 }

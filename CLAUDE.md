@@ -269,7 +269,21 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       costo local puede subestimar con agentes — limitación compartida con
       ccusage, cuota no afectada); capturas para el README; idea cancelada
       2026-07-25: placa translúcida tras el sticker en tema oscuro.
-- [ ] BUG ABIERTO — capa "Siempre al frente" no se sostiene (2026-07-26):
+- [~] BUG capa "Siempre al frente" — CAUSA IDENTIFICADA Y ATACADA 2026-07-26,
+      falta confirmar en vivo tras un rato largo. Hipótesis fuerte: la llamada
+      `set_always_on_top(true)` de Tauri NO llega al sistema cuando su estado
+      interno ya dice que la ventana es topmost; Windows la degrada por su
+      cuenta (otra app se activa, cambia de escritorio, se conecta un monitor)
+      y todas nuestras re-afirmaciones eran no-ops — por eso el gatito se
+      quedaba detrás para siempre y ni el hilo de 2 s lo rescataba. Arreglo:
+      `win_taskbar::force_topmost()` llama a `SetWindowPos(HWND_TOPMOST,
+      SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE)` por Win32 directo, que reinserta
+      la ventana en la banda topmost sin depender de ningún estado cacheado;
+      `apply_layer()` lo hace además de la llamada de Tauri. SWP_NOACTIVATE es
+      obligatorio (el widget no debe robar foco). Si aún así reapareciera,
+      lo siguiente sería reaccionar al cambio de ventana en primer plano con
+      `SetWinEventHook` (EVENT_SYSTEM_FOREGROUND) en vez de sondear cada 2 s.
+      Descripción original del bug:
       pese al ajuste, (a) el globo de información/resumen a veces queda DETRÁS
       de otras ventanas al abrirse, y (b) tras un rato el gatito se va atrás
       solo. Ya intentado sin éxito definitivo: `apply_layer()` en las tres
