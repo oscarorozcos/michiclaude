@@ -162,6 +162,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
    imprescindibles y con features mínimas.
 5. Los porcentajes SIEMPRE redondeados a entero en UI (`Math.round`).
 6. Buckets de cuota: render dinámico, nunca hardcodear nombres de modelos.
+   Lo mismo aplica a `prettyModel()`: separa el id en palabras (familia) y
+   números (versión) en cualquier orden, sin listas — así los modelos que
+   salgan mañana se identifican solos. NO volver a un regex con familias
+   fijas ni exigir versión de dos dígitos (eso dejaba "claude-opus-5" como
+   "Opus" sin versión, detectado 2026-07-26).
 7. El tag del plan del header: usar el que reporte el endpoint; si no viene,
    "Suscripción". No inventar "MAX 5×".
 8. La fila "claude.ai / otros" se muestra solo si es estimable con datos

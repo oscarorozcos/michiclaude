@@ -1441,14 +1441,28 @@ function prettyBucket(k){
           .replace(/[_-]/g," ").replace(/\b\w/g,c=>c.toUpperCase());
 }
 
-// Nombre bonito de modelo: "claude-opus-4-8" -> "Opus 4.8"
+// Nombre bonito de modelo. GENÉRICO a propósito: sin lista de familias ni
+// de versiones, para que los modelos que Anthropic saque mañana se
+// identifiquen solos (mismo criterio que los buckets de cuota). Separa el
+// id en palabras (familia) y números (versión), en cualquier orden:
+//   claude-opus-4-5-20250929 -> Opus 4.5      claude-opus-5 -> Opus 5
+//   claude-3-5-sonnet-latest -> Sonnet 3.5    claude-fable-5 -> Fable 5
 function prettyModel(id){
   if(!id) return t("unknown_model");
-  const s=id.replace(/^claude-/,"").replace(/-\d{8}$/,"");
-  const fam=(s.match(/opus|sonnet|haiku|fable|mythos|cowork/i)||[])[0];
-  const ver=s.match(/(\d+)[-.](\d+)/);
-  const name=fam?fam[0].toUpperCase()+fam.slice(1).toLowerCase():s;
-  return ver?`${name} ${ver[1]}.${ver[2]}`:name;
+  const s=String(id)
+    .replace(/^claude-/i,"")        // prefijo de marca
+    .replace(/\[[^\]]*\]/g,"")      // variantes entre corchetes: [1m]
+    .replace(/-\d{8}$/,"");         // fecha del snapshot
+  const words=[], nums=[];
+  for(const tok of s.split(/[-_.]+/)){
+    if(!tok || /^latest$/i.test(tok)) continue;
+    if(/^\d+$/.test(tok)) nums.push(tok);
+    else if(/^[a-z]+$/i.test(tok)) words.push(tok);
+    // tokens mixtos (p. ej. "1m") se ignoran: no son familia ni versión
+  }
+  if(!words.length) return s || t("unknown_model");
+  const name=words.map(w=>w[0].toUpperCase()+w.slice(1).toLowerCase()).join(" ");
+  return nums.length ? `${name} ${nums.join(".")}` : name;
 }
 
 // ---------- cuota real (dinámica por plan) ----------
