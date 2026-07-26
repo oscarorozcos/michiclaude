@@ -842,16 +842,173 @@ struct LocalAgg {
 /// Escanea un directorio de proyectos de Claude Code y acumula en `agg`.
 /// `suffix` etiqueta el origen ("wsl") en el nombre del proyecto.
 /// `window_days` es la ventana del gasto por proyecto (1/7/30…).
+// ---------- caché de escaneo (lectura incremental) ----------
+// Releer todos los .jsonl en cada ciclo cuesta cada vez más porque el historial
+// solo crece. Dos ideas, ninguna cambia un número (verificadas en el exportador
+// contra una copia congelada de los logs: salida idéntica byte a byte):
+//   1) Todos los agregados están acotados en el tiempo (ventana elegida, 24 h,
+//      30 días de tendencia): un archivo cuya última escritura sea anterior a
+//      la ventana más amplia no puede aportar nada y se salta sin abrirlo.
+//   2) De los recientes se cachea el PARSEO indexado por tamaño+mtime.
+// Se guardan tokens y timestamp, nunca el coste: así un cambio de precios se
+// aplica a todo el historial al instante. Es un caché reconstruible — si se
+// borra o no se entiende, se recalcula desde los logs.
+const SCAN_CACHE_VERSION: u32 = 1;
+const SCAN_SKIP_MARGIN_DAYS: i64 = 2;
+
+/// Entrada ya parseada. Nombres cortos: se serializan miles.
+#[derive(Serialize, Deserialize, Clone)]
+struct CachedEntry {
+    #[serde(rename = "t")]
+    ts: Option<i64>, // epoch en segundos
+    #[serde(rename = "m")]
+    model: String,
+    #[serde(rename = "i")]
+    inp: u64,
+    #[serde(rename = "o")]
+    out: u64,
+    #[serde(rename = "w")]
+    cw: u64,
+    #[serde(rename = "r")]
+    cr: u64,
+    #[serde(rename = "k")]
+    key: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct CachedFile {
+    len: u64,
+    mtime: i64,
+    display: Option<String>,
+    entries: Vec<CachedEntry>,
+    /// Duplicados internos ya descartados, para que el contador de
+    /// diagnóstico siga cuadrando con el escaneo completo.
+    #[serde(default)]
+    dups: usize,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct ScanCache {
+    #[serde(default)]
+    version: u32,
+    /// Hasta dónde atrás retiene entradas este caché (epoch). Si una ejecución
+    /// necesita más historial (ventana mayor), se descarta y se reconstruye.
+    #[serde(default)]
+    retained_from: i64,
+    #[serde(default)]
+    files: HashMap<String, CachedFile>,
+}
+
+fn scan_cache_path() -> PathBuf {
+    app_data_dir().join("scan_cache.json")
+}
+
+fn load_scan_cache(need_from: i64) -> HashMap<String, CachedFile> {
+    fs::read_to_string(scan_cache_path())
+        .ok()
+        .and_then(|s| serde_json::from_str::<ScanCache>(&s).ok())
+        .filter(|c| c.version == SCAN_CACHE_VERSION && c.retained_from <= need_from)
+        .map(|c| c.files)
+        .unwrap_or_default()
+}
+
+fn save_scan_cache(files: HashMap<String, CachedFile>, retained_from: i64) {
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(s) = serde_json::to_string(&ScanCache {
+        version: SCAN_CACHE_VERSION,
+        retained_from,
+        files,
+    }) {
+        let _ = fs::write(scan_cache_path(), s);
+    }
+}
+
+/// Parsea un .jsonl a entradas compactas, deduplicando dentro del archivo.
+/// Devuelve (nombre del cwd, entradas, duplicados internos).
+fn parse_jsonl_file(
+    path: &std::path::Path,
+    keep_after: i64,
+) -> (Option<String>, Vec<CachedEntry>, usize) {
+    let Ok(content) = fs::read_to_string(path) else {
+        return (None, Vec::new(), 0);
+    };
+    let mut display: Option<String> = None;
+    let mut entries = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut dups = 0usize;
+
+    for line in content.lines() {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+        if display.is_none() {
+            if let Some(base) = v["cwd"].as_str().and_then(|c| {
+                let s = c.replace('\\', "/");
+                s.trim_end_matches('/')
+                    .rsplit('/')
+                    .next()
+                    .filter(|x| !x.is_empty())
+                    .map(String::from)
+            }) {
+                display = Some(base);
+            }
+        }
+        let msg = &v["message"];
+        let usage = &msg["usage"];
+        if !usage.is_object() {
+            continue;
+        }
+        // Deduplicación: mismo message.id + requestId = misma petición
+        let key = format!(
+            "{}:{}",
+            msg["id"].as_str().unwrap_or(""),
+            v["requestId"].as_str().unwrap_or("")
+        );
+        if key != ":" && !seen.insert(key.clone()) {
+            dups += 1;
+            continue;
+        }
+        let model = msg["model"].as_str().unwrap_or("unknown").to_string();
+        // "<synthetic>" = placeholders de error de Claude Code, no son peticiones
+        if model == "<synthetic>" {
+            continue;
+        }
+        let ts = v["timestamp"]
+            .as_str()
+            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+            .map(|d| d.with_timezone(&Utc).timestamp());
+        // fuera de toda ventana posible: ni se guarda
+        if ts.map(|t| t < keep_after).unwrap_or(false) {
+            continue;
+        }
+        entries.push(CachedEntry {
+            ts,
+            model,
+            inp: usage["input_tokens"].as_u64().unwrap_or(0),
+            out: usage["output_tokens"].as_u64().unwrap_or(0),
+            cw: usage["cache_creation_input_tokens"].as_u64().unwrap_or(0),
+            cr: usage["cache_read_input_tokens"].as_u64().unwrap_or(0),
+            key,
+        });
+    }
+    (display, entries, dups)
+}
+
 fn scan_projects_dir(
     projects_dir: &std::path::Path,
     suffix: Option<&str>,
     now: DateTime<Utc>,
     window_days: u32,
     agg: &mut LocalAgg,
+    cache_in: &HashMap<String, CachedFile>,
+    cache_out: &mut HashMap<String, CachedFile>,
 ) {
     let day_ago = now - Duration::hours(24);
     let window_ago = now - Duration::days(window_days as i64);
     let month_ago = now - Duration::days(30); // serie diaria de la tendencia
+    // ventana más amplia de esta ejecución: la elegida o los 30 días de la
+    // tendencia. Nada anterior entra en ningún cálculo.
+    let keep_after = (now
+        - Duration::days(window_days.max(30) as i64 + SCAN_SKIP_MARGIN_DAYS))
+        .timestamp();
     let Ok(entries) = fs::read_dir(projects_dir) else { return };
 
     for proj in entries.flatten() {
@@ -877,90 +1034,78 @@ fn scan_projects_dir(
             if path.extension().map(|e| e != "jsonl").unwrap_or(true) {
                 continue;
             }
+            let Ok(meta) = f.metadata() else { continue };
+            let mtime = meta
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
+            // (1) escrito antes de la ventana más amplia: no puede aportar nada
+            if mtime != 0 && mtime < keep_after {
+                continue;
+            }
             agg.files += 1;
-            let Ok(content) = fs::read_to_string(&path) else { continue };
 
-            for line in content.lines() {
-                let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
-                {
-                    let slot = agg.projects.get_mut(&slot_key).unwrap();
-                    if slot.display.is_none() {
-                        if let Some(base) = v["cwd"].as_str().and_then(|c| {
-                            let s = c.replace('\\', "/");
-                            s.trim_end_matches('/')
-                                .rsplit('/')
-                                .next()
-                                .filter(|x| !x.is_empty())
-                                .map(String::from)
-                        }) {
-                            slot.display = Some(base);
-                        }
-                    }
+            // (2) ¿sigue igual que la última vez? entonces se reutiliza el parseo
+            let fkey = path.to_string_lossy().to_string();
+            let cached = cache_in
+                .get(&fkey)
+                .filter(|c| c.len == meta.len() && c.mtime == mtime)
+                .cloned();
+            let entry = match cached {
+                Some(c) => c,
+                None => {
+                    let (display, entries, dups) = parse_jsonl_file(&path, keep_after);
+                    CachedFile { len: meta.len(), mtime, display, entries, dups }
                 }
-                let msg = &v["message"];
-                let usage = &msg["usage"];
-                if !usage.is_object() {
-                    continue;
-                }
+            };
 
-                // Deduplicación: mismo message.id + requestId = misma petición
-                // (reanudaciones y streaming duplican entradas en los .jsonl)
-                let key = format!(
-                    "{}:{}",
-                    msg["id"].as_str().unwrap_or(""),
-                    v["requestId"].as_str().unwrap_or("")
-                );
-                if key != ":" && !agg.seen.insert(key) {
+            {
+                let slot = agg.projects.get_mut(&slot_key).unwrap();
+                if slot.display.is_none() {
+                    slot.display = entry.display.clone();
+                }
+            }
+            agg.deduped += entry.dups; // los internos; los cruzados, abajo
+
+            // (3) agregación: siempre con los precios y la ventana de AHORA
+            for e in &entry.entries {
+                if e.key != ":" && !agg.seen.insert(e.key.clone()) {
                     agg.deduped += 1;
                     continue;
                 }
+                let Some(ts_s) = e.ts else { continue };
+                let Some(ts) = DateTime::from_timestamp(ts_s, 0) else { continue };
+                let cost = cost_of(&e.model, e.inp, e.out, e.cw, e.cr);
 
-                let inp = usage["input_tokens"].as_u64().unwrap_or(0);
-                let out = usage["output_tokens"].as_u64().unwrap_or(0);
-                let cw = usage["cache_creation_input_tokens"].as_u64().unwrap_or(0);
-                let cr = usage["cache_read_input_tokens"].as_u64().unwrap_or(0);
-                let model = msg["model"].as_str().unwrap_or("unknown").to_string();
-                // "<synthetic>" = mensajes placeholder de error de Claude Code,
-                // no son peticiones reales al modelo.
-                if model == "<synthetic>" {
-                    continue;
-                }
-                let cost = cost_of(&model, inp, out, cw, cr);
-
-                let ts: Option<DateTime<Utc>> = v["timestamp"]
-                    .as_str()
-                    .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-                    .map(|d| d.with_timezone(&Utc));
-
-                let in_window = ts.map(|t| t >= window_ago).unwrap_or(false);
-                let in_day = ts.map(|t| t >= day_ago).unwrap_or(false);
-
-                if in_window {
+                if ts >= window_ago {
                     agg.cost_window += cost;
                     // tokens "de trabajo": excluimos cache_read (infla ~100x)
-                    agg.tokens_window += inp + out + cw;
+                    agg.tokens_window += e.inp + e.out + e.cw;
                     {
                         let slot = agg.projects.get_mut(&slot_key).unwrap();
                         slot.cost += cost;
-                        slot.tokens += inp + out + cw;
-                        *slot.by_model.entry(model.clone()).or_insert(0.0) += cost;
+                        slot.tokens += e.inp + e.out + e.cw;
+                        *slot.by_model.entry(e.model.clone()).or_insert(0.0) += cost;
                     }
-                    let m = agg.models.entry(model.clone()).or_default();
-                    m.input += inp;
-                    m.output += out;
-                    m.cache_write += cw;
-                    m.cache_read += cr;
+                    let m = agg.models.entry(e.model.clone()).or_default();
+                    m.input += e.inp;
+                    m.output += e.out;
+                    m.cache_write += e.cw;
+                    m.cache_read += e.cr;
                     m.cost += cost;
-                    m.estimated = price_is_estimated(&model);
+                    m.estimated = price_is_estimated(&e.model);
                 }
-                if in_day {
+                if ts >= day_ago {
                     agg.cost_today += cost;
                 }
                 // serie diaria (30 días), independiente de la ventana elegida
-                if let Some(t) = ts.filter(|t| *t >= month_ago) {
-                    *agg.daily.entry(t.format("%Y-%m-%d").to_string()).or_insert(0.0) += cost;
+                if ts >= month_ago {
+                    *agg.daily.entry(ts.format("%Y-%m-%d").to_string()).or_insert(0.0) += cost;
                 }
             }
+            cache_out.insert(fkey, entry);
         }
     }
 }
@@ -969,13 +1114,30 @@ fn scan_projects_dir(
 fn collect_local_stats(window_days: u32) -> LocalStats {
     let now = Utc::now();
     let mut agg = LocalAgg::default();
+    // Caché de parseo compartido por todas las fuentes locales. Si esta
+    // ejecución necesita más historial del guardado, load_scan_cache lo
+    // descarta y se reconstruye en vez de devolver de menos.
+    let keep_after = (now
+        - Duration::days(window_days.max(30) as i64 + SCAN_SKIP_MARGIN_DAYS))
+        .timestamp();
+    let cache_in = load_scan_cache(keep_after);
+    let mut cache_out: HashMap<String, CachedFile> = HashMap::new();
 
     // 1) Este PC
-    scan_projects_dir(&claude_dir().join("projects"), None, now, window_days, &mut agg);
+    scan_projects_dir(
+        &claude_dir().join("projects"), None, now, window_days, &mut agg,
+        &cache_in, &mut cache_out,
+    );
     // 2) Distros WSL (si existen): misma máquina, cero configuración
     for d in wsl_claude_dirs() {
-        scan_projects_dir(&d.join("projects"), Some("wsl"), now, window_days, &mut agg);
+        scan_projects_dir(
+            &d.join("projects"), Some("wsl"), now, window_days, &mut agg,
+            &cache_in, &mut cache_out,
+        );
     }
+    // solo lo visto en esta pasada: los archivos borrados o ya fuera de
+    // ventana desaparecen del caché por sí solos
+    save_scan_cache(cache_out, keep_after);
 
     let projects: Vec<ProjectAgg> = agg
         .projects

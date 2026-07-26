@@ -342,7 +342,25 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       (`python3 ~/meter-export.py`) + nota corta. Ideal: que MichiClaude SUBA
       el script solo por SSH la primera vez (nombre + host y listo). Encaja
       naturalmente con el Modo HUB — resolver ahí.
-- [ ] Lectura incremental de .jsonl por offset (hoy: escaneo completo por ciclo)
+- [~] Lectura incremental de .jsonl — IMPLEMENTADO 2026-07-26 en AMBOS lados
+      (Rust y meter-export.py), falta probar el lado Rust en Windows. Dos
+      optimizaciones que NO cambian ningún número: (1) todos los agregados
+      están acotados en el tiempo, así que un archivo cuya última escritura
+      sea anterior a la ventana más amplia (la elegida o los 30 días de la
+      tendencia, +2 de margen) se salta sin abrirlo — el coste pasa de crecer
+      con todo el historial a quedarse en "el último mes"; (2) de los
+      recientes se cachea el PARSEO indexado por tamaño+mtime
+      (`scan_cache.json`), nunca el coste, para que un cambio de precios se
+      aplique a todo al instante. La retención del caché se adapta a la
+      ventana pedida (--days 90 tras un ciclo de 7 descarta el caché en vez
+      de devolver de menos). Es reconstruible: si se borra o no se entiende,
+      se recalcula. Medido en el exportador con 50 MB: 1.06 s -> 0.06 s,
+      caché de 172 KB, salida IDÉNTICA byte a byte contra una copia congelada
+      de los logs en ventanas 1/7/30/90, frío y caliente, más casos límite
+      (caché corrupto, archivo modificado, archivo viejo).
+      OJO: los duplicados TAMBIÉN cruzan archivos (365 en los logs reales),
+      así que la dedup global al fusionar es imprescindible — una medición
+      inicial que comparaba nombres en vez de rutas los daba en cero.
 - [x] Token de respaldo desde remotes.json cuando el local venció (2026-07-10):
       el meter ya no depende de usar Claude Code en Windows.
 - [x] Autostart (tauri-plugin-autostart): solo builds release, se activa una
