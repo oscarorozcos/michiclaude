@@ -293,10 +293,20 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       models.dev/api.json (esquema más limpio) y openrouter.ai/api/v1/models
       (sin auth; los más frescos porque facturan con ellos). Diseño acordado
       (opción B): descarga diaria a un `prices_cache.json` en la carpeta de
-      datos → si falla la red, caché guardado → si no hay caché, tabla
-      embebida (CORREGIDA) → si el modelo no aparece en ninguna, marcarlo
-      como estimación en la UI en vez de cobrarlo en silencio. Con URL
-      configurable, toggle en Preferencias (por defecto activo) y nota
+      datos, con CASCADA de fuentes de mayor a menor confiabilidad —
+      (1) LiteLLM: el estándar de facto, comunidad enorme, actualiza el
+      mismo día del lanzamiento y trae hasta las tarifas introductorias y
+      de contexto largo; (2) models.dev: open source, esquema más limpio
+      (`cost:{input,output,cache_read,cache_write}`), comunidad menor;
+      (3) OpenRouter: los datos más frescos porque facturan con ellos,
+      pero es una empresa comercial (dependencia de un tercero con
+      intereses propios) — se usa como último recurso de red. Si las tres
+      fallan → caché guardado → si no hay caché, tabla embebida
+      (CORREGIDA) → si el modelo no aparece en ninguna, marcarlo como
+      estimación en la UI en vez de cobrarlo en silencio. Solo cascada de
+      RESPALDO: nunca consultar varias para comparar (descartado por
+      sobreingeniería). Con URLs configurables, toggle en Preferencias
+      (por defecto activo) y nota
       honesta en el README (es un GET anónimo, no viaja nada del usuario;
       matiza la promesa "solo api.anthropic.com"). El exportador del VPS NO
       debe duplicar la tabla: MichiClaude le pasa los precios frescos por
