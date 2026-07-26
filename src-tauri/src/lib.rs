@@ -609,13 +609,21 @@ fn get_prices_status() -> serde_json::Value {
 }
 
 #[tauri::command]
-fn set_prices_auto(auto: bool) -> Result<(), String> {
+fn set_prices_auto(app: tauri::AppHandle, auto: bool) -> Result<(), String> {
     let mut cfg = load_prices_config();
     cfg.auto = auto;
     let dir = app_data_dir();
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let s = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;
-    fs::write(prices_config_path(), s).map_err(|e| e.to_string())
+    fs::write(prices_config_path(), s).map_err(|e| e.to_string())?;
+    // al reactivarlo, descargar ya: esperar al ciclo de 6 h se vería como que
+    // el interruptor no hizo nada
+    if auto {
+        tauri::async_runtime::spawn(async move {
+            let _ = refresh_prices(Some(app), true).await;
+        });
+    }
+    Ok(())
 }
 
 /// Botón "actualizar ahora": ignora la ventana de 24 h y el interruptor.
