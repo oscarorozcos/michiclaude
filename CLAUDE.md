@@ -104,8 +104,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - **Widget gatito** (estilo `cat` en `PillConfig.style`, elegible en
   Preferencias; validado en vivo 2026-07-22): el gato Bongo SUSTITUYE a la
   pastilla (nunca conviven). Cuatro ventanas fijas: `cat` (gif animado +
-  cápsula "Sesión X%" sobre la cabeza + botón sticker-*.png en la pantalla
-  que abre el panel), `card` (globo cómic de información al hover, con
+  cápsula "Sesión X%" sobre la cabeza + zona invisible `.head` sobre la
+  cabeza que abre el panel — el sticker de la pantalla se retiró el
+  2026-07-26; la laptop y los márgenes solo arrastran. Las coordenadas de
+  la zona son variables CSS `--hx/--hy/--hw/--hh` para recalibrarla),
+  `card` (globo cómic de información al hover, con
   buckets semanales extra DINÁMICOS — Fable, futuros), `notif` (globo de
   alarma persistente con ✕) y la pastilla oculta. Estados del gif según
   los avisos: normal / cat-fire (alarma de % pendiente = `ackPending:alarm`,
@@ -113,7 +116,7 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   hasta el reset). En modo gatito las alarmas de % NO van a toast de
   Windows: salen como globo `notif` (los demás avisos y la pastilla normal
   siguen con toasts). Los gifs (800², transparentes, en variantes -black/-white
-  elegidas según el tema, igual que el sticker) se recortan por CSS
+  elegidas según el tema) se recortan por CSS
   (unión visible x[39,748] y[0,530] medida con decodificador propio) — NO
   editar los archivos. `place_balloon()` coloca los globos con pose
   automática (arriba/abajo según espacio en el monitor ACTUAL del gato,

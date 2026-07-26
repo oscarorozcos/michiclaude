@@ -4,15 +4,20 @@
 <meta charset="utf-8">
 <title>MichiClaude — cat</title>
 <style>
-  /* Widget mascota: el gatito SUSTITUYE a la pastilla. Sobre el gif van un
-     chip con el % de sesión (con etiqueta, para que se entienda) y el botón
-     del logo que abre el panel. Hover → globo de diálogo (ventana 'card').
+  /* Widget mascota: el gatito SUSTITUYE a la pastilla. Sobre el gif va un
+     chip con el % de sesión (con etiqueta, para que se entienda) y una zona
+     invisible sobre la cabeza que abre el panel; la laptop solo arrastra.
+     Hover → globo de diálogo (ventana 'card').
      Estética cómic (blanco + trazo negro) a juego con el gato, en ambos temas. */
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
     --ink:#111; --paper:#FDFCF9; --brand:#d97757;
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
+    /* zona de clic sobre la CABEZA del gato (abre el panel). Rectángulo
+       invisible; el resto de la ventana —laptop y márgenes— solo arrastra.
+       Para calibrarla: pinta .head con background:rgba(255,0,0,.25) */
+    --hx:53%; --hy:47%; --hw:40%; --hh:39%;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
@@ -26,15 +31,10 @@
   .cat{position:absolute;width:112.7%;height:150.7%;left:-5.5%;top:0;
     display:block;-webkit-user-drag:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
   /* Retícula de la maqueta 304x219 de Oscar, escalada x0.691 a 210x157. */
-  /* sticker (sticker-black/white.png según tema) centrado en la pantalla
-     de la laptop; sigue siendo el botón que abre el panel */
-  .logo{position:absolute;left:22.7%;top:58.5%;width:24px;height:24px;
-    border:0;background:transparent;padding:0;cursor:pointer;z-index:3;
-    filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
-  .logo:hover{transform:scale(1.15)}
-  .logo img{width:100%;height:100%;object-fit:contain;display:block;
-    -webkit-user-drag:none;opacity:.4;transition:opacity .15s}
-  .logo:hover img{opacity:1}
+  /* zona invisible sobre la cabeza del gato: es el "botón" que abre el
+     panel (sustituye al sticker). Todo lo demás de la ventana arrastra. */
+  .head{position:absolute;left:var(--hx);top:var(--hy);width:var(--hw);height:var(--hh);
+    border:0;background:transparent;padding:0;cursor:pointer;z-index:3}
   /* cápsula "sesión 39%" flotando sobre la cabeza del gato: stadium
      (radio = altura/2) rotada +15.5°, rótulo anclado al gato (deliberado).
      Se oculta mientras el globo del hover está desplegado. */
@@ -51,7 +51,7 @@
 </head>
 <body>
 <img class="cat" id="cat" src="cat-black.gif" alt="" draggable="false">
-<button class="logo" id="logo"><img id="logoImg" src="sticker-black.png" alt="" draggable="false"></button>
+<button class="head" id="head" aria-label="MichiClaude"></button>
 <div class="plabel"><span class="lab" id="chipLab">session</span><b id="chipPct">—</b></div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
@@ -60,17 +60,14 @@ const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
-// arte por TEMA: oscuro → *-black, claro → *-white (gifs y sticker)
+// arte por TEMA: oscuro → *-black, claro → *-white
 let curTheme="dark", curMascot="normal";
 function catSrc(){
   const base = curMascot==="fire" ? "cat-fire" : curMascot==="zzz" ? "cat-zzz" : "cat";
   return base + (curTheme==="light" ? "-white.gif" : "-black.gif");
 }
-function stickerSrc(){ return curTheme==="light" ? "sticker-white.png" : "sticker-black.png"; }
 function syncArt(){
   const g=catSrc(); if($("cat").getAttribute("src")!==g) $("cat").setAttribute("src",g);
-  const st=stickerSrc(); const im=$("logoImg");
-  if(im && im.getAttribute("src")!==st) im.setAttribute("src",st);
 }
 
 // mismo código de color de estado que el panel (para el % del chip)
@@ -116,16 +113,17 @@ document.body.addEventListener("mouseenter",()=>{
 });
 document.body.addEventListener("mouseleave",foldBubble);
 
-// el gatito entero es asa de arrastre (se puede llevar a cualquier parte);
-// al empezar a arrastrar, el globo se pliega
+// la LAPTOP y los márgenes son asa de arrastre (se puede llevar a cualquier
+// parte); al empezar a arrastrar, el globo se pliega. La cabeza queda fuera:
+// ahí el clic abre el panel, así que no debe iniciar arrastre.
 document.body.addEventListener("mousedown",e=>{
-  if(e.button!==0 || e.target.closest("#logo")) return;
+  if(e.button!==0 || e.target.closest("#head")) return;
   foldBubble();
   APPWIN?.startDragging();
 });
-// el botón del sticker abre el panel; el globo se pliega mientras tanto
-$("logo").addEventListener("mousedown",e=>e.stopPropagation());
-$("logo").addEventListener("click",e=>{
+// clic en la cabeza del gato = abrir el panel (el globo se pliega antes)
+$("head").addEventListener("mousedown",e=>e.stopPropagation());
+$("head").addEventListener("click",e=>{
   e.stopPropagation(); foldBubble(); invoke?.("show_panel");
 });
 // clic derecho oculta el widget (se reactiva desde Preferencias o el tray)
