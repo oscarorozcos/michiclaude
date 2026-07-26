@@ -161,12 +161,16 @@ De dos ingredientes, **ambos en tu equipo**:
    el modelo usado. La app los parsea con deduplicación (los logs repiten
    entradas al reanudar sesiones) y excluye la lectura de caché del conteo
    de tokens "de trabajo" (la incluye solo en el costo, a su precio real).
-2. **La lista de precios pública de la API de Anthropic** (USD por millón de
-   tokens):
+2. **Los precios públicos de la API de Anthropic**, que la app **descarga y
+   mantiene al día sola** (ver *La descarga de precios* más abajo). Si no hay
+   red, usa el último caché y, en último término, esta tabla incluida (USD por
+   millón de tokens):
 
    | Modelo | Entrada | Salida | Escritura caché | Lectura caché |
    |---|---|---|---|---|
-   | Opus / Fable / Mythos | $15 | $75 | $18.75 | $1.50 |
+   | Fable / Mythos 5 | $10 | $50 | $12.50 | $1.00 |
+   | Opus 4.5 y posteriores | $5 | $25 | $6.25 | $0.50 |
+   | Opus 3 / 4.0 / 4.1 | $15 | $75 | $18.75 | $1.50 |
    | Sonnet (y no reconocidos) | $3 | $15 | $3.75 | $0.30 |
    | Haiku | $1 | $5 | $1.25 | $0.10 |
 
@@ -242,6 +246,29 @@ Cuando el gasto viene de otra máquina, se añade el origen: `mi-web · wsl`,
    mismo servicio que usa la página de Uso de claude.ai.
 3. Los costos por proyecto salen de parsear tus `.jsonl` locales; nada de
    eso sale de tu equipo.
+4. Una vez al día **descarga la lista pública de precios** de los modelos
+   (ver abajo). Es una descarga, no un envío.
+
+### La descarga de precios, en claro
+
+Anthropic no publica sus tarifas en ninguna API, así que MichiClaude las toma
+de las tablas públicas que mantiene la comunidad, en cascada por fiabilidad:
+[LiteLLM](https://github.com/BerriAI/litellm) (la que usa `ccusage`) →
+[models.dev](https://models.dev) → [OpenRouter](https://openrouter.ai). Se
+guarda el resultado en caché y solo se reintenta cada 24 h; si no hay red, se
+usa el caché y, en último término, una tabla incluida en la app.
+
+Qué implica exactamente:
+
+- Es un **GET anónimo a un archivo JSON público**. No se envía tu token, ni
+  tus proyectos, ni identificadores, ni estadísticas: solo se descarga.
+- Como toda petición HTTP, ese servidor ve tu dirección IP. Por eso **matiza**
+  la frase de abajo: tus *datos* no salen, pero la app sí contacta ese dominio.
+- **Se puede apagar** en Preferencias → *Actualizar precios automáticamente*.
+  Apagado, la app usa el último caché o la tabla incluida y no hace ninguna
+  petición de red fuera de `api.anthropic.com`.
+- Si un modelo no aparece en ninguna tabla, se marca con `~` en la app en vez
+  de cobrarlo en silencio con una tarifa supuesta.
 
 > ⚠️ **El endpoint de uso no es una API oficial**: Anthropic no lo documenta
 > para terceros y puede cambiarlo o apagarlo sin aviso. Si eso pasa, los

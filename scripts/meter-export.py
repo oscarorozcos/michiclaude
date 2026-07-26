@@ -20,14 +20,33 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
+# Precios frescos que manda MichiClaude por stdin (--prices-stdin): una sola
+# fuente de verdad. Si no llegan, se usa la tabla embebida de abajo.
+PRICES = {}
+
+
+def price_key(model):
+    """Clave normalizada, igual que price_key() en Rust: minúsculas, sin
+    prefijo de proveedor, sin variante [1m] y sin la fecha del snapshot."""
+    s = model.lower().rsplit("/", 1)[-1].split("[", 1)[0].strip()
+    head, sep, tail = s.rpartition("-")
+    if sep and len(tail) == 8 and tail.isdigit():
+        s = head
+    return s
+
+
 def price_for(model):
     """(input, output, cache_write, cache_read) USD por MTok.
 
-    La tarifa depende de la VERSIÓN, no solo de la familia: Opus bajó de
-    $15/$75 a $5/$25 a partir de la 4.5 (3, 4.0 y 4.1 siguen en la vieja).
+    Primero los precios descargados que llegan por stdin; si no hay, la tabla
+    embebida. La tarifa depende de la VERSIÓN, no solo de la familia: Opus bajó
+    de $15/$75 a $5/$25 a partir de la 4.5 (3, 4.0 y 4.1 siguen en la vieja).
     Escritura de caché = 1.25x input, lectura = 0.1x input.
     MANTENER EN SINCRONÍA con price_for() de src-tauri/src/lib.rs.
     """
+    p = PRICES.get(price_key(model))
+    if p:
+        return (p["input"], p["output"], p["cache_write"], p["cache_read"])
     m = model.lower()
     # versión del id, ignorando la fecha del snapshot (8 dígitos)
     nums = [int(t) for t in re.findall(r"\d+", m) if len(t) != 8]
@@ -60,6 +79,15 @@ def parse_ts(s):
     return ts
 
 
+def is_estimated(model):
+    """Ni está en los precios descargados ni es una familia conocida: su coste
+    sale de la tarifa por defecto y la UI debe marcarlo como estimación."""
+    if price_key(model) in PRICES:
+        return False
+    m = model.lower()
+    return not any(f in m for f in ("fable", "mythos", "opus", "haiku", "sonnet"))
+
+
 def main():
     days = 7
     args = sys.argv[1:]
@@ -67,6 +95,17 @@ def main():
         try:
             days = max(1, min(90, int(args[args.index("--days") + 1])))
         except (IndexError, ValueError):
+            pass
+    # Precios frescos desde MichiClaude (una sola fuente de verdad). Si el JSON
+    # no llega o viene roto, se sigue con la tabla embebida sin quejarse.
+    if "--prices-stdin" in args:
+        try:
+            raw = sys.stdin.read()
+            if raw.strip():
+                got = json.loads(raw)
+                if isinstance(got, dict):
+                    PRICES.update(got)
+        except Exception:
             pass
 
     claude_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
@@ -138,12 +177,13 @@ def main():
                         e[2][model] = e[2].get(model, 0.0) + cost
                         m = models.setdefault(model, {
                             "input": 0, "output": 0, "cache_write": 0,
-                            "cache_read": 0, "cost": 0.0})
+                            "cache_read": 0, "cost": 0.0, "estimated": False})
                         m["input"] += inp
                         m["output"] += out
                         m["cache_write"] += cw
                         m["cache_read"] += cr
                         m["cost"] += cost
+                        m["estimated"] = is_estimated(model)
                     if ts is not None and ts >= day_ago:
                         cost_today += cost
                     if ts is not None and ts >= month_ago:

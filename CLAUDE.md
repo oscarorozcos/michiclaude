@@ -65,8 +65,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 3. Tokens "de trabajo" = input + output + cache_write. **`cache_read` se
    excluye** (infla ~100×) salvo para el cálculo de coste, donde entra a 10%
    del precio de input.
-4. Coste equivalente-API con la tabla `price_for()` por substring del modelo
-   (opus/fable/mythos, haiku, sonnet/default).
+4. Coste equivalente-API con `price_for()`: primero la tabla DESCARGADA
+   (cascada LiteLLM → models.dev → OpenRouter, caché de 24 h en
+   `prices_cache.json`, apagable en Preferencias) y, si el modelo no está,
+   la tabla embebida `price_table()` — que decide por VERSIÓN, no por
+   familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75; Fable/Mythos
+   $10/$50; caché = 1.25x y 0.1x del input). Un modelo que no esté en
+   ninguna de las dos se marca `estimated` y la UI lo señala con "~".
 5. Agrega: por proyecto (ventana 1/7/30 días, con desglose `by_model` por
    proyecto), por modelo, coste hoy y de la ventana (`cost_week`), y la serie
    `daily` de los últimos 30 días para la gráfica de tendencia. Los proyectos
@@ -280,7 +285,22 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       en vez del wrapper de Tauri. Al depurar, confirmar primero el valor
       real de `layer` en pill_config.json (en "normal"/"bottom" el
       comportamiento observado sería el correcto).
-- [ ] PRECIOS DINÁMICOS — investigado 2026-07-26, pendiente de implementar.
+- [~] PRECIOS DINÁMICOS — IMPLEMENTADO 2026-07-26, falta probar en vivo.
+      `price_for()` consulta primero la tabla descargada y cae a la embebida
+      (ya corregida). Cascada en `fetch_prices()`: LiteLLM → models.dev →
+      OpenRouter; primera que responde gana (NO es verificación cruzada).
+      Caché en `prices_cache.json`, refresco al arrancar y cada 6 h saltando
+      si el caché tiene menos de 24 h; `prices_config.json` guarda el
+      interruptor y URLs opcionales. Comandos get_prices_status /
+      set_prices_auto / refresh_prices_now; Preferencias muestra fuente,
+      antigüedad ("hace 2 h" vía Intl.RelativeTimeFormat, sin claves i18n
+      nuevas) y botón de actualizar. Modelos sin tarifa conocida se marcan
+      "~" en la leyenda (`ModelAgg.estimated`). Los precios frescos viajan al
+      exportador del VPS por STDIN (`--prices-stdin`): una sola fuente de
+      verdad; un exportador viejo ignora el flag y sigue con su tabla. Los
+      tres parsers se validaron contra las fuentes reales (18/11/17 modelos,
+      valores idénticos). FALTA: probar en Windows con red y sin red.
+      Descripción original de la investigación:
       Hallazgo URGENTE: `price_for()` cobra $15/$75 a opus/fable/mythos, que
       es la tarifa del difunto Opus 4.1; las reales son Opus 5/4.8 $5/$25 y
       Fable 5 $10/$50 (sonnet y haiku sí están bien). Los costes de Opus

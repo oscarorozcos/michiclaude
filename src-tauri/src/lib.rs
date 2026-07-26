@@ -174,6 +174,11 @@ struct ModelAgg {
     cache_write: u64,
     cache_read: u64,
     cost: f64,
+    /// El modelo no aparece en ninguna tabla de precios ni es una familia
+    /// conocida: su coste sale de la tarifa por defecto y la UI lo marca como
+    /// estimación en vez de darlo por firme.
+    #[serde(default)]
+    estimated: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -223,7 +228,7 @@ struct LocalStats {
 ///
 /// La escritura de caché cuesta 1.25x el input y la lectura 0.1x en todos
 /// los modelos, así que se derivan en vez de repetirse.
-fn price_for(model: &str) -> (f64, f64, f64, f64) {
+fn price_table(model: &str) -> (f64, f64, f64, f64) {
     let m = model.to_lowercase();
     // versión del id, ignorando la fecha del snapshot (8 dígitos)
     let mut nums = m
@@ -249,9 +254,362 @@ fn price_for(model: &str) -> (f64, f64, f64, f64) {
     (inp, out, inp * 1.25, inp * 0.1)
 }
 
+// ---------- precios dinámicos (cascada de fuentes públicas) ----------
+// Anthropic NO publica sus tarifas en ningún endpoint (verificado 2026-07-26:
+// /v1/models expone capacidades y límites, jamás precios), así que se descargan
+// de las tablas públicas de la comunidad, en cascada por confiabilidad:
+//   1) LiteLLM    — el estándar de facto (es lo que usa ccusage); se actualiza
+//                   el día del lanzamiento e incluye tarifas introductorias.
+//   2) models.dev — open source, esquema más limpio, comunidad menor.
+//   3) OpenRouter — los datos más frescos porque facturan con ellos, pero es
+//                   una empresa comercial: último recurso de red.
+// Si las tres fallan se usa el caché en disco y, en último término, la tabla
+// embebida `price_table()`. Es cascada de RESPALDO, no verificación cruzada:
+// en cuanto una fuente responde con datos, se para.
+//
+// PRIVACIDAD: son GET anónimos a un JSON público. No viaja NADA del usuario
+// (ni token, ni ids, ni telemetría) y el usuario puede apagarlo en Preferencias.
+
+const LITELLM_URL: &str =
+    "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
+const MODELSDEV_URL: &str = "https://models.dev/api.json";
+const OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/models";
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
+struct PriceEntry {
+    input: f64,
+    output: f64,
+    cache_write: f64,
+    cache_read: f64,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct PricesCache {
+    #[serde(default)]
+    fetched_at: String,
+    #[serde(default)]
+    source: String,
+    #[serde(default)]
+    prices: HashMap<String, PriceEntry>,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Serialize, Deserialize)]
+struct PricesConfig {
+    /// Descarga automática cada 24 h (apagable desde Preferencias).
+    #[serde(default = "default_true")]
+    auto: bool,
+    /// URLs configurables: si faltan se usan las constantes de arriba.
+    #[serde(default)]
+    litellm_url: Option<String>,
+    #[serde(default)]
+    modelsdev_url: Option<String>,
+    #[serde(default)]
+    openrouter_url: Option<String>,
+}
+
+impl Default for PricesConfig {
+    fn default() -> Self {
+        Self {
+            auto: true,
+            litellm_url: None,
+            modelsdev_url: None,
+            openrouter_url: None,
+        }
+    }
+}
+
+fn prices_config_path() -> PathBuf {
+    app_data_dir().join("prices_config.json")
+}
+
+fn prices_cache_path() -> PathBuf {
+    app_data_dir().join("prices_cache.json")
+}
+
+fn load_prices_config() -> PricesConfig {
+    fs::read_to_string(prices_config_path())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn load_prices_cache() -> PricesCache {
+    fs::read_to_string(prices_cache_path())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+/// Tabla viva en memoria; se carga del caché al primer uso y la refresca el
+/// hilo de descarga. Vacía = solo tabla embebida.
+static PRICES: std::sync::OnceLock<std::sync::RwLock<HashMap<String, PriceEntry>>> =
+    std::sync::OnceLock::new();
+
+fn prices_map() -> &'static std::sync::RwLock<HashMap<String, PriceEntry>> {
+    PRICES.get_or_init(|| std::sync::RwLock::new(load_prices_cache().prices))
+}
+
+/// Clave normalizada para casar el id del log con el de las tablas públicas:
+/// minúsculas, sin prefijo de proveedor ("anthropic/"), sin variante entre
+/// corchetes ("[1m]") y sin la fecha del snapshot final.
+fn price_key(model: &str) -> String {
+    let lower = model.to_lowercase();
+    let base = lower.rsplit('/').next().unwrap_or(&lower);
+    let base = base.split('[').next().unwrap_or(base);
+    let mut s = base.trim().to_string();
+    if let Some(i) = s.rfind('-') {
+        let tail = &s[i + 1..];
+        if tail.len() == 8 && tail.chars().all(|c| c.is_ascii_digit()) {
+            s.truncate(i);
+        }
+    }
+    s
+}
+
+fn price_lookup(model: &str) -> Option<PriceEntry> {
+    let key = price_key(model);
+    let map = prices_map().read().ok()?;
+    map.get(&key).copied()
+}
+
+/// ¿La familia del modelo es una que la tabla embebida sabe cobrar? Si no,
+/// el coste sale de la tarifa por defecto (Sonnet) y la UI lo marca como
+/// estimación en vez de presentarlo como un dato firme.
+fn family_known(model: &str) -> bool {
+    let m = model.to_lowercase();
+    ["fable", "mythos", "opus", "haiku", "sonnet"]
+        .iter()
+        .any(|f| m.contains(f))
+}
+
+fn price_is_estimated(model: &str) -> bool {
+    price_lookup(model).is_none() && !family_known(model)
+}
+
+/// LiteLLM: mapa plano id -> { litellm_provider, *_cost_per_token }.
+/// Los precios vienen POR TOKEN; aquí se pasan a USD por millón.
+fn parse_litellm(v: &serde_json::Value) -> HashMap<String, PriceEntry> {
+    let mut out = HashMap::new();
+    let Some(obj) = v.as_object() else { return out };
+    for (k, m) in obj {
+        if m["litellm_provider"].as_str() != Some("anthropic") {
+            continue;
+        }
+        let inp = m["input_cost_per_token"].as_f64().unwrap_or(0.0) * 1e6;
+        let outp = m["output_cost_per_token"].as_f64().unwrap_or(0.0) * 1e6;
+        if inp <= 0.0 || outp <= 0.0 {
+            continue;
+        }
+        out.insert(
+            price_key(k),
+            PriceEntry {
+                input: inp,
+                output: outp,
+                cache_write: m["cache_creation_input_token_cost"]
+                    .as_f64()
+                    .map(|x| x * 1e6)
+                    .unwrap_or(inp * 1.25),
+                cache_read: m["cache_read_input_token_cost"]
+                    .as_f64()
+                    .map(|x| x * 1e6)
+                    .unwrap_or(inp * 0.1),
+            },
+        );
+    }
+    out
+}
+
+/// models.dev: { "anthropic": { "models": { id: { cost: {...} } } } }.
+/// Ya viene en USD por millón.
+fn parse_modelsdev(v: &serde_json::Value) -> HashMap<String, PriceEntry> {
+    let mut out = HashMap::new();
+    let Some(models) = v["anthropic"]["models"].as_object() else { return out };
+    for (k, m) in models {
+        let c = &m["cost"];
+        let inp = c["input"].as_f64().unwrap_or(0.0);
+        let outp = c["output"].as_f64().unwrap_or(0.0);
+        if inp <= 0.0 || outp <= 0.0 {
+            continue;
+        }
+        out.insert(
+            price_key(k),
+            PriceEntry {
+                input: inp,
+                output: outp,
+                cache_write: c["cache_write"].as_f64().unwrap_or(inp * 1.25),
+                cache_read: c["cache_read"].as_f64().unwrap_or(inp * 0.1),
+            },
+        );
+    }
+    out
+}
+
+/// OpenRouter: { "data": [ { id: "anthropic/...", pricing: { ... } } ] }.
+/// Los precios son cadenas y por token.
+fn parse_openrouter(v: &serde_json::Value) -> HashMap<String, PriceEntry> {
+    let num = |x: &serde_json::Value| -> Option<f64> {
+        x.as_str()
+            .and_then(|s| s.parse::<f64>().ok())
+            .or_else(|| x.as_f64())
+    };
+    let mut out = HashMap::new();
+    let Some(arr) = v["data"].as_array() else { return out };
+    for it in arr {
+        let Some(id) = it["id"].as_str() else { continue };
+        if !id.starts_with("anthropic/") {
+            continue;
+        }
+        let p = &it["pricing"];
+        let (Some(inp), Some(outp)) = (num(&p["prompt"]), num(&p["completion"])) else {
+            continue;
+        };
+        let (inp, outp) = (inp * 1e6, outp * 1e6);
+        if inp <= 0.0 || outp <= 0.0 {
+            continue;
+        }
+        out.insert(
+            price_key(id),
+            PriceEntry {
+                input: inp,
+                output: outp,
+                cache_write: num(&p["input_cache_write"])
+                    .map(|x| x * 1e6)
+                    .unwrap_or(inp * 1.25),
+                cache_read: num(&p["input_cache_read"])
+                    .map(|x| x * 1e6)
+                    .unwrap_or(inp * 0.1),
+            },
+        );
+    }
+    out
+}
+
+/// Recorre la cascada y devuelve (fuente, precios) de la PRIMERA que responda
+/// con datos. Nunca propaga errores: sin red, simplemente no hay actualización.
+async fn fetch_prices(cfg: &PricesConfig) -> Option<(String, HashMap<String, PriceEntry>)> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .ok()?;
+    let sources: [(&str, String); 3] = [
+        (
+            "litellm",
+            cfg.litellm_url.clone().unwrap_or(LITELLM_URL.into()),
+        ),
+        (
+            "models.dev",
+            cfg.modelsdev_url.clone().unwrap_or(MODELSDEV_URL.into()),
+        ),
+        (
+            "openrouter",
+            cfg.openrouter_url.clone().unwrap_or(OPENROUTER_URL.into()),
+        ),
+    ];
+    for (name, url) in sources {
+        let Ok(resp) = client
+            .get(&url)
+            .header("user-agent", "michiclaude/0.1.0")
+            .send()
+            .await
+        else {
+            continue;
+        };
+        if !resp.status().is_success() {
+            continue;
+        }
+        let Ok(v) = resp.json::<serde_json::Value>().await else {
+            continue;
+        };
+        let map = match name {
+            "litellm" => parse_litellm(&v),
+            "models.dev" => parse_modelsdev(&v),
+            _ => parse_openrouter(&v),
+        };
+        if !map.is_empty() {
+            return Some((name.to_string(), map));
+        }
+    }
+    None
+}
+
+/// Refresca los precios si toca (o si `force`). Devuelve la fuente usada.
+async fn refresh_prices(force: bool) -> Option<String> {
+    let cfg = load_prices_config();
+    if !cfg.auto && !force {
+        return None;
+    }
+    if !force {
+        // caché de menos de 24 h: nada que hacer
+        let cached = load_prices_cache();
+        if let Ok(t) = DateTime::parse_from_rfc3339(&cached.fetched_at) {
+            if Utc::now().signed_duration_since(t.with_timezone(&Utc)) < Duration::hours(24) {
+                return None;
+            }
+        }
+    }
+    let (source, prices) = fetch_prices(&cfg).await?;
+    if let Ok(mut w) = prices_map().write() {
+        *w = prices.clone();
+    }
+    let cache = PricesCache {
+        fetched_at: Utc::now().to_rfc3339(),
+        source: source.clone(),
+        prices,
+    };
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(s) = serde_json::to_string_pretty(&cache) {
+        let _ = fs::write(prices_cache_path(), s);
+    }
+    Some(source)
+}
+
+/// Estado para Preferencias: si está activo, de dónde salieron los precios,
+/// cuándo y cuántos modelos se conocen.
+#[tauri::command]
+fn get_prices_status() -> serde_json::Value {
+    let cfg = load_prices_config();
+    let cache = load_prices_cache();
+    serde_json::json!({
+        "auto": cfg.auto,
+        "source": cache.source,
+        "fetched_at": cache.fetched_at,
+        "count": cache.prices.len(),
+    })
+}
+
+#[tauri::command]
+fn set_prices_auto(auto: bool) -> Result<(), String> {
+    let mut cfg = load_prices_config();
+    cfg.auto = auto;
+    let dir = app_data_dir();
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let s = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;
+    fs::write(prices_config_path(), s).map_err(|e| e.to_string())
+}
+
+/// Botón "actualizar ahora": ignora la ventana de 24 h y el interruptor.
+#[tauri::command]
+async fn refresh_prices_now() -> Result<String, String> {
+    refresh_prices(true)
+        .await
+        .ok_or_else(|| "ERR_PRICES_FETCH".to_string())
+}
+
 fn cost_of(model: &str, inp: u64, out: u64, cw: u64, cr: u64) -> f64 {
     let (pi, po, pcw, pcr) = price_for(model);
     (inp as f64 * pi + out as f64 * po + cw as f64 * pcw + cr as f64 * pcr) / 1_000_000.0
+}
+
+/// Precio efectivo: primero la tabla descargada, si no la embebida.
+fn price_for(model: &str) -> (f64, f64, f64, f64) {
+    match price_lookup(model) {
+        Some(p) => (p.input, p.output, p.cache_write, p.cache_read),
+        None => price_table(model),
+    }
 }
 
 // ---------- fuentes remotas opcionales (otras máquinas vía SSH) ----------
@@ -326,16 +684,41 @@ fn test_remote(host: String) -> Result<String, String> {
 /// Ejecuta el exportador remoto por SSH. BatchMode: jamás pide contraseña
 /// (requiere llave configurada, la misma que usa VS Code Remote-SSH).
 fn fetch_remote(r: &RemoteSource, window_days: u32) -> Option<LocalStats> {
+    use std::io::Write;
+    // Los precios frescos se le pasan al exportador por stdin: así hay UNA sola
+    // fuente de verdad y su tabla embebida queda solo como respaldo. Un
+    // exportador viejo ignora el flag desconocido y sigue funcionando.
+    let prices = prices_map()
+        .read()
+        .ok()
+        .filter(|m| !m.is_empty())
+        .and_then(|m| serde_json::to_string(&*m).ok());
+
     let mut cmd = std::process::Command::new("ssh");
     cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
         .arg(&r.host)
-        .arg(format!("{} --days {}", r.command, window_days));
+        .arg(format!(
+            "{} --days {}{}",
+            r.command,
+            window_days,
+            if prices.is_some() { " --prices-stdin" } else { "" }
+        ))
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW: sin flash de consola
     }
-    let out = cmd.output().ok()?;
+    let mut child = cmd.spawn().ok()?;
+    if let Some(mut si) = child.stdin.take() {
+        if let Some(json) = &prices {
+            let _ = si.write_all(json.as_bytes());
+        }
+        // cerrar stdin siempre: si no, el exportador se queda esperando
+    }
+    let out = child.wait_with_output().ok()?;
     if !out.status.success() {
         return None;
     }
@@ -541,6 +924,7 @@ fn scan_projects_dir(
                     m.cache_write += cw;
                     m.cache_read += cr;
                     m.cost += cost;
+                    m.estimated = price_is_estimated(&model);
                 }
                 if in_day {
                     agg.cost_today += cost;
@@ -620,6 +1004,7 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
             e.cache_write += a.cache_write;
             e.cache_read += a.cache_read;
             e.cost += a.cost;
+            e.estimated = e.estimated || a.estimated;
         }
         for d in remote.daily {
             *daily_map.entry(d.date).or_insert(0.0) += d.cost;
@@ -760,6 +1145,9 @@ pub fn run() {
             set_pill_style,
             get_pill_layer,
             set_pill_layer,
+            get_prices_status,
+            set_prices_auto,
+            refresh_prices_now,
             hover_card,
             set_notif_visible,
             pill_moved
@@ -829,6 +1217,15 @@ pub fn run() {
                     set_pill_visible_impl(app.handle(), true);
                 }
             }
+
+            // Precios: intento al arrancar y luego cada 6 h (refresh_prices ya
+            // respeta la ventana de 24 h del caché y el interruptor del
+            // usuario). En hilo aparte para no retrasar el arranque ni
+            // bloquear las estadísticas si la red va lenta.
+            std::thread::spawn(|| loop {
+                let _ = tauri::async_runtime::block_on(refresh_prices(false));
+                std::thread::sleep(std::time::Duration::from_secs(6 * 3600));
+            });
 
             // "Curación" continua de la capa: Windows degrada el always-on-top
             // cuando se activan otras apps, y el gatito o sus globos quedaban
