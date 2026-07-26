@@ -210,17 +210,43 @@ struct LocalStats {
 
 /// Precios API por MTok: (input, output, cache_write, cache_read).
 /// Con suscripción Pro/Max el coste es *nocional* (equivalente API);
-/// con API key es gasto real. Ajustable sin recompilar en una versión futura.
+/// con API key es gasto real.
+///
+/// La tarifa depende de la VERSIÓN, no solo de la familia: Opus bajó de
+/// $15/$75 a $5/$25 a partir de la 4.5 (las 3, 4.0 y 4.1 se quedaron en la
+/// tarifa vieja). Por eso se lee el número de versión del id — así una
+/// versión nueva de una familia conocida hereda la tarifa correcta sola.
+/// Verificado contra la doc oficial el 2026-07-26; hasta entonces se cobraba
+/// $15/$75 a todo Opus/Fable (tarifa del difunto Opus 4.1), lo que inflaba
+/// los costes de Opus ~3x. Esta tabla es solo el RESPALDO: la fuente
+/// preferente serán los precios descargados (ver pendiente en CLAUDE.md).
+///
+/// La escritura de caché cuesta 1.25x el input y la lectura 0.1x en todos
+/// los modelos, así que se derivan en vez de repetirse.
 fn price_for(model: &str) -> (f64, f64, f64, f64) {
     let m = model.to_lowercase();
-    if m.contains("opus") || m.contains("fable") || m.contains("mythos") {
-        (15.0, 75.0, 18.75, 1.5)
+    // versión del id, ignorando la fecha del snapshot (8 dígitos)
+    let mut nums = m
+        .split(|c: char| !c.is_ascii_digit())
+        .filter(|t| !t.is_empty() && t.len() != 8)
+        .filter_map(|t| t.parse::<u32>().ok());
+    let major = nums.next().unwrap_or(0);
+    let minor = nums.next().unwrap_or(0);
+
+    let (inp, out) = if m.contains("fable") || m.contains("mythos") {
+        (10.0, 50.0)
+    } else if m.contains("opus") {
+        if major > 4 || (major == 4 && minor >= 5) {
+            (5.0, 25.0)
+        } else {
+            (15.0, 75.0) // Opus 3 / 4.0 / 4.1
+        }
     } else if m.contains("haiku") {
-        (1.0, 5.0, 1.25, 0.1)
+        (1.0, 5.0)
     } else {
-        // sonnet y desconocidos
-        (3.0, 15.0, 3.75, 0.3)
-    }
+        (3.0, 15.0) // sonnet y desconocidos
+    };
+    (inp, out, inp * 1.25, inp * 0.1)
 }
 
 fn cost_of(model: &str, inp: u64, out: u64, cw: u64, cr: u64) -> f64 {

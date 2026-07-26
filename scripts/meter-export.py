@@ -14,19 +14,38 @@ El meter en Windows lo invoca por SSH. Solo stdlib; sin dependencias.
 """
 import json
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
 def price_for(model):
-    """(input, output, cache_write, cache_read) USD por MTok."""
+    """(input, output, cache_write, cache_read) USD por MTok.
+
+    La tarifa depende de la VERSIÓN, no solo de la familia: Opus bajó de
+    $15/$75 a $5/$25 a partir de la 4.5 (3, 4.0 y 4.1 siguen en la vieja).
+    Escritura de caché = 1.25x input, lectura = 0.1x input.
+    MANTENER EN SINCRONÍA con price_for() de src-tauri/src/lib.rs.
+    """
     m = model.lower()
-    if "opus" in m or "fable" in m or "mythos" in m:
-        return (15.0, 75.0, 18.75, 1.5)
-    if "haiku" in m:
-        return (1.0, 5.0, 1.25, 0.1)
-    return (3.0, 15.0, 3.75, 0.3)  # sonnet y desconocidos
+    # versión del id, ignorando la fecha del snapshot (8 dígitos)
+    nums = [int(t) for t in re.findall(r"\d+", m) if len(t) != 8]
+    major = nums[0] if nums else 0
+    minor = nums[1] if len(nums) > 1 else 0
+
+    if "fable" in m or "mythos" in m:
+        inp, out = 10.0, 50.0
+    elif "opus" in m:
+        if major > 4 or (major == 4 and minor >= 5):
+            inp, out = 5.0, 25.0
+        else:
+            inp, out = 15.0, 75.0  # Opus 3 / 4.0 / 4.1
+    elif "haiku" in m:
+        inp, out = 1.0, 5.0
+    else:
+        inp, out = 3.0, 15.0  # sonnet y desconocidos
+    return (inp, out, inp * 1.25, inp * 0.1)
 
 
 def parse_ts(s):
