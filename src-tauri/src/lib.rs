@@ -289,6 +289,11 @@ struct PricesCache {
     fetched_at: String,
     #[serde(default)]
     source: String,
+    /// Último INTENTO, haya salido bien o mal. Permite distinguir "aún no se
+    /// ha intentado" de "se intentó y no hubo red" (firewall corporativo,
+    /// proxy…) en vez de dejar al usuario con un mensaje ambiguo.
+    #[serde(default)]
+    last_try: String,
     #[serde(default)]
     prices: HashMap<String, PriceEntry>,
 }
@@ -536,35 +541,56 @@ async fn fetch_prices(cfg: &PricesConfig) -> Option<(String, HashMap<String, Pri
     None
 }
 
+fn save_prices_cache(c: &PricesCache) {
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(s) = serde_json::to_string_pretty(c) {
+        let _ = fs::write(prices_cache_path(), s);
+    }
+}
+
 /// Refresca los precios si toca (o si `force`). Devuelve la fuente usada.
-async fn refresh_prices(force: bool) -> Option<String> {
+/// Con `app` avisa al panel (`prices:updated`) para que repinte el estado y
+/// recalcule los costes al instante, sin esperar al siguiente ciclo.
+async fn refresh_prices(app: Option<tauri::AppHandle>, force: bool) -> Option<String> {
     let cfg = load_prices_config();
     if !cfg.auto && !force {
         return None;
     }
+    let mut cached = load_prices_cache();
     if !force {
         // caché de menos de 24 h: nada que hacer
-        let cached = load_prices_cache();
         if let Ok(t) = DateTime::parse_from_rfc3339(&cached.fetched_at) {
             if Utc::now().signed_duration_since(t.with_timezone(&Utc)) < Duration::hours(24) {
                 return None;
             }
         }
     }
-    let (source, prices) = fetch_prices(&cfg).await?;
-    if let Ok(mut w) = prices_map().write() {
-        *w = prices.clone();
+    let now = Utc::now().to_rfc3339();
+    match fetch_prices(&cfg).await {
+        Some((source, prices)) => {
+            if let Ok(mut w) = prices_map().write() {
+                *w = prices.clone();
+            }
+            save_prices_cache(&PricesCache {
+                fetched_at: now.clone(),
+                source: source.clone(),
+                last_try: now,
+                prices,
+            });
+            if let Some(a) = app {
+                use tauri::Emitter;
+                let _ = a.emit("prices:updated", &source);
+            }
+            Some(source)
+        }
+        None => {
+            // sin red: se conserva lo que hubiera y solo se anota el intento,
+            // para poder decirle al usuario que se intentó y no se pudo
+            cached.last_try = now;
+            save_prices_cache(&cached);
+            None
+        }
     }
-    let cache = PricesCache {
-        fetched_at: Utc::now().to_rfc3339(),
-        source: source.clone(),
-        prices,
-    };
-    let _ = fs::create_dir_all(app_data_dir());
-    if let Ok(s) = serde_json::to_string_pretty(&cache) {
-        let _ = fs::write(prices_cache_path(), s);
-    }
-    Some(source)
 }
 
 /// Estado para Preferencias: si está activo, de dónde salieron los precios,
@@ -577,6 +603,7 @@ fn get_prices_status() -> serde_json::Value {
         "auto": cfg.auto,
         "source": cache.source,
         "fetched_at": cache.fetched_at,
+        "last_try": cache.last_try,
         "count": cache.prices.len(),
     })
 }
@@ -593,8 +620,8 @@ fn set_prices_auto(auto: bool) -> Result<(), String> {
 
 /// Botón "actualizar ahora": ignora la ventana de 24 h y el interruptor.
 #[tauri::command]
-async fn refresh_prices_now() -> Result<String, String> {
-    refresh_prices(true)
+async fn refresh_prices_now(app: tauri::AppHandle) -> Result<String, String> {
+    refresh_prices(Some(app), true)
         .await
         .ok_or_else(|| "ERR_PRICES_FETCH".to_string())
 }
@@ -1222,10 +1249,13 @@ pub fn run() {
             // respeta la ventana de 24 h del caché y el interruptor del
             // usuario). En hilo aparte para no retrasar el arranque ni
             // bloquear las estadísticas si la red va lenta.
-            std::thread::spawn(|| loop {
-                let _ = tauri::async_runtime::block_on(refresh_prices(false));
-                std::thread::sleep(std::time::Duration::from_secs(6 * 3600));
-            });
+            {
+                let h = app.handle().clone();
+                std::thread::spawn(move || loop {
+                    let _ = tauri::async_runtime::block_on(refresh_prices(Some(h.clone()), false));
+                    std::thread::sleep(std::time::Duration::from_secs(6 * 3600));
+                });
+            }
 
             // "Curación" continua de la capa: Windows degrada el always-on-top
             // cuando se activan otras apps, y el gatito o sus globos quedaban

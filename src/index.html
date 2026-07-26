@@ -517,6 +517,7 @@ en:{
   prices_refresh:"Update now",
   prices_src:(src,when,n)=>`Source: ${src} · ${when} · ${n} models`,
   prices_none:"Not downloaded yet — using the built-in table",
+  prices_offline:"No connection — using the built-in table",
   prices_err:"Could not update; keeping what was saved",
   est_tip:"Estimated: this model is not in any price table",
   export_label:"Export data (CSV/JSON)",
@@ -633,6 +634,7 @@ es:{
   prices_refresh:"Actualizar ahora",
   prices_src:(src,when,n)=>`Fuente: ${src} · ${when} · ${n} modelos`,
   prices_none:"Sin descargar todavía — se usa la tabla incluida",
+  prices_offline:"Sin conexión — se usa la tabla incluida",
   prices_err:"No se pudo actualizar; se conserva lo guardado",
   est_tip:"Estimado: este modelo no está en ninguna tabla de precios",
   export_label:"Exportar datos (CSV/JSON)",
@@ -749,6 +751,7 @@ pt:{
   prices_refresh:"Atualizar agora",
   prices_src:(src,when,n)=>`Fonte: ${src} · ${when} · ${n} modelos`,
   prices_none:"Ainda não baixado — usando a tabela incluída",
+  prices_offline:"Sem conexão — usando a tabela incluída",
   prices_err:"Não foi possível atualizar; mantendo o salvo",
   est_tip:"Estimado: este modelo não está em nenhuma tabela de preços",
   export_label:"Exportar dados (CSV/JSON)",
@@ -865,6 +868,7 @@ fr:{
   prices_refresh:"Mettre à jour",
   prices_src:(src,when,n)=>`Source : ${src} · ${when} · ${n} modèles`,
   prices_none:"Pas encore téléchargé — table intégrée utilisée",
+  prices_offline:"Pas de connexion — table intégrée utilisée",
   prices_err:"Mise à jour impossible ; données enregistrées conservées",
   est_tip:"Estimé : ce modèle ne figure dans aucune table de prix",
   export_label:"Exporter les données (CSV/JSON)",
@@ -981,6 +985,7 @@ de:{
   prices_refresh:"Jetzt aktualisieren",
   prices_src:(src,when,n)=>`Quelle: ${src} · ${when} · ${n} Modelle`,
   prices_none:"Noch nicht geladen — integrierte Tabelle wird genutzt",
+  prices_offline:"Keine Verbindung — integrierte Tabelle wird genutzt",
   prices_err:"Aktualisierung fehlgeschlagen; Gespeichertes bleibt",
   est_tip:"Geschätzt: Dieses Modell steht in keiner Preistabelle",
   export_label:"Daten exportieren (CSV/JSON)",
@@ -1097,6 +1102,7 @@ ja:{
   prices_refresh:"今すぐ更新",
   prices_src:(src,when,n)=>`ソース: ${src} · ${when} · ${n} モデル`,
   prices_none:"未取得 — 内蔵テーブルを使用中",
+  prices_offline:"接続なし — 内蔵テーブルを使用中",
   prices_err:"更新できません。保存済みを使用します",
   est_tip:"推定: このモデルは料金表にありません",
   export_label:"データのエクスポート（CSV/JSON）",
@@ -1213,6 +1219,7 @@ ko:{
   prices_refresh:"지금 업데이트",
   prices_src:(src,when,n)=>`출처: ${src} · ${when} · ${n}개 모델`,
   prices_none:"아직 내려받지 않음 — 내장 표 사용",
+  prices_offline:"연결 없음 — 내장 표 사용",
   prices_err:"업데이트 실패, 저장된 값 유지",
   est_tip:"추정: 이 모델은 가격표에 없습니다",
   export_label:"데이터 내보내기 (CSV/JSON)",
@@ -1329,6 +1336,7 @@ zh:{
   prices_refresh:"立即更新",
   prices_src:(src,when,n)=>`来源: ${src} · ${when} · ${n} 个模型`,
   prices_none:"尚未下载 — 使用内置表",
+  prices_offline:"无法连接 — 使用内置表",
   prices_err:"更新失败，保留已保存的数据",
   est_tip:"估算: 该模型不在任何价格表中",
   export_label:"导出数据（CSV/JSON）",
@@ -2134,19 +2142,29 @@ function renderPricesStatus(){
   if(!invoke) return;
   invoke("get_prices_status").then(s=>{
     $("pricesChk").checked = !!s.auto;
+    // tres estados distintos: descargado / se intentó y no hubo red / aún nada
     $("pricesMsg").textContent = s.fetched_at
       ? t("prices_src", s.source, fmtAgo(s.fetched_at), s.count)
-      : t("prices_none");
+      : (s.last_try ? t("prices_offline") : t("prices_none"));
   }).catch(()=>{});
 }
 renderPricesStatus();
+// La descarga corre sola en segundo plano; cuando termina, el backend avisa y
+// aquí se repinta el estado y se recalculan los costes con los precios nuevos.
+// Se pide SOLO get_local_stats: refresh() llamaría también al endpoint de
+// cuota, que tiene límite de peticiones.
+EVENT?.listen("prices:updated",()=>{
+  renderPricesStatus();
+  invoke?.("get_local_stats",{days:curDays}).then(renderLocal).catch(()=>{});
+});
 $("pricesChk").addEventListener("change",()=>{
   invoke?.("set_prices_auto",{auto:$("pricesChk").checked});
 });
 $("pricesNow").addEventListener("click",()=>{
   $("pricesMsg").textContent="…";
+  // el propio backend emite prices:updated al terminar, que ya repinta el
+  // estado y recalcula los costes; aquí solo se informa del fallo
   invoke?.("refresh_prices_now")
-    .then(()=>{ renderPricesStatus(); refresh(); })   // recalcula los costes ya
     .catch(()=>{ $("pricesMsg").textContent=t("prices_err"); });
 });
 async function doExport(format){
