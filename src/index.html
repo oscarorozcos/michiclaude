@@ -2045,6 +2045,8 @@ function showTab(name){
   for(const k of ["main","sources","prefs"]) $("tab-"+k).hidden = (k!==name);
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
   if(name==="sources") loadRemotes();             // refresca estado de servidores
+  if(name==="prefs") renderPricesStatus();        // la descarga de fondo puede
+                                                  // haber terminado después de cargar el panel
   document.querySelector(".panel").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
