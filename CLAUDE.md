@@ -528,7 +528,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
 - [~] Alarmas de uso configurables + avisos de límite/restablecimiento con
       confirmación "Enterado" — implementado (2026-07-11); FALTA probar en
-      vivo el ciclo completo (cruce de umbral, 100%, reset, banner).
+      vivo el ciclo completo (cruce de umbral, 100%, reset). Ya NO hace falta
+      esperar a que ocurra: el simulador de estados (ver Comandos) recorre
+      los cinco pasos con sus globos reales en el tiempo que se le diga.
 - [x] Widget flotante (pill) sobre la barra — probado en vivo (2026-07-22):
       arrastre, persistencia, sin robo de foco, tema OK.
 - [x] Widget gatito (2026-07-22, validado en vivo por Oscar): mascota con
@@ -536,6 +538,36 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       que abre el panel, globo de información al hover (buckets dinámicos)
       y globo de notificación con ✕ en vez de toasts. Pose automática de
       globos, cola dinámica y soporte multi-monitor. Ver sección Ventanas.
+
+  --- Jornada 2026-07-27 (26 commits). Lo validado en vivo por Oscar y lo
+      que quedó pendiente de mirar: ---
+
+- [x] Cuarto estado del gatito, `break` (sesión agotada, espera al reset) y
+      su arte en los dos temas. OJO: `cat-break-black.gif` vino en lienzo
+      1411x860 en vez de 800² y se recoloca por CSS (`.cat.odd-canvas`).
+- [x] La cápsula del % nace oculta: al arrancar enseñaba "session —" en
+      inglés, que era el texto de relleno del HTML y parecía un error.
+- [x] Encabezado y pestañas del panel FIJOS al hacer scroll.
+- [x] Simulador de estados (solo builds de dev) con pausa ajustable, que
+      recorre dibujo Y globo sin ensuciar el estado real.
+- [x] Regla única de globos: se quedan hasta que el usuario los cierre, y
+      cerrar el globo NO cambia el dibujo del gatito (el dibujo va con el
+      estado real). Cuatro avisos: alarma, break, zzz y restablecimiento.
+- [x] Los globos siguen al tema oscuro, y arte del gatito / piel de los
+      globos se eligen por separado en Preferencias.
+- [~] La CÁPSULA del % va con los globos y no con el gato — decisión de
+      Oscar A PRUEBA (2026-07-27). Si no convence: pasarla al gato es
+      cambiar `curSkin` por `curArt` en `cat.html`, y quitar la opción
+      entera es revertir los dos selectores.
+- [~] REDISEÑO DE LA PASTILLA en cápsula + detalle desplegable (`pcard`),
+      con el % en color de acento. FALTA verlo en vivo: que la cabecera no
+      salte de sitio al desplegar (ahí se notaría un error de posición),
+      que el texto quepa en 280 px con idiomas largos, y que no queden
+      halos recortados en otras combinaciones de tema.
+- [ ] CARGO CHECK PENDIENTE (2026-07-27): los últimos commits tocan Rust
+      (comando `toggle_pill_card`, ventana `pcard`, `notif_dx`, `is_dev`) y
+      NO se han compilado — en el VPS no hay toolchain, esa verificación
+      corre en el Windows de Oscar.
 - [ ] VERIFICAR alta automática de servidor (2026-07-27): el flujo nuevo
       (detectar Python -> subir el lector a ~/.michiclaude/ -> guardar el
       comando resuelto) NO se ha probado en vivo, porque el servidor de Oscar
