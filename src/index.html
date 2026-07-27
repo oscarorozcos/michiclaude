@@ -1615,13 +1615,36 @@ setInterval(()=>{
 }, 60000);
 
 // ---------- simulador de estados del gatito (SOLO compilaciones de dev) ----------
-// Recorre normal → fire → break → zzz con una pausa entre cada uno, para ver el
-// arte y el comportamiento sin esperar a que se cumplan las condiciones reales
-// (cruzar una alarma, agotar la sesión, agotar la semana). Mientras corre,
-// mascotState() devuelve el estado forzado, así que los refrescos normales del
-// panel no lo pisan. Vive en memoria: cerrar la app cancela la simulación.
-let simMascot=null, simTimer=null, simTick=null;
-const SIM_SEQ=["normal","fire","break","zzz"];
+// Recorre el ciclo completo —dibujo Y globo— con una pausa ajustable entre
+// pasos, para verlo entero sin esperar a que se cumplan las condiciones reales
+// (cruzar una alarma, agotar la sesión, agotar la semana, esperar el reset).
+// Mientras corre, mascotState() devuelve el estado forzado, así que los
+// refrescos normales del panel no lo pisan. Vive en memoria: cerrar la app
+// cancela la simulación.
+// Los globos simulados NO tocan el localStorage (nada de ackPending ni
+// infoBalloon): al terminar no debe quedar ningún aviso pendiente falso.
+let simMascot=null, simTimer=null, simTick=null, simB=null;
+function simBalloon(body, kind){
+  EVENT?.emit("notif:update",{body, kind});
+  invoke?.("set_notif_visible",{visible:true});
+}
+// Usa los datos REALES cuando existen (tu propio reset, tu propia alarma) y
+// solo inventa la fecha si aún no hay lectura de cuota.
+function simReset(which, fallbackMs){
+  const r = which==="session" ? lastPill?.session?.resets : lastPill?.weekly?.resets;
+  return r || new Date(Date.now()+fallbackMs).toISOString();
+}
+function simAlarmBody(){
+  const thr=[...getAlarms()].sort((a,b)=>b-a)[0]||80;
+  return thr>=95 ? t("notif_hi",thr) : t("notif_lo",thr);
+}
+const SIM_SEQ=[
+  {m:"normal"},                                                        // sin globo
+  {m:"fire",   b:()=>({kind:"alarm",   body:simAlarmBody()})},
+  {m:"break",  b:()=>({kind:"break",   body:breakBody(simReset("session",8*60000))})},
+  {m:"zzz",    b:()=>({kind:"zzz",     body:weekBody(simReset("weekly",3*24*3.6e6))})},
+  {m:"normal", b:()=>({kind:"session", body:balloonBody("session")})}, // vuelve la cuota
+];
 // minutos por estado, ajustables (admite decimales: 0.5 = 30 s). Se lee en
 // cada paso, así que cambiarlo a media simulación afecta al siguiente estado.
 function simMs(){ return Math.max(5, (parseFloat($("simMin").value)||1)*60)*1000; }
@@ -1637,16 +1660,24 @@ function simPush(){
 }
 function simStop(msg){
   clearTimeout(simTimer); clearInterval(simTick); simTimer=null; simTick=null;
-  simMascot=null; simPush();
+  simMascot=null; simB=null; simPush();
+  invoke?.("set_notif_visible",{visible:false});
+  processAcks();          // si había un aviso REAL pendiente, vuelve a salir
   $("simBtn").textContent="🐱 Simular estados";
   $("simMsg").textContent=msg||"";
 }
 function simStep(i){
   if(i>=SIM_SEQ.length){ simStop("listo · de vuelta al estado real"); return; }
-  simMascot=SIM_SEQ[i]; simPush();
+  const step=SIM_SEQ[i];
+  simMascot=step.m; simPush();
+  // el globo se queda entre pasos y solo cambia de texto (así no parpadea);
+  // si al paso no le toca globo, se cierra
+  simB = step.b ? step.b() : null;
+  if(simB) simBalloon(simB.body, simB.kind);
+  else invoke?.("set_notif_visible",{visible:false});
   let left=simMs();
   const paint=()=>{ $("simMsg").textContent=
-    `${i+1}/${SIM_SEQ.length} · ${simMascot} · ${simLeft(left)}`; };
+    `${i+1}/${SIM_SEQ.length} · ${step.m}${step.b?" + globo":""} · ${simLeft(left)}`; };
   paint();
   clearInterval(simTick);
   simTick=setInterval(()=>{ left-=1000; if(left>0) paint(); },1000);
@@ -1982,6 +2013,7 @@ function balloonBody(k){
   return t(k==="session"?"notif_back_session":"notif_back_week");
 }
 function processAcks(){
+  if(simMascot) return;          // simulación en curso: no la pises
   for(const k of ACK_KINDS){
     if(localStorage.getItem("ackPending:"+k)!=="1") continue;
     // Modo gatito: NINGÚN aviso va a Windows — todos salen como globo cómic
@@ -2002,6 +2034,7 @@ function processAcks(){
 // de información, y tiene que volver: pasar el mouse no es haberlo leído).
 EVENT?.listen("notif:ready",()=>{
   if(getPillStyle()!=="cat") return;
+  if(simMascot){ if(simB) simBalloon(simB.body, simB.kind); return; }
   for(const k of ACK_KINDS)
     if(localStorage.getItem("ackPending:"+k)==="1"){ showBalloon(balloonBody(k), k); return; }
   const info=infoBalloon();
@@ -2011,6 +2044,7 @@ EVENT?.listen("notif:ready",()=>{
 EVENT?.listen("notif:ack",(e)=>{
   const kind=e?.payload?.kind||"alarm";
   invoke?.("set_notif_visible",{visible:false});
+  if(simMascot) return;   // globo simulado: cerrarlo no confirma nada real
   if(ACK_KINDS.includes(kind)){
     localStorage.removeItem("ackPending:"+kind);
     localStorage.removeItem("ackLastToast:"+kind);

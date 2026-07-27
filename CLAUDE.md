@@ -556,7 +556,14 @@ limpio dentro de `src-tauri`, y listar archivos tocados con el motivo.
 corre en el Windows de Oscar.)
 
 **Simulador de estados del gatito** (Preferencias → "🐱 Simular estados"):
-recorre normal → fire → break → zzz con una pausa AJUSTABLE entre cada uno
+recorre el ciclo COMPLETO —dibujo y globo— en cinco pasos: normal (sin
+globo) → fire (globo de alarma, con TU umbral configurado) → break → zzz →
+normal + globo de cuota restablecida. Usa los datos reales cuando existen
+(tu `resets_at`, tu alarma) y solo inventa la fecha si aún no hay lectura.
+Los globos simulados NO tocan localStorage: al terminar no debe quedar
+ningún aviso pendiente falso; `processAcks()` y `notif:ack` se inhiben
+mientras corre, y `simStop()` llama a `processAcks()` para devolver el
+globo REAL que hubiera pendiente. Pausa AJUSTABLE entre cada paso
 (campo de minutos al lado, admite decimales: 0.5 = 30 s, mínimo 5 s,
 persistido en localStorage `simMin`), para ver el arte sin esperar a agotar
 la sesión o la semana. Mientras corre,
