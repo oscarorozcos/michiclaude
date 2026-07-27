@@ -267,16 +267,24 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [~] Micro-pendientes de pulido (2026-07-27): HECHO los backticks de
       \`claude\` (ahora comillas tipográficas por idioma) y la nota de
       subagentes (README + tooltip de "costo estimado" en los 8 idiomas).
-      FALTA: capturas para el README (las tiene que hacer Oscar). Idea
+      FALTA: capturas para el README (las tiene que hacer Oscar). Hecho
+      también el 2026-07-27: guía del caso SSH reescrita con el enfoque de
+      Oscar (problema → 3 requisitos → escenario con un usuario ficticio →
+      preguntas rápidas), el sufijo de los proyectos remotos documentado como
+      lo que es (el nombre corto que elige el usuario, no "· vps") y Mythos
+      fuera de la tabla de precios por ser de acceso por invitación. Idea
       cancelada 2026-07-25: placa translúcida tras el sticker en tema oscuro.
-- [~] Icono de bandeja legible en cualquier tema (2026-07-27): el número se
+- [x] Icono de bandeja legible en cualquier tema (2026-07-27, validado por
+      Oscar en barra clara y oscura; número a 24 px y contorno de 4 px tras
+      pedirlo él más grande): el número se
       dibujaba en verde/ámbar/rojo sólido, que sobre una barra CLARA se lava.
       Se le añade contorno oscuro (strokeText) y marco a la barrita semanal,
       así se lee sobre fondo claro, oscuro o de color sin detectar el tema de
-      Windows (que además no cubriría fondos personalizados). FALTA verlo con
-      la barra en tema claro.
-- [~] BUG capa "Siempre al frente" — CAUSA IDENTIFICADA Y ATACADA 2026-07-26,
-      falta confirmar en vivo tras un rato largo. Hipótesis fuerte: la llamada
+      Windows (que además no cubriría fondos personalizados).
+- [x] BUG capa "Siempre al frente" — RESUELTO (2026-07-27: Oscar lo dejó
+      corriendo con su uso normal y el gatito ya no se hundió; antes fallaba
+      tras un rato largo. Si reapareciera, la siguiente vía está anotada
+      abajo). Causa y arreglo: Hipótesis fuerte: la llamada
       `set_always_on_top(true)` de Tauri NO llega al sistema cuando su estado
       interno ya dice que la ventana es topmost; Windows la degrada por su
       cuenta (otra app se activa, cambia de escritorio, se conecta un monitor)
@@ -319,7 +327,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       exportador del VPS por STDIN (`--prices-stdin`): una sola fuente de
       verdad; un exportador viejo ignora el flag y sigue con su tabla. Los
       tres parsers se validaron contra las fuentes reales (18/11/17 modelos,
-      valores idénticos). FALTA: probar en Windows con red y sin red.
+      valores idénticos) y Oscar lo confirmó en vivo (fuente litellm, 18
+      claves tras normalizar). El interruptor se sacó de la UI el 2026-07-27
+      (solo empeoraba y era fácil tocarlo sin querer): vive en
+      prices_config.json y en su lugar hay un botón ⓘ que enseña las fuentes.
+      Si la descarga falla o lleva más de una semana sin lograrlo, aparece un
+      aviso ⚠ junto a "costo estimado" — no un toast: no es urgente ni
+      accionable al instante. FALTA: probarlo sin red.
       Descripción original de la investigación:
       Hallazgo URGENTE: `price_for()` cobra $15/$75 a opus/fable/mythos, que
       es la tarifa del difunto Opus 4.1; las reales son Opus 5/4.8 $5/$25 y
@@ -383,7 +397,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       se recalcula. Medido en el exportador con 50 MB: 1.06 s -> 0.06 s,
       caché de 172 KB, salida IDÉNTICA byte a byte contra una copia congelada
       de los logs en ventanas 1/7/30/90, frío y caliente, más casos límite
-      (caché corrupto, archivo modificado, archivo viejo).
+      (caché corrupto, archivo modificado, archivo viejo). El lado Rust lleva
+      corriendo en el Windows de Oscar desde el 2026-07-27 con las cifras
+      correctas.
       OJO: los duplicados TAMBIÉN cruzan archivos (365 en los logs reales),
       así que la dedup global al fusionar es imprescindible — una medición
       inicial que comparaba nombres en vez de rutas los daba en cero.
@@ -434,6 +450,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       que abre el panel, globo de información al hover (buckets dinámicos)
       y globo de notificación con ✕ en vez de toasts. Pose automática de
       globos, cola dinámica y soporte multi-monitor. Ver sección Ventanas.
+- [ ] VERIFICAR alta automática de servidor (2026-07-27): el flujo nuevo
+      (detectar Python -> subir el lector a ~/.michiclaude/ -> guardar el
+      comando resuelto) NO se ha probado en vivo, porque el servidor de Oscar
+      sigue guardado con la ruta vieja de cuando se configuró a mano. Para
+      probarlo hay que borrarlo con el bote de la lista y volver a agregarlo
+      dejando el comando VACÍO. Comprobar además el caso de error: un host sin
+      Python debe fallar con ERR_NO_PYTHON y su mensaje traducido, no darse
+      por bueno.
 - [ ] MODO HUB (decidido 2026-07-11, pendiente de implementar tras la semana
       de pruebas): el VPS consolida los datos de todas las máquinas para que
       los totales cuadren en cualquier PC. Diseño acordado: (1) cada meter
