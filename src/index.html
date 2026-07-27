@@ -407,13 +407,12 @@
       <div class="cfg-lbl" data-i18n="budget_label"></div>
       <input id="budgetIn" type="number" min="0" step="1" style="max-width:120px">
       <div class="cfg-lbl" data-i18n="prices_label"></div>
-      <label class="cfg-row" style="cursor:pointer">
-        <input type="checkbox" id="pricesChk"> <span data-i18n="prices_auto"></span>
-      </label>
       <div class="btnrow">
-        <button id="pricesNow" data-i18n="prices_refresh"></button>
         <span id="pricesMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+        <button id="pricesInfo" data-i18n-title="prices_info_tip">&#9432;</button>
+        <button id="pricesNow" data-i18n="prices_refresh"></button>
       </div>
+      <div id="pricesSources" hidden class="cfg-note" data-i18n-html="prices_sources"></div>
       <div class="cfg-lbl" data-i18n="export_label"></div>
       <input id="exportDir" data-i18n-ph="export_dir_ph">
       <div class="btnrow">
@@ -513,6 +512,8 @@ en:{
   budget_label:"Weekly budget in $ (0 = no alert)",
   notif_budget:(s,b)=>`Weekly spend $${s} exceeded your $${b} budget (API-equiv.).`,
   prices_label:"Model prices",
+  prices_info_tip:"Where do the prices come from?",
+  prices_sources:"Anthropic does not publish its rates in any API, so MichiClaude downloads them from these public community tables, in this order until one answers: <b>LiteLLM &rarr; models.dev &rarr; OpenRouter</b>. It is an anonymous download: nothing of yours is sent. To turn it off, set <code>\"auto\": false</code> in <code>prices_config.json</code>.",
   prices_auto:"Update prices automatically (anonymous public download)",
   prices_refresh:"Update now",
   prices_src:(src,when,n)=>`Source: ${src} · ${when} · ${n} models`,
@@ -632,6 +633,8 @@ es:{
   budget_label:"Presupuesto semanal en $ (0 = sin aviso)",
   notif_budget:(s,b)=>`El gasto semanal $${s} superó tu presupuesto de $${b} (equiv. API).`,
   prices_label:"Precios de modelos",
+  prices_info_tip:"¿De dónde salen los precios?",
+  prices_sources:"Anthropic no publica sus tarifas en ninguna API, así que MichiClaude las descarga de estas tablas públicas de la comunidad, en este orden hasta que una responda: <b>LiteLLM &rarr; models.dev &rarr; OpenRouter</b>. Es una descarga anónima: no se envía nada tuyo. Para apagarla, pon <code>\"auto\": false</code> en <code>prices_config.json</code>.",
   prices_auto:"Actualizar precios automáticamente (descarga pública anónima)",
   prices_refresh:"Actualizar ahora",
   prices_src:(src,when,n)=>`Fuente: ${src} · ${when} · ${n} modelos`,
@@ -751,6 +754,8 @@ pt:{
   budget_label:"Orçamento semanal em $ (0 = sem aviso)",
   notif_budget:(s,b)=>`O gasto semanal $${s} superou seu orçamento de $${b} (equiv. API).`,
   prices_label:"Preços dos modelos",
+  prices_info_tip:"De onde vêm os preços?",
+  prices_sources:"A Anthropic não publica suas tarifas em nenhuma API, então o MichiClaude as baixa destas tabelas públicas da comunidade, nesta ordem até uma responder: <b>LiteLLM &rarr; models.dev &rarr; OpenRouter</b>. É um download anônimo: nada seu é enviado. Para desligar, use <code>\"auto\": false</code> em <code>prices_config.json</code>.",
   prices_auto:"Atualizar preços automaticamente (download público anônimo)",
   prices_refresh:"Atualizar agora",
   prices_src:(src,when,n)=>`Fonte: ${src} · ${when} · ${n} modelos`,
@@ -870,6 +875,8 @@ fr:{
   budget_label:"Budget hebdo en $ (0 = pas d'alerte)",
   notif_budget:(s,b)=>`La dépense hebdo $${s} a dépassé votre budget de $${b} (équiv. API).`,
   prices_label:"Prix des modèles",
+  prices_info_tip:"D’où viennent les prix ?",
+  prices_sources:"Anthropic ne publie pas ses tarifs via une API, donc MichiClaude les télécharge depuis ces tables publiques de la communauté, dans cet ordre jusqu’à réponse : <b>LiteLLM &rarr; models.dev &rarr; OpenRouter</b>. Téléchargement anonyme : rien de vous n’est envoyé. Pour le désactiver, mettez <code>\"auto\": false</code> dans <code>prices_config.json</code>.",
   prices_auto:"Mettre à jour les prix automatiquement (téléchargement public anonyme)",
   prices_refresh:"Mettre à jour",
   prices_src:(src,when,n)=>`Source : ${src} · ${when} · ${n} modèles`,
@@ -989,6 +996,8 @@ de:{
   budget_label:"Wochenbudget in $ (0 = kein Alarm)",
   notif_budget:(s,b)=>`Wochenausgaben $${s} haben dein Budget von $${b} überschritten (API-Äquiv.).`,
   prices_label:"Modellpreise",
+  prices_info_tip:"Woher kommen die Preise?",
+  prices_sources:"Anthropic veröffentlicht seine Tarife über keine API, daher lädt MichiClaude sie aus diesen öffentlichen Community-Tabellen, in dieser Reihenfolge bis eine antwortet: <b>LiteLLM &rarr; models.dev &rarr; OpenRouter</b>. Anonymer Download: nichts von Ihnen wird gesendet. Zum Abschalten <code>\"auto\": false</code> in <code>prices_config.json</code> setzen.",
   prices_auto:"Preise automatisch aktualisieren (anonymer öffentlicher Download)",
   prices_refresh:"Jetzt aktualisieren",
   prices_src:(src,when,n)=>`Quelle: ${src} · ${when} · ${n} Modelle`,
@@ -1108,6 +1117,8 @@ ja:{
   budget_label:"週間予算 $（0 = 通知なし）",
   notif_budget:(s,b)=>`週間支出 $${s} が予算 $${b} を超えました（API換算）。`,
   prices_label:"モデルの料金",
+  prices_info_tip:"料金はどこから来ていますか？",
+  prices_sources:"Anthropic は料金を API で公開していないため、MichiClaude はコミュニティの公開テーブルから、応答があるまでこの順に取得します: <b>LiteLLM &rarr; models.dev &rarr; OpenRouter</b>。匿名のダウンロードで、あなたの情報は一切送信されません。停止するには <code>prices_config.json</code> で <code>\"auto\": false</code> を設定します。",
   prices_auto:"料金を自動更新（匿名の公開ダウンロード）",
   prices_refresh:"今すぐ更新",
   prices_src:(src,when,n)=>`ソース: ${src} · ${when} · ${n} モデル`,
@@ -1227,6 +1238,8 @@ ko:{
   budget_label:"주간 예산 $ (0 = 알림 없음)",
   notif_budget:(s,b)=>`주간 지출 $${s}이(가) 예산 $${b}을(를) 초과했습니다 (API 환산).`,
   prices_label:"모델 가격",
+  prices_info_tip:"가격은 어디서 오나요?",
+  prices_sources:"Anthropic은 요금을 API로 공개하지 않으므로, MichiClaude는 커뮤니티 공개 표에서 응답이 올 때까지 이 순서로 내려받습니다: <b>LiteLLM &rarr; models.dev &rarr; OpenRouter</b>. 익명 다운로드이며 사용자 정보는 전혀 전송되지 않습니다. 끄려면 <code>prices_config.json</code>에서 <code>\"auto\": false</code>로 설정하세요.",
   prices_auto:"가격 자동 업데이트 (익명 공개 다운로드)",
   prices_refresh:"지금 업데이트",
   prices_src:(src,when,n)=>`출처: ${src} · ${when} · ${n}개 모델`,
@@ -1346,6 +1359,8 @@ zh:{
   budget_label:"每周预算 $（0 = 不提醒）",
   notif_budget:(s,b)=>`每周支出 $${s} 已超过你的预算 $${b}（API 等价）。`,
   prices_label:"模型价格",
+  prices_info_tip:"价格从哪里来？",
+  prices_sources:"Anthropic 未通过任何 API 公布其价格，因此 MichiClaude 按以下顺序从社区公开表中下载，直到有一个响应：<b>LiteLLM &rarr; models.dev &rarr; OpenRouter</b>。这是匿名下载，不会发送你的任何信息。如需关闭，请在 <code>prices_config.json</code> 中设置 <code>\"auto\": false</code>。",
   prices_auto:"自动更新价格（匿名公开下载）",
   prices_refresh:"立即更新",
   prices_src:(src,when,n)=>`来源: ${src} · ${when} · ${n} 个模型`,
@@ -2157,7 +2172,6 @@ function fmtAgo(iso){
 function renderPricesStatus(){
   if(!invoke) return;
   invoke("get_prices_status").then(s=>{
-    $("pricesChk").checked = !!s.auto;
     // El botón sobra mientras todo va bien: la descarga es automática. Solo
     // aparece cuando hay algo que reintentar (sin red, o nunca descargado).
     const ok = !!s.fetched_at;
@@ -2187,10 +2201,12 @@ EVENT?.listen("prices:updated",e=>{
   invoke?.("get_local_stats",{days:curDays}).then(renderLocal).catch(()=>{});
 });
 $("priceWarn").addEventListener("click",()=>showTab("prefs"));
-$("pricesChk").addEventListener("change",()=>{
-  // al reactivarlo, el backend descarga ya (no esperar al ciclo de 6 h)
-  invoke?.("set_prices_auto",{auto:$("pricesChk").checked})
-    .then(renderPricesStatus).catch(()=>{});
+// Transparencia: de dónde salen los precios, a la vista y sin tener que ir al
+// README. El interruptor para apagar la descarga vive en prices_config.json
+// (documentado); sacarlo de la UI evita que alguien se quede con precios
+// viejos sin querer, pero no le quita la salida a quien la necesite.
+$("pricesInfo").addEventListener("click",()=>{
+  $("pricesSources").hidden = !$("pricesSources").hidden;
 });
 $("pricesNow").addEventListener("click",()=>{
   $("pricesMsg").textContent="…";

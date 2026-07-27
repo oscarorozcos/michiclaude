@@ -264,9 +264,16 @@ Qué implica exactamente:
   tus proyectos, ni identificadores, ni estadísticas: solo se descarga.
 - Como toda petición HTTP, ese servidor ve tu dirección IP. Por eso **matiza**
   la frase de abajo: tus *datos* no salen, pero la app sí contacta ese dominio.
-- **Se puede apagar** en Preferencias → *Actualizar precios automáticamente*.
-  Apagado, la app usa el último caché o la tabla incluida y no hace ninguna
-  petición de red fuera de `api.anthropic.com`.
+- **Se puede apagar.** No hay interruptor en la interfaz a propósito (apagarlo
+  solo deja precios viejos, y era fácil hacerlo sin querer), pero sí en la
+  configuración: pon `"auto": false` en
+  `%APPDATA%\com.oscarorozco.michiclaude\prices_config.json`. Apagado, la app
+  usa el último caché o la tabla incluida y **no hace ninguna petición de red
+  fuera de `api.anthropic.com`**. En ese mismo archivo puedes cambiar las URLs
+  de las fuentes (`litellm_url`, `modelsdev_url`, `openrouter_url`) si prefieres
+  un espejo propio.
+- Dentro de la app, **Preferencias → Precios de modelos → ⓘ** muestra estas
+  mismas fuentes, para que nadie tenga que leer el README para saberlo.
 - Si un modelo no aparece en ninguna tabla, se marca con `~` en la app en vez
   de cobrarlo en silencio con una tarifa supuesta.
 
