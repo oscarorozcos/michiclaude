@@ -1777,28 +1777,37 @@ fn hover_card(app: tauri::AppHandle, hovering: bool) {
     reassert_layers(&app); // el gatito no debe quedarse atrás del globo
 }
 
-/// Coloca un globo (información o notificación) junto al gatito:
+/// Coloca un globo (información o aviso) junto al widget que esté puesto
+/// —gatito o pastilla—:
 /// - pose vertical automática: ARRIBA del gato si cabe en el monitor,
-///   ABAJO con la cola volteada si no (gato pegado al borde superior);
-/// - X preferida sujetada a los límites del monitor ACTUAL del gato,
+///   ABAJO con la cola volteada si no (widget pegado al borde superior);
+/// - X preferida sujetada a los límites del monitor ACTUAL del widget,
 ///   usando su ORIGEN + tamaño — en multi-monitor el globo acompaña al
-///   gato (el clamp anterior contra [0, ancho] lo devolvía al monitor 1);
+///   widget (el clamp anterior contra [0, ancho] lo devolvía al monitor 1);
 /// - la cola se reposiciona (evento balloon:pose hacia esa ventana) para
-///   apuntar SIEMPRE a la cabeza del gato aunque el globo se haya corrido.
+///   apuntar SIEMPRE al widget aunque el globo se haya corrido.
 fn place_balloon(app: &tauri::AppHandle, label: &str, prefer_dx: f64, overlap_up: f64) {
     use tauri::{Emitter, Manager};
-    let (Some(cat), Some(w)) =
-        (app.get_webview_window("cat"), app.get_webview_window(label))
+    // El ancla es el widget que esté puesto: el gatito o la pastilla. La cola
+    // apunta a la cabeza del gato (62% de su ancho) o al centro de la pastilla.
+    let cfg = load_pill_config();
+    let (anchor_win, tail_ratio) = if cfg.style == "cat" {
+        ("cat", 0.62)
+    } else {
+        ("pill", 0.50)
+    };
+    let (Some(anchor), Some(w)) =
+        (app.get_webview_window(anchor_win), app.get_webview_window(label))
     else {
         return;
     };
     let (Ok(p), Ok(ks), Ok(ws)) =
-        (cat.outer_position(), cat.outer_size(), w.outer_size())
+        (anchor.outer_position(), anchor.outer_size(), w.outer_size())
     else {
         return;
     };
-    let scale = cat.scale_factor().unwrap_or(1.0);
-    let (mx0, my0, mx1, my1) = match cat.current_monitor() {
+    let scale = anchor.scale_factor().unwrap_or(1.0);
+    let (mx0, my0, mx1, my1) = match anchor.current_monitor() {
         Ok(Some(m)) => {
             let mp = m.position();
             let ms = m.size();
@@ -1819,8 +1828,7 @@ fn place_balloon(app: &tauri::AppHandle, label: &str, prefer_dx: f64, overlap_up
     let mut x = p.x + (prefer_dx * scale).round() as i32;
     x = x.min(mx1 - ws.width as i32).max(mx0);
     let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
-    // cola apuntando a la cabeza del gato (~62% del ancho de su ventana)
-    let anchor = p.x as f64 + ks.width as f64 * 0.62;
+    let anchor = p.x as f64 + ks.width as f64 * tail_ratio;
     let wlog = ws.width as f64 / scale;
     let tailx = ((anchor - x as f64) / scale).round().clamp(24.0, wlog - 64.0);
     let _ = app.emit_to(label, "balloon:pose", serde_json::json!({
@@ -1829,15 +1837,19 @@ fn place_balloon(app: &tauri::AppHandle, label: &str, prefer_dx: f64, overlap_up
     }));
 }
 
-/// Notificación cómic del gatito (modo cat): el PANEL decide cuándo
-/// mostrarla (alarma de % pendiente) y el globo se cierra con su ✕.
+/// Globo de aviso del widget: el PANEL decide cuándo mostrarlo y se cierra
+/// con su ✕ o al abrir el panel — NUNCA solo. Sirve para los dos widgets
+/// (gatito y pastilla): un toast de Windows se va a los pocos segundos y si
+/// el usuario no estaba delante, no se entera (2026-07-27).
 #[tauri::command]
 fn set_notif_visible(app: tauri::AppHandle, visible: bool) {
     use tauri::Manager;
     let Some(w) = app.get_webview_window("notif") else { return };
     let cfg = load_pill_config();
-    if visible && cfg.visible && cfg.style == "cat" {
-        place_balloon(&app, "notif", -194.0, 40.0);
+    if visible && cfg.visible {
+        // la pastilla es más angosta que el globo: se centra sobre ella
+        let dx = if cfg.style == "cat" { -194.0 } else { -21.0 };
+        place_balloon(&app, "notif", dx, 40.0);
         // misma capa que el gatito: widget y globos se comportan como una
         // sola pieza (petición de Oscar 2026-07-26; antes la alarma se
         // forzaba al frente y rompía la coherencia con el ajuste elegido)

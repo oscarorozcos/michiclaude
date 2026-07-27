@@ -128,8 +128,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   cae al gif normal en vez de dejar la ventana transparente vacía.
   En modo gatito las alarmas de % NO van a toast de
   Windows: salen como globo `notif` (los demás avisos y la pastilla normal
-  siguen con toasts). En modo gatito NINGÚN aviso va a toast: los cuatro
-  salen por el globo `notif`, con un `kind` que viaja y vuelve con la ✕.
+  siguen con toasts). NINGÚN aviso va ya a toast de Windows mientras haya
+  widget en pantalla —gatito o PASTILLA (2026-07-27)—: todos salen por el
+  globo `notif`, con un `kind` que viaja y vuelve con la ✕. `place_balloon()`
+  ancla al widget que esté puesto (cola al 62% del ancho en el gato, al 50%
+  en la pastilla). El toast queda SOLO como respaldo cuando el usuario apagó
+  el widget: ahí no hay dónde colgar el globo, y entonces sí se repite cada
+  5 min. Motivo del cambio: un toast se va en segundos y quien se levanta de
+  su lugar no se entera nunca.
   REGLA ÚNICA (2026-07-27, decisión de Oscar): el globo se queda hasta que
   el usuario le dé ✕ o abra el panel, y no vuelve. NADA de auto-cierre por
   temporizador — un reloj no sabe si el usuario estaba frente a la

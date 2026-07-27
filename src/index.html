@@ -1625,7 +1625,9 @@ const PALETTE = ["var(--accent)","var(--brand)","var(--ok)","var(--warn)","var(-
 let lastQuotaData=null, lastLocalData=null;   // caché para re-render al cambiar idioma
 
 // ---------- widget flotante: el panel es el ÚNICO que consulta; el widget escucha ----------
-let lastPill=null;
+// ¿hay widget en pantalla? Decide si un aviso puede salir como globo o si
+// tiene que caer al toast de Windows (no hay dónde colgarlo).
+let lastPill=null, pillOn=false;
 function getPillStyle(){ return localStorage.getItem("pillStyle")==="cat"?"cat":"plain"; }
 function pillLabels(){
   return {ses:t("pill_ses"), week:t("pill_week"), cardSes:t("card_ses"), cardWeek:t("card_week")};
@@ -2006,7 +2008,7 @@ function trackResets(ses, wk){
       // Globo de descanso: UNA vez por ventana y solo en modo gatito. Se
       // queda hasta que el usuario lo cierre, pero cerrarlo NO levanta al
       // gatito: la sesión sigue agotada hasta su reset.
-      if(!localStorage.getItem("notifS") && getPillStyle()==="cat"){
+      if(!localStorage.getItem("notifS")){
         localStorage.setItem("notifS","1");
         showBalloon(breakBody(ses.resets), "break");
       }
@@ -2025,11 +2027,9 @@ function trackResets(ses, wk){
       localStorage.setItem("hit:week","1");
       if(!localStorage.getItem("notifW")){
         localStorage.setItem("notifW","1");
-        // Un aviso, un canal: en modo gatito el globo SUSTITUYE al toast de
-        // Windows (misma regla que las alarmas de %); con la pastilla normal
-        // sigue el toast de siempre.
-        if(getPillStyle()==="cat") showBalloon(weekBody(wk.resets), "zzz");
-        else toast(t("notif_week_limit"));
+        // Un aviso, un canal: el globo SUSTITUYE al toast de Windows, con
+        // gatito y con pastilla.
+        showBalloon(weekBody(wk.resets), "zzz");
       }
     }
   }
@@ -2045,6 +2045,17 @@ function trackResets(ses, wk){
 // calma, porque ahí el estado ERA "hay un aviso sin ver".
 // El `kind` viaja al globo y vuelve con la ✕ para saber qué dar por cerrado.
 function showBalloon(body, kind){
+  // Sin widget en pantalla no hay dónde colgar el globo: ahí sí toca el toast
+  // de Windows, con su repetición cada 5 min (que es lo que lo salva de ser
+  // efímero). Es el ÚNICO caso en que se sigue usando.
+  if(!pillOn){
+    const last=+localStorage.getItem("ackLastToast:"+kind)||0;
+    if(Date.now()-last>5*60000){
+      localStorage.setItem("ackLastToast:"+kind, String(Date.now()));
+      if(body) toast(body);
+    }
+    return;
+  }
   if(!ACK_KINDS.includes(kind))          // break/zzz: no esperan confirmación,
     localStorage.setItem("infoBalloon", JSON.stringify({body, kind}));  // pero sí sobreviven a un hover
   EVENT?.emit("notif:update",{body, kind});
@@ -2088,16 +2099,13 @@ function processAcks(){
   if(simMascot) return;          // simulación en curso: no la pises
   for(const k of ACK_KINDS){
     if(localStorage.getItem("ackPending:"+k)!=="1") continue;
-    // Modo gatito: NINGÚN aviso va a Windows — todos salen como globo cómic
-    // sobre el gato, que solo cierra el usuario (✕ o abrir el panel). Como
-    // el globo no se va solo, tampoco hace falta repetirlo cada 5 min. Un
-    // globo a la vez: gana el primero de la lista, que es el más urgente.
-    if(getPillStyle()==="cat"){ showBalloon(balloonBody(k), k); return; }
-    const last=+localStorage.getItem("ackLastToast:"+k)||0;
-    if(Date.now()-last>5*60000){
-      localStorage.setItem("ackLastToast:"+k, String(Date.now()));
-      const b=ackBody(k); if(b) toast(b);
-    }
+    // NINGÚN aviso va ya a Windows: todos salen como globo sobre el widget
+    // —gatito o pastilla—, que solo cierra el usuario (✕ o abrir el panel).
+    // El toast de Windows se iba a los segundos y quien no estuviera delante
+    // no se enteraba; el globo espera. Como no se va solo, tampoco hace
+    // falta repetirlo cada 5 min. Un globo a la vez: gana el primero de la
+    // lista, que es el más urgente.
+    showBalloon(balloonBody(k), k); return;
   }
 }
 
@@ -2105,7 +2113,6 @@ function processAcks(){
 // cada vez que termina un hover (el hover lo oculta para dejar salir el globo
 // de información, y tiene que volver: pasar el mouse no es haberlo leído).
 EVENT?.listen("notif:ready",()=>{
-  if(getPillStyle()!=="cat") return;
   if(simMascot){ if(simB) simBalloon(simB.body, simB.kind); return; }
   for(const k of ACK_KINDS)
     if(localStorage.getItem("ackPending:"+k)==="1"){ showBalloon(balloonBody(k), k); return; }
@@ -2267,7 +2274,7 @@ function checkBudget(daily){
   const key=`notifBudget:${budget}:${week}`;
   if(localStorage.getItem(key)) return;
   localStorage.setItem(key,"1");
-  toast(t("notif_budget", spent.toFixed(2), budget));
+  showBalloon(t("notif_budget", spent.toFixed(2), budget), "budget");
 }
 
 // ---------- ciclo de refresco (auto-programado, con backoff ante fallos) ----------
@@ -2488,15 +2495,17 @@ $("alarmAdd").addEventListener("click",()=>{
 renderAlarms();
 
 // ---------- preferencias: widget flotante, presupuesto y exportación ----------
-if(invoke){ invoke("get_pill_visible").then(v=>{ $("pillChk").checked=!!v; }).catch(()=>{}); }
+if(invoke){ invoke("get_pill_visible").then(v=>{ $("pillChk").checked=!!v; pillOn=!!v; }).catch(()=>{}); }
 $("pillChk").addEventListener("change",()=>{
-  invoke?.("set_pill_visible",{visible:$("pillChk").checked});
+  pillOn=$("pillChk").checked;
+  invoke?.("set_pill_visible",{visible:pillOn});
 });
 // Estilo del widget (pastilla sola / con gatito): backend redimensiona la
 // ventana; el panel reemite el último dato para que el widget cambie ya.
 $("pillStyleSel").value=getPillStyle();
 if(invoke){ invoke("get_pill_style").then(s=>{ const st=(s==="cat")?"cat":"plain";
-  localStorage.setItem("pillStyle",st); $("pillStyleSel").value=st; }).catch(()=>{}); }
+  localStorage.setItem("pillStyle",st); $("pillStyleSel").value=st;
+  syncCatOnlyRows(); }).catch(()=>{}); }   // el estilo llega async: recalcular
 $("pillStyleSel").addEventListener("change",()=>{
   const st=$("pillStyleSel").value==="cat"?"cat":"plain";
   localStorage.setItem("pillStyle",st);
