@@ -56,8 +56,19 @@ const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 
+// Qué aviso se está mostrando: la ✕ lo devuelve para que el panel sepa si
+// además debe dar por confirmada la alarma o solo cerrar el globo.
+let kind="alarm", autoT=null;
 if(EVENT){
-  EVENT.listen("notif:update", e=>{ $("msg").textContent=e.payload?.body||""; });
+  EVENT.listen("notif:update", e=>{
+    const p=e.payload||{};
+    $("msg").textContent=p.body||"";
+    kind=p.kind||"alarm";
+    // el auto-cierre lo cuenta esta ventana, que está visible: en el panel
+    // oculto Windows frena los temporizadores y llegaría tarde
+    clearTimeout(autoT);
+    if(p.auto>0) autoT=setTimeout(()=>EVENT.emit("notif:ack",{kind}), p.auto);
+  });
   EVENT.listen("balloon:pose", e=>{
     const p=e.payload||{};
     document.body.classList.toggle("down", p.pose==="down");
@@ -68,7 +79,8 @@ if(EVENT){
   $("msg").textContent="Sesión al 80% de tu límite de 5 h.";  // preview
 }
 
-$("x").addEventListener("click",e=>{ e.stopPropagation(); EVENT?.emit("notif:ack"); });
+$("x").addEventListener("click",e=>{
+  e.stopPropagation(); clearTimeout(autoT); EVENT?.emit("notif:ack",{kind}); });
 // clic en el globo abre el panel (enfocarlo también confirma la alarma)
 $("box").addEventListener("click",()=>invoke?.("show_panel"));
 window.addEventListener("contextmenu",e=>e.preventDefault());

@@ -128,7 +128,15 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   cae al gif normal en vez de dejar la ventana transparente vacía.
   En modo gatito las alarmas de % NO van a toast de
   Windows: salen como globo `notif` (los demás avisos y la pastilla normal
-  siguen con toasts). Los gifs (800², transparentes, en variantes -black/-white
+  siguen con toasts). El globo lleva un `kind` que decide su
+  comportamiento: `alarm` PERSISTE hasta que el usuario confirme (pide una
+  acción: frenar) y `break` se cierra SOLO a los 8 s (solo informa: "Sin
+  cuota de sesión. Vuelvo en 8 min.", una vez por ventana, banderín
+  `notifS`). REGLA: un aviso que no pide ninguna acción no debe insistir —
+  una sesión agotada dura horas y un cartel fijo en el escritorio estorba;
+  el tiempo restante sigue a un hover de distancia en el globo `card`. El
+  auto-cierre lo cuenta `notif.html`, NO el panel: Windows frena los
+  temporizadores de las ventanas ocultas y llegaría tarde. Los gifs (800², transparentes, en variantes -black/-white
   elegidas según el tema) se recortan por CSS
   (unión visible x[39,748] y[0,530] medida con decodificador propio) — NO
   editar los archivos. EXCEPCIÓN: `cat-break-black.gif` llegó en lienzo
