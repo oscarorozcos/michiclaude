@@ -722,6 +722,57 @@ fn test_remote(host: String) -> Result<String, String> {
     }
 }
 
+/// Ruta canónica del exportador en el servidor. Solo se reinstala en los
+/// remotos que apunten aquí: si el usuario puso su propia ruta, no se le
+/// escribe nada en su máquina.
+const REMOTE_SCRIPT_PATH: &str = "~/.michiclaude/meter-export.py";
+
+/// El exportador viaja DENTRO del binario. Así el usuario no tiene que
+/// copiarlo a mano ni saber dónde está, y cada actualización de MichiClaude
+/// lo mantiene en sincronía con el backend (invariante 1).
+const REMOTE_SCRIPT: &str = include_str!("../../scripts/meter-export.py");
+
+/// Sube el exportador al servidor por SSH (lo escribe desde stdin, sin
+/// necesitar scp ni permisos extra). Idempotente: sobrescribe siempre.
+fn upload_exporter(host: &str) -> Result<(), String> {
+    use std::io::Write;
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])
+        .arg(host)
+        .arg("mkdir -p ~/.michiclaude && cat > ~/.michiclaude/meter-export.py && chmod +x ~/.michiclaude/meter-export.py")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let mut child = cmd.spawn().map_err(|e| format!("No pude ejecutar ssh: {e}"))?;
+    if let Some(mut si) = child.stdin.take() {
+        si.write_all(REMOTE_SCRIPT.as_bytes())
+            .map_err(|e| format!("No pude enviar el script: {e}"))?;
+    }
+    let out = child.wait_with_output().map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr)
+            .trim()
+            .chars()
+            .take(200)
+            .collect())
+    }
+}
+
+/// Alta de servidor: prueba la conexión y deja el exportador instalado.
+/// Devuelve el comando que hay que guardar, ya resuelto.
+#[tauri::command]
+fn install_remote(host: String) -> Result<String, String> {
+    upload_exporter(&host)?;
+    Ok(format!("python3 {REMOTE_SCRIPT_PATH}"))
+}
+
 /// Ejecuta el exportador remoto por SSH. BatchMode: jamás pide contraseña
 /// (requiere llave configurada, la misma que usa VS Code Remote-SSH).
 fn fetch_remote(r: &RemoteSource, window_days: u32) -> Option<LocalStats> {
@@ -1366,6 +1417,7 @@ pub fn run() {
             get_remotes,
             save_remotes,
             test_remote,
+            install_remote,
             export_data,
             show_panel,
             set_pill_visible,
@@ -1446,6 +1498,21 @@ pub fn run() {
                     set_pill_visible_impl(app.handle(), true);
                 }
             }
+
+            // El exportador viaja dentro del binario, así que tras cada
+            // actualización de MichiClaude hay que refrescarlo en los
+            // servidores o quedaría desincronizado con el backend. Solo se
+            // toca a los que usan NUESTRA ruta: si el usuario puso la suya,
+            // no se le escribe nada. En hilo aparte y en silencio: es una
+            // comodidad, no debe entorpecer el arranque ni molestar si el
+            // servidor está apagado.
+            std::thread::spawn(|| {
+                for r in load_remotes() {
+                    if r.command.contains(REMOTE_SCRIPT_PATH) {
+                        let _ = upload_exporter(&r.host);
+                    }
+                }
+            });
 
             // Precios: intento al arrancar y luego cada 6 h (refresh_prices ya
             // respeta la ventana de 24 h del caché y el interruptor del

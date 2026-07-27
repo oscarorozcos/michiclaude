@@ -234,9 +234,13 @@ Cuando el gasto viene de otra máquina, se añade el origen: `mi-web · wsl`,
 - **WSL**: automático — sus proyectos salen como "nombre · wsl".
 - **Servidores** (VPS, etc.): en *Fuentes de datos*, agrega nombre + host SSH
   (el mismo alias/usuario@ip con el que ya te conectas; usa tu llave SSH) y
-  pulsa *Probar y agregar*. Sus proyectos aparecen como "nombre · servidor".
-  Si un servidor no responde, se ignora en silencio — tus datos locales
-  nunca se bloquean.
+  pulsa *Probar y agregar*. **No tienes que copiar ni instalar nada**:
+  MichiClaude sube él mismo su lector a `~/.michiclaude/` en ese servidor, y
+  lo mantiene al día en cada actualización de la app. Deja el campo *comando*
+  vacío salvo que quieras ejecutar un script propio (en ese caso no se toca
+  nada en tu servidor). Sus proyectos aparecen como "nombre · servidor"; si un
+  servidor no responde, se ignora en silencio y tus datos locales nunca se
+  bloquean.
 
 ## Privacidad y cómo se conecta
 
