@@ -47,12 +47,15 @@
   .plabel .lab{font-size:10.5px;font-weight:600;color:var(--ink)}
   .plabel b{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--ink)}
   body.hovering .plabel{opacity:0}
+  /* Al arrancar (o sin token) todavía no hay % que enseñar. Mejor que el
+     gatito salga solo a que enseñe una cápsula vacía, que parece un error. */
+  body.nodata .plabel{display:none}
 </style>
 </head>
-<body>
+<body class="nodata">
 <img class="cat" id="cat" src="cat-black.gif" alt="" draggable="false">
 <button class="head" id="head" aria-label="MichiClaude"></button>
-<div class="plabel"><span class="lab" id="chipLab">session</span><b id="chipPct">—</b></div>
+<div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b></div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
 const $=id=>document.getElementById(id);
@@ -85,8 +88,10 @@ function apply(d){
   syncArt();
   if(d.ok===false) return;                 // conserva el último % bueno
   const s=d.session;
-  $("chipPct").textContent = s ? Math.round(s.pct)+"%" : "—";
-  $("chipPct").style.color = s ? col(Math.round(s.pct), s.pace) : "var(--ink)";
+  if(!s) return;                           // aún sin cuota: cápsula oculta
+  document.body.classList.remove("nodata");
+  $("chipPct").textContent = Math.round(s.pct)+"%";
+  $("chipPct").style.color = col(Math.round(s.pct), s.pace);
 }
 
 if(EVENT){
