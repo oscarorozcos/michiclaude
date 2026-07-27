@@ -1568,9 +1568,11 @@ function mascotState(ses, weekPct){
   if(localStorage.getItem("ackPending:alarm")==="1") return "fire";
   return "normal";
 }
+let lastPillArgs=null;
 function emitPill(ses, wk, extras){
+  lastPillArgs=[ses,wk,extras];             // para el tic del contador (abajo)
   const weekPct = wk ? wk.pct : null;
-  lastPill={ok:!!ses, session:ses, weekly:wk?{pct:wk.pct}:null,
+  lastPill={ok:!!ses, session:ses, weekly:wk?{pct:wk.pct, resets:wk.resets}:null,
     theme:document.body.classList.contains("light")?"light":"dark",
     style:getPillStyle(), mascot:mascotState(ses,weekPct),
     labels:pillLabels(),
@@ -1584,6 +1586,17 @@ function emitPill(ses, wk, extras){
 }
 // Cuando el widget (re)carga, pide el último dato conocido para no esperar el ciclo.
 EVENT?.listen("pill:ready",()=>{ if(lastPill) EVENT.emit("quota:update", lastPill); });
+
+// El "se restablece en…" del globo del hover baja solo, minuto a minuto. Sin
+// esto se quedaba congelado hasta el siguiente ciclo de cuota (3 min), que es
+// justo cuando más se mira: esperando a que vuelva la sesión. Rehace el
+// resumen con los mismos datos —no consulta nada— así que también recalcula
+// el estado del gatito de paso.
+// Si la última lectura buena ya pasó de vieja, NO se reemite: onQuotaFail ya
+// puso el widget en gris y revivir ese dato cada minuto lo desharía.
+setInterval(()=>{
+  if(lastPillArgs && Date.now()-lastSync<=STALE_MS) emitPill(...lastPillArgs);
+}, 60000);
 
 // ---------- simulador de estados del gatito (SOLO compilaciones de dev) ----------
 // Recorre normal → fire → break → zzz con una pausa entre cada uno, para ver el
