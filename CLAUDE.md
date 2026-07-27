@@ -94,8 +94,8 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - **Panel** (`main`): flyout sin decoraciones, transparente, alwaysOnTop,
   skipTaskbar. Se abre con clic en el tray; se oculta al perder foco (excepto
   durante arrastre); ✕ oculta a bandeja; arrastrable desde el encabezado.
-- **Widget flotante** (`pill`, src/pill.html): pastilla opcional SIEMPRE
-  visible (marca + % de sesión + barras S/W + punto de estado) que vive
+- **Widget flotante** (`pill`, src/pill.html): cápsula opcional SIEMPRE
+  visible que vive
   ENCIMA de la barra de tareas — nunca dentro ni tapando iconos (lección
   aprendida de la franja descartada). No roba foco (`WS_EX_NOACTIVATE`),
   arrastrable solo desde el asa ⠿ (al soltar persiste posición vía
@@ -106,6 +106,27 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   dato con `pill:ready` al cargar. (El "diseño coral" alternativo se
   eliminó el 2026-07-25 a petición de Oscar: solo existe el diseño
   original de pastilla y el gatito.)
+  REDISEÑO 2026-07-27 (maqueta de Oscar): cápsula de cristal (280x54) con
+  borde de acento, asa ⠿, marca, "Sesión X%" y hasta dos porcentajes con
+  icono — semanal (calendario) y el bucket semanal POR MODELO (destellos),
+  que es un hueco VARIABLE: el icono se queda, el modelo cambia (Fable hoy,
+  lo que salga mañana) y si el endpoint no reporta ninguno no se pinta.
+  Iconos SVG en el propio archivo: la fuente Tabler de la maqueta se
+  descarga de fuera y la CSP no lo permite. Los porcentajes CONSERVAN el
+  color de estado (verde/ámbar/rojo) en vez del verde fijo de la maqueta:
+  ese color es lo que avisa sin leer los números.
+  Clic en la cápsula = desplegar el detalle; clic en la MARCA = abrir el
+  panel; ⠿ arrastra (y pliega antes); clic derecho oculta.
+- **Detalle de la pastilla** (`pcard`, src/pcard.html, 280x300): la maqueta
+  crece al hacer clic, pero una ventana transparente NO se puede
+  redimensionar en vivo (WebView2 deja de pintar). Son dos ventanas: al
+  desplegar se OCULTA la pastilla y se muestra `pcard` con la cabecera
+  idéntica en su mismo sitio, y parece que creció. `toggle_pill_card()`
+  elige la pose: hacia abajo si cabe, y si no —el caso normal, con el
+  widget pegado a la barra— ancla por el borde inferior y las filas salen
+  ENCIMA de la cabecera (`body.up` invierte el orden). Ventana fija más
+  alta de lo necesario: el hueco transparente sobrante no estorba porque un
+  clic en cualquier parte pliega.
 - **Widget gatito** (estilo `cat` en `PillConfig.style`, elegible en
   Preferencias; validado en vivo 2026-07-22): el gato Bongo SUSTITUYE a la
   pastilla (nunca conviven). Cuatro ventanas fijas: `cat` (gif animado +

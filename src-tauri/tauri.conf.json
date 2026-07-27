@@ -25,8 +25,23 @@
         "label": "pill",
         "title": "MichiClaude — widget",
         "url": "pill.html",
-        "width": 210,
-        "height": 46,
+        "width": 280,
+        "height": 54,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "focus": false,
+        "visible": false
+      },
+      {
+        "label": "pcard",
+        "title": "MichiClaude — detalle",
+        "url": "pcard.html",
+        "width": 280,
+        "height": 300,
         "resizable": false,
         "decorations": false,
         "transparent": true,
@@ -88,7 +103,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

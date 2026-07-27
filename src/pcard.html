@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MichiClaude — detalle</title>
+<style>
+  /* Detalle desplegado de la pastilla. Es una VENTANA APARTE a propósito: la
+     maqueta crece al hacer clic, pero redimensionar una ventana transparente
+     en vivo deja a WebView2 sin pintar (regla del proyecto). Así que la
+     pastilla se oculta, esta se muestra en su mismo sitio con la cabecera
+     idéntica, y parece que creció.
+     La ventana es fija y más alta de lo necesario; la caja se pega al lado
+     de la cabecera y el resto queda transparente. Un clic en cualquier parte
+     pliega, así que ese hueco no estorba. */
+  :root{
+    --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --glass:rgba(15,19,26,.86); --line:rgba(86,199,214,.5);
+    --shadow:0 0 22px rgba(86,199,214,.26), inset 0 1px 0 rgba(255,255,255,.06);
+    --txt:#cfd8e0; --txt-strong:#eef3f8; --dim:#6b7783;
+    --sep:rgba(255,255,255,.09); --track:rgba(255,255,255,.1);
+    --brand:#d97757;
+    --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
+  }
+  body.light{
+    --glass:rgba(255,255,255,.93); --line:rgba(11,124,140,.42);
+    --shadow:0 8px 24px rgba(11,124,140,.2), inset 0 1px 0 rgba(255,255,255,.7);
+    --txt:#42505b; --txt-strong:#0f1b26; --dim:#8a95a1;
+    --sep:rgba(15,27,38,.1); --track:rgba(15,27,38,.1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
+  body{font-family:var(--font);color:var(--txt);user-select:none;-webkit-user-select:none;
+    cursor:pointer;display:flex;flex-direction:column;justify-content:flex-start}
+  /* pose "up": no cabía hacia abajo, así que la caja se pega al fondo y las
+     filas quedan ENCIMA de la cabecera, que sigue donde estaba la pastilla */
+  body.up{justify-content:flex-end}
+  .box{background:var(--glass);border:1px solid var(--line);border-radius:20px;
+    box-shadow:var(--shadow);overflow:hidden}
+  body.up .box{display:flex;flex-direction:column-reverse}
+
+  .hdr{display:flex;align-items:center;gap:7px;height:54px;padding:0 10px 0 5px}
+  .grip{flex:0 0 auto;width:13px;color:var(--dim);font-size:11px;
+    letter-spacing:-1px;text-align:center}
+  .mk{flex:0 0 auto;width:24px;height:24px;display:grid;place-items:center}
+  .lab{font-size:13px;font-weight:500;min-width:0;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .pct{font-size:13.5px;font-weight:700;color:var(--txt-strong);white-space:nowrap}
+  .m{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;
+    font-size:12.5px;font-weight:600;white-space:nowrap}
+  .m svg{width:15px;height:15px}
+  .m[hidden]{display:none}
+  .spk{animation:tw 2.4s ease-in-out infinite}
+  @keyframes tw{0%,100%{opacity:1}50%{opacity:.55}}
+  .chev{margin-left:auto;flex:0 0 auto;width:13px;height:13px;color:var(--dim);
+    transform:rotate(180deg)}
+  body.up .chev{transform:none}
+
+  .rows{padding:0 13px 13px}
+  body.up .rows{padding:13px 13px 0}
+  .sep{height:1px;background:var(--sep);margin:0 0 11px}
+  body.up .sep{margin:11px 0 0}
+  .row{margin-bottom:11px}
+  .row:last-child{margin-bottom:0}
+  .rtop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .rlab{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;
+    color:var(--txt-strong);min-width:0}
+  .rlab svg{width:15px;height:15px;flex:0 0 auto;opacity:.85}
+  .rlab span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rpct{font-size:12.5px;font-weight:700;flex:0 0 auto;padding-left:8px}
+  .track{height:5px;border-radius:3px;background:var(--track);overflow:hidden}
+  .fill{height:100%;border-radius:3px;transition:width .4s}
+  .reset{font-size:11px;color:var(--dim);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="hdr">
+    <span class="grip">⠿</span>
+    <span class="mk" id="mk"></span>
+    <span class="lab" id="sesLab"></span><b class="pct" id="sPct">—</b>
+    <span class="m" id="wBox" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/>
+      </svg><span id="wPct"></span>
+    </span>
+    <span class="m" id="xBox" hidden>
+      <svg class="spk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M10 3.5 11.8 8.2 16.5 10 11.8 11.8 10 16.5 8.2 11.8 3.5 10 8.2 8.2Z"/>
+        <path d="M18 4v3M19.5 5.5h-3M18 15v3M19.5 16.5h-3"/>
+      </svg><span id="xPct"></span>
+    </span>
+    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6 9l6 6 6-6"/>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="sep"></div>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const TAURI=window.__TAURI__;
+const invoke=TAURI?.core?.invoke;
+const EVENT=TAURI?.event;
+
+// marca (mini sunburst, igual que la pastilla)
+(function(){
+  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="22" height="22" viewBox="0 0 ${S} ${S}">`;
+  for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
+    const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
+    const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
+    const pts=[[cx+ux*base,cy+uy*base],[cx+ux*mid+px*hw,cy+uy*mid+py*hw],
+      [cx+ux*tip,cy+uy*tip],[cx+ux*mid-px*hw,cy+uy*mid-py*hw]]
+      .map(q=>q.map(n=>n.toFixed(2)).join(",")).join(" ");
+    p+=`<polygon points="${pts}" fill="var(--brand)"/>`}
+  $("mk").innerHTML=p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
+})();
+
+const ICON={
+  ses:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M13 3v7h6l-8 11v-7H5l8-11z"/></svg>`,
+  week:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16"
+    rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/></svg>`,
+  model:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 11.8 8.2 16.5 10 11.8
+    11.8 10 16.5 8.2 11.8 3.5 10 8.2 8.2Z"/><path d="M18 4v3M19.5 5.5h-3M18 15v3M19.5
+    16.5h-3"/></svg>`,
+};
+function col(p,pace){ if(p>=95) return "var(--bad)";
+  if(pace!=null && p>pace+8) return p>85?"var(--bad)":"var(--warn)";
+  if(p>=80) return "var(--warn)"; return "var(--ok)"; }
+
+// Una fila: icono + etiqueta + % + barra + cuándo se restablece. La etiqueta
+// se pinta con textContent (viene del endpoint) — nunca como HTML.
+function row(icon, label, pct, pace, reset){
+  const c=col(pct,pace);
+  const d=document.createElement("div"); d.className="row";
+  d.innerHTML=`<div class="rtop"><span class="rlab">${icon}<span></span></span>
+      <span class="rpct" style="color:${c}">${pct}%</span></div>
+    <div class="track"><div class="fill" style="width:${Math.min(100,pct)}%;background:${c}"></div></div>
+    <div class="reset"></div>`;
+  d.querySelector(".rlab span").textContent=label||"";
+  d.querySelector(".reset").textContent=reset||"";
+  return d;
+}
+
+function render(d){
+  if(!d) return;
+  document.body.classList.toggle("light", d.theme==="light");
+  if(d.labels) $("sesLab").textContent=d.labels.cardSes||d.labels.ses||"Session";
+  if(d.ok===false) return;                 // conserva el último dato bueno
+  const s=d.session, w=d.weekly, ex=d.extras||[];
+  $("sPct").textContent = s ? Math.round(s.pct)+"%" : "—";
+  $("sPct").style.color = s ? col(Math.round(s.pct), s.pace) : "";
+  $("wBox").hidden=!w;
+  if(w){ $("wPct").textContent=Math.round(w.pct)+"%";
+    $("wBox").style.color=col(Math.round(w.pct),null); }
+  $("xBox").hidden=!ex[0];
+  if(ex[0]){ $("xPct").textContent=Math.round(ex[0].pct)+"%";
+    $("xBox").style.color=col(Math.round(ex[0].pct),null); }
+
+  const wkLab=d.labels?.cardWeek||"Weekly";
+  const list=$("list"); list.innerHTML="";
+  if(s) list.appendChild(row(ICON.ses, $("sesLab").textContent,
+    Math.round(s.pct), s.pace, d.sesReset));
+  if(w) list.appendChild(row(ICON.week, wkLab, Math.round(w.pct), null, d.wkReset));
+  // buckets por modelo: DINÁMICOS, con la etiqueta tal cual la reporta el
+  // endpoint (Fable hoy, lo que salga mañana)
+  ex.slice(0,2).forEach(e=>list.appendChild(
+    row(ICON.model, e.label, Math.round(e.pct), null, e.resets)));
+}
+
+if(EVENT){
+  EVENT.listen("quota:update", e=>render(e.payload));
+  // el backend avisa si el detalle cayó hacia arriba o hacia abajo
+  EVENT.listen("balloon:pose", e=>{
+    document.body.classList.toggle("up", e.payload?.pose==="up");
+  });
+  EVENT.emit("pill:ready");   // pide el último dato conocido al panel
+}else{   // preview suelto en un navegador
+  render({ok:true, theme:"dark", labels:{cardSes:"Session",cardWeek:"Weekly"},
+    session:{pct:6,pace:30}, weekly:{pct:35}, sesReset:"Reset in 1 h 6 min",
+    wkReset:"Reset in 74 h 56 min",
+    extras:[{label:"Weekly · Fable",pct:28,resets:"Reset in 74 h 56 min"}]});
+}
+
+// un clic en cualquier parte pliega (también en el hueco transparente)
+window.addEventListener("click",()=>invoke?.("toggle_pill_card",{open:false}));
+window.addEventListener("contextmenu",e=>e.preventDefault());
+</script>
+</body>
+</html>

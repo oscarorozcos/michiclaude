@@ -1452,6 +1452,7 @@ pub fn run() {
             get_pill_visible,
             get_pill_style,
             set_pill_style,
+            toggle_pill_card,
             is_dev,
             get_pill_layer,
             set_pill_layer,
@@ -1515,7 +1516,7 @@ pub fn run() {
                     }
                 }
                 // ni el gatito ni sus globos (hover/notificación) roban foco
-                for label in ["cat", "card", "notif"] {
+                for label in ["cat", "card", "notif", "pcard"] {
                     if let Some(w) = app.get_webview_window(label) {
                         #[cfg(windows)]
                         if let Ok(h) = w.hwnd() {
@@ -1681,7 +1682,7 @@ fn reassert_layers(app: &tauri::AppHandle) {
     use tauri::Manager;
     let cfg = load_pill_config();
     let widget = if cfg.style == "cat" { "cat" } else { "pill" };
-    for label in [widget, "card", "notif"] {
+    for label in [widget, "card", "notif", "pcard"] {
         if let Some(w) = app.get_webview_window(label) {
             apply_layer(&w, &cfg.layer);
         }
@@ -1861,6 +1862,56 @@ fn set_notif_visible(app: tauri::AppHandle, visible: bool) {
     }
 }
 
+/// Despliega o pliega el detalle de la PASTILLA. La maqueta crece al hacer
+/// clic, pero una ventana transparente no se puede redimensionar en vivo sin
+/// que WebView2 deje de pintar, así que son dos ventanas: al desplegar se
+/// oculta la pastilla y se muestra `pcard` con la cabecera idéntica EN SU
+/// MISMO SITIO, y parece que creció.
+/// Si no cabe hacia abajo (el widget suele vivir pegado a la barra de
+/// tareas), la caja se ancla por el borde inferior y crece hacia ARRIBA: la
+/// cabecera se queda donde estaba y las filas salen encima (pose "up").
+#[tauri::command]
+fn toggle_pill_card(app: tauri::AppHandle, open: bool) {
+    use tauri::{Emitter, Manager};
+    let Some(w) = app.get_webview_window("pcard") else { return };
+    let cfg = load_pill_config();
+    let Some(pill) = app.get_webview_window("pill") else { return };
+    if !open || !cfg.visible || cfg.style == "cat" {
+        let _ = w.hide();
+        if cfg.visible && cfg.style != "cat" {
+            let _ = pill.show();
+        }
+        let _ = app.emit_to("pill", "pcard:closed", ());
+        return;
+    }
+    let (Ok(p), Ok(ps), Ok(ws)) = (pill.outer_position(), pill.outer_size(), w.outer_size())
+    else {
+        return;
+    };
+    let (mx0, my0, mx1, my1) = match pill.current_monitor() {
+        Ok(Some(m)) => {
+            let mp = m.position();
+            let ms = m.size();
+            (mp.x, mp.y, mp.x + ms.width as i32, mp.y + ms.height as i32)
+        }
+        _ => (i32::MIN / 2, i32::MIN / 2, i32::MAX / 2, i32::MAX / 2),
+    };
+    let down = p.y + ws.height as i32 <= my1;
+    let y = if down {
+        p.y
+    } else {
+        (p.y + ps.height as i32 - ws.height as i32).max(my0)
+    };
+    let x = p.x.min(mx1 - ws.width as i32).max(mx0);
+    let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
+    let _ = app.emit_to("pcard", "balloon:pose", serde_json::json!({
+        "pose": if down { "down" } else { "up" },
+    }));
+    apply_layer(&w, &cfg.layer);
+    let _ = w.show();
+    let _ = pill.hide();   // la cabecera del detalle la sustituye
+}
+
 /// ¿Es una compilación de desarrollo (`npm run dev`)? El panel lo usa para
 /// enseñar el simulador de estados del gatito, que no debe existir en release.
 #[tauri::command]
@@ -1889,7 +1940,7 @@ fn set_pill_layer(app: tauri::AppHandle, layer: String) {
 }
 
 fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
-    use tauri::Manager;
+    use tauri::{Emitter, Manager};
     let mut cfg = load_pill_config();
     cfg.visible = visible;
     save_pill_config(&cfg);
@@ -1915,11 +1966,14 @@ fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
     }
     // los globos (hover y notificación) nunca sobreviven a un cambio de
     // visibilidad; el panel re-muestra la notificación si sigue pendiente
-    for label in ["card", "notif"] {
+    for label in ["card", "notif", "pcard"] {
         if let Some(w) = app.get_webview_window(label) {
             let _ = w.hide();
         }
     }
+    // la pastilla olvida que estaba desplegada (si no, vuelve con la
+    // flecha al revés y el primer clic no haría nada visible)
+    let _ = app.emit_to("pill", "pcard:closed", ());
 }
 
 #[tauri::command]

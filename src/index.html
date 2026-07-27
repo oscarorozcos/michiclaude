@@ -2372,6 +2372,7 @@ window.addEventListener("focus",()=>{
     localStorage.removeItem("ackPending:"+k);
     localStorage.removeItem("ackLastToast:"+k);
   }
+  invoke?.("toggle_pill_card",{open:false});      // el detalle se pliega
   localStorage.removeItem("infoBalloon");         // descanso/dormilón, vistos
   simB=null;                                      // y el simulado, igual
   invoke?.("set_notif_visible",{visible:false});  // globo del gatito, adiós
