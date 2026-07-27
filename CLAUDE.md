@@ -449,7 +449,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       (cuota/proyección/gasto/tendencia/modelos) · Fuentes de datos
       (nota + servidores con estado y alta) · Preferencias (idioma, widget,
       alarmas, presupuesto, export). Pie con Hoy/Semana fijo en todas. El
-      botón ⚙ se eliminó — las pestañas siempre están visibles.
+      botón ⚙ se eliminó — las pestañas siempre están visibles. Encabezado y
+      pestañas van en `.p-top`, STICKY (2026-07-27): el relleno superior del
+      panel vive en `.p-top`, no en `.panel`, y los márgenes negativos lo
+      llevan de borde a borde. Si se devuelve el `padding-top` a `.panel` o
+      se le pone `margin-bottom` a `.tabs`, se abre una rendija transparente
+      por la que se ve pasar el contenido al hacer scroll.
 - [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
 - [~] Alarmas de uso configurables + avisos de límite/restablecimiento con
       confirmación "Enterado" — implementado (2026-07-11); FALTA probar en
@@ -530,8 +535,10 @@ limpio dentro de `src-tauri`, y listar archivos tocados con el motivo.
 corre en el Windows de Oscar.)
 
 **Simulador de estados del gatito** (Preferencias → "🐱 Simular estados"):
-recorre normal → fire → break → zzz con 15 min de pausa entre cada uno, para
-ver el arte sin esperar a agotar la sesión o la semana. Mientras corre,
+recorre normal → fire → break → zzz con una pausa AJUSTABLE entre cada uno
+(campo de minutos al lado, admite decimales: 0.5 = 30 s, mínimo 5 s,
+persistido en localStorage `simMin`), para ver el arte sin esperar a agotar
+la sesión o la semana. Mientras corre,
 `mascotState()` devuelve el estado forzado y los refrescos normales no lo
 pisan; vive en memoria (cerrar la app cancela). SOLO aparece en compilaciones
 de desarrollo (comando `is_dev` = `cfg!(debug_assertions)`), por eso es el

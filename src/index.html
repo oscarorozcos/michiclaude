@@ -43,8 +43,15 @@
   .panel{
     background:var(--mica);border-radius:14px;
     box-shadow:0 24px 60px -12px rgba(0,0,0,.7),0 0 0 1px var(--stroke);
-    padding:15px 15px 13px;
+    padding:0 15px 13px;   /* el relleno de arriba vive en .p-top (sticky) */
   }
+  /* Encabezado + pestañas SIEMPRE a la vista: al hacer scroll dentro del panel
+     se quedan pegados arriba en vez de irse. Los márgenes negativos los llevan
+     de borde a borde para que el contenido no se cuele por los lados, y el
+     relleno de abajo sustituye al margen de .tabs (un margen no lleva fondo y
+     dejaría una rendija transparente por donde se vería pasar el texto). */
+  .p-top{position:sticky;top:0;z-index:5;background:var(--mica);
+    margin:0 -15px;padding:15px 15px 12px}
   body.light .panel{box-shadow:0 24px 60px -14px rgba(30,40,60,.35),0 0 0 1px var(--stroke)}
   .p-head{display:flex;align-items:center;gap:10px;margin-bottom:13px;
     cursor:grab;user-select:none;-webkit-user-select:none}
@@ -71,7 +78,7 @@
   .p-head .xbtn{margin-left:4px}
 
   /* pestañas (subrayado activo, estilo navegación) */
-  .tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--stroke-soft)}
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--stroke-soft)}
   .tab{background:transparent;border:0;border-bottom:2px solid transparent;
     color:var(--txt-mut);font-family:var(--font);font-size:12px;font-weight:600;
     padding:7px 10px;cursor:pointer;letter-spacing:.2px}
@@ -246,6 +253,7 @@
 </head>
 <body>
 <div class="panel">
+  <div class="p-top">
   <div class="p-head" id="pHead">
     <span class="mark" id="mark"></span>
     <div class="p-htext">
@@ -262,6 +270,7 @@
     <button class="tab" data-tab="sources" data-i18n="sources_title"></button>
     <button class="tab" data-tab="prefs" data-i18n="prefs_title"></button>
   </div>
+  </div><!-- /p-top -->
 
   <div id="tab-main">
 
@@ -407,6 +416,8 @@
            control cuyos textos no pasan por t(). -->
       <div class="btnrow" id="devSimRow" hidden style="margin-top:6px">
         <button id="simBtn">🐱 Simular estados</button>
+        <input id="simMin" type="number" min="0.1" max="60" step="0.5" style="max-width:62px">
+        <span style="font-size:10.5px;color:var(--txt-dim)">min c/u</span>
         <span id="simMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
       </div>
       <div class="cfg-lbl" data-i18n="alarms_label"></div>
@@ -1557,7 +1568,11 @@ EVENT?.listen("pill:ready",()=>{ if(lastPill) EVENT.emit("quota:update", lastPil
 // mascotState() devuelve el estado forzado, así que los refrescos normales del
 // panel no lo pisan. Vive en memoria: cerrar la app cancela la simulación.
 let simMascot=null, simTimer=null, simTick=null;
-const SIM_SEQ=["normal","fire","break","zzz"], SIM_MS=15*60000;
+const SIM_SEQ=["normal","fire","break","zzz"];
+// minutos por estado, ajustables (admite decimales: 0.5 = 30 s). Se lee en
+// cada paso, así que cambiarlo a media simulación afecta al siguiente estado.
+function simMs(){ return Math.max(5, (parseFloat($("simMin").value)||1)*60)*1000; }
+const simLeft=ms=> ms>=60000 ? Math.ceil(ms/60000)+" min" : Math.ceil(ms/1000)+" s";
 function simPush(){
   if(lastPill){
     lastPill.mascot=mascotState(lastPill.session, lastPill.weekly?lastPill.weekly.pct:null);
@@ -1576,15 +1591,17 @@ function simStop(msg){
 function simStep(i){
   if(i>=SIM_SEQ.length){ simStop("listo · de vuelta al estado real"); return; }
   simMascot=SIM_SEQ[i]; simPush();
-  let left=SIM_MS;
+  let left=simMs();
   const paint=()=>{ $("simMsg").textContent=
-    `${i+1}/${SIM_SEQ.length} · ${simMascot} · ${Math.ceil(left/60000)} min`; };
+    `${i+1}/${SIM_SEQ.length} · ${simMascot} · ${simLeft(left)}`; };
   paint();
   clearInterval(simTick);
   simTick=setInterval(()=>{ left-=1000; if(left>0) paint(); },1000);
-  simTimer=setTimeout(()=>simStep(i+1), SIM_MS);
+  simTimer=setTimeout(()=>simStep(i+1), left);
 }
 if(invoke) invoke("is_dev").then(d=>{ if(d) $("devSimRow").hidden=false; }).catch(()=>{});
+$("simMin").value=localStorage.getItem("simMin")||"1";
+$("simMin").addEventListener("change",()=>localStorage.setItem("simMin",$("simMin").value));
 $("simBtn").addEventListener("click",()=>{
   if(simTimer||simTick){ simStop("detenido"); return; }
   if(getPillStyle()!=="cat"){ $("simMsg").textContent="activa el widget gatito primero"; return; }
