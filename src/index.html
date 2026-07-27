@@ -403,6 +403,24 @@
           <option value="cat" data-i18n="pill_style_cat"></option>
         </select>
       </div>
+      <!-- El arte del gatito y el color de sus globos se eligen por separado:
+           "Según el tema" (por defecto) sigue al botón ◐ como siempre. -->
+      <div class="cfg-row catOnly" id="catArtRow" style="margin-top:2px">
+        <span data-i18n="cat_art_label"></span>
+        <select id="catArtSel">
+          <option value="auto" data-i18n="theme_auto"></option>
+          <option value="light" data-i18n="theme_light"></option>
+          <option value="dark" data-i18n="theme_dark"></option>
+        </select>
+      </div>
+      <div class="cfg-row catOnly" id="catSkinRow" style="margin-top:2px">
+        <span data-i18n="cat_skin_label"></span>
+        <select id="catSkinSel">
+          <option value="auto" data-i18n="theme_auto"></option>
+          <option value="light" data-i18n="theme_light"></option>
+          <option value="dark" data-i18n="theme_dark"></option>
+        </select>
+      </div>
       <div class="cfg-row" id="pillLayerRow" style="margin-top:2px">
         <span data-i18n="pill_layer_label"></span>
         <select id="pillLayerSel">
@@ -558,6 +576,11 @@ en:{
   pill_style_label:"Widget style",
   pill_style_plain:"Pill",
   pill_style_cat:"Cat with laptop 🐱",
+  cat_art_label:"Cat artwork",
+  cat_skin_label:"Cat balloons",
+  theme_auto:"Follow theme",
+  theme_light:"Light",
+  theme_dark:"Dark",
   pill_ses:"session", pill_week:"week",
   card_ses:"Session", card_week:"Weekly",
   pill_layer_label:"On-screen position",
@@ -688,6 +711,11 @@ es:{
   pill_style_label:"Estilo del widget",
   pill_style_plain:"Pastilla",
   pill_style_cat:"Gatito con laptop 🐱",
+  cat_art_label:"Arte del gatito",
+  cat_skin_label:"Globos del gatito",
+  theme_auto:"Según el tema",
+  theme_light:"Claro",
+  theme_dark:"Oscuro",
   pill_ses:"sesión", pill_week:"semana",
   card_ses:"Sesión", card_week:"Semanal",
   pill_layer_label:"Posición en pantalla",
@@ -818,6 +846,11 @@ pt:{
   pill_style_label:"Estilo do widget",
   pill_style_plain:"Pílula",
   pill_style_cat:"Gatinho com laptop 🐱",
+  cat_art_label:"Arte do gatinho",
+  cat_skin_label:"Balões do gatinho",
+  theme_auto:"Seguir o tema",
+  theme_light:"Claro",
+  theme_dark:"Escuro",
   pill_ses:"sessão", pill_week:"semana",
   card_ses:"Sessão", card_week:"Semanal",
   pill_layer_label:"Posição na tela",
@@ -948,6 +981,11 @@ fr:{
   pill_style_label:"Style du widget",
   pill_style_plain:"Pastille",
   pill_style_cat:"Chat avec ordi 🐱",
+  cat_art_label:"Dessin du chat",
+  cat_skin_label:"Bulles du chat",
+  theme_auto:"Suivre le thème",
+  theme_light:"Clair",
+  theme_dark:"Sombre",
   pill_ses:"session", pill_week:"semaine",
   card_ses:"Session", card_week:"Hebdo",
   pill_layer_label:"Position à l'écran",
@@ -1078,6 +1116,11 @@ de:{
   pill_style_label:"Widget-Stil",
   pill_style_plain:"Pille",
   pill_style_cat:"Katze mit Laptop 🐱",
+  cat_art_label:"Katzen-Grafik",
+  cat_skin_label:"Katzen-Sprechblasen",
+  theme_auto:"Wie das Thema",
+  theme_light:"Hell",
+  theme_dark:"Dunkel",
   pill_ses:"Sitzung", pill_week:"Woche",
   card_ses:"Sitzung", card_week:"Woche",
   pill_layer_label:"Bildschirmposition",
@@ -1208,6 +1251,11 @@ ja:{
   pill_style_label:"ウィジェットのスタイル",
   pill_style_plain:"ピル",
   pill_style_cat:"ノートPCの猫 🐱",
+  cat_art_label:"猫のイラスト",
+  cat_skin_label:"猫の吹き出し",
+  theme_auto:"テーマに合わせる",
+  theme_light:"ライト",
+  theme_dark:"ダーク",
   pill_ses:"セッション", pill_week:"週",
   card_ses:"セッション", card_week:"週間",
   pill_layer_label:"画面上の位置",
@@ -1338,6 +1386,11 @@ ko:{
   pill_style_label:"위젯 스타일",
   pill_style_plain:"알약",
   pill_style_cat:"노트북 고양이 🐱",
+  cat_art_label:"고양이 그림",
+  cat_skin_label:"고양이 말풍선",
+  theme_auto:"테마 따라가기",
+  theme_light:"밝게",
+  theme_dark:"어둡게",
   pill_ses:"세션", pill_week:"주",
   card_ses:"세션", card_week:"주간",
   pill_layer_label:"화면 위치",
@@ -1468,6 +1521,11 @@ zh:{
   pill_style_label:"小组件样式",
   pill_style_plain:"药丸",
   pill_style_cat:"笔记本小猫 🐱",
+  cat_art_label:"小猫图案",
+  cat_skin_label:"小猫气泡",
+  theme_auto:"跟随主题",
+  theme_light:"浅色",
+  theme_dark:"深色",
   pill_ses:"会话", pill_week:"周",
   card_ses:"会话", card_week:"每周",
   pill_layer_label:"屏幕位置",
@@ -1536,8 +1594,13 @@ if(localStorage.getItem("theme")==="light") document.body.classList.add("light")
 $("themeBtn").addEventListener("click",()=>{
   const light=document.body.classList.toggle("light");
   localStorage.setItem("theme", light?"light":"dark");
-  // sincroniza el tema del widget flotante reemitiendo el último dato
-  if(typeof lastPill!=="undefined" && lastPill){ lastPill.theme=light?"light":"dark"; EVENT?.emit("quota:update",lastPill); }
+  // sincroniza el widget reemitiendo el último dato: solo cambia lo que esté
+  // en "según el tema"; lo que el usuario haya fijado se queda como está
+  if(typeof lastPill!=="undefined" && lastPill){
+    lastPill.theme=light?"light":"dark";
+    lastPill.artTheme=pickTheme("catArt"); lastPill.skinTheme=pickTheme("catSkin");
+    EVENT?.emit("quota:update",lastPill);
+  }
 });
 
 // ---------- marca ----------
@@ -1567,6 +1630,15 @@ function getPillStyle(){ return localStorage.getItem("pillStyle")==="cat"?"cat":
 function pillLabels(){
   return {ses:t("pill_ses"), week:t("pill_week"), cardSes:t("card_ses"), cardWeek:t("card_week")};
 }
+// Tema del panel (el que manda el botón ◐) y los dos que puede soltar el
+// usuario: el ARTE del gatito y la PIEL de sus globos (cápsula incluida — es
+// información, va con los mensajes). "auto" = sigue al panel, que es el
+// comportamiento de siempre y el valor por defecto.
+function panelTheme(){ return document.body.classList.contains("light")?"light":"dark"; }
+function pickTheme(key){
+  const v=localStorage.getItem(key);
+  return (v==="light"||v==="dark") ? v : panelTheme();
+}
 // Estado del gatito — misma lógica que las notificaciones, de lo más grave a
 // lo más leve:
 // 😴 zzz   sin cuota SEMANAL (hit:week): dormido hasta que la semana se
@@ -1589,7 +1661,7 @@ function emitPill(ses, wk, extras){
   lastPillArgs=[ses,wk,extras];             // para el tic del contador (abajo)
   const weekPct = wk ? wk.pct : null;
   lastPill={ok:!!ses, session:ses, weekly:wk?{pct:wk.pct, resets:wk.resets}:null,
-    theme:document.body.classList.contains("light")?"light":"dark",
+    theme:panelTheme(), artTheme:pickTheme("catArt"), skinTheme:pickTheme("catSkin"),
     style:getPillStyle(), mascot:mascotState(ses,weekPct),
     labels:pillLabels(),
     sesReset: ses&&ses.resets?fmtReset(ses.resets):"",
@@ -2429,9 +2501,25 @@ $("pillStyleSel").addEventListener("change",()=>{
   const st=$("pillStyleSel").value==="cat"?"cat":"plain";
   localStorage.setItem("pillStyle",st);
   invoke?.("set_pill_style",{style:st});
+  syncCatOnlyRows();
   if(lastPill){ lastPill.style=st; EVENT?.emit("quota:update",lastPill); }
   processAcks();   // re-enruta al instante la alarma pendiente (globo/toast)
 });
+// Arte y globos del gatito, cada uno por su lado (solo tienen sentido con el
+// widget gatito, así que sus filas se esconden con la pastilla).
+function syncCatOnlyRows(){
+  const on=getPillStyle()==="cat";
+  document.querySelectorAll(".catOnly").forEach(el=>{ el.hidden=!on; });
+}
+for(const [id,key] of [["catArtSel","catArt"],["catSkinSel","catSkin"]]){
+  $(id).value=localStorage.getItem(key)||"auto";
+  $(id).addEventListener("change",()=>{
+    const v=$(id).value;
+    if(v==="auto") localStorage.removeItem(key); else localStorage.setItem(key,v);
+    if(lastPillArgs) emitPill(...lastPillArgs);   // se ve al instante
+  });
+}
+syncCatOnlyRows();
 // Capa en pantalla (al frente / normal / fondo del escritorio)
 if(invoke){ invoke("get_pill_layer").then(l=>{ $("pillLayerSel").value=l; }).catch(()=>{}); }
 $("pillLayerSel").addEventListener("change",()=>{

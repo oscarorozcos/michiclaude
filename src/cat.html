@@ -76,13 +76,16 @@ const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
-// arte por TEMA: oscuro → *-black, claro → *-white
-let curTheme="dark", curMascot="normal";
+// Dos temas independientes (los elige el usuario en Preferencias):
+//   curArt  → qué gif se usa (oscuro *-black / claro *-white)
+//   curSkin → color de la cápsula del %, que va con los globos
+// Si el panel es viejo y solo manda `theme`, ambos caen a ese valor.
+let curArt="dark", curSkin="dark", curMascot="normal";
 function catSrc(){
   const base = curMascot==="fire"  ? "cat-fire"
              : curMascot==="break" ? "cat-break"
              : curMascot==="zzz"   ? "cat-zzz" : "cat";
-  return base + (curTheme==="light" ? "-white.gif" : "-black.gif");
+  return base + (curArt==="light" ? "-white.gif" : "-black.gif");
 }
 function syncArt(){
   const g=catSrc(); if($("cat").getAttribute("src")!==g) $("cat").setAttribute("src",g);
@@ -91,7 +94,7 @@ function syncArt(){
 // si falta el arte de un estado, el gato vuelve al normal en vez de quedarse
 // invisible (una ventana transparente sin imagen no se ve por ningún lado)
 $("cat").addEventListener("error",()=>{
-  const fb = curTheme==="light" ? "cat-white.gif" : "cat-black.gif";
+  const fb = curArt==="light" ? "cat-white.gif" : "cat-black.gif";
   $("cat").classList.remove("odd-canvas");
   if($("cat").getAttribute("src")!==fb) $("cat").setAttribute("src",fb);
 });
@@ -106,8 +109,10 @@ function apply(d){
   // "Sesión" con mayúscula en la cápsula (misma etiqueta que el globo)
   if(d.labels) $("chipLab").textContent=d.labels.cardSes||d.labels.ses||"Session";
   // sin title/tooltip nativo: la info completa vive en el globo del hover
-  if(d.theme) curTheme = d.theme==="light" ? "light" : "dark";
-  document.body.classList.toggle("dark", curTheme!=="light");   // cápsula
+  const art=d.artTheme||d.theme, skin=d.skinTheme||d.theme;
+  if(art)  curArt  = art==="light"  ? "light" : "dark";
+  if(skin) curSkin = skin==="light" ? "light" : "dark";
+  document.body.classList.toggle("dark", curSkin!=="light");   // cápsula
   if(d.mascot) curMascot = d.mascot;
   syncArt();
   if(d.ok===false) return;                 // conserva el último % bueno

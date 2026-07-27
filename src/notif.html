@@ -74,7 +74,7 @@ if(EVENT){
   // el tema llega en el resumen que el panel emite para el widget; este globo
   // no lo usa para nada más, solo para pintarse claro u oscuro
   EVENT.listen("quota:update", e=>{
-    const th=e.payload?.theme;
+    const th=e.payload?.skinTheme||e.payload?.theme;
     if(th) document.body.classList.toggle("dark", th!=="light");
   });
   EVENT.listen("balloon:pose", e=>{

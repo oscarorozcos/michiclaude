@@ -464,6 +464,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       blanco. El tema viaja en el resumen `quota:update`, así que `notif`
       lo escucha solo para eso; en `card` se aplica ANTES del early-return
       de `ok:false`, para que siga al panel aunque conserve el dato viejo.
+      Además el ARTE del gatito y la PIEL de sus globos se eligen por
+      separado (2026-07-27): dos selectores en Preferencias, cada uno
+      "Según el tema" (default, sigue al ◐) / Claro / Oscuro, en
+      localStorage `catArt` y `catSkin`. El resumen lleva `artTheme` y
+      `skinTheme` además de `theme`; los widgets caen a `theme` si faltan.
+      La CÁPSULA del % va con los globos, no con el gato: es información,
+      igual que ellos (decisión de Oscar, a prueba — si no convence, se
+      quita). Las dos filas se esconden con la pastilla (clase `catOnly`).
 - [x] Periodo dinámico del gasto por proyecto (1d/7d/30d, persistido) y
       desglose por modelo de cada proyecto (tooltip al pasar el mouse).
 - [x] Gráfica de tendencia diaria (30 días, calculada de los logs — no hay

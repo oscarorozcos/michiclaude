@@ -112,7 +112,8 @@ function render(d){
   if(!d) return;
   // el tema se aplica SIEMPRE, incluso con la lectura en error: el globo debe
   // seguir al panel aunque conserve el último dato bueno
-  if(d.theme) document.body.classList.toggle("dark", d.theme!=="light");
+  const skin=d.skinTheme||d.theme;   // el usuario puede soltarlo del panel
+  if(skin) document.body.classList.toggle("dark", skin!=="light");
   if(d.ok===false) return;                 // conserva el último dato bueno
   if(d.labels){ $("sLab").textContent=d.labels.cardSes||"Session";
     $("wLab").textContent=d.labels.cardWeek||"Weekly"; }
