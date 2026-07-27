@@ -250,6 +250,30 @@ Cuando el gasto viene de otra máquina, se añade el origen: `mi-web · wsl`,
   servidor no responde, se ignora en silencio y tus datos locales nunca se
   bloquean.
 
+#### Paso a paso para agregar un servidor
+
+Solo hace falta si usas Claude Code **en otra máquina** (un VPS, por SSH). Si
+todo tu trabajo es en esta PC —con o sin WSL— **sáltate esto**: ya funciona.
+
+1. Comprueba que ya te conectas a ese servidor desde una terminal:
+   `ssh usuario@mi-servidor` (o `ssh mi-alias` si lo tienes en `~/.ssh/config`).
+   Si eso te pide contraseña o falla, arréglalo primero — MichiClaude usa
+   exactamente esa misma conexión y **nunca pide ni guarda contraseñas**.
+2. En MichiClaude, pestaña **Fuentes de datos → Agregar servidor**.
+3. **Nombre corto**: como quieras que aparezca en la lista. Ej.: `vps`.
+4. **Host SSH**: lo mismo que escribes tras `ssh`. Ej.: `usuario@203.0.113.10`
+   o `mi-alias`.
+5. **Comando a ejecutar**: **déjalo vacío.** (Está escondido en *Opciones
+   avanzadas* justo por eso: casi nadie lo necesita.)
+6. Pulsa **Probar y agregar**. MichiClaude prueba la conexión, sube su lector
+   al servidor y lo deja funcionando. En unos segundos verás los proyectos de
+   esa máquina con el sufijo `· vps`.
+
+**¿Cuándo se usa el campo "comando"?** Casi nunca. Solo si en tu servidor
+`python3` no existe con ese nombre (p. ej. hay que llamar a `python3.11`), o si
+quieres ejecutar tu propia versión del lector. Si lo rellenas, MichiClaude
+respeta tu comando y **no escribe nada** en ese servidor.
+
 ## Privacidad y cómo se conecta
 
 1. La app lee el token OAuth de `~/.claude/.credentials.json` (lo crea
