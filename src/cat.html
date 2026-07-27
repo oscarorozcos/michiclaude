@@ -8,7 +8,8 @@
      chip con el % de sesión (con etiqueta, para que se entienda) y una zona
      invisible sobre la cabeza que abre el panel; la laptop solo arrastra.
      Hover → globo de diálogo (ventana 'card').
-     Estética cómic (blanco + trazo negro) a juego con el gato, en ambos temas. */
+     Estética cómic a juego con el gato: papel y trazo se invierten con el
+     tema (claro = blanco/negro, oscuro = oscuro/claro). */
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
@@ -19,6 +20,11 @@
        Para calibrarla: pinta .head con background:rgba(255,0,0,.25) */
     --hx:53%; --hy:47%; --hw:40%; --hh:39%;
   }
+  /* Tema oscuro: el cómic se invierte —relleno oscuro, trazo y texto claros—
+     en vez de quedarse en papel blanco, que era lo único del widget que no
+     seguía al tema. Mismos tonos que el panel para que se lean como la misma
+     app; el coral sube a #d97757 porque el #C15F3C se apaga sobre oscuro. */
+  body.dark{--paper:#20242c; --ink:#e9ebef}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   body{font-family:var(--font);cursor:grab;user-select:none;-webkit-user-select:none}
@@ -101,6 +107,7 @@ function apply(d){
   if(d.labels) $("chipLab").textContent=d.labels.cardSes||d.labels.ses||"Session";
   // sin title/tooltip nativo: la info completa vive en el globo del hover
   if(d.theme) curTheme = d.theme==="light" ? "light" : "dark";
+  document.body.classList.toggle("dark", curTheme!=="light");   // cápsula
   if(d.mascot) curMascot = d.mascot;
   syncArt();
   if(d.ok===false) return;                 // conserva el último % bueno

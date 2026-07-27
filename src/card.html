@@ -17,6 +17,12 @@
     --accent:#C15F3C; --wk:rgba(193,95,60,.55); --track:rgba(0,0,0,.1);
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
   }
+  /* Tema oscuro: el cómic se invierte —relleno oscuro, trazo y texto claros—
+     en vez de quedarse en papel blanco, que era lo único del widget que no
+     seguía al tema. Mismos tonos que el panel para que se lean como la misma
+     app; el coral sube a #d97757 porque el #C15F3C se apaga sobre oscuro. */
+  body.dark{--ink:#e9ebef; --paper:#20242c; --mut:#969ba6; --accent:#d97757;
+    --wk:rgba(217,119,87,.5); --track:rgba(255,255,255,.1)}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;cursor:pointer;
@@ -103,7 +109,11 @@ function col(p,pace){ if(p>=95) return "var(--bad)";
 
 // Pinta desde el resumen del panel (nunca llama al endpoint). % SIEMPRE enteros.
 function render(d){
-  if(!d || d.ok===false) return;           // conserva el último dato bueno
+  if(!d) return;
+  // el tema se aplica SIEMPRE, incluso con la lectura en error: el globo debe
+  // seguir al panel aunque conserve el último dato bueno
+  if(d.theme) document.body.classList.toggle("dark", d.theme!=="light");
+  if(d.ok===false) return;                 // conserva el último dato bueno
   if(d.labels){ $("sLab").textContent=d.labels.cardSes||"Session";
     $("wLab").textContent=d.labels.cardWeek||"Weekly"; }
   const s=d.session, w=d.weekly;

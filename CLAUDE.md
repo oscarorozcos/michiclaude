@@ -456,7 +456,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       \\wsl.localhost\<distro>\{home/*,root}\.claude como fuente local extra
       (proyectos "nombre · wsl") y token de respaldo desde WSL antes que los
       remotos. FALTA probar en una máquina con WSL real.
-- [x] Tema claro/oscuro con toggle ◐ persistido.
+- [x] Tema claro/oscuro con toggle ◐ persistido. Alcanza también a las
+      ventanas del gatito (2026-07-27): la cápsula del % y los dos globos
+      (`card`, `notif`) invierten el cómic en oscuro (relleno #20242c, trazo
+      y texto #e9ebef, coral a #d97757 porque el #C15F3C se apaga sobre
+      fondo oscuro). Antes eran lo único del widget que se quedaba en papel
+      blanco. El tema viaja en el resumen `quota:update`, así que `notif`
+      lo escucha solo para eso; en `card` se aplica ANTES del early-return
+      de `ok:false`, para que siga al panel aunque conserve el dato viejo.
 - [x] Periodo dinámico del gasto por proyecto (1d/7d/30d, persistido) y
       desglose por modelo de cada proyecto (tooltip al pasar el mouse).
 - [x] Gráfica de tendencia diaria (30 días, calculada de los logs — no hay
