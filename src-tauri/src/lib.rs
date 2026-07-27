@@ -579,7 +579,7 @@ async fn refresh_prices(app: Option<tauri::AppHandle>, force: bool) -> Option<St
             });
             if let Some(a) = app {
                 use tauri::Emitter;
-                let _ = a.emit("prices:updated", &source);
+                let _ = a.emit("prices:updated", serde_json::json!({"ok": true}));
             }
             Some(source)
         }
@@ -588,6 +588,12 @@ async fn refresh_prices(app: Option<tauri::AppHandle>, force: bool) -> Option<St
             // para poder decirle al usuario que se intentó y no se pudo
             cached.last_try = now;
             save_prices_cache(&cached);
+            // se avisa igual: el panel muestra el aviso junto a los costes sin
+            // esperar a que el usuario entre en Preferencias
+            if let Some(a) = app {
+                use tauri::Emitter;
+                let _ = a.emit("prices:updated", serde_json::json!({"ok": false}));
+            }
             None
         }
     }
