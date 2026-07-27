@@ -765,12 +765,40 @@ fn upload_exporter(host: &str) -> Result<(), String> {
     }
 }
 
-/// Alta de servidor: prueba la conexión y deja el exportador instalado.
-/// Devuelve el comando que hay que guardar, ya resuelto.
+/// Busca en el servidor un Python que sirva (3.7+, que es lo que usa el
+/// exportador). Sin esto, un servidor sin `python3` se daba de alta como
+/// "conectado" y luego no aparecía ningún dato: un fallo silencioso que el
+/// usuario no tenía forma de diagnosticar.
+fn detect_python(host: &str) -> Option<String> {
+    let probe = "for p in python3 python3.13 python3.12 python3.11 python3.10 \
+python3.9 python3.8 python3.7 python; do \
+if command -v \"$p\" >/dev/null 2>&1 && \"$p\" -c \
+'import sys;raise SystemExit(0 if sys.version_info>=(3,7) else 1)' 2>/dev/null; \
+then echo \"$p\"; exit 0; fi; done; exit 1";
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])
+        .arg(host)
+        .arg(probe);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let out = cmd.output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let found = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if found.is_empty() { None } else { Some(found) }
+}
+
+/// Alta de servidor: busca Python, deja el exportador instalado y devuelve el
+/// comando ya resuelto para guardarlo.
 #[tauri::command]
 fn install_remote(host: String) -> Result<String, String> {
+    let py = detect_python(&host).ok_or_else(|| "ERR_NO_PYTHON".to_string())?;
     upload_exporter(&host)?;
-    Ok(format!("python3 {REMOTE_SCRIPT_PATH}"))
+    Ok(format!("{py} {REMOTE_SCRIPT_PATH}"))
 }
 
 /// Ejecuta el exportador remoto por SSH. BatchMode: jamás pide contraseña
