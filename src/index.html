@@ -571,6 +571,8 @@ en:{
   notif_break:(h,m)=>h?`Session quota is out. Back in ${h} h ${m} min.`:`Session quota is out. Back in ${m} min.`,
   notif_zzz_day:(d)=>`Weekly quota is out. Back on ${d}.`,
   notif_zzz_soon:(h,m)=>h?`Weekly quota is out. Back in ${h} h ${m} min.`:`Weekly quota is out. Back in ${m} min.`,
+  notif_back_session:"Session quota is back. Let\u2019s get to work.",
+  notif_back_week:"Weekly quota is back. Let\u2019s get to work.",
   notif_reset_session:"Your 5 h session limit is available again. Open the meter panel to stop these reminders.",
   notif_reset_week:"Your weekly limit is available again. Open the meter panel to stop these reminders.",
   btn_ack:"Got it",
@@ -699,6 +701,8 @@ es:{
   notif_break:(h,m)=>h?`Sin cuota de sesión. Vuelvo en ${h} h ${m} min.`:`Sin cuota de sesión. Vuelvo en ${m} min.`,
   notif_zzz_day:(d)=>`Semana agotada. Vuelvo el ${d}.`,
   notif_zzz_soon:(h,m)=>h?`Semana agotada. Vuelvo en ${h} h ${m} min.`:`Semana agotada. Vuelvo en ${m} min.`,
+  notif_back_session:"Cuota de sesión restablecida. A trabajar.",
+  notif_back_week:"Cuota semanal restablecida. A trabajar.",
   notif_reset_session:"Tu límite de sesión (5 h) ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   notif_reset_week:"Tu límite semanal ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   btn_ack:"Enterado",
@@ -827,6 +831,8 @@ pt:{
   notif_break:(h,m)=>h?`Sem cota de sessão. Volto em ${h} h ${m} min.`:`Sem cota de sessão. Volto em ${m} min.`,
   notif_zzz_day:(d)=>`Semana esgotada. Volto ${d}.`,
   notif_zzz_soon:(h,m)=>h?`Semana esgotada. Volto em ${h} h ${m} min.`:`Semana esgotada. Volto em ${m} min.`,
+  notif_back_session:"Cota de sessão restabelecida. Ao trabalho.",
+  notif_back_week:"Cota semanal restabelecida. Ao trabalho.",
   notif_reset_session:"Seu limite de sessão (5 h) já está disponível. Abra o painel do meter para parar estes lembretes.",
   notif_reset_week:"Seu limite semanal já está disponível. Abra o painel do meter para parar estes lembretes.",
   btn_ack:"Entendi",
@@ -955,6 +961,8 @@ fr:{
   notif_break:(h,m)=>h?`Plus de quota de session. Je reviens dans ${h} h ${m} min.`:`Plus de quota de session. Je reviens dans ${m} min.`,
   notif_zzz_day:(d)=>`Quota hebdo épuisé. Je reviens ${d}.`,
   notif_zzz_soon:(h,m)=>h?`Quota hebdo épuisé. Je reviens dans ${h} h ${m} min.`:`Quota hebdo épuisé. Je reviens dans ${m} min.`,
+  notif_back_session:"Quota de session rétabli. Au travail.",
+  notif_back_week:"Quota hebdo rétabli. Au travail.",
   notif_reset_session:"Votre limite de session (5 h) est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   notif_reset_week:"Votre limite hebdo est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   btn_ack:"Compris",
@@ -1083,6 +1091,8 @@ de:{
   notif_break:(h,m)=>h?`Sitzungskontingent aufgebraucht. Bin in ${h} Std ${m} Min zurück.`:`Sitzungskontingent aufgebraucht. Bin in ${m} Min zurück.`,
   notif_zzz_day:(d)=>`Wochenkontingent aufgebraucht. Bin am ${d} zurück.`,
   notif_zzz_soon:(h,m)=>h?`Wochenkontingent aufgebraucht. Bin in ${h} Std ${m} Min zurück.`:`Wochenkontingent aufgebraucht. Bin in ${m} Min zurück.`,
+  notif_back_session:"Sitzungskontingent ist zurück. An die Arbeit.",
+  notif_back_week:"Wochenkontingent ist zurück. An die Arbeit.",
   notif_reset_session:"Dein Sitzungslimit (5 Std) ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   notif_reset_week:"Dein Wochenlimit ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   btn_ack:"Verstanden",
@@ -1211,6 +1221,8 @@ ja:{
   notif_break:(h,m)=>h?`セッションの上限に達しました。${h}時間${m}分後に戻ります。`:`セッションの上限に達しました。${m}分後に戻ります。`,
   notif_zzz_day:(d)=>`週の上限に達しました。${d}に戻ります。`,
   notif_zzz_soon:(h,m)=>h?`週の上限に達しました。${h}時間${m}分後に戻ります。`:`週の上限に達しました。${m}分後に戻ります。`,
+  notif_back_session:"セッションの上限がリセットされました。作業を再開しましょう。",
+  notif_back_week:"週の上限がリセットされました。作業を再開しましょう。",
   notif_reset_session:"セッション上限（5時間）が再び利用可能になりました。パネルを開くと通知が止まります。",
   notif_reset_week:"週間上限が再び利用可能になりました。パネルを開くと通知が止まります。",
   btn_ack:"確認",
@@ -1339,6 +1351,8 @@ ko:{
   notif_break:(h,m)=>h?`세션 한도를 다 썼어요. ${h}시간 ${m}분 후에 돌아올게요.`:`세션 한도를 다 썼어요. ${m}분 후에 돌아올게요.`,
   notif_zzz_day:(d)=>`주간 한도를 다 썼어요. ${d}에 돌아올게요.`,
   notif_zzz_soon:(h,m)=>h?`주간 한도를 다 썼어요. ${h}시간 ${m}분 후에 돌아올게요.`:`주간 한도를 다 썼어요. ${m}분 후에 돌아올게요.`,
+  notif_back_session:"세션 한도가 초기화됐어요. 다시 시작해요.",
+  notif_back_week:"주간 한도가 초기화됐어요. 다시 시작해요.",
   notif_reset_session:"세션 한도(5시간)를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   notif_reset_week:"주간 한도를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   btn_ack:"확인",
@@ -1467,6 +1481,8 @@ zh:{
   notif_break:(h,m)=>h?`本次会话额度已用完。${h}小时${m}分钟后回来。`:`本次会话额度已用完。${m}分钟后回来。`,
   notif_zzz_day:(d)=>`本周额度已用完。${d}回来。`,
   notif_zzz_soon:(h,m)=>h?`本周额度已用完。${h}小时${m}分钟后回来。`:`本周额度已用完。${m}分钟后回来。`,
+  notif_back_session:"会话额度已恢复。开始干活吧。",
+  notif_back_week:"每周额度已恢复。开始干活吧。",
   notif_reset_session:"你的会话额度（5小时）已恢复可用。打开面板即可停止提醒。",
   notif_reset_week:"你的每周额度已恢复可用。打开面板即可停止提醒。",
   btn_ack:"知道了",
@@ -1884,13 +1900,12 @@ function trackResets(ses, wk){
     }
     if(ses.pct>=100){
       localStorage.setItem("hit:session","1");
-      // Globo de descanso: UNA vez por ventana y solo en modo gatito. A
-      // diferencia de la alarma, NO insiste ni espera confirmación — no pide
-      // ninguna acción, así que se cierra solo. El detalle (cuánto falta)
-      // sigue disponible en el globo del hover mientras dure la espera.
+      // Globo de descanso: UNA vez por ventana y solo en modo gatito. Se
+      // queda hasta que el usuario lo cierre, pero cerrarlo NO levanta al
+      // gatito: la sesión sigue agotada hasta su reset.
       if(!localStorage.getItem("notifS") && getPillStyle()==="cat"){
         localStorage.setItem("notifS","1");
-        showBalloon(breakBody(ses.resets), "break", BALLOON_AUTO_MS);
+        showBalloon(breakBody(ses.resets), "break");
       }
     }
   }
@@ -1910,7 +1925,7 @@ function trackResets(ses, wk){
         // Un aviso, un canal: en modo gatito el globo SUSTITUYE al toast de
         // Windows (misma regla que las alarmas de %); con la pastilla normal
         // sigue el toast de siempre.
-        if(getPillStyle()==="cat") showBalloon(weekBody(wk.resets), "zzz", BALLOON_AUTO_MS);
+        if(getPillStyle()==="cat") showBalloon(weekBody(wk.resets), "zzz");
         else toast(t("notif_week_limit"));
       }
     }
@@ -1918,16 +1933,22 @@ function trackResets(ses, wk){
 }
 
 // ---------- globo del gatito ----------
-// Una sola ventana `notif` para todos los avisos que salen sobre el gato, con
-// un `kind` que decide qué hace la ✕ y si se cierra solo:
-//   alarm → persiste hasta que el usuario confirme (pide una acción: frenar)
-//   break → se cierra solo a los 8 s (no pide nada, solo informa)
-// El auto-cierre lo cuenta la propia ventana del globo, que está visible:
-// los temporizadores del panel oculto los frena Windows y llegarían tarde.
-const BALLOON_AUTO_MS=8000;
-function showBalloon(body, kind, autoMs){
-  EVENT?.emit("notif:update",{body, kind, auto:autoMs||0});
+// UNA SOLA REGLA para los cuatro avisos: el globo se queda hasta que el
+// usuario le dé ✕ o abra el panel, y no vuelve. Nada de temporizadores: un
+// reloj no sabe si estabas frente a la pantalla.
+// Lo que NO se toca al cerrarlo es el dibujo del gatito, que refleja siempre
+// el estado REAL. Cerrar el globo de descanso no devuelve la cuota, así que
+// el gato sigue de break hasta el reset de verdad; solo el de la alarma lo
+// calma, porque ahí el estado ERA "hay un aviso sin ver".
+// El `kind` viaja al globo y vuelve con la ✕ para saber qué dar por cerrado.
+function showBalloon(body, kind){
+  if(!ACK_KINDS.includes(kind))          // break/zzz: no esperan confirmación,
+    localStorage.setItem("infoBalloon", JSON.stringify({body, kind}));  // pero sí sobreviven a un hover
+  EVENT?.emit("notif:update",{body, kind});
   invoke?.("set_notif_visible",{visible:true});
+}
+function infoBalloon(){
+  try{ return JSON.parse(localStorage.getItem("infoBalloon")||"null"); }catch(e){ return null; }
 }
 // "Sin cuota de sesión. Vuelvo en 8 min." — el tiempo sale del resets_at real
 function breakBody(resets){
@@ -1954,16 +1975,20 @@ function ackBody(k){
   if(k==="alarm") return localStorage.getItem("ackBody:alarm")||"";
   return t(k==="session"?"notif_reset_session":"notif_reset_week");
 }
+// El mismo aviso, más corto, para el globo del gatito: el toast tiene que
+// explicar cómo dejar de recibirlo, el globo lleva su ✕ a la vista.
+function balloonBody(k){
+  if(k==="alarm") return localStorage.getItem("ackBody:alarm")||"";
+  return t(k==="session"?"notif_back_session":"notif_back_week");
+}
 function processAcks(){
   for(const k of ACK_KINDS){
     if(localStorage.getItem("ackPending:"+k)!=="1") continue;
-    // Modo gatito: la alarma de % NO va a Windows — se muestra como globo
-    // cómic persistente sobre el gato, que solo cierra el usuario (✕ o
-    // abrir el panel). En pastilla normal siguen los toasts de siempre.
-    if(k==="alarm" && getPillStyle()==="cat"){
-      showBalloon(ackBody(k), "alarm", 0);   // sin auto-cierre: espera confirmación
-      continue;
-    }
+    // Modo gatito: NINGÚN aviso va a Windows — todos salen como globo cómic
+    // sobre el gato, que solo cierra el usuario (✕ o abrir el panel). Como
+    // el globo no se va solo, tampoco hace falta repetirlo cada 5 min. Un
+    // globo a la vez: gana el primero de la lista, que es el más urgente.
+    if(getPillStyle()==="cat"){ showBalloon(balloonBody(k), k); return; }
     const last=+localStorage.getItem("ackLastToast:"+k)||0;
     if(Date.now()-last>5*60000){
       localStorage.setItem("ackLastToast:"+k, String(Date.now()));
@@ -1972,20 +1997,28 @@ function processAcks(){
   }
 }
 
-// El globo de notificación del gatito se comunica por eventos: al cargar
-// pide el pendiente; su ✕ confirma la alarma ("enterado") y lo cierra.
-// Solo la ALARMA se re-muestra: es la única que sigue pendiente hasta que el
-// usuario confirme. El globo de descanso ya tuvo su momento y no vuelve.
+// El globo se comunica por eventos. Pide lo pendiente al cargar y también
+// cada vez que termina un hover (el hover lo oculta para dejar salir el globo
+// de información, y tiene que volver: pasar el mouse no es haberlo leído).
 EVENT?.listen("notif:ready",()=>{
-  if(getPillStyle()==="cat" && localStorage.getItem("ackPending:alarm")==="1")
-    showBalloon(ackBody("alarm"), "alarm", 0);
+  if(getPillStyle()!=="cat") return;
+  for(const k of ACK_KINDS)
+    if(localStorage.getItem("ackPending:"+k)==="1"){ showBalloon(balloonBody(k), k); return; }
+  const info=infoBalloon();
+  if(info) showBalloon(info.body, info.kind);
 });
+// La ✕ cierra el globo y da por visto SU aviso, sea del tipo que sea.
 EVENT?.listen("notif:ack",(e)=>{
+  const kind=e?.payload?.kind||"alarm";
   invoke?.("set_notif_visible",{visible:false});
-  if((e?.payload?.kind||"alarm")!=="alarm") return;   // los informativos solo cierran
-  localStorage.removeItem("ackPending:alarm");
-  localStorage.removeItem("ackLastToast:alarm");
-  // el gatito se calma también (misma regla que abrir el panel)
+  if(ACK_KINDS.includes(kind)){
+    localStorage.removeItem("ackPending:"+kind);
+    localStorage.removeItem("ackLastToast:"+kind);
+  }else{
+    localStorage.removeItem("infoBalloon");
+  }
+  // Recalcula el gatito: la alarma confirmada lo calma, pero break y zzz
+  // siguen igual — el dibujo va con el estado real, no con si leíste el aviso.
   if(lastPill){
     lastPill.mascot=mascotState(lastPill.session, lastPill.weekly?lastPill.weekly.pct:null);
     EVENT.emit("quota:update", lastPill);
@@ -2223,6 +2256,7 @@ window.addEventListener("focus",()=>{
     localStorage.removeItem("ackPending:"+k);
     localStorage.removeItem("ackLastToast:"+k);
   }
+  localStorage.removeItem("infoBalloon");         // descanso/dormilón, vistos
   invoke?.("set_notif_visible",{visible:false});  // globo del gatito, adiós
   // el gatito se calma al confirmar (misma regla que los toasts): reemite
   // el último dato con el estado recalculado, sin esperar al próximo ciclo

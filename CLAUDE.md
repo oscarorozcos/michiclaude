@@ -128,21 +128,28 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   cae al gif normal en vez de dejar la ventana transparente vacía.
   En modo gatito las alarmas de % NO van a toast de
   Windows: salen como globo `notif` (los demás avisos y la pastilla normal
-  siguen con toasts). El globo lleva un `kind` que decide su
-  comportamiento: `alarm` PERSISTE hasta que el usuario confirme (pide una
-  acción: frenar) y `break` se cierra SOLO a los 8 s (solo informa: "Sin
-  cuota de sesión. Vuelvo en 8 min.", una vez por ventana, banderín
-  `notifS`) igual que `zzz` ("Semana agotada. Vuelvo el lunes.", banderín
-  `notifW`), que en modo gatito SUSTITUYE al toast `notif_week_limit` — un
-  aviso, un canal; con la pastilla normal sigue el toast. El día lo da
-  `toLocaleDateString(lang,{weekday:"long"})`, así que no cuesta claves
-  nuevas; a menos de 24 h del reset se dicen las horas. Las frases omiten
-  el artículo donde varía con el día (portugués "na segunda" pero "no
-  sábado"). REGLA: un aviso que no pide ninguna acción no debe insistir —
-  una sesión agotada dura horas y un cartel fijo en el escritorio estorba;
-  el tiempo restante sigue a un hover de distancia en el globo `card`. El
-  auto-cierre lo cuenta `notif.html`, NO el panel: Windows frena los
-  temporizadores de las ventanas ocultas y llegaría tarde. Los gifs (800², transparentes, en variantes -black/-white
+  siguen con toasts). En modo gatito NINGÚN aviso va a toast: los cuatro
+  salen por el globo `notif`, con un `kind` que viaja y vuelve con la ✕.
+  REGLA ÚNICA (2026-07-27, decisión de Oscar): el globo se queda hasta que
+  el usuario le dé ✕ o abra el panel, y no vuelve. NADA de auto-cierre por
+  temporizador — un reloj no sabe si el usuario estaba frente a la
+  pantalla. Un hover lo oculta (para dejar salir el `card`) pero NO cuenta
+  como leído: `notif:ready` lo restaura al terminar. Un globo a la vez;
+  si hay varios pendientes gana el primero de `ACK_KINDS`.
+  SEGUNDA REGLA, la que evita mentir: cerrar el globo NO cambia el dibujo
+  del gatito, que refleja siempre el estado REAL. Cerrar el de descanso no
+  devuelve la cuota, así que el gato sigue en `break` hasta el reset de
+  verdad; solo la alarma lo calma, porque ahí el estado ERA "hay un aviso
+  sin ver". Avisos: `break` ("Sin cuota de sesión. Vuelvo en 8 min.",
+  banderín `notifS`), `zzz` ("Semana agotada. Vuelvo el lunes.", banderín
+  `notifW`, sustituye al toast `notif_week_limit`) y los restablecimientos
+  (`notif_back_*`, versión corta de los `notif_reset_*` porque el toast
+  debe explicar cómo callarlo y el globo lleva su ✕ a la vista). break y
+  zzz no tienen `ackPending` —no esperan confirmación de nada— así que su
+  pendiente vive en `infoBalloon`. El día del `zzz` lo da
+  `toLocaleDateString(lang,{weekday:"long"})`, sin claves nuevas, y a menos
+  de 24 h del reset se dicen las horas; las frases omiten el artículo donde
+  varía con el día (portugués "na segunda" pero "no sábado"). Los gifs (800², transparentes, en variantes -black/-white
   elegidas según el tema) se recortan por CSS
   (unión visible x[39,748] y[0,530] medida con decodificador propio) — NO
   editar los archivos. EXCEPCIÓN: `cat-break-black.gif` llegó en lienzo
