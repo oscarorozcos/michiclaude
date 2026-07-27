@@ -114,7 +114,8 @@ tu PC, pero todo pasa **en esa otra máquina**, y los recibos quedan **allá**.
 - *En MichiClaude:* aquí **sí hay un paso manual, una sola vez.** Como los
   recibos están en otra máquina, le dices a MichiClaude que también la revise:
   pestaña **Fuentes de datos → agregar servidor** (nombre + dirección SSH, la
-  misma con la que ya te conectas). Después aparecen con **"· vps"**.
+  misma con la que ya te conectas). Después aparecen con **el nombre corto
+  que tú le pusiste** — por ejemplo `· servidor-trabajo`.
 
 ### Resumen
 
@@ -122,7 +123,7 @@ tu PC, pero todo pasa **en esa otra máquina**, y los recibos quedan **allá**.
 |---|---|---|
 | 🪟 Windows nativo | En tu PC, directo | Nada — automático ("Este PC") |
 | 🐧 WSL | En un Linux dentro de tu PC | Nada — automático ("· wsl") |
-| 🌐 SSH | En otra computadora (servidor) | Agregarla una vez en Fuentes de datos ("· vps") |
+| 🌐 SSH | En otra computadora (servidor) | Agregarla una vez en Fuentes de datos (sale con el nombre que le pongas) |
 
 **¿Cómo sé cuál tengo yo?** Mira qué abres para usar Claude Code:
 
@@ -168,7 +169,7 @@ De dos ingredientes, **ambos en tu equipo**:
 
    | Modelo | Entrada | Salida | Escritura caché | Lectura caché |
    |---|---|---|---|---|
-   | Fable / Mythos 5 | $10 | $50 | $12.50 | $1.00 |
+   | Fable 5 | $10 | $50 | $12.50 | $1.00 |
    | Opus 4.5 y posteriores | $5 | $25 | $6.25 | $0.50 |
    | Opus 3 / 4.0 / 4.1 | $15 | $75 | $18.75 | $1.50 |
    | Sonnet (y no reconocidos) | $3 | $15 | $3.75 | $0.30 |
@@ -209,7 +210,8 @@ registros, y la app hereda esa agrupación:
 **¿De dónde salen los nombres?** De la ruta real de trabajo registrada en
 los logs: la app toma el último segmento (`/opt/projects/mi-web` → `mi-web`).
 Cuando el gasto viene de otra máquina, se añade el origen: `mi-web · wsl`,
-`mi-web · vps`.
+`mi-web · servidor-trabajo` (el sufijo es el nombre corto que le pusiste al
+servidor, así que lo eliges tú).
 
 ## Configuración (pestaña Preferencias)
 
