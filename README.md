@@ -240,39 +240,93 @@ Cuando el gasto viene de otra máquina, se añade el origen: `mi-web · wsl`,
 - **Este PC**: automático (logs de Claude Code).
 - **claude.ai**: automático vía la cuota de tu cuenta.
 - **WSL**: automático — sus proyectos salen como "nombre · wsl".
-- **Servidores** (VPS, etc.): en *Fuentes de datos*, agrega nombre + host SSH
-  (el mismo alias/usuario@ip con el que ya te conectas; usa tu llave SSH) y
-  pulsa *Probar y agregar*. **No tienes que copiar ni instalar nada**:
-  MichiClaude sube él mismo su lector a `~/.michiclaude/` en ese servidor, y
-  lo mantiene al día en cada actualización de la app. Deja el campo *comando*
-  vacío salvo que quieras ejecutar un script propio (en ese caso no se toca
-  nada en tu servidor). Sus proyectos aparecen como "nombre · servidor"; si un
-  servidor no responde, se ignora en silencio y tus datos locales nunca se
-  bloquean.
+- **Servidores** (VPS, etc.): nombre + host SSH en *Fuentes de datos* y listo —
+  **no tienes que copiar ni instalar nada**. Sus proyectos aparecen como
+  "nombre · servidor"; si un servidor no responde, se ignora en silencio y tus
+  datos locales nunca se bloquean. Paso a paso con ejemplo, justo abajo.
 
-#### Paso a paso para agregar un servidor
+#### Conectar un servidor, paso a paso
 
-Solo hace falta si usas Claude Code **en otra máquina** (un VPS, por SSH). Si
-todo tu trabajo es en esta PC —con o sin WSL— **sáltate esto**: ya funciona.
+**El problema.** Si usas Claude en tu propia computadora, MichiClaude lo
+detecta y lo cuenta de inmediato. Pero si te conectas a una computadora remota
+(un servidor en la nube) para trabajar desde allá, MichiClaude no puede
+adivinar lo que estás gastando en esa otra máquina.
 
-1. Comprueba que ya te conectas a ese servidor desde una terminal:
-   `ssh usuario@mi-servidor` (o `ssh mi-alias` si lo tienes en `~/.ssh/config`).
-   Si eso te pide contraseña o falla, arréglalo primero — MichiClaude usa
-   exactamente esa misma conexión y **nunca pide ni guarda contraseñas**.
-2. En MichiClaude, pestaña **Fuentes de datos → Agregar servidor**.
-3. **Nombre corto**: como quieras que aparezca en la lista. Ej.: `vps`.
-4. **Host SSH**: lo mismo que escribes tras `ssh`. Ej.: `usuario@203.0.113.10`
-   o `mi-alias`.
-5. **Comando a ejecutar**: **déjalo vacío.** (Está escondido en *Opciones
-   avanzadas* justo por eso: casi nadie lo necesita.)
-6. Pulsa **Probar y agregar**. MichiClaude prueba la conexión, sube su lector
-   al servidor y lo deja funcionando. En unos segundos verás los proyectos de
-   esa máquina con el sufijo `· vps`.
+**La solución.** Darle permiso para que se conecte a tu servidor, revise cuánto
+has consumido ahí y te sume ese gasto a tu total.
 
-**¿Cuándo se usa el campo "comando"?** Casi nunca. Solo si en tu servidor
-`python3` no existe con ese nombre (p. ej. hay que llamar a `python3.11`), o si
-quieres ejecutar tu propia versión del lector. Si lo rellenas, MichiClaude
-respeta tu comando y **no escribe nada** en ese servidor.
+##### Los 3 requisitos
+
+1. **Poder conectarte al servidor sin escribir contraseña.** MichiClaude
+   trabaja solo en segundo plano, así que no puede quedarse esperando a que
+   teclees nada: necesita una *llave SSH* (un archivo de acceso automático).
+2. **Tener Python en el servidor.** Casi todos los Linux ya lo traen. No hace
+   falta que lo compruebes: MichiClaude lo busca y, si no lo encuentra, te
+   avisa con las instrucciones.
+3. **Haber usado Claude Code al menos una vez en ese servidor.** Si nunca has
+   ejecutado `claude` allí, no hay historial de gasto que leer.
+
+> En **Windows** necesitas además el cliente SSH, incluido desde Windows 10.
+> Para comprobarlo escribe `ssh` en PowerShell: si te responde con la ayuda,
+> ya lo tienes. Si no: Configuración → Aplicaciones → Características
+> opcionales → *Cliente OpenSSH*.
+
+##### Ejemplo real, paso a paso
+
+Imagina a **Carlos**. Programa desde su laptop, pero tiene un servidor en la
+nube (`carlos@203.0.113.10`) donde corre sus proyectos más pesados.
+
+**Paso 1 — Comprueba el acceso sin contraseña.** Abre la terminal de su laptop:
+
+```bash
+ssh carlos@203.0.113.10
+```
+
+- *Le deja entrar directo:* listo, al paso 2.
+- *Le pide contraseña:* lo resuelve ejecutando **una sola vez** en su laptop
+  `ssh-copy-id carlos@203.0.113.10`, que copia su llave al servidor para que no
+  se la vuelva a pedir.
+
+**Paso 2 — Usa Claude en el servidor.** Ya conectado, entra a un proyecto y:
+
+```bash
+claude "explícame este código"
+```
+
+Con eso se crea el primer registro de gasto **dentro** del servidor.
+
+**Paso 3 — Lo agrega en MichiClaude.** Abre el panel desde el icono de la
+bandeja (junto al reloj) y va a **Fuentes de datos → Agregar servidor**:
+
+- **Nombre corto**: `servidor-trabajo` (el que quiera, es solo para reconocerlo)
+- **Host SSH**: `carlos@203.0.113.10` (exactamente lo mismo que escribe tras `ssh`)
+- Pulsa **Probar y agregar**
+
+**¿Qué ocurre después?** MichiClaude se conecta, deja un lector suyo de 16 KB
+en `~/.michiclaude/` de ese servidor y empieza a leer **solo los números** de
+consumo. Desde ese momento Carlos ve su gasto local sumado al del servidor,
+etiquetado como `· servidor-trabajo`.
+
+##### Preguntas rápidas
+
+**¿Es seguro? ¿Va a leer mis conversaciones o mi código?**
+No. El lector que instala solo suma contadores de tokens. No lee tus mensajes,
+ni tus archivos, ni tu código, y nada de eso sale del servidor.
+
+**¿Y el campo "Comando a ejecutar" de Opciones avanzadas?**
+Déjalo en blanco. MichiClaude ya busca solo dónde está Python y usa su propio
+lector, en una carpeta que él controla — **no supone nada sobre las rutas de tu
+servidor**. Solo tendrías que rellenarlo si quisieras ejecutar tu propia
+versión del lector; en ese caso no se escribe nada en tu servidor.
+
+**¿Y si me sale un error?**
+
+| Mensaje | Qué hacer |
+|---|---|
+| `Permission denied` | Falta la llave sin contraseña: `ssh-copy-id usuario@servidor` |
+| `No encontré Python 3.7…` | En el servidor: `sudo apt install python3` |
+| `No pude ejecutar ssh` | Instala el *Cliente OpenSSH* en Windows (ver arriba) |
+| Se agregó pero no salen datos | Ejecuta `claude` al menos una vez en ese servidor |
 
 ## Privacidad y cómo se conecta
 
