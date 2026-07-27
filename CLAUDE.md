@@ -112,9 +112,16 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   que es un hueco VARIABLE: el icono se queda, el modelo cambia (Fable hoy,
   lo que salga mañana) y si el endpoint no reporta ninguno no se pinta.
   Iconos SVG en el propio archivo: la fuente Tabler de la maqueta se
-  descarga de fuera y la CSP no lo permite. Los porcentajes CONSERVAN el
-  color de estado (verde/ámbar/rojo) en vez del verde fijo de la maqueta:
-  ese color es lo que avisa sin leer los números.
+  descarga de fuera y la CSP no lo permite. Color de los porcentajes: el
+  VERDE de "todo bien" se cambió por el acento de la app (`--acc`: #56c7d6
+  en oscuro = tag "Suscripción" del panel, #0b7c8c en claro = pestaña
+  activa), pero ÁMBAR y ROJO se conservan — son los que avisan de que vas
+  por encima del ritmo, y perderlos sí sería un retroceso.
+  La caja lleva 6 px de margen dentro de su ventana: pegada al borde, el
+  halo del box-shadow se cortaba en recto y se veían dos esquinas
+  rectangulares sobre el escritorio. Ese mismo margen en `pill` y `pcard`
+  es lo que mantiene alineada la cabecera al desplegar — si se cambia en
+  una, hay que cambiarlo en la otra.
   Clic en la cápsula = desplegar el detalle; clic en la MARCA = abrir el
   panel; ⠿ arrastra (y pliega antes); clic derecho oculta.
 - **Detalle de la pastilla** (`pcard`, src/pcard.html, 280x300): la maqueta

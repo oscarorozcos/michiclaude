@@ -15,15 +15,17 @@
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --glass:rgba(15,19,26,.74); --line:rgba(86,199,214,.5);
-    --shadow:0 0 20px rgba(86,199,214,.28), inset 0 1px 0 rgba(255,255,255,.06);
+    --shadow:0 0 6px rgba(86,199,214,.3), inset 0 1px 0 rgba(255,255,255,.06);
     --txt:#cfd8e0; --txt-strong:#eef3f8; --dim:#6b7783;
     --brand:#d97757;
+    --acc:#56c7d6;   /* = tag "Suscripción" del panel */
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
   }
   body.light{
     --glass:rgba(255,255,255,.84); --line:rgba(11,124,140,.42);
-    --shadow:0 6px 20px rgba(11,124,140,.18), inset 0 1px 0 rgba(255,255,255,.7);
+    --shadow:0 2px 6px rgba(11,124,140,.22), inset 0 1px 0 rgba(255,255,255,.7);
     --txt:#42505b; --txt-strong:#0f1b26; --dim:#8a95a1;
+    --acc:#0b7c8c;   /* = pestaña activa del panel */
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
@@ -31,7 +33,9 @@
 
   /* sin backdrop-filter: la ventana es transparente, así que detrás no hay
      nada que desenfocar — el alfa del fondo ya deja ver el escritorio */
-  .cap{display:flex;align-items:center;gap:7px;height:100%;padding:0 10px 0 5px;
+  /* la caja se mete 6 px: pegada al borde, el halo se cortaba en recto y se
+     veían dos esquinas rectangulares sobre el escritorio (2026-07-27) */
+  .cap{display:flex;align-items:center;gap:7px;margin:6px;height:44px;padding:0 10px 0 5px;
     background:var(--glass);border:1px solid var(--line);border-radius:999px;
     box-shadow:var(--shadow);cursor:pointer;overflow:hidden}
   .grip{flex:0 0 auto;width:13px;color:var(--dim);cursor:grab;
@@ -97,11 +101,13 @@ const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
   $("mk").innerHTML=p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
 })();
 
-// mismo código de color que el panel (pct vs ritmo). Los porcentajes CONSERVAN
-// el color de estado: es lo que avisa de un vistazo sin leer los números.
+// Color de los porcentajes. El verde de "todo bien" se cambió por el acento
+// de la app (petición de Oscar 2026-07-27: el mismo tono del tag
+// "Suscripción" en oscuro y de la pestaña activa en claro). Ámbar y rojo se
+// quedan: son los que avisan de que vas por encima del ritmo.
 function col(p,pace){ if(p>=95) return "var(--bad)";
   if(pace!=null && p>pace+8) return p>85?"var(--bad)":"var(--warn)";
-  if(p>=80) return "var(--warn)"; return "var(--ok)"; }
+  if(p>=80) return "var(--warn)"; return "var(--acc)"; }
 
 // Renderiza desde el resumen que emite el panel (nunca llama al endpoint).
 // Los porcentajes SIEMPRE enteros (Math.round).

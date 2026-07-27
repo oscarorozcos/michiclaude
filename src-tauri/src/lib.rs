@@ -1604,16 +1604,17 @@ pub fn run() {
                         cfg.y = Some(p.y);
                         save_pill_config(&cfg);
                     }
-                    // la notificación cómic acompaña al gatito al arrastrarlo
-                    if window.label() == "cat" {
-                        let visible = window
-                            .app_handle()
-                            .get_webview_window("notif")
-                            .and_then(|n| n.is_visible().ok())
-                            .unwrap_or(false);
-                        if visible {
-                            place_balloon(window.app_handle(), "notif", -194.0, 40.0);
-                        }
+                    // el globo acompaña al widget al arrastrarlo, sea el
+                    // gatito o la pastilla, y se recoloca solo si el nuevo
+                    // sitio no le deja espacio (misma lógica de pose)
+                    let visible = window
+                        .app_handle()
+                        .get_webview_window("notif")
+                        .and_then(|n| n.is_visible().ok())
+                        .unwrap_or(false);
+                    if visible {
+                        let dx = notif_dx(&load_pill_config());
+                        place_balloon(window.app_handle(), "notif", dx, 40.0);
                     }
                 }
             }
@@ -1838,6 +1839,12 @@ fn place_balloon(app: &tauri::AppHandle, label: &str, prefer_dx: f64, overlap_up
     }));
 }
 
+/// Desplazamiento horizontal del globo respecto al widget: el gatito lo lleva
+/// a su izquierda (para no taparle la cara) y la pastilla lo lleva centrado.
+fn notif_dx(cfg: &PillConfig) -> f64 {
+    if cfg.style == "cat" { -194.0 } else { -21.0 }
+}
+
 /// Globo de aviso del widget: el PANEL decide cuándo mostrarlo y se cierra
 /// con su ✕ o al abrir el panel — NUNCA solo. Sirve para los dos widgets
 /// (gatito y pastilla): un toast de Windows se va a los pocos segundos y si
@@ -1848,9 +1855,7 @@ fn set_notif_visible(app: tauri::AppHandle, visible: bool) {
     let Some(w) = app.get_webview_window("notif") else { return };
     let cfg = load_pill_config();
     if visible && cfg.visible {
-        // la pastilla es más angosta que el globo: se centra sobre ella
-        let dx = if cfg.style == "cat" { -194.0 } else { -21.0 };
-        place_balloon(&app, "notif", dx, 40.0);
+        place_balloon(&app, "notif", notif_dx(&cfg), 40.0);
         // misma capa que el gatito: widget y globos se comportan como una
         // sola pieza (petición de Oscar 2026-07-26; antes la alarma se
         // forzaba al frente y rompía la coherencia con el ajuste elegido)

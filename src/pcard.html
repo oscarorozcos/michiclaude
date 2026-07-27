@@ -15,16 +15,18 @@
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --glass:rgba(15,19,26,.86); --line:rgba(86,199,214,.5);
-    --shadow:0 0 22px rgba(86,199,214,.26), inset 0 1px 0 rgba(255,255,255,.06);
+    --shadow:0 0 6px rgba(86,199,214,.28), inset 0 1px 0 rgba(255,255,255,.06);
     --txt:#cfd8e0; --txt-strong:#eef3f8; --dim:#6b7783;
     --sep:rgba(255,255,255,.09); --track:rgba(255,255,255,.1);
     --brand:#d97757;
+    --acc:#56c7d6;   /* = tag "Suscripción" del panel */
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
   }
   body.light{
     --glass:rgba(255,255,255,.93); --line:rgba(11,124,140,.42);
-    --shadow:0 8px 24px rgba(11,124,140,.2), inset 0 1px 0 rgba(255,255,255,.7);
+    --shadow:0 2px 6px rgba(11,124,140,.22), inset 0 1px 0 rgba(255,255,255,.7);
     --txt:#42505b; --txt-strong:#0f1b26; --dim:#8a95a1;
+    --acc:#0b7c8c;   /* = pestaña activa del panel */
     --sep:rgba(15,27,38,.1); --track:rgba(15,27,38,.1);
   }
   *{box-sizing:border-box}
@@ -34,11 +36,13 @@
   /* pose "up": no cabía hacia abajo, así que la caja se pega al fondo y las
      filas quedan ENCIMA de la cabecera, que sigue donde estaba la pastilla */
   body.up{justify-content:flex-end}
-  .box{background:var(--glass);border:1px solid var(--line);border-radius:20px;
+  /* mismo margen de 6 px que la pastilla: así la cabecera del detalle cae
+     exactamente donde estaba la cápsula al desplegar */
+  .box{margin:6px;background:var(--glass);border:1px solid var(--line);border-radius:20px;
     box-shadow:var(--shadow);overflow:hidden}
   body.up .box{display:flex;flex-direction:column-reverse}
 
-  .hdr{display:flex;align-items:center;gap:7px;height:54px;padding:0 10px 0 5px}
+  .hdr{display:flex;align-items:center;gap:7px;height:44px;padding:0 10px 0 5px}
   .grip{flex:0 0 auto;width:13px;color:var(--dim);font-size:11px;
     letter-spacing:-1px;text-align:center}
   .mk{flex:0 0 auto;width:24px;height:24px;display:grid;place-items:center}
@@ -132,9 +136,13 @@ const ICON={
     11.8 10 16.5 8.2 11.8 3.5 10 8.2 8.2Z"/><path d="M18 4v3M19.5 5.5h-3M18 15v3M19.5
     16.5h-3"/></svg>`,
 };
+// Color de los porcentajes. El verde de "todo bien" se cambió por el acento
+// de la app (petición de Oscar 2026-07-27: el mismo tono del tag
+// "Suscripción" en oscuro y de la pestaña activa en claro). Ámbar y rojo se
+// quedan: son los que avisan de que vas por encima del ritmo.
 function col(p,pace){ if(p>=95) return "var(--bad)";
   if(pace!=null && p>pace+8) return p>85?"var(--bad)":"var(--warn)";
-  if(p>=80) return "var(--warn)"; return "var(--ok)"; }
+  if(p>=80) return "var(--warn)"; return "var(--acc)"; }
 
 // Una fila: icono + etiqueta + % + barra + cuándo se restablece. La etiqueta
 // se pinta con textContent (viene del endpoint) — nunca como HTML.
