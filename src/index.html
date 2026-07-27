@@ -2044,7 +2044,10 @@ EVENT?.listen("notif:ready",()=>{
 EVENT?.listen("notif:ack",(e)=>{
   const kind=e?.payload?.kind||"alarm";
   invoke?.("set_notif_visible",{visible:false});
-  if(simMascot) return;   // globo simulado: cerrarlo no confirma nada real
+  // Globo simulado: cerrarlo no confirma nada real, pero sí debe QUEDARSE
+  // cerrado. Sin borrar simB, el `notif:ready` que emite el gatito al salir
+  // el mouse lo volvía a levantar y no había forma de quitárselo de encima.
+  if(simMascot){ simB=null; return; }
   if(ACK_KINDS.includes(kind)){
     localStorage.removeItem("ackPending:"+kind);
     localStorage.removeItem("ackLastToast:"+kind);
@@ -2291,6 +2294,7 @@ window.addEventListener("focus",()=>{
     localStorage.removeItem("ackLastToast:"+k);
   }
   localStorage.removeItem("infoBalloon");         // descanso/dormilón, vistos
+  simB=null;                                      // y el simulado, igual
   invoke?.("set_notif_visible",{visible:false});  // globo del gatito, adiós
   // el gatito se calma al confirmar (misma regla que los toasts): reemite
   // el último dato con el estado recalculado, sin esperar al próximo ciclo
