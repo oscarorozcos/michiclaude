@@ -30,6 +30,13 @@
      pegados al gato y los 3 gifs no saltan entre sí. NO editar los gifs. */
   .cat{position:absolute;width:112.7%;height:150.7%;left:-5.5%;top:0;
     display:block;-webkit-user-drag:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
+  /* EXCEPCIÓN: cat-break-black.gif se exportó en un lienzo de 1411x860, no en
+     800² como los otros siete. Es el MISMO dibujo a otra escala (la proporción
+     de su caja visible coincide con la del cat-break-white al 0.11%), así que
+     se recoloca por CSS para que el gato caiga donde cae en los demás estados;
+     nada de editar el gif. Medido: visible x[17,1383] y[74,803] de 1411x860.
+     Si algún día se reexporta a 800² alineado con los demás, BORRAR esta regla. */
+  .cat.odd-canvas{width:86.89%;height:70.84%;left:0.50%;top:33.47%}
   /* Retícula de la maqueta 304x219 de Oscar, escalada x0.691 a 210x157. */
   /* zona invisible sobre la cabeza del gato: es el "botón" que abre el
      panel (sustituye al sticker). Todo lo demás de la ventana arrastra. */
@@ -73,11 +80,13 @@ function catSrc(){
 }
 function syncArt(){
   const g=catSrc(); if($("cat").getAttribute("src")!==g) $("cat").setAttribute("src",g);
+  $("cat").classList.toggle("odd-canvas", g==="cat-break-black.gif");  // ver CSS
 }
 // si falta el arte de un estado, el gato vuelve al normal en vez de quedarse
 // invisible (una ventana transparente sin imagen no se ve por ningún lado)
 $("cat").addEventListener("error",()=>{
   const fb = curTheme==="light" ? "cat-white.gif" : "cat-black.gif";
+  $("cat").classList.remove("odd-canvas");
   if($("cat").getAttribute("src")!==fb) $("cat").setAttribute("src",fb);
 });
 

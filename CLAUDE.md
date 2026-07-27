@@ -131,7 +131,10 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   siguen con toasts). Los gifs (800², transparentes, en variantes -black/-white
   elegidas según el tema) se recortan por CSS
   (unión visible x[39,748] y[0,530] medida con decodificador propio) — NO
-  editar los archivos. `place_balloon()` coloca los globos con pose
+  editar los archivos. EXCEPCIÓN: `cat-break-black.gif` llegó en lienzo
+  1411x860 (visible x[17,1383] y[74,803]); es el mismo dibujo a otra escala
+  (proporción idéntica al 0.11% a la del -white) y se recoloca con la regla
+  `.cat.odd-canvas`, que hay que BORRAR si algún día se reexporta a 800². `place_balloon()` coloca los globos con pose
   automática (arriba/abajo según espacio en el monitor ACTUAL del gato,
   origen+tamaño = multi-monitor OK) y cola dinámica (`balloon:pose` →
   `--tailx`) que siempre apunta al gato; nunca dos globos a la vez.
