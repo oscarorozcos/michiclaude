@@ -1452,6 +1452,7 @@ pub fn run() {
             get_pill_visible,
             get_pill_style,
             set_pill_style,
+            is_dev,
             get_pill_layer,
             set_pill_layer,
             get_prices_status,
@@ -1846,6 +1847,13 @@ fn set_notif_visible(app: tauri::AppHandle, visible: bool) {
     } else {
         let _ = w.hide();
     }
+}
+
+/// ¿Es una compilación de desarrollo (`npm run dev`)? El panel lo usa para
+/// enseñar el simulador de estados del gatito, que no debe existir en release.
+#[tauri::command]
+fn is_dev() -> bool {
+    cfg!(debug_assertions)
 }
 
 #[tauri::command]

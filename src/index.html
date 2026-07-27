@@ -402,6 +402,13 @@
           <option value="bottom" data-i18n="pill_layer_bottom"></option>
         </select>
       </div>
+      <!-- Simulador de estados del gatito: SOLO visible en compilaciones de
+           desarrollo (is_dev). Nunca llega a un usuario, por eso es el único
+           control cuyos textos no pasan por t(). -->
+      <div class="btnrow" id="devSimRow" hidden style="margin-top:6px">
+        <button id="simBtn">🐱 Simular estados</button>
+        <span id="simMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+      </div>
       <div class="cfg-lbl" data-i18n="alarms_label"></div>
       <div class="chips" id="alarmList"></div>
       <div class="btnrow">
@@ -1509,13 +1516,20 @@ function getPillStyle(){ return localStorage.getItem("pillStyle")==="cat"?"cat":
 function pillLabels(){
   return {ses:t("pill_ses"), week:t("pill_week"), cardSes:t("card_ses"), cardWeek:t("card_week")};
 }
-// Estado del gatito — misma lógica que las notificaciones:
-// 😴 sin cuota semanal (hit:week): se queda dormido hasta que la semana se
-//    restablezca. 🔥 alarma de % pendiente de "enterado" (ackPending:alarm):
-//    arde hasta que el usuario abra el panel. 🐱 normal en cualquier otro caso.
+// Estado del gatito — misma lógica que las notificaciones, de lo más grave a
+// lo más leve:
+// 😴 zzz   sin cuota SEMANAL (hit:week): dormido hasta que la semana se
+//          restablezca — es el peor caso, no hay nada que hacer en días.
+// ☕ break  sin cuota de la SESIÓN (hit:session): de descanso hasta el reset,
+//          que llega en horas. Ambos banderines los limpia trackResets().
+// 🔥 fire   alarma de % pendiente de "enterado": arde hasta que abra el panel.
+// 🐱 normal cualquier otro caso.
 function mascotState(ses, weekPct){
+  if(simMascot) return simMascot;                     // simulador (solo en dev)
   if((weekPct!=null && Math.round(weekPct)>=100) || localStorage.getItem("hit:week")==="1")
     return "zzz";
+  if((ses && Math.round(ses.pct)>=100) || localStorage.getItem("hit:session")==="1")
+    return "break";
   if(localStorage.getItem("ackPending:alarm")==="1") return "fire";
   return "normal";
 }
@@ -1535,6 +1549,47 @@ function emitPill(ses, wk, extras){
 }
 // Cuando el widget (re)carga, pide el último dato conocido para no esperar el ciclo.
 EVENT?.listen("pill:ready",()=>{ if(lastPill) EVENT.emit("quota:update", lastPill); });
+
+// ---------- simulador de estados del gatito (SOLO compilaciones de dev) ----------
+// Recorre normal → fire → break → zzz con una pausa entre cada uno, para ver el
+// arte y el comportamiento sin esperar a que se cumplan las condiciones reales
+// (cruzar una alarma, agotar la sesión, agotar la semana). Mientras corre,
+// mascotState() devuelve el estado forzado, así que los refrescos normales del
+// panel no lo pisan. Vive en memoria: cerrar la app cancela la simulación.
+let simMascot=null, simTimer=null, simTick=null;
+const SIM_SEQ=["normal","fire","break","zzz"], SIM_MS=15*60000;
+function simPush(){
+  if(lastPill){
+    lastPill.mascot=mascotState(lastPill.session, lastPill.weekly?lastPill.weekly.pct:null);
+    EVENT?.emit("quota:update", lastPill);
+  } else {   // aún sin cuota: al menos que cambie el dibujo
+    EVENT?.emit("quota:update",{ok:false, mascot:simMascot||"normal",
+      theme:document.body.classList.contains("light")?"light":"dark"});
+  }
+}
+function simStop(msg){
+  clearTimeout(simTimer); clearInterval(simTick); simTimer=null; simTick=null;
+  simMascot=null; simPush();
+  $("simBtn").textContent="🐱 Simular estados";
+  $("simMsg").textContent=msg||"";
+}
+function simStep(i){
+  if(i>=SIM_SEQ.length){ simStop("listo · de vuelta al estado real"); return; }
+  simMascot=SIM_SEQ[i]; simPush();
+  let left=SIM_MS;
+  const paint=()=>{ $("simMsg").textContent=
+    `${i+1}/${SIM_SEQ.length} · ${simMascot} · ${Math.ceil(left/60000)} min`; };
+  paint();
+  clearInterval(simTick);
+  simTick=setInterval(()=>{ left-=1000; if(left>0) paint(); },1000);
+  simTimer=setTimeout(()=>simStep(i+1), SIM_MS);
+}
+if(invoke) invoke("is_dev").then(d=>{ if(d) $("devSimRow").hidden=false; }).catch(()=>{});
+$("simBtn").addEventListener("click",()=>{
+  if(simTimer||simTick){ simStop("detenido"); return; }
+  if(getPillStyle()!=="cat"){ $("simMsg").textContent="activa el widget gatito primero"; return; }
+  $("simBtn").textContent="■ Detener"; simStep(0);
+});
 
 // ---------- icono de bandeja dinámico ----------
 // El % de sesión vive junto al reloj, como los medidores de batería/CPU: se

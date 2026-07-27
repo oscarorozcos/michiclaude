@@ -116,9 +116,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   `card` (globo cómic de información al hover, con
   buckets semanales extra DINÁMICOS — Fable, futuros), `notif` (globo de
   alarma persistente con ✕) y la pastilla oculta. Estados del gif según
-  los avisos: normal / cat-fire (alarma de % pendiente = `ackPending:alarm`,
-  se calma al abrir el panel o cerrar el globo) / cat-zzz (semana al 100%,
-  hasta el reset). En modo gatito las alarmas de % NO van a toast de
+  los avisos, de más grave a más leve (`mascotState()`): cat-zzz (semana al
+  100% = `hit:week`, hasta el reset semanal) / cat-break (SESIÓN al 100% =
+  `hit:session`, de descanso hasta el reset de la sesión) / cat-fire (alarma
+  de % pendiente = `ackPending:alarm`, se calma al abrir el panel o cerrar
+  el globo) / normal. Los dos banderines `hit:*` los limpia `trackResets()`
+  al detectar ventana nueva, así que el estado dura exactamente lo que dura
+  la espera real. La cápsula del % nace OCULTA (`body.nodata`) y solo
+  aparece con una lectura de sesión de verdad: al arrancar o sin token no
+  debe verse texto de relleno. Si falta el arte de un estado, `cat.html`
+  cae al gif normal en vez de dejar la ventana transparente vacía.
+  En modo gatito las alarmas de % NO van a toast de
   Windows: salen como globo `notif` (los demás avisos y la pastilla normal
   siguen con toasts). Los gifs (800², transparentes, en variantes -black/-white
   elegidas según el tema) se recortan por CSS
@@ -515,6 +523,16 @@ cd src-tauri; cargo check   # verificación rápida del backend
 
 Verificación obligatoria al terminar cualquier cambio en Rust: `cargo check`
 limpio dentro de `src-tauri`, y listar archivos tocados con el motivo.
+(En el VPS NO hay toolchain de Rust: es solo espejo de código. `cargo check`
+corre en el Windows de Oscar.)
+
+**Simulador de estados del gatito** (Preferencias → "🐱 Simular estados"):
+recorre normal → fire → break → zzz con 15 min de pausa entre cada uno, para
+ver el arte sin esperar a agotar la sesión o la semana. Mientras corre,
+`mascotState()` devuelve el estado forzado y los refrescos normales no lo
+pisan; vive en memoria (cerrar la app cancela). SOLO aparece en compilaciones
+de desarrollo (comando `is_dev` = `cfg!(debug_assertions)`), por eso es el
+único control cuyos textos no pasan por `t()` — nunca llega a un usuario.
 
 ## Flujo de trabajo del repo
 

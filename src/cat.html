@@ -66,12 +66,20 @@ const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
 // arte por TEMA: oscuro → *-black, claro → *-white
 let curTheme="dark", curMascot="normal";
 function catSrc(){
-  const base = curMascot==="fire" ? "cat-fire" : curMascot==="zzz" ? "cat-zzz" : "cat";
+  const base = curMascot==="fire"  ? "cat-fire"
+             : curMascot==="break" ? "cat-break"
+             : curMascot==="zzz"   ? "cat-zzz" : "cat";
   return base + (curTheme==="light" ? "-white.gif" : "-black.gif");
 }
 function syncArt(){
   const g=catSrc(); if($("cat").getAttribute("src")!==g) $("cat").setAttribute("src",g);
 }
+// si falta el arte de un estado, el gato vuelve al normal en vez de quedarse
+// invisible (una ventana transparente sin imagen no se ve por ningún lado)
+$("cat").addEventListener("error",()=>{
+  const fb = curTheme==="light" ? "cat-white.gif" : "cat-black.gif";
+  if($("cat").getAttribute("src")!==fb) $("cat").setAttribute("src",fb);
+});
 
 // mismo código de color de estado que el panel (para el % del chip)
 function col(p,pace){ if(p>=95) return "var(--bad)";
