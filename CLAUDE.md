@@ -132,7 +132,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   comportamiento: `alarm` PERSISTE hasta que el usuario confirme (pide una
   acción: frenar) y `break` se cierra SOLO a los 8 s (solo informa: "Sin
   cuota de sesión. Vuelvo en 8 min.", una vez por ventana, banderín
-  `notifS`). REGLA: un aviso que no pide ninguna acción no debe insistir —
+  `notifS`) igual que `zzz` ("Semana agotada. Vuelvo el lunes.", banderín
+  `notifW`), que en modo gatito SUSTITUYE al toast `notif_week_limit` — un
+  aviso, un canal; con la pastilla normal sigue el toast. El día lo da
+  `toLocaleDateString(lang,{weekday:"long"})`, así que no cuesta claves
+  nuevas; a menos de 24 h del reset se dicen las horas. Las frases omiten
+  el artículo donde varía con el día (portugués "na segunda" pero "no
+  sábado"). REGLA: un aviso que no pide ninguna acción no debe insistir —
   una sesión agotada dura horas y un cartel fijo en el escritorio estorba;
   el tiempo restante sigue a un hover de distancia en el globo `card`. El
   auto-cierre lo cuenta `notif.html`, NO el panel: Windows frena los
