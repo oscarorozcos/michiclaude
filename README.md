@@ -182,6 +182,14 @@ Sonnet → 2×$3 + 0.5×$15 = **$13.50 equivalente API**.
 > API. Sirve para saber qué proyecto consume más y cuánto te ahorra la
 > suscripción. Solo es gasto real si usas API key.
 
+> ⚠️ **Con subagentes el costo puede quedarse corto.** Cuando Claude Code
+> delega trabajo a subagentes, parte de ese consumo no siempre queda reflejado
+> en los registros locales que la app puede leer, así que el costo mostrado
+> puede ser **menor que el real**. Es una limitación de los propios registros,
+> compartida con otras herramientas del estilo (`ccusage` incluida), no un
+> error de cálculo. **Tu cuota no se ve afectada**: los gauges de sesión y
+> semanales vienen de tu cuenta y siempre son exactos.
+
 ### ¿Qué cuenta como "proyecto"?
 
 Un proyecto **no** es cada terminal que abres: es **la carpeta desde donde

@@ -264,11 +264,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       gifs oscuros vía parche de paleta (funcionó, pero a Oscar no le
       convenció el resultado — el parche queda documentado en el historial
       af16d6d por si se retoma con otra mezcla).
-- [ ] Micro-pendientes de pulido: quitar los backticks de \`claude\` en el
-      banner "Token vencido"; nota sobre subagentes en README/tooltip (el
-      costo local puede subestimar con agentes — limitación compartida con
-      ccusage, cuota no afectada); capturas para el README; idea cancelada
-      2026-07-25: placa translúcida tras el sticker en tema oscuro.
+- [~] Micro-pendientes de pulido (2026-07-27): HECHO los backticks de
+      \`claude\` (ahora comillas tipográficas por idioma) y la nota de
+      subagentes (README + tooltip de "costo estimado" en los 8 idiomas).
+      FALTA: capturas para el README (las tiene que hacer Oscar). Idea
+      cancelada 2026-07-25: placa translúcida tras el sticker en tema oscuro.
+- [~] Icono de bandeja legible en cualquier tema (2026-07-27): el número se
+      dibujaba en verde/ámbar/rojo sólido, que sobre una barra CLARA se lava.
+      Se le añade contorno oscuro (strokeText) y marco a la barrita semanal,
+      así se lee sobre fondo claro, oscuro o de color sin detectar el tema de
+      Windows (que además no cubriría fondos personalizados). FALTA verlo con
+      la barra en tema claro.
 - [~] BUG capa "Siempre al frente" — CAUSA IDENTIFICADA Y ATACADA 2026-07-26,
       falta confirmar en vivo tras un rato largo. Hipótesis fuerte: la llamada
       `set_always_on_top(true)` de Tauri NO llega al sistema cuando su estado
@@ -347,7 +353,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       argumento y `meter-export.py` usa la suya solo como respaldo.
       Alternativa descartable si se prefiere no tocar la promesa de red:
       espejo propio en el repo actualizado por GitHub Actions.
-- [ ] USABILIDAD fuente remota (detectado 2026-07-24): el campo "comando" del
+- [x] USABILIDAD fuente remota — RESUELTO 2026-07-27: el exportador viaja
+      dentro del binario (include_str!) y se sube por SSH desde stdin a
+      ~/.michiclaude/meter-export.py al dar de alta el servidor; el campo
+      "comando" queda vacío y opcional (solo para script propio, y entonces
+      no se escribe nada en el servidor ajeno). Al arrancar se refresca en
+      los remotos que usan nuestra ruta, para que no se desincronice del
+      backend tras actualizar la app. Descripción original:
       formulario de servidores viene por defecto con la ruta PERSONAL de Oscar
       (`python3 /opt/projects/michiclaude/scripts/meter-export.py`), que no
       sirve para otros usuarios y confunde. Además hoy el usuario tendría que
