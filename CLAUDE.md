@@ -293,9 +293,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] Franja sobre la barra: DESCARTADA (2026-07-10, solapaba los iconos
       centrados de Windows 11 y bloqueaba sus clics). Sustituida por el icono
       de bandeja dinámico con %.
-- [~] Icono de bandeja dinámico (`updateTray` + comando `update_tray`) —
-      implementado; FALTA probar en vivo: legibilidad del número en temas
-      claro/oscuro de Windows y actualización tras cada refresco.
+- [x] Icono de bandeja dinámico (`updateTray` + comando `update_tray`) —
+      validado en vivo: legibilidad en barra clara y oscura (ver la entrada
+      del contorno, más abajo) y actualización en cada ciclo de refresco.
 - [x] 429 del endpoint: espera de 5 min (el backoff rápido 5→40 s queda solo
       para errores de red; nunca reintentar rápido un rate-limit).
 - [x] Instancia única (tauri-plugin-single-instance, registrado el primero):
@@ -448,8 +448,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       (`python3 ~/meter-export.py`) + nota corta. Ideal: que MichiClaude SUBA
       el script solo por SSH la primera vez (nombre + host y listo). Encaja
       naturalmente con el Modo HUB — resolver ahí.
-- [~] Lectura incremental de .jsonl — IMPLEMENTADO 2026-07-26 en AMBOS lados
-      (Rust y meter-export.py), falta probar el lado Rust en Windows. Dos
+- [x] Lectura incremental de .jsonl — IMPLEMENTADO 2026-07-26 en AMBOS lados
+      (Rust y meter-export.py) y el lado Rust ya corriendo en el Windows de
+      Oscar desde el 2026-07-27 con las cifras correctas. Dos
       optimizaciones que NO cambian ningún número: (1) todos los agregados
       están acotados en el tiempo, así que un archivo cuya última escritura
       sea anterior a la ventana más amplia (la elegida o los 30 días de la
@@ -586,8 +587,6 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       compartida (servidores/presupuesto) guardada también en el hub para que
       una PC nueva herede todo al conectar el VPS.
 - [ ] Auto-updater (tauri-plugin-updater)
-- [ ] Precios de modelos automáticos (ver el pendiente detallado arriba:
-      fuente pública + caché + tabla embebida corregida como respaldo)
 
 ## Diferenciadores estratégicos (post-pulido Windows, decididos 2026-07-24)
 
