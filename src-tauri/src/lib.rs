@@ -811,8 +811,18 @@ fn save_remotes(remotes: Vec<RemoteSource>) -> Result<(), String> {
 }
 
 /// Prueba la conexión SSH a un host (BatchMode: nunca pide contraseña).
+/// Envuelto para que el trabajo NO corra en el hilo principal. Tauri ejecuta
+/// los comandos síncronos en el mismo hilo que dibuja la ventana, así que un
+/// SSH de dos segundos congelaba el panel entero — se notaba al cambiar de
+/// pestaña, que dispara este comando (2026-07-28).
 #[tauri::command]
-fn test_remote(host: String) -> Result<String, String> {
+async fn test_remote(host: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || test_remote_impl(host))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn test_remote_impl(host: String) -> Result<String, String> {
     let mut cmd = std::process::Command::new("ssh");
     cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
         .arg(&host)
@@ -908,8 +918,18 @@ then echo \"$p\"; exit 0; fi; done; exit 1";
 
 /// Alta de servidor: busca Python, deja el exportador instalado y devuelve el
 /// comando ya resuelto para guardarlo.
+/// Envuelto para que el trabajo NO corra en el hilo principal. Tauri ejecuta
+/// los comandos síncronos en el mismo hilo que dibuja la ventana, así que un
+/// SSH de dos segundos congelaba el panel entero — se notaba al cambiar de
+/// pestaña, que dispara este comando (2026-07-28).
 #[tauri::command]
-fn install_remote(host: String) -> Result<String, String> {
+async fn install_remote(host: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || install_remote_impl(host))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn install_remote_impl(host: String) -> Result<String, String> {
     let py = detect_python(&host).ok_or_else(|| "ERR_NO_PYTHON".to_string())?;
     upload_exporter(&host)?;
     Ok(format!("{py} {REMOTE_SCRIPT_PATH}"))
@@ -1585,15 +1605,35 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
     stats
 }
 
+/// Envuelto para que el trabajo NO corra en el hilo principal. Tauri ejecuta
+/// los comandos síncronos en el mismo hilo que dibuja la ventana, así que un
+/// SSH de dos segundos congelaba el panel entero — se notaba al cambiar de
+/// pestaña, que dispara este comando (2026-07-28).
 #[tauri::command]
-fn get_local_stats(days: Option<u32>) -> Result<LocalStats, String> {
+async fn get_local_stats(days: Option<u32>) -> Result<LocalStats, String> {
+    tauri::async_runtime::spawn_blocking(move || get_local_stats_impl(days))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn get_local_stats_impl(days: Option<u32>) -> Result<LocalStats, String> {
     Ok(collect_local_stats(days.unwrap_or(7).clamp(1, 90)))
 }
 
 /// Exporta los datos agregados a CSV o JSON. `dir` vacío = carpeta Descargas.
 /// Devuelve la ruta del archivo escrito.
+/// Envuelto para que el trabajo NO corra en el hilo principal. Tauri ejecuta
+/// los comandos síncronos en el mismo hilo que dibuja la ventana, así que un
+/// SSH de dos segundos congelaba el panel entero — se notaba al cambiar de
+/// pestaña, que dispara este comando (2026-07-28).
 #[tauri::command]
-fn export_data(format: String, dir: Option<String>, days: Option<u32>) -> Result<String, String> {
+async fn export_data(format: String, dir: Option<String>, days: Option<u32>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || export_data_impl(format, dir, days))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn export_data_impl(format: String, dir: Option<String>, days: Option<u32>) -> Result<String, String> {
     let stats = collect_local_stats(days.unwrap_or(7).clamp(1, 90));
     let folder = dir
         .filter(|s| !s.trim().is_empty())
@@ -2242,8 +2282,18 @@ fn toggle_pill_card(app: tauri::AppHandle, open: bool) {
 /// A propósito NO es automático. Una sincronización de ida y vuelta en cada
 /// ciclo acabaría pisando en un lado lo que acabas de cambiar en el otro, y
 /// unos ajustes que cambian solos son peores que unos que no se comparten.
+/// Envuelto para que el trabajo NO corra en el hilo principal. Tauri ejecuta
+/// los comandos síncronos en el mismo hilo que dibuja la ventana, así que un
+/// SSH de dos segundos congelaba el panel entero — se notaba al cambiar de
+/// pestaña, que dispara este comando (2026-07-28).
 #[tauri::command]
-fn save_hub_config(json: String) -> Result<usize, String> {
+async fn save_hub_config(json: String) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || save_hub_config_impl(json))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn save_hub_config_impl(json: String) -> Result<usize, String> {
     let remotes = load_remotes();
     if remotes.is_empty() {
         return Err("ERR_NO_REMOTES".into());
@@ -2260,8 +2310,18 @@ fn save_hub_config(json: String) -> Result<usize, String> {
 /// Trae los ajustes guardados. Gana el primer servidor que responda: con un
 /// hub personal todos tienen lo mismo, y pedirle al usuario que elija cuál
 /// sería preguntarle algo que no puede saber.
+/// Envuelto para que el trabajo NO corra en el hilo principal. Tauri ejecuta
+/// los comandos síncronos en el mismo hilo que dibuja la ventana, así que un
+/// SSH de dos segundos congelaba el panel entero — se notaba al cambiar de
+/// pestaña, que dispara este comando (2026-07-28).
 #[tauri::command]
-fn load_hub_config() -> Result<String, String> {
+async fn load_hub_config() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || load_hub_config_impl())
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn load_hub_config_impl() -> Result<String, String> {
     for r in load_remotes() {
         let mut cmd = std::process::Command::new("ssh");
         cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])

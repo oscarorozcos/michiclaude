@@ -259,6 +259,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
    fiables; en % de cuota, no en dólares.
 9. No tocar `README.md`, `.github/workflows/release.yml` ni `app-icon.png`
    salvo petición explícita.
+10ter. Todo comando de Rust que HAGA ESPERA (SSH, red, escaneo de disco
+    largo) tiene que ser `async fn` y delegar en
+    `tauri::async_runtime::spawn_blocking`: Tauri ejecuta los comandos
+    SÍNCRONOS en el mismo hilo que dibuja la ventana, así que uno bloqueante
+    congela el panel entero mientras dura. Se descubrió el 2026-07-28 porque
+    cambiar de pestaña tardaba segundos: abrir "Fuentes de datos" dispara
+    `test_remote`, que es un SSH de 1-2 s. Envueltos así: test_remote,
+    install_remote, get_local_stats, export_data, save_hub_config y
+    load_hub_config. NO envolver los que tocan ventanas (hover_card,
+    set_notif_visible, toggle_pill_card, set_pill_*, update_tray): esos
+    tienen que seguir en el hilo principal, y además son instantáneos.
 10bis. `[hidden]{display:none !important}` en index.html: NO quitarlo. El
     navegador aplica `hidden` desde su hoja por defecto, así que cualquier
     regla propia con display (`.cfg-row`, `.btnrow`, `.fld` son flex) lo
