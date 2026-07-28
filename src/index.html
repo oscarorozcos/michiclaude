@@ -469,6 +469,13 @@
         <button id="pricesNow" data-i18n="prices_refresh"></button>
       </div>
       <div id="pricesSources" hidden class="cfg-note" data-i18n-html="prices_sources"></div>
+      <div class="cfg-lbl" data-i18n="hub_cfg_label"></div>
+      <div class="cfg-note" data-i18n="hub_cfg_hint"></div>
+      <div class="btnrow">
+        <button id="hubSave" data-i18n="hub_cfg_save"></button>
+        <button id="hubLoad" data-i18n="hub_cfg_load"></button>
+        <span id="hubMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+      </div>
       <div class="cfg-lbl" data-i18n="export_label"></div>
       <input id="exportDir" data-i18n-ph="export_dir_ph">
       <div class="btnrow">
@@ -525,6 +532,13 @@ en:{
   no_activity:"No Claude Code activity in the last 7 days.",
   others:n=>`More projects (${n})`,
   others_less:"Show less",
+  hub_cfg_label:"Shared settings",
+  hub_cfg_hint:"Save them on your server so another PC inherits them: install, add the server, and bring them over. The widget position stays local.",
+  hub_cfg_save:"Save to server",
+  hub_cfg_load:"Bring from server",
+  hub_cfg_saved:n=>`Saved (${n})`,
+  hub_cfg_loaded:"Loaded — reloading the panel",
+  hub_cfg_err:"Could not do it (is a server set up?)",
   claudeai_row:"claude.ai / others",
   pct_quota:p=>`${p}% quota`,
   claudeai_tip:"Estimate. claude.ai chats and usage on other devices leave no local logs on this machine. This row shows the % of your global weekly limit consumed across all surfaces; the per-project spend above only covers Claude Code here. Not converted to dollars because the endpoint does not expose the cap in $.",
@@ -661,6 +675,13 @@ es:{
   no_activity:"Sin actividad de Claude Code en los últimos 7 días.",
   others:n=>`Más proyectos (${n})`,
   others_less:"Ver menos",
+  hub_cfg_label:"Ajustes compartidos",
+  hub_cfg_hint:"Guárdalos en tu servidor para que otra PC los herede: instalas, agregas el servidor y los traes. La posición del widget se queda en cada máquina.",
+  hub_cfg_save:"Guardar en el servidor",
+  hub_cfg_load:"Traer del servidor",
+  hub_cfg_saved:n=>`Guardado (${n})`,
+  hub_cfg_loaded:"Traído — recargando el panel",
+  hub_cfg_err:"No se pudo (¿hay servidor configurado?)",
   claudeai_row:"claude.ai / otros",
   pct_quota:p=>`${p}% cuota`,
   claudeai_tip:"Estimación. Los chats de claude.ai y el uso en otros dispositivos no dejan registro local en este equipo. Esta fila muestra el % de tu límite semanal consumido en total (todas las superficies); el gasto por proyecto de arriba solo cubre Claude Code aquí. No se convierte a dólares porque el endpoint no expone el tope en $.",
@@ -797,6 +818,13 @@ pt:{
   no_activity:"Sem atividade do Claude Code nos últimos 7 dias.",
   others:n=>`Mais projetos (${n})`,
   others_less:"Ver menos",
+  hub_cfg_label:"Configurações compartilhadas",
+  hub_cfg_hint:"Salve-as no seu servidor para que outro PC as herde: instale, adicione o servidor e traga-as. A posição do widget fica em cada máquina.",
+  hub_cfg_save:"Salvar no servidor",
+  hub_cfg_load:"Trazer do servidor",
+  hub_cfg_saved:n=>`Salvo (${n})`,
+  hub_cfg_loaded:"Trazido — recarregando o painel",
+  hub_cfg_err:"Não foi possível (há servidor configurado?)",
   claudeai_row:"claude.ai / outros",
   pct_quota:p=>`${p}% da cota`,
   claudeai_tip:"Estimativa. Os chats do claude.ai e o uso em outros dispositivos não deixam registros locais nesta máquina. Esta linha mostra o % do seu limite semanal global consumido em todas as superfícies; o gasto por projeto acima cobre apenas o Claude Code aqui. Não é convertido em dólares porque o endpoint não expõe o teto em $.",
@@ -933,6 +961,13 @@ fr:{
   no_activity:"Aucune activité Claude Code ces 7 derniers jours.",
   others:n=>`Autres projets (${n})`,
   others_less:"Voir moins",
+  hub_cfg_label:"Réglages partagés",
+  hub_cfg_hint:"Enregistrez-les sur votre serveur pour qu’un autre PC en hérite : installez, ajoutez le serveur et récupérez-les. La position du widget reste locale.",
+  hub_cfg_save:"Enregistrer sur le serveur",
+  hub_cfg_load:"Récupérer du serveur",
+  hub_cfg_saved:n=>`Enregistré (${n})`,
+  hub_cfg_loaded:"Récupéré — rechargement du panneau",
+  hub_cfg_err:"Impossible (un serveur est-il configuré ?)",
   claudeai_row:"claude.ai / autres",
   pct_quota:p=>`${p} % du quota`,
   claudeai_tip:"Estimation. Les discussions claude.ai et l'usage sur d'autres appareils ne laissent pas de journaux locaux sur cette machine. Cette ligne montre le % de votre limite hebdomadaire globale consommé toutes surfaces confondues ; la dépense par projet ci-dessus ne couvre que Claude Code ici. Non converti en dollars car l'endpoint n'expose pas le plafond en $.",
@@ -1069,6 +1104,13 @@ de:{
   no_activity:"Keine Claude-Code-Aktivität in den letzten 7 Tagen.",
   others:n=>`Weitere Projekte (${n})`,
   others_less:"Weniger anzeigen",
+  hub_cfg_label:"Geteilte Einstellungen",
+  hub_cfg_hint:"Auf dem Server sichern, damit ein anderer PC sie übernimmt: installieren, Server hinzufügen und holen. Die Widget-Position bleibt lokal.",
+  hub_cfg_save:"Auf Server sichern",
+  hub_cfg_load:"Vom Server holen",
+  hub_cfg_saved:n=>`Gesichert (${n})`,
+  hub_cfg_loaded:"Geholt — Panel wird neu geladen",
+  hub_cfg_err:"Nicht möglich (ist ein Server eingerichtet?)",
   claudeai_row:"claude.ai / andere",
   pct_quota:p=>`${p} % Kontingent`,
   claudeai_tip:"Schätzung. claude.ai-Chats und Nutzung auf anderen Geräten hinterlassen keine lokalen Logs auf diesem Rechner. Diese Zeile zeigt den % deines globalen Wochenlimits über alle Oberflächen; die Projektausgaben oben decken nur Claude Code hier ab. Keine Umrechnung in Dollar, da der Endpoint die Obergrenze in $ nicht offenlegt.",
@@ -1205,6 +1247,13 @@ ja:{
   no_activity:"過去7日間に Claude Code の利用はありません。",
   others:n=>`他のプロジェクト (${n})`,
   others_less:"閉じる",
+  hub_cfg_label:"共有設定",
+  hub_cfg_hint:"サーバーに保存すると別のPCが引き継げます。インストールしてサーバーを追加し、取得するだけ。ウィジェットの位置は各PCのままです。",
+  hub_cfg_save:"サーバーに保存",
+  hub_cfg_load:"サーバーから取得",
+  hub_cfg_saved:n=>`保存しました (${n})`,
+  hub_cfg_loaded:"取得しました — パネルを再読み込み中",
+  hub_cfg_err:"実行できません（サーバーは設定済みですか）",
   claudeai_row:"claude.ai / その他",
   pct_quota:p=>`クォータの${p}%`,
   claudeai_tip:"推定値です。claude.ai のチャットや他のデバイスでの利用は、このマシンにローカルログを残しません。この行は全サーフェスで消費された週間制限全体の%を示します。上のプロジェクト別コストはこのマシンの Claude Code のみが対象です。エンドポイントが上限額($)を公開していないため、ドル換算はしません。",
@@ -1341,6 +1390,13 @@ ko:{
   no_activity:"지난 7일간 Claude Code 활동이 없습니다.",
   others:n=>`기타 프로젝트 (${n})`,
   others_less:"접기",
+  hub_cfg_label:"공유 설정",
+  hub_cfg_hint:"서버에 저장하면 다른 PC가 그대로 이어받아요. 설치하고 서버를 추가한 뒤 가져오면 끝. 위젯 위치는 각 PC에 남습니다.",
+  hub_cfg_save:"서버에 저장",
+  hub_cfg_load:"서버에서 가져오기",
+  hub_cfg_saved:n=>`저장됨 (${n})`,
+  hub_cfg_loaded:"가져왔어요 — 패널을 다시 불러오는 중",
+  hub_cfg_err:"할 수 없어요 (서버가 설정되어 있나요?)",
   claudeai_row:"claude.ai / 기타",
   pct_quota:p=>`쿼터의 ${p}%`,
   claudeai_tip:"추정치입니다. claude.ai 채팅과 다른 기기의 사용은 이 컴퓨터에 로컬 로그를 남기지 않습니다. 이 행은 모든 표면에서 소비된 전체 주간 한도의 %를 보여줍니다. 위의 프로젝트별 비용은 이 컴퓨터의 Claude Code만 포함합니다. 엔드포인트가 한도를 $로 공개하지 않아 달러로 환산하지 않습니다.",
@@ -1477,6 +1533,13 @@ zh:{
   no_activity:"过去7天没有 Claude Code 活动。",
   others:n=>`更多项目 (${n})`,
   others_less:"收起",
+  hub_cfg_label:"共享设置",
+  hub_cfg_hint:"保存到你的服务器，另一台电脑就能继承：安装、添加服务器、取回即可。小组件位置仍留在各自电脑上。",
+  hub_cfg_save:"保存到服务器",
+  hub_cfg_load:"从服务器取回",
+  hub_cfg_saved:n=>`已保存 (${n})`,
+  hub_cfg_loaded:"已取回 — 正在重新加载面板",
+  hub_cfg_err:"无法完成（是否已配置服务器？）",
   claudeai_row:"claude.ai / 其他",
   pct_quota:p=>`配额的${p}%`,
   claudeai_tip:"估算值。claude.ai 聊天和其他设备上的使用不会在本机留下本地日志。此行显示所有平台消耗的全局每周限额百分比；上方的按项目支出仅涵盖本机的 Claude Code。由于接口不公开美元上限，因此不换算为美元。",
@@ -1810,6 +1873,60 @@ function simStep(i){
   simTick=setInterval(()=>{ left-=1000; if(left>0) paint(); },1000);
   simTimer=setTimeout(()=>simStep(i+1), left);
 }
+// ---------- ajustes compartidos (fase 3 del hub) ----------
+// Qué viaja: lo que define CÓMO usas la app. Fuera se quedan la posición del
+// widget (cada pantalla es distinta) y la identidad de la máquina.
+function hubCfgSnapshot(){
+  return {
+    v: 1,
+    savedAt: new Date().toISOString(),
+    lang,
+    theme: panelTheme(),
+    alarms: getAlarms(),
+    budgetWeek: localStorage.getItem("budgetWeek") || "",
+    days: curDays,
+    pillStyle: getPillStyle(),
+    pillLayer: $("pillLayerSel").value,
+    catArt: localStorage.getItem("catArt") || "auto",
+    catSkin: localStorage.getItem("catSkin") || "auto",
+  };
+}
+// Se aplica sobre el almacén y luego se recarga el panel: hay ajustes que se
+// leen al arrancar, y repintarlos uno a uno sería fácil de olvidar al añadir
+// el siguiente.
+function hubCfgApply(c){
+  if(!c || typeof c!=="object") return false;
+  const set=(k,v)=>{ if(v==null||v==="") localStorage.removeItem(k); else localStorage.setItem(k,String(v)); };
+  if(c.lang && I18N[c.lang]) set("lang", c.lang);
+  if(c.theme==="light"||c.theme==="dark") set("theme", c.theme);
+  if(Array.isArray(c.alarms)) set("alarms", JSON.stringify(c.alarms));
+  if(c.budgetWeek!=null) set("budgetWeek", c.budgetWeek);
+  if([1,7,15,30].includes(+c.days)) set("days", +c.days);
+  set("catArt",  c.catArt ==="auto" ? null : c.catArt);
+  set("catSkin", c.catSkin==="auto" ? null : c.catSkin);
+  // estos dos los guarda el backend, no el almacén del panel
+  if(c.pillStyle) invoke?.("set_pill_style",{style:c.pillStyle==="cat"?"cat":"plain"});
+  if(c.pillLayer) invoke?.("set_pill_layer",{layer:c.pillLayer});
+  return true;
+}
+$("hubSave").addEventListener("click",()=>{
+  $("hubMsg").textContent="…";
+  invoke?.("save_hub_config",{json:JSON.stringify(hubCfgSnapshot())})
+    .then(n=>{ $("hubMsg").textContent=t("hub_cfg_saved", n); })
+    .catch(()=>{ $("hubMsg").textContent=t("hub_cfg_err"); });
+});
+$("hubLoad").addEventListener("click",()=>{
+  $("hubMsg").textContent="…";
+  invoke?.("load_hub_config")
+    .then(txt=>{
+      let c=null; try{ c=JSON.parse(txt); }catch(e){}
+      if(!hubCfgApply(c)){ $("hubMsg").textContent=t("hub_cfg_err"); return; }
+      $("hubMsg").textContent=t("hub_cfg_loaded");
+      setTimeout(()=>location.reload(), 700);
+    })
+    .catch(()=>{ $("hubMsg").textContent=t("hub_cfg_err"); });
+});
+
 if(invoke) invoke("is_dev").then(d=>{ if(d) $("devSimRow").hidden=false; }).catch(()=>{});
 $("simMin").value=localStorage.getItem("simMin")||"1";
 $("simMin").addEventListener("change",()=>localStorage.setItem("simMin",$("simMin").value));

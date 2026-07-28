@@ -1732,6 +1732,8 @@ pub fn run() {
             get_pill_style,
             set_pill_style,
             toggle_pill_card,
+            save_hub_config,
+            load_hub_config,
             is_dev,
             get_pill_layer,
             set_pill_layer,
@@ -2231,6 +2233,86 @@ fn toggle_pill_card(app: tauri::AppHandle, open: bool) {
     }
     let _ = w.show();
     let _ = pill.hide();   // la cabecera del detalle la sustituye
+}
+
+/// Guarda los ajustes del panel en el hub, para que otra PC los herede.
+/// Se escribe en TODOS los servidores configurados: si mañana uno no está,
+/// los ajustes siguen en el otro.
+///
+/// A propósito NO es automático. Una sincronización de ida y vuelta en cada
+/// ciclo acabaría pisando en un lado lo que acabas de cambiar en el otro, y
+/// unos ajustes que cambian solos son peores que unos que no se comparten.
+#[tauri::command]
+fn save_hub_config(json: String) -> Result<usize, String> {
+    let remotes = load_remotes();
+    if remotes.is_empty() {
+        return Err("ERR_NO_REMOTES".into());
+    }
+    let mut ok = 0usize;
+    for r in &remotes {
+        if ssh_write_file(&r.host, "~/.michiclaude/config.json", &json).is_ok() {
+            ok += 1;
+        }
+    }
+    if ok == 0 { Err("ERR_HUB_SAVE".into()) } else { Ok(ok) }
+}
+
+/// Trae los ajustes guardados. Gana el primer servidor que responda: con un
+/// hub personal todos tienen lo mismo, y pedirle al usuario que elija cuál
+/// sería preguntarle algo que no puede saber.
+#[tauri::command]
+fn load_hub_config() -> Result<String, String> {
+    for r in load_remotes() {
+        let mut cmd = std::process::Command::new("ssh");
+        cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])
+            .arg(&r.host)
+            .arg("cat ~/.michiclaude/config.json");
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x0800_0000);
+        }
+        if let Ok(out) = cmd.output() {
+            if out.status.success() {
+                let txt = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if txt.starts_with('{') {
+                    return Ok(txt);
+                }
+            }
+        }
+    }
+    Err("ERR_HUB_NO_CONFIG".into())
+}
+
+/// Escribe un archivo en el servidor por SSH, mandando el contenido por
+/// stdin: así no hay que citar nada ni cabe en la línea de comandos.
+fn ssh_write_file(host: &str, path: &str, content: &str) -> Result<(), String> {
+    use std::io::Write;
+    let dir = path.rsplit_once('/').map(|(d, _)| d).unwrap_or("~");
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])
+        .arg(host)
+        .arg(format!("mkdir -p {dir} && cat > {path}"))
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let mut child = cmd.spawn().map_err(|e| e.to_string())?;
+    child
+        .stdin
+        .as_mut()
+        .ok_or("ERR_SSH_STDIN")?
+        .write_all(content.as_bytes())
+        .map_err(|e| e.to_string())?;
+    if child.wait().map_err(|e| e.to_string())?.success() {
+        Ok(())
+    } else {
+        Err("ERR_SSH_WRITE".into())
+    }
 }
 
 /// ¿Es una compilación de desarrollo (`npm run dev`)? El panel lo usa para

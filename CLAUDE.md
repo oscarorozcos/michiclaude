@@ -682,7 +682,20 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       de otra ventana sin ninguna señal. Si falta la ventana pedida se cae a
       `stats` y se marca `window_exact:false` en vez de darla por buena.
       `HUB_WINDOWS` tiene que coincidir SIEMPRE con las opciones del selector
-      del panel. FALTA: `cargo check` y verlo en el panel. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
+      del panel.
+      FASE 3 (configuración compartida) IMPLEMENTADA 2026-07-28: dos botones
+      en Preferencias (`save_hub_config` / `load_hub_config`) que guardan y
+      traen los ajustes en `~/.michiclaude/config.json` del servidor. Viajan
+      idioma, tema, alarmas, presupuesto, ventana, estilo del widget, capa y
+      los dos temas del gatito; NO viaja la posición del widget (cada
+      pantalla es distinta) ni la identidad de la máquina. Al traerlos se
+      recarga el panel: hay ajustes que solo se leen al arrancar y
+      repintarlos uno a uno sería fácil de olvidar al añadir el siguiente.
+      DECISIÓN: es MANUAL a propósito. Una sincronización automática de ida y
+      vuelta acabaría pisando en una máquina lo que acabas de cambiar en la
+      otra, y unos ajustes que cambian solos son peores que unos que no se
+      comparten. Al guardar se escribe en TODOS los servidores; al traer gana
+      el primero que responda. FALTA: `cargo check` y probarlo en el panel. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
       (2026-07-28): cómo funciona por dentro, el interruptor de qué compartir
       —que va POR SERVIDOR, no global—, los casos de alta/baja/formateo/
       vacaciones con ejemplos numéricos, por qué un permiso de administrador
