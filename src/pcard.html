@@ -199,7 +199,10 @@ if(EVENT){
 }
 
 // un clic en cualquier parte pliega (también en el hueco transparente)
-window.addEventListener("click",()=>invoke?.("toggle_pill_card",{open:false}));
+window.addEventListener("click",()=>{
+  invoke?.("toggle_pill_card",{open:false});
+  EVENT?.emit("notif:ready");   // si había un aviso esperando, vuelve a salir
+});
 window.addEventListener("contextmenu",e=>e.preventDefault());
 </script>
 </body>

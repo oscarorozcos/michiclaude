@@ -1613,8 +1613,13 @@ pub fn run() {
                         .and_then(|n| n.is_visible().ok())
                         .unwrap_or(false);
                     if visible {
-                        let dx = notif_dx(&load_pill_config());
-                        place_balloon(window.app_handle(), "notif", dx, 40.0);
+                        let cfg = load_pill_config();
+                        place_balloon(
+                            window.app_handle(),
+                            "notif",
+                            notif_dx(&cfg),
+                            notif_overlap(&cfg),
+                        );
                     }
                 }
             }
@@ -1845,6 +1850,28 @@ fn notif_dx(cfg: &PillConfig) -> f64 {
     if cfg.style == "cat" { -194.0 } else { -21.0 }
 }
 
+/// Cuánto se mete la punta de la cola dentro de la ventana del widget. El
+/// gatito tiene márgenes transparentes de sobra y admite 40 px; la cápsula
+/// mide 44 px con 6 de margen, así que con ese valor la cola le caía encima
+/// del texto — solo debe rozar su borde.
+fn notif_overlap(cfg: &PillConfig) -> f64 {
+    if cfg.style == "cat" { 40.0 } else { 8.0 }
+}
+
+/// Pliega el detalle de la pastilla y devuelve la cápsula a su sitio.
+fn close_pill_card(app: &tauri::AppHandle, cfg: &PillConfig) {
+    use tauri::{Emitter, Manager};
+    if let Some(c) = app.get_webview_window("pcard") {
+        let _ = c.hide();
+    }
+    if cfg.visible && cfg.style != "cat" {
+        if let Some(pill) = app.get_webview_window("pill") {
+            let _ = pill.show();
+        }
+    }
+    let _ = app.emit_to("pill", "pcard:closed", ());
+}
+
 /// Globo de aviso del widget: el PANEL decide cuándo mostrarlo y se cierra
 /// con su ✕ o al abrir el panel — NUNCA solo. Sirve para los dos widgets
 /// (gatito y pastilla): un toast de Windows se va a los pocos segundos y si
@@ -1855,7 +1882,11 @@ fn set_notif_visible(app: tauri::AppHandle, visible: bool) {
     let Some(w) = app.get_webview_window("notif") else { return };
     let cfg = load_pill_config();
     if visible && cfg.visible {
-        place_balloon(&app, "notif", notif_dx(&cfg), 40.0);
+        // un aviso y un detalle a la vez se tapan: el globo tiene
+        // prioridad, así que el detalle se pliega (lo mismo que ya hacía el
+        // globo de información del gatito con la notificación)
+        close_pill_card(&app, &cfg);
+        place_balloon(&app, "notif", notif_dx(&cfg), notif_overlap(&cfg));
         // misma capa que el gatito: widget y globos se comportan como una
         // sola pieza (petición de Oscar 2026-07-26; antes la alarma se
         // forzaba al frente y rompía la coherencia con el ajuste elegido)
@@ -1913,6 +1944,9 @@ fn toggle_pill_card(app: tauri::AppHandle, open: bool) {
         "pose": if down { "down" } else { "up" },
     }));
     apply_layer(&w, &cfg.layer);
+    if let Some(n) = app.get_webview_window("notif") {
+        let _ = n.hide();  // nunca globo y detalle a la vez
+    }
     let _ = w.show();
     let _ = pill.hide();   // la cabecera del detalle la sustituye
 }

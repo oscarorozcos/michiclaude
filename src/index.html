@@ -1598,7 +1598,8 @@ $("themeBtn").addEventListener("click",()=>{
   // en "según el tema"; lo que el usuario haya fijado se queda como está
   if(typeof lastPill!=="undefined" && lastPill){
     lastPill.theme=light?"light":"dark";
-    lastPill.artTheme=pickTheme("catArt"); lastPill.skinTheme=pickTheme("catSkin");
+    lastPill.artTheme=pickTheme("catArt");
+    lastPill.skinTheme=getPillStyle()==="cat" ? pickTheme("catSkin") : panelTheme();
     EVENT?.emit("quota:update",lastPill);
   }
 });
@@ -1663,7 +1664,10 @@ function emitPill(ses, wk, extras){
   lastPillArgs=[ses,wk,extras];             // para el tic del contador (abajo)
   const weekPct = wk ? wk.pct : null;
   lastPill={ok:!!ses, session:ses, weekly:wk?{pct:wk.pct, resets:wk.resets}:null,
-    theme:panelTheme(), artTheme:pickTheme("catArt"), skinTheme:pickTheme("catSkin"),
+    theme:panelTheme(), artTheme:pickTheme("catArt"),
+    // los dos selectores son DEL GATITO: con la pastilla, los globos siguen
+    // al tema del panel y no a una preferencia que ahí no se ve
+    skinTheme: getPillStyle()==="cat" ? pickTheme("catSkin") : panelTheme(),
     style:getPillStyle(), mascot:mascotState(ses,weekPct),
     labels:pillLabels(),
     sesReset: ses&&ses.resets?fmtReset(ses.resets):"",

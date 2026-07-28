@@ -19,6 +19,22 @@
      seguía al tema. Mismos tonos que el panel para que se lean como la misma
      app; el coral sube a #d97757 porque el #C15F3C se apaga sobre oscuro. */
   body.dark{--ink:#e9ebef; --paper:#20242c; --accent:#d97757}
+  /* Con la PASTILLA el globo se viste como ella —cristal, borde fino de
+     acento, esquina redonda— en vez de heredar el trazo grueso de cómic, que
+     es del gatito (2026-07-28). El fondo va más opaco que la cápsula: esto es
+     un mensaje que hay que leer. */
+  body.cap{--paper:rgba(255,255,255,.95); --line:#0b7c8c; --ink:#0f1b26;
+    --accent:#0b7c8c}
+  body.cap.dark{--paper:rgba(21,25,32,.95); --line:#56c7d6; --ink:#eef3f8;
+    --accent:#56c7d6}
+  body.cap .box{border:1px solid var(--line);border-radius:20px}
+  body.cap .x{border-width:1px}
+  /* con borde de 1 px la cola interior casi llena la exterior */
+  body.cap .tail-w{left:calc(var(--tailx) - 20px);bottom:2px;
+    border-width:36px 11px 0 20px}
+  body.cap.down .tail-w{bottom:auto;top:2px;border-width:0 11px 36px 20px}
+  body.cap .tail-b{border-color:var(--line) transparent transparent transparent}
+  body.cap.down .tail-b{border-color:transparent transparent var(--line) transparent}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;
@@ -70,6 +86,10 @@ if(EVENT){
     const p=e.payload||{};
     $("msg").textContent=p.body||"";
     kind=p.kind||"alarm";
+  });
+  // vestido según el widget: cómic con el gatito, cápsula con la pastilla
+  EVENT.listen("quota:update", e=>{
+    document.body.classList.toggle("cap", e.payload?.style!=="cat");
   });
   // el tema llega en el resumen que el panel emite para el widget; este globo
   // no lo usa para nada más, solo para pintarse claro u oscuro

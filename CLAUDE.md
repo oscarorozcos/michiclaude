@@ -133,7 +133,16 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   widget pegado a la barra— ancla por el borde inferior y las filas salen
   ENCIMA de la cabecera (`body.up` invierte el orden). Ventana fija más
   alta de lo necesario: el hueco transparente sobrante no estorba porque un
-  clic en cualquier parte pliega.
+  clic en cualquier parte pliega. El globo de aviso se VISTE de cápsula
+  cuando el widget es la pastilla (`body.cap` en notif.html: cristal, borde
+  fino de acento, esquina redonda) en vez de heredar el trazo grueso de
+  cómic, que es del gatito; y con la pastilla sigue al tema del panel, NO a
+  los selectores "Arte/Globos del gatito", que ahí no se ven. La punta de la
+  cola se mete 40 px en el gatito pero solo 8 en la cápsula (`notif_overlap`):
+  el gato tiene márgenes transparentes de sobra y la cápsula mide 44 px, así
+  que con 40 la cola le caía encima del texto. Globo y detalle NUNCA a la
+  vez: el globo tiene prioridad y pliega el detalle; al plegarlo a mano,
+  `pcard` emite `notif:ready` y el aviso pendiente vuelve.
 - **Widget gatito** (estilo `cat` en `PillConfig.style`, elegible en
   Preferencias; validado en vivo 2026-07-22): el gato Bongo SUSTITUYE a la
   pastilla (nunca conviven). Cuatro ventanas fijas: `cat` (gif animado +
