@@ -229,6 +229,11 @@ struct HubHost {
     /// app no puede distinguir "se fue" de "está de vacaciones".
     #[serde(default)]
     seen_at: String,
+    /// false = esa máquina no había subido la ventana pedida y se sirvió otra.
+    /// Se conserva para poder avisarlo en la interfaz en vez de dar por buena
+    /// una cifra que no es de la ventana elegida.
+    #[serde(default)]
+    window_exact: bool,
 }
 
 /// Lo que cada máquina deja en el hub: su identidad y su foto. Se sobreescribe
@@ -238,7 +243,14 @@ struct HubHost {
 struct HubSnapshot {
     id: String,
     machine: String,
+    /// La ventana que tenía puesta esta máquina. Se conserva como respaldo
+    /// para un exportador que no sepa de `windows`.
     stats: LocalStats,
+    /// Una foto por cada ventana del selector (1/7/15/30). El SERVIDOR elige
+    /// la que le piden: quien lee no puede recortar un resumen ajeno, porque
+    /// el desglose por proyecto ya viene sumado.
+    #[serde(default)]
+    windows: HashMap<String, LocalStats>,
 }
 
 /// Precios API por MTok: (input, output, cache_write, cache_read).
@@ -912,11 +924,20 @@ fn install_remote(host: String) -> Result<String, String> {
 /// si el archivo ya existe y trae otro id, no se sobreescribe y se sale con
 /// código 3. Así una segunda máquina con el mismo nombre no borra los datos
 /// de la primera en silencio, y no cuesta una conexión extra por ciclo.
-fn upload_summary(r: &RemoteSource, stats: &LocalStats) -> Result<(), String> {
+fn upload_summary(
+    r: &RemoteSource,
+    stats: &LocalStats,
+    windows: &HashMap<String, LocalStats>,
+) -> Result<(), String> {
     let me = hub_identity();
     let file = safe_name(&me.machine);
     let id = me.id.clone();
-    let payload = HubSnapshot { id: me.id, machine: me.machine, stats: stats.clone() };
+    let payload = HubSnapshot {
+        id: me.id,
+        machine: me.machine,
+        stats: stats.clone(),
+        windows: windows.clone(),
+    };
     // to_string (NO pretty) para que el id salga sin espacios —`"id":"..."`—
     // que es la cadena exacta que busca el grep del servidor.
     let json = serde_json::to_string(&payload).map_err(|e| e.to_string())?;
@@ -1358,7 +1379,12 @@ fn scan_projects_dir(
 }
 
 /// Agrega todas las fuentes (este PC + WSL + remotos) para una ventana dada.
-fn collect_local_stats(window_days: u32) -> LocalStats {
+/// Solo lo de ESTA máquina (este PC + sus distros WSL), sin tocar la red.
+/// Se separó de collect_local_stats para poder calcular varias ventanas de
+/// una tirada: el hub las necesita todas, porque quien lee un resumen ajeno
+/// no puede recortarlo a otra ventana —el desglose por proyecto ya viene
+/// sumado— y enseñaría el número de otra semana sin avisar (2026-07-28).
+fn collect_own_stats(window_days: u32) -> (LocalStats, HashMap<String, f64>) {
     let now = Utc::now();
     let mut agg = LocalAgg::default();
     // Caché de parseo compartido por todas las fuentes locales. Si esta
@@ -1416,22 +1442,51 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
         daily: Vec::new(),
         hosts: Vec::new(),   // se rellena al leer los servidores, más abajo
     };
+    (stats, daily_map)
+}
+
+/// Ventanas que se suben al hub. Tienen que ser las MISMAS que ofrece el
+/// selector del panel: si el usuario elige una que nadie subió, el resumen
+/// ajeno caería a otra y enseñaría un número que no es de esa ventana.
+const HUB_WINDOWS: [u32; 4] = [1, 7, 15, 30];
+
+fn collect_local_stats(window_days: u32) -> LocalStats {
+    let (mut stats, mut daily_map) = collect_own_stats(window_days);
 
     // Subir la foto de ESTA máquina al hub, antes de fusionar nada. Tiene que
     // ser lo local a secas: si se subiera lo ya fusionado, las máquinas se
     // harían eco entre ellas y los totales se multiplicarían solos.
     let remotes = load_remotes();
     if !remotes.is_empty() {
-        let mut mine = stats.clone();
-        mine.daily = daily_map
-            .iter()
-            .map(|(date, cost)| DailyAgg { date: date.clone(), cost: *cost })
-            .collect();
-        mine.daily.sort_by(|a, b| a.date.cmp(&b.date));
+        let daily: Vec<DailyAgg> = {
+            let mut d: Vec<DailyAgg> = daily_map
+                .iter()
+                .map(|(date, cost)| DailyAgg { date: date.clone(), cost: *cost })
+                .collect();
+            d.sort_by(|a, b| a.date.cmp(&b.date));
+            d
+        };
+        // Una foto por ventana. La ya calculada se reaprovecha; las demás
+        // salen del caché de parseo, así que cuestan décimas de segundo.
+        let mut windows: HashMap<String, LocalStats> = HashMap::new();
+        for w in HUB_WINDOWS {
+            let mut st = if w == window_days {
+                stats.clone()
+            } else {
+                collect_own_stats(w).0
+            };
+            st.daily = daily.clone();
+            windows.insert(w.to_string(), st);
+        }
+        let mut mine = windows
+            .get(&window_days.to_string())
+            .cloned()
+            .unwrap_or_else(|| stats.clone());
+        mine.daily = daily;
         let mut errs: Vec<String> = Vec::new();
         for r in &remotes {
             // La red nunca bloquea los datos locales: si falla, se anota y ya.
-            if let Err(e) = upload_summary(r, &mine) {
+            if let Err(e) = upload_summary(r, &mine, &windows) {
                 errs.push(format!("{}: {}", r.name, e));
             }
         }

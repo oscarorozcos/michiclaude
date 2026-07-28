@@ -661,7 +661,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       (`pc-trabajo.json`): exclusión en los dos sentidos, sin el flag salen
       las dos, un resumen corrupto se ignora sin tumbar a los demás, sin
       carpeta `hosts/` todo sigue igual, y la fusión simulada no duplica el
-      proyecto local. FALTA: `cargo check` y verlo en el panel. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
+      proyecto local.
+      VENTANA (arreglado 2026-07-28 al verlo en las capturas de Oscar): cada
+      máquina sube UNA FOTO POR VENTANA (`HUB_WINDOWS` = 1/7/15/30) y el
+      SERVIDOR elige la pedida en `read_hosts(exclude_id, days)`. Quien lee
+      NO puede recortar un resumen ajeno —su desglose por proyecto ya viene
+      sumado—, así que sin esto el selector 1d/7d/30d movía los proyectos
+      del servidor pero dejaba clavados los de las otras máquinas: un número
+      de otra ventana sin ninguna señal. Si falta la ventana pedida se cae a
+      `stats` y se marca `window_exact:false` en vez de darla por buena.
+      `HUB_WINDOWS` tiene que coincidir SIEMPRE con las opciones del selector
+      del panel. FALTA: `cargo check` y verlo en el panel. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
       (2026-07-28): cómo funciona por dentro, el interruptor de qué compartir
       —que va POR SERVIDOR, no global—, los casos de alta/baja/formateo/
       vacaciones con ejemplos numéricos, por qué un permiso de administrador

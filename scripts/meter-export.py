@@ -197,7 +197,7 @@ def is_estimated(model):
 HOSTS_DIR = Path.home() / ".michiclaude" / "hosts"
 
 
-def read_hosts(exclude_id):
+def read_hosts(exclude_id, days):
     """Resúmenes que dejaron OTRAS máquinas en este servidor (modo hub).
 
     Se devuelven aparte, sin fusionar: quien pregunta les pone la etiqueta de
@@ -205,6 +205,12 @@ def read_hosts(exclude_id):
     suyo, se contaría dos veces y los totales crecerían solos en cada ciclo.
     Un archivo ilegible se ignora: un resumen roto no puede tumbar la lectura
     de los demás.
+
+    La VENTANA se elige aquí, en el servidor, porque quien lee no puede
+    recortar un resumen ajeno: su desglose por proyecto ya viene sumado. Cada
+    máquina sube una foto por ventana; si le piden una que no subió (o el
+    resumen es de una versión vieja), se cae a `stats` y se marca con
+    `window_exact: false` para que quien lo lea no lo dé por exacto.
     """
     out = []
     if not HOSTS_DIR.is_dir():
@@ -218,10 +224,13 @@ def read_hosts(exclude_id):
             continue
         if exclude_id and snap.get("id") == exclude_id:
             continue
+        wins = snap.get("windows") or {}
+        picked = wins.get(str(days))
         out.append({
             "id": snap.get("id", ""),
             "machine": snap.get("machine") or f.stem,
-            "stats": snap["stats"],
+            "stats": picked if isinstance(picked, dict) else snap["stats"],
+            "window_exact": isinstance(picked, dict),
             # cuándo se escribió: quien lee decide si está viejo. Aquí no se
             # borra ni se descarta nada por antigüedad — la app no puede
             # distinguir "se fue" de "está de vacaciones".
@@ -367,7 +376,7 @@ def main():
         "daily": [{"date": d, "cost": c} for d, c in sorted(daily.items())],
         # Modo hub: lo que dejaron las OTRAS máquinas. Un MichiClaude viejo
         # ignora esta clave y sigue viendo solo los datos de este servidor.
-        "hosts": read_hosts(exclude_id),
+        "hosts": read_hosts(exclude_id, days),
     }))
 
 

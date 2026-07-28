@@ -182,9 +182,14 @@
 
 
   /* selector de periodo (1d/7d/30d) */
-  .dlink{cursor:pointer;color:var(--txt-dim)}
-  .dlink:hover{color:var(--txt)}
-  .dlink.on{color:var(--accent);font-weight:700}
+  /* Ventana del gasto: lista desplegable en vez de 1d·7d·30d sueltos. Con
+     cuatro opciones la fila se llenaba de texto (2026-07-28). */
+  .dsel{font:inherit;font-size:10px;color:var(--accent);font-weight:700;
+    background:transparent;border:0;padding:0;cursor:pointer}
+  .dsel:focus{outline:none}
+  /* la fila de "más proyectos" se despliega al hacer clic */
+  .pitem.more{cursor:pointer}
+  .pitem.more:hover .pname span:not(.swatch){color:var(--accent)}
 
   /* etiqueta de origen del proyecto (local / wsl / servidor) */
   .srctag{font-size:9px;color:var(--txt-dim);background:var(--surface);
@@ -322,7 +327,7 @@
 
   <div class="sect">
     <div class="eyebrow"><span data-i18n="spend_title"></span>
-      <span class="q"><span class="dlink" data-d="1">1d</span> · <span class="dlink" data-d="7">7d</span> · <span class="dlink" data-d="30">30d</span> · <span data-i18n="spend_q" data-i18n-title="spend_tip" style="cursor:help;border-bottom:1px dotted var(--txt-dim)"></span><span id="priceWarn" hidden style="cursor:pointer;color:var(--warn);margin-left:5px">&#9888;</span></span></div>
+      <span class="q"><select id="daysSel" class="dsel"><option value="1">1 d</option><option value="7">7 d</option><option value="15">15 d</option><option value="30">30 d</option></select> · <span data-i18n="spend_q" data-i18n-title="spend_tip" style="cursor:help;border-bottom:1px dotted var(--txt-dim)"></span><span id="priceWarn" hidden style="cursor:pointer;color:var(--warn);margin-left:5px">&#9888;</span></span></div>
     <div class="plist" id="plist"></div>
   </div>
 
@@ -508,6 +513,7 @@ en:{
   reading:"Reading ~/.claude…",
   no_activity:"No Claude Code activity in the last 7 days.",
   others:n=>`More projects (${n})`,
+  others_less:"Show less",
   claudeai_row:"claude.ai / others",
   pct_quota:p=>`${p}% quota`,
   claudeai_tip:"Estimate. claude.ai chats and usage on other devices leave no local logs on this machine. This row shows the % of your global weekly limit consumed across all surfaces; the per-project spend above only covers Claude Code here. Not converted to dollars because the endpoint does not expose the cap in $.",
@@ -643,6 +649,7 @@ es:{
   reading:"Leyendo ~/.claude…",
   no_activity:"Sin actividad de Claude Code en los últimos 7 días.",
   others:n=>`Más proyectos (${n})`,
+  others_less:"Ver menos",
   claudeai_row:"claude.ai / otros",
   pct_quota:p=>`${p}% cuota`,
   claudeai_tip:"Estimación. Los chats de claude.ai y el uso en otros dispositivos no dejan registro local en este equipo. Esta fila muestra el % de tu límite semanal consumido en total (todas las superficies); el gasto por proyecto de arriba solo cubre Claude Code aquí. No se convierte a dólares porque el endpoint no expone el tope en $.",
@@ -778,6 +785,7 @@ pt:{
   reading:"Lendo ~/.claude…",
   no_activity:"Sem atividade do Claude Code nos últimos 7 dias.",
   others:n=>`Mais projetos (${n})`,
+  others_less:"Ver menos",
   claudeai_row:"claude.ai / outros",
   pct_quota:p=>`${p}% da cota`,
   claudeai_tip:"Estimativa. Os chats do claude.ai e o uso em outros dispositivos não deixam registros locais nesta máquina. Esta linha mostra o % do seu limite semanal global consumido em todas as superfícies; o gasto por projeto acima cobre apenas o Claude Code aqui. Não é convertido em dólares porque o endpoint não expõe o teto em $.",
@@ -913,6 +921,7 @@ fr:{
   reading:"Lecture de ~/.claude…",
   no_activity:"Aucune activité Claude Code ces 7 derniers jours.",
   others:n=>`Autres projets (${n})`,
+  others_less:"Voir moins",
   claudeai_row:"claude.ai / autres",
   pct_quota:p=>`${p} % du quota`,
   claudeai_tip:"Estimation. Les discussions claude.ai et l'usage sur d'autres appareils ne laissent pas de journaux locaux sur cette machine. Cette ligne montre le % de votre limite hebdomadaire globale consommé toutes surfaces confondues ; la dépense par projet ci-dessus ne couvre que Claude Code ici. Non converti en dollars car l'endpoint n'expose pas le plafond en $.",
@@ -1048,6 +1057,7 @@ de:{
   reading:"Lese ~/.claude…",
   no_activity:"Keine Claude-Code-Aktivität in den letzten 7 Tagen.",
   others:n=>`Weitere Projekte (${n})`,
+  others_less:"Weniger anzeigen",
   claudeai_row:"claude.ai / andere",
   pct_quota:p=>`${p} % Kontingent`,
   claudeai_tip:"Schätzung. claude.ai-Chats und Nutzung auf anderen Geräten hinterlassen keine lokalen Logs auf diesem Rechner. Diese Zeile zeigt den % deines globalen Wochenlimits über alle Oberflächen; die Projektausgaben oben decken nur Claude Code hier ab. Keine Umrechnung in Dollar, da der Endpoint die Obergrenze in $ nicht offenlegt.",
@@ -1183,6 +1193,7 @@ ja:{
   reading:"~/.claude を読み込み中…",
   no_activity:"過去7日間に Claude Code の利用はありません。",
   others:n=>`他のプロジェクト (${n})`,
+  others_less:"閉じる",
   claudeai_row:"claude.ai / その他",
   pct_quota:p=>`クォータの${p}%`,
   claudeai_tip:"推定値です。claude.ai のチャットや他のデバイスでの利用は、このマシンにローカルログを残しません。この行は全サーフェスで消費された週間制限全体の%を示します。上のプロジェクト別コストはこのマシンの Claude Code のみが対象です。エンドポイントが上限額($)を公開していないため、ドル換算はしません。",
@@ -1318,6 +1329,7 @@ ko:{
   reading:"~/.claude 읽는 중…",
   no_activity:"지난 7일간 Claude Code 활동이 없습니다.",
   others:n=>`기타 프로젝트 (${n})`,
+  others_less:"접기",
   claudeai_row:"claude.ai / 기타",
   pct_quota:p=>`쿼터의 ${p}%`,
   claudeai_tip:"추정치입니다. claude.ai 채팅과 다른 기기의 사용은 이 컴퓨터에 로컬 로그를 남기지 않습니다. 이 행은 모든 표면에서 소비된 전체 주간 한도의 %를 보여줍니다. 위의 프로젝트별 비용은 이 컴퓨터의 Claude Code만 포함합니다. 엔드포인트가 한도를 $로 공개하지 않아 달러로 환산하지 않습니다.",
@@ -1453,6 +1465,7 @@ zh:{
   reading:"正在读取 ~/.claude…",
   no_activity:"过去7天没有 Claude Code 活动。",
   others:n=>`更多项目 (${n})`,
+  others_less:"收起",
   claudeai_row:"claude.ai / 其他",
   pct_quota:p=>`配额的${p}%`,
   claudeai_tip:"估算值。claude.ai 聊天和其他设备上的使用不会在本机留下本地日志。此行显示所有平台消耗的全局每周限额百分比；上方的按项目支出仅涵盖本机的 Claude Code。由于接口不公开美元上限，因此不换算为美元。",
@@ -2236,13 +2249,17 @@ function modelTip(p){
   return e.length?e.map(([m,c])=>`${prettyModel(m)}: $${c.toFixed(2)}`).join(" · "):"";
 }
 
+// ¿está desplegada la cola de proyectos? Vive fuera de renderLocal para
+// sobrevivir a los refrescos automáticos: si no, se plegaría sola cada ciclo.
+let projOpen=false;
+const PROJ_TOP=4;
+
 function renderLocal(s){
   lastLocalData=s;
-  const projs=s.projects.slice(0,4).map(p=>({...p, ...splitSrc(p.name)}));
-  const others=s.projects.slice(4);
-  if(others.length) projs.push({base:t("others",others.length),src:null,
-    cost:others.reduce((a,p)=>a+p.cost,0), by_model:null});
-  const max=Math.max(...projs.map(p=>p.cost),0.01);
+  const all=s.projects.map(p=>({...p, ...splitSrc(p.name)}));
+  const rest=all.slice(PROJ_TOP);
+  const projs=projOpen?all:all.slice(0,PROJ_TOP);
+  const max=Math.max(...all.map(p=>p.cost),0.01);
 
   let rows = projs.map((p,i)=>`
     <div class="pitem" title="${escapeHtml(modelTip(p))}">
@@ -2250,6 +2267,14 @@ function renderLocal(s){
       <div class="pcost">$${p.cost.toFixed(2)}</div>
       <div class="pbar"><i style="width:${Math.round(p.cost/max*100)}%;background:${PALETTE[i%PALETTE.length]}"></i></div>
     </div>`).join("");
+  // La cola se resume en una fila que se despliega al hacer clic: saber que
+  // hay $39 repartidos no sirve de nada si no puedes ver en qué.
+  if(rest.length) rows += `
+    <div class="pitem more" id="plistMore">
+      <div class="pname"><span class="swatch" style="background:var(--txt-dim)"></span><span>${escapeHtml(projOpen?t("others_less"):t("others",rest.length))}</span></div>
+      <div class="pcost">${projOpen?"":"$"+rest.reduce((a,p)=>a+p.cost,0).toFixed(2)}</div>
+      <div class="pbar"></div>
+    </div>`;
   if(!rows) rows = `<div class="errbox" style="color:var(--txt-dim)">${t("no_activity")}</div>`;
 
   // Fila estimada de otras superficies (claude.ai / IDE): solo si hay dato
@@ -2262,6 +2287,8 @@ function renderLocal(s){
     </div>`;
   }
   $("plist").innerHTML = rows;
+  const more=$("plistMore");
+  if(more) more.addEventListener("click",()=>{ projOpen=!projOpen; renderLocal(s); });
 
   // Todos los modelos usados, por pequeño que sea su %, con su color fijo.
   const models=Object.entries(s.models).map(([m,a])=>({m,t:a.input+a.output+a.cache_write,est:!!a.estimated}))
@@ -2346,21 +2373,20 @@ function onQuotaFail(reason){
 
 // periodo del gasto por proyecto (1/7/30 días), persistido
 let curDays=+(localStorage.getItem("days")||7);
-if(![1,7,30].includes(curDays)) curDays=7;
+if(![1,7,15,30].includes(curDays)) curDays=7;
 function markDays(){
-  document.querySelectorAll(".dlink").forEach(el=>el.classList.toggle("on",+el.dataset.d===curDays));
-  // la etiqueta del pie refleja la ventana activa (1d/7d/30d), no siempre "semana"
+  $("daysSel").value=String(curDays);
+  // la etiqueta del pie refleja la ventana activa, no siempre "semana"
   const w=$("winLbl"); if(w) w.textContent = curDays===7 ? t("week") : curDays+"d";
 }
-document.querySelectorAll(".dlink").forEach(el=>{
-  el.addEventListener("click",()=>{
-    curDays=+el.dataset.d; localStorage.setItem("days",curDays);
-    markDays();
-    // feedback inmediato mientras recalcula (el remoto por SSH tarda ~1-2 s)
-    $("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
-    $("costWeek").textContent="–";
-    refresh();
-  });
+$("daysSel").addEventListener("change",()=>{
+  curDays=+$("daysSel").value; localStorage.setItem("days",curDays);
+  projOpen=false;                      // otra ventana, otra lista: se pliega
+  markDays();
+  // feedback inmediato mientras recalcula (el remoto por SSH tarda ~1-2 s)
+  $("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
+  $("costWeek").textContent="–";
+  refresh();
 });
 markDays();
 

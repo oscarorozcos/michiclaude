@@ -77,6 +77,24 @@ De ahí sale la regla mecánica:
 
 > **Lo que no esté en la foto siguiente, deja de existir en el hub.**
 
+### Una foto por ventana
+
+La foto no es una sola: cada máquina sube **una por cada ventana del
+selector** (1, 7, 15 y 30 días), y el servidor sirve la que le piden.
+
+El motivo es que **quien lee no puede recortar un resumen ajeno**: su
+desglose por proyecto ya viene sumado, y de un total de 7 días no se puede
+sacar el de 1. Sin esto, al cambiar el selector los proyectos del servidor se
+recalculaban pero los de las otras máquinas se quedaban clavados en el número
+de otra ventana, sin ninguna señal de que no correspondía.
+
+Si a una máquina le piden una ventana que no subió (resumen de una versión
+vieja), se sirve la que tenga y se marca `window_exact: false`, para poder
+avisarlo en vez de dar la cifra por buena.
+
+**Regla:** la lista de ventanas que se suben tiene que coincidir siempre con
+las opciones del selector del panel.
+
 ---
 
 ## 3. Qué se comparte: el interruptor va en cada servidor
