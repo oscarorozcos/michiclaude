@@ -623,7 +623,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       Python debe fallar con ERR_NO_PYTHON y su mensaje traducido, no darse
       por bueno.
 - [ ] MODO HUB (decidido 2026-07-11, pendiente de implementar tras la semana
-      de pruebas): el VPS consolida los datos de todas las máquinas para que
+      de pruebas). ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
+      (2026-07-28): cómo funciona por dentro, el interruptor de qué compartir
+      —que va POR SERVIDOR, no global—, los casos de alta/baja/formateo/
+      vacaciones con ejemplos numéricos, por qué un permiso de administrador
+      dentro de la app sería decorativo, y por qué el modo EQUIPO sigue
+      descartado. Leerlo antes de tocar código del hub. Diseño base: el VPS consolida los datos de todas las máquinas para que
       los totales cuadren en cualquier PC. Diseño acordado: (1) cada meter
       sube su resumen local por SSH a ~/.michiclaude/hosts/<hostname>.json
       en el VPS en cada ciclo; (2) meter-export.py devuelve sus logs + los
