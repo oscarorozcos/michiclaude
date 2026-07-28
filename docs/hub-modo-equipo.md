@@ -126,6 +126,63 @@ proyectos en el servidor de otra gente y **ya no los puedes retirar**.
 Equivocarte hacia "nada" solo hace que veas menos números hasta que te des
 cuenta. Uno se arregla, el otro no.
 
+### El nombre de la máquina no basta: hace falta un identificador
+
+Si dos máquinas se llaman igual, escriben en **el mismo archivo** y la
+segunda pisa a la primera. El resultado no es un error visible, es peor:
+
+```
+14:00  PC-A sube:  michiclaude $40
+14:01  PC-B sube:  sparky $15       ← borró lo de PC-A
+14:03  PC-A sube:  michiclaude $40  ← borró lo de PC-B
+```
+
+Los totales **bailan en cada ciclo** según quién subió de último y nunca se
+ve la suma real. Nadie se entera: la app cree que todo va bien. Corrupción
+silenciosa, que es la peor clase.
+
+Con Windows es poco probable de fábrica (los nombres traen números al azar,
+`DESKTOP-8H2K1`), pero pasa fácil al ponerles nombres bonitos a las dos o al
+clonar una máquina o una VM.
+
+**Solución:** cada instalación genera un **identificador propio** la primera
+vez —un número al azar que se queda en esa PC— y viaja DENTRO del archivo.
+El nombre sigue siendo el del archivo, para que sea legible por una persona.
+
+Al subir:
+
+| el archivo… | qué se hace |
+| --- | --- |
+| no existe | se crea |
+| existe con **tu mismo** identificador | eres tú: se sobreescribe, normal |
+| existe con **otro** identificador | otra máquina se llama igual: avisar y pedir otro nombre |
+
+El mismo aviso cubre el **caso F** (PC formateada): al reinstalar se genera un
+identificador nuevo, así que la app avisa antes de reemplazar los datos de la
+máquina vieja.
+
+Sin el identificador no hay forma de distinguir "soy yo otra vez" de "somos
+dos distintas con el mismo nombre".
+
+### El servidor no unifica nada
+
+Conviene tenerlo claro para no esperar de él lo que no hace: el hub es un
+**buzón**. Cada máquina deja su sobre y ya. Quien junta las piezas y
+deduplica es **el MichiClaude que lee**. El servidor no ejecuta lógica ni
+sabe qué está guardando.
+
+Y el servidor que hace de punto de encuentro **no sube ningún archivo**: sus
+propios registros ya se leen en vivo cuando alguien le pregunta. La carpeta
+`hosts/` es solo para las máquinas que no son el servidor.
+
+```
+VPS (punto de encuentro)
+├── sus propios registros de Claude Code   ← se leen en vivo
+└── ~/.michiclaude/hosts/
+    ├── windows-oscar.json     ← PC de casa
+    └── pc-trabajo.json        ← la del trabajo
+```
+
 ---
 
 ## 4. Ejemplo completo: 4 personas, un proyecto
