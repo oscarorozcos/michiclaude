@@ -377,7 +377,7 @@
         <label for="rHost" data-i18n="lbl_host"></label>
         <input id="rHost" class="mono" data-i18n-ph="ph_host">
       </div>
-      <div class="fld" id="rAdvBox">
+      <div class="fld">
         <label for="rCmd" data-i18n="lbl_cmd"></label>
         <input id="rCmd" class="mono" data-i18n-ph="ph_cmd">
         <div class="fhint" data-i18n="hint_cmd"></div>
@@ -570,7 +570,6 @@ en:{
   hint_name:"How it shows in the list, e.g. vps · server",
   lbl_host:"SSH host",
   lbl_cmd:"Command to run",
-  lbl_adv:"Advanced options",
   err_no_python:"No Python 3.7+ found on that server. Install it (e.g. sudo apt install python3) or set the command under Advanced options.",
   hint_cmd:"Leave empty: MichiClaude installs what it needs on the server by itself. Only fill it in if you want to run your own script.",
   ph_cmd:"(optional — leave empty)",
@@ -716,7 +715,6 @@ es:{
   hint_name:"Así aparecerá en la lista: p. ej. vps · servidor",
   lbl_host:"Host SSH",
   lbl_cmd:"Comando a ejecutar",
-  lbl_adv:"Opciones avanzadas",
   err_no_python:"No encontré Python 3.7 o superior en ese servidor. Instálalo (por ejemplo: sudo apt install python3) o indica el comando en Opciones avanzadas.",
   hint_cmd:"Déjalo vacío: MichiClaude instala solo lo que necesita en el servidor. Rellénalo únicamente si quieres ejecutar tu propio script.",
   ph_cmd:"(opcional — déjalo vacío)",
@@ -862,7 +860,6 @@ pt:{
   hint_name:"Como aparecerá na lista: ex. vps · servidor",
   lbl_host:"Host SSH",
   lbl_cmd:"Comando a executar",
-  lbl_adv:"Opções avançadas",
   err_no_python:"Não encontrei Python 3.7+ nesse servidor. Instale-o (ex.: sudo apt install python3) ou defina o comando em Opções avançadas.",
   hint_cmd:"Deixe vazio: o MichiClaude instala sozinho o que precisa no servidor. Preencha apenas se quiser rodar seu próprio script.",
   ph_cmd:"(opcional — deixe vazio)",
@@ -1008,7 +1005,6 @@ fr:{
   hint_name:"Tel qu'il apparaîtra dans la liste : p. ex. vps · serveur",
   lbl_host:"Hôte SSH",
   lbl_cmd:"Commande à exécuter",
-  lbl_adv:"Options avancées",
   err_no_python:"Aucun Python 3.7+ trouvé sur ce serveur. Installez-le (ex. : sudo apt install python3) ou indiquez la commande dans Options avancées.",
   hint_cmd:"Laissez vide : MichiClaude installe lui-même ce qu’il faut sur le serveur. À remplir seulement pour lancer votre propre script.",
   ph_cmd:"(facultatif — laissez vide)",
@@ -1154,7 +1150,6 @@ de:{
   hint_name:"So erscheint er in der Liste, z. B. vps · Server",
   lbl_host:"SSH-Host",
   lbl_cmd:"Auszuführender Befehl",
-  lbl_adv:"Erweiterte Optionen",
   err_no_python:"Kein Python 3.7+ auf diesem Server gefunden. Installieren Sie es (z. B. sudo apt install python3) oder setzen Sie den Befehl unter Erweiterte Optionen.",
   hint_cmd:"Leer lassen: MichiClaude installiert selbst, was es auf dem Server braucht. Nur ausfüllen, um ein eigenes Skript auszuführen.",
   ph_cmd:"(optional — leer lassen)",
@@ -1300,7 +1295,6 @@ ja:{
   hint_name:"リストでの表示例: vps · サーバー",
   lbl_host:"SSH ホスト",
   lbl_cmd:"実行するコマンド",
-  lbl_adv:"詳細オプション",
   err_no_python:"そのサーバーに Python 3.7 以上が見つかりません。インストールする（例: sudo apt install python3）か、詳細オプションでコマンドを指定してください。",
   hint_cmd:"空のままで大丈夫です。MichiClaude が必要なものをサーバーに自動で設置します。独自のスクリプトを使う場合のみ入力してください。",
   ph_cmd:"（任意 — 空のままで可）",
@@ -1446,7 +1440,6 @@ ko:{
   hint_name:"목록 표시 예: vps · 서버",
   lbl_host:"SSH 호스트",
   lbl_cmd:"실행할 명령",
-  lbl_adv:"고급 옵션",
   err_no_python:"해당 서버에서 Python 3.7 이상을 찾지 못했습니다. 설치하거나(예: sudo apt install python3) 고급 옵션에서 명령을 지정하세요.",
   hint_cmd:"비워 두세요. MichiClaude가 서버에 필요한 것을 알아서 설치합니다. 직접 만든 스크립트를 쓸 때만 입력하세요.",
   ph_cmd:"(선택 — 비워 두세요)",
@@ -1592,7 +1585,6 @@ zh:{
   hint_name:"在列表中的显示方式，如 vps · 服务器",
   lbl_host:"SSH 主机",
   lbl_cmd:"要执行的命令",
-  lbl_adv:"高级选项",
   err_no_python:"在该服务器上未找到 Python 3.7 或更高版本。请安装（如 sudo apt install python3）或在高级选项中指定命令。",
   hint_cmd:"留空即可：MichiClaude 会自行在服务器上安装所需内容。仅当你想运行自己的脚本时才填写。",
   ph_cmd:"（可选 — 留空）",
@@ -1906,7 +1898,7 @@ function simStep(i){
 // ---------- ajustes compartidos (fase 3 del hub) ----------
 // Qué viaja: lo que define CÓMO usas la app. Fuera se quedan la posición del
 // widget (cada pantalla es distinta) y la identidad de la máquina.
-function hubCfgSnapshot(){
+function hubCfgSnapshot(srv){
   return {
     v: 1,
     savedAt: new Date().toISOString(),
@@ -1923,7 +1915,10 @@ function hubCfgSnapshot(){
     // secreto, es una libreta de direcciones, y con varios servidores es lo
     // más pesado de rehacer a mano. Las LLAVES no viajan nunca: MichiClaude
     // no las tiene ni las lee — de eso se encarga el SSH del sistema.
-    remotes,
+    // Se pasa desde fuera y no se lee la variable `remotes`: esa solo se
+    // rellena al abrir Fuentes de datos, así que guardar sin haber pasado por
+    // esa pestaña dejaba la lista vacía sin decir nada (visto 2026-07-28).
+    remotes: srv,
   };
 }
 // Se aplica sobre el almacén y luego se recarga el panel: hay ajustes que se
@@ -1956,9 +1951,11 @@ function hubCfgApply(c){
 }
 $("hubSave").disabled = true;   // hasta saber si hay servidor
 $("hubLoad").disabled = true;
-$("hubSave").addEventListener("click",()=>{
+$("hubSave").addEventListener("click",async()=>{
   $("hubMsg").textContent="…";
-  invoke?.("save_hub_config",{json:JSON.stringify(hubCfgSnapshot())})
+  let srv=[];
+  try{ srv=await invoke("get_remotes"); }catch(e){}
+  invoke?.("save_hub_config",{json:JSON.stringify(hubCfgSnapshot(srv))})
     .then(n=>{ $("hubMsg").textContent=t("hub_cfg_saved", n); })
     .catch(()=>{ $("hubMsg").textContent=t("hub_cfg_err"); });
 });

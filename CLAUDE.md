@@ -724,7 +724,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       y el segundo dice de cuándo es lo guardado: reemplaza la configuración
       entera sin deshacer, así que confirmar sin esa fecha sería decir que sí
       a ciegas. El botón armado se desarma solo a los 8 s.
-      FALTA: `cargo check` y probarlo en el panel. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
+      VERIFICADO el 2026-07-28 mirando el archivo real en el VPS: se guarda
+      `config.json` con idioma, tema, ventana, widget, capa y los dos temas
+      del gatito. Las tres fases del hub dejan datos correctos —
+      `hosts/<máquina>.json` con sus cuatro ventanas y `config.json` con los
+      ajustes. La lista de servidores se pide FRESCA al backend al guardar:
+      leer la variable del panel la dejaba vacía si el usuario no había
+      abierto Fuentes de datos en esa sesión. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
       (2026-07-28): cómo funciona por dentro, el interruptor de qué compartir
       —que va POR SERVIDOR, no global—, los casos de alta/baja/formateo/
       vacaciones con ejemplos numéricos, por qué un permiso de administrador
