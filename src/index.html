@@ -496,7 +496,7 @@
   <div class="p-foot">
     <div class="totals">
       <div class="t"><span data-i18n="today"></span><b id="costToday">–</b></div>
-      <div class="t"><span id="winLbl"></span><b id="costWeek">–</b></div>
+      <div class="t" id="winTot"><span id="winLbl"></span><b id="costWeek">–</b></div>
     </div>
     <div class="foot-note" data-i18n="footnote"></div>
   </div>
@@ -549,7 +549,7 @@ en:{
   hub_cfg_cancel:"Cancelled",
   hub_cfg_needs:"Needs a server — add one in Data sources. Without one, your settings stay on this PC.",
   claudeai_row:"claude.ai / others",
-  pct_quota:p=>`${p}% quota`,
+  pct_quota:p=>`${p}% of weekly quota`,
   claudeai_tip:"Estimate. claude.ai chats and usage on other devices leave no local logs on this machine. This row shows the % of your global weekly limit consumed across all surfaces; the per-project spend above only covers Claude Code here. Not converted to dollars because the endpoint does not expose the cap in $.",
   model_title:"Top model",
   model_leads:m=>`${m} leads`,
@@ -694,7 +694,7 @@ es:{
   hub_cfg_cancel:"Cancelado",
   hub_cfg_needs:"Necesita un servidor — agrégalo en Fuentes de datos. Sin uno, tus ajustes se quedan en esta PC.",
   claudeai_row:"claude.ai / otros",
-  pct_quota:p=>`${p}% cuota`,
+  pct_quota:p=>`${p}% de la cuota semanal`,
   claudeai_tip:"Estimación. Los chats de claude.ai y el uso en otros dispositivos no dejan registro local en este equipo. Esta fila muestra el % de tu límite semanal consumido en total (todas las superficies); el gasto por proyecto de arriba solo cubre Claude Code aquí. No se convierte a dólares porque el endpoint no expone el tope en $.",
   model_title:"Modelo más usado",
   model_leads:m=>`${m} lidera`,
@@ -839,7 +839,7 @@ pt:{
   hub_cfg_cancel:"Cancelado",
   hub_cfg_needs:"Precisa de um servidor — adicione em Fontes de dados. Sem ele, suas configurações ficam neste PC.",
   claudeai_row:"claude.ai / outros",
-  pct_quota:p=>`${p}% da cota`,
+  pct_quota:p=>`${p}% da cota semanal`,
   claudeai_tip:"Estimativa. Os chats do claude.ai e o uso em outros dispositivos não deixam registros locais nesta máquina. Esta linha mostra o % do seu limite semanal global consumido em todas as superfícies; o gasto por projeto acima cobre apenas o Claude Code aqui. Não é convertido em dólares porque o endpoint não expõe o teto em $.",
   model_title:"Modelo mais usado",
   model_leads:m=>`${m} lidera`,
@@ -984,7 +984,7 @@ fr:{
   hub_cfg_cancel:"Annulé",
   hub_cfg_needs:"Nécessite un serveur — ajoutez-en un dans Sources de données. Sans lui, vos réglages restent sur ce PC.",
   claudeai_row:"claude.ai / autres",
-  pct_quota:p=>`${p} % du quota`,
+  pct_quota:p=>`${p} % du quota hebdo`,
   claudeai_tip:"Estimation. Les discussions claude.ai et l'usage sur d'autres appareils ne laissent pas de journaux locaux sur cette machine. Cette ligne montre le % de votre limite hebdomadaire globale consommé toutes surfaces confondues ; la dépense par projet ci-dessus ne couvre que Claude Code ici. Non converti en dollars car l'endpoint n'expose pas le plafond en $.",
   model_title:"Modèle le plus utilisé",
   model_leads:m=>`${m} en tête`,
@@ -1129,7 +1129,7 @@ de:{
   hub_cfg_cancel:"Abgebrochen",
   hub_cfg_needs:"Braucht einen Server — füge einen unter Datenquellen hinzu. Ohne ihn bleiben deine Einstellungen auf diesem PC.",
   claudeai_row:"claude.ai / andere",
-  pct_quota:p=>`${p} % Kontingent`,
+  pct_quota:p=>`${p} % des Wochenkontingents`,
   claudeai_tip:"Schätzung. claude.ai-Chats und Nutzung auf anderen Geräten hinterlassen keine lokalen Logs auf diesem Rechner. Diese Zeile zeigt den % deines globalen Wochenlimits über alle Oberflächen; die Projektausgaben oben decken nur Claude Code hier ab. Keine Umrechnung in Dollar, da der Endpoint die Obergrenze in $ nicht offenlegt.",
   model_title:"Meistgenutztes Modell",
   model_leads:m=>`${m} führt`,
@@ -1274,7 +1274,7 @@ ja:{
   hub_cfg_cancel:"取り消しました",
   hub_cfg_needs:"サーバーが必要です — データソースで追加してください。なければ設定はこのPCに残ります。",
   claudeai_row:"claude.ai / その他",
-  pct_quota:p=>`クォータの${p}%`,
+  pct_quota:p=>`週クォータの${p}%`,
   claudeai_tip:"推定値です。claude.ai のチャットや他のデバイスでの利用は、このマシンにローカルログを残しません。この行は全サーフェスで消費された週間制限全体の%を示します。上のプロジェクト別コストはこのマシンの Claude Code のみが対象です。エンドポイントが上限額($)を公開していないため、ドル換算はしません。",
   model_title:"最も使われたモデル",
   model_leads:m=>`${m} がリード`,
@@ -1419,7 +1419,7 @@ ko:{
   hub_cfg_cancel:"취소했어요",
   hub_cfg_needs:"서버가 필요해요 — 데이터 소스에서 추가하세요. 없으면 설정은 이 PC에만 남습니다.",
   claudeai_row:"claude.ai / 기타",
-  pct_quota:p=>`쿼터의 ${p}%`,
+  pct_quota:p=>`주간 쿼터의 ${p}%`,
   claudeai_tip:"추정치입니다. claude.ai 채팅과 다른 기기의 사용은 이 컴퓨터에 로컬 로그를 남기지 않습니다. 이 행은 모든 표면에서 소비된 전체 주간 한도의 %를 보여줍니다. 위의 프로젝트별 비용은 이 컴퓨터의 Claude Code만 포함합니다. 엔드포인트가 한도를 $로 공개하지 않아 달러로 환산하지 않습니다.",
   model_title:"최다 사용 모델",
   model_leads:m=>`${m} 선두`,
@@ -1564,7 +1564,7 @@ zh:{
   hub_cfg_cancel:"已取消",
   hub_cfg_needs:"需要一台服务器 — 请在数据来源中添加。没有的话，设置只留在这台电脑。",
   claudeai_row:"claude.ai / 其他",
-  pct_quota:p=>`配额的${p}%`,
+  pct_quota:p=>`每周配额的${p}%`,
   claudeai_tip:"估算值。claude.ai 聊天和其他设备上的使用不会在本机留下本地日志。此行显示所有平台消耗的全局每周限额百分比；上方的按项目支出仅涵盖本机的 Claude Code。由于接口不公开美元上限，因此不换算为美元。",
   model_title:"最常用模型",
   model_leads:m=>`${m} 领先`,
@@ -2565,6 +2565,9 @@ let curDays=+(localStorage.getItem("days")||7);
 if(![1,7,15,30].includes(curDays)) curDays=7;
 function markDays(){
   $("daysSel").value=String(curDays);
+  // "Hoy" son las últimas 24 h y la ventana de 1 día también: enseñar la
+  // misma cifra dos veces con dos nombres parece un error de la app.
+  $("winTot").hidden = (curDays===1);
   // la etiqueta del pie refleja la ventana activa, no siempre "semana"
   const w=$("winLbl"); if(w) w.textContent = curDays===7 ? t("week") : curDays+"d";
 }

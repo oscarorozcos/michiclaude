@@ -256,7 +256,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 7. El tag del plan del header: usar el que reporte el endpoint; si no viene,
    "Suscripción". No inventar "MAX 5×".
 8. La fila "claude.ai / otros" se muestra solo si es estimable con datos
-   fiables; en % de cuota, no en dólares.
+   fiables; en % de cuota, no en dólares. Y dice SEMANAL: es siempre el %
+   del bucket semanal, elijas la ventana que elijas, así que al lado de
+   una lista de 1 día invitaba a comparar periodos distintos (2026-07-28).
+   Por lo mismo, con la ventana de 1 día el pie oculta la segunda cifra:
+   "hoy" son las últimas 24 h y la ventana de 1 día también, y enseñar el
+   mismo número dos veces con dos nombres parece un error de la app.
 9. No tocar `README.md`, `.github/workflows/release.yml` ni `app-icon.png`
    salvo petición explícita.
 10ter. Todo comando de Rust que HAGA ESPERA (SSH, red, escaneo de disco
