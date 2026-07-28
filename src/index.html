@@ -1919,6 +1919,11 @@ function hubCfgSnapshot(){
     pillLayer: $("pillLayerSel").value,
     catArt: localStorage.getItem("catArt") || "auto",
     catSkin: localStorage.getItem("catSkin") || "auto",
+    // La LISTA de servidores (nombre, host, comando) sí viaja: no es un
+    // secreto, es una libreta de direcciones, y con varios servidores es lo
+    // más pesado de rehacer a mano. Las LLAVES no viajan nunca: MichiClaude
+    // no las tiene ni las lee — de eso se encarga el SSH del sistema.
+    remotes,
   };
 }
 // Se aplica sobre el almacén y luego se recarga el panel: hay ajustes que se
@@ -1937,6 +1942,16 @@ function hubCfgApply(c){
   // estos dos los guarda el backend, no el almacén del panel
   if(c.pillStyle) invoke?.("set_pill_style",{style:c.pillStyle==="cat"?"cat":"plain"});
   if(c.pillLayer) invoke?.("set_pill_layer",{layer:c.pillLayer});
+  // Los servidores se FUSIONAN por host, no se reemplazan: si esta máquina
+  // tiene uno que la otra no conocía, quitárselo la dejaría sin acceso, y
+  // recuperar un servidor cuesta mucho más que borrar una fila de sobra.
+  if(Array.isArray(c.remotes) && c.remotes.length){
+    const byHost=new Map(remotes.map(r=>[r.host, r]));
+    for(const r of c.remotes){
+      if(r && typeof r.host==="string" && r.host.trim()) byHost.set(r.host, r);
+    }
+    invoke?.("save_remotes",{remotes:[...byHost.values()]});
+  }
   return true;
 }
 $("hubSave").disabled = true;   // hasta saber si hay servidor

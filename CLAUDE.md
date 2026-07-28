@@ -687,9 +687,16 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       al final de FUENTES DE DATOS —no en Preferencias: dependen de tener un
       servidor, así que se leen después de la lista— (`save_hub_config` / `load_hub_config`) que guardan y
       traen los ajustes en `~/.michiclaude/config.json` del servidor. Viajan
-      idioma, tema, alarmas, presupuesto, ventana, estilo del widget, capa y
-      los dos temas del gatito; NO viaja la posición del widget (cada
-      pantalla es distinta) ni la identidad de la máquina. Al traerlos se
+      idioma, tema, alarmas, presupuesto, ventana, estilo del widget, capa,
+      los dos temas del gatito y la LISTA de servidores (nombre/host/comando:
+      es una libreta de direcciones, no un secreto, y con varios servidores
+      es lo más pesado de rehacer). NO viaja la posición del widget (cada
+      pantalla es distinta), ni la identidad de la máquina, ni las LLAVES
+      SSH — MichiClaude no las tiene ni las lee, de eso se encarga el ssh del
+      sistema, y esa promesa no se toca. Los servidores se FUSIONAN por host
+      al traerlos, nunca se reemplazan: quitarle a una máquina un servidor
+      que la otra no conocía la dejaría sin acceso, y recuperarlo cuesta
+      mucho más que borrar una fila de sobra. Al traerlos se
       recarga el panel: hay ajustes que solo se leen al arrancar y
       repintarlos uno a uno sería fácil de olvidar al añadir el siguiente.
       DECISIÓN: es MANUAL a propósito. Una sincronización automática de ida y
