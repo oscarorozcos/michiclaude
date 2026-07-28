@@ -695,7 +695,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       vuelta acabaría pisando en una máquina lo que acabas de cambiar en la
       otra, y unos ajustes que cambian solos son peores que unos que no se
       comparten. Al guardar se escribe en TODOS los servidores; al traer gana
-      el primero que responda. FALTA: `cargo check` y probarlo en el panel. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
+      el primero que responda. Es UNA foto que se reemplaza en cada guardado,
+      sin historial. Traer va en DOS PASOS —como el bote de borrar servidor—
+      y el segundo dice de cuándo es lo guardado: reemplaza la configuración
+      entera sin deshacer, así que confirmar sin esa fecha sería decir que sí
+      a ciegas. El botón armado se desarma solo a los 8 s.
+      FALTA: `cargo check` y probarlo en el panel. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
       (2026-07-28): cómo funciona por dentro, el interruptor de qué compartir
       —que va POR SERVIDOR, no global—, los casos de alta/baja/formateo/
       vacaciones con ejemplos numéricos, por qué un permiso de administrador
