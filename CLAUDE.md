@@ -651,10 +651,18 @@ limpio dentro de `src-tauri`, y listar archivos tocados con el motivo.
 (En el VPS NO hay toolchain de Rust: es solo espejo de código. `cargo check`
 corre en el Windows de Oscar.)
 
-**Simulador de estados del gatito** (Preferencias → "🐱 Simular estados"):
-recorre el ciclo COMPLETO —dibujo y globo— en cinco pasos: normal (sin
-globo) → fire (globo de alarma, con TU umbral configurado) → break → zzz →
-normal + globo de cuota restablecida. Usa los datos reales cuando existen
+**Simulador** (Preferencias). Se adapta al widget elegido:
+- Con el GATITO ("🐱 Simular estados") recorre el ciclo COMPLETO —dibujo y
+  globo— en cinco pasos: normal (sin globo) → fire (globo de alarma, con TU
+  umbral configurado) → break → zzz → normal + globo de cuota restablecida.
+- Con la PASTILLA ("🔔 Simular avisos") no hay mascota que cambiar, así que
+  recorre los AVISOS, uno por severidad e icono del popover: alarma ámbar →
+  alarma roja → break → zzz → presupuesto (SOLO si el usuario configuró uno:
+  sin cifra real no se inventa un importe) → restablecida. La alarma sale dos
+  veces a propósito: verlas seguidas es la única forma de comparar ámbar y
+  rojo. El paso puede sobreescribir lo que calcula `balloonMeta()`.
+`simRunning` es la bandera de "simulación en curso" — NO `simMascot`, que
+con la pastilla es null siempre. Usa los datos reales cuando existen
 (tu `resets_at`, tu alarma) y solo inventa la fecha si aún no hay lectura.
 Los globos simulados NO tocan localStorage: al terminar no debe quedar
 ningún aviso pendiente falso; `processAcks()` y `notif:ack` se inhiben

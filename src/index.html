@@ -1701,9 +1701,11 @@ setInterval(()=>{
 // cancela la simulación.
 // Los globos simulados NO tocan el localStorage (nada de ackPending ni
 // infoBalloon): al terminar no debe quedar ningún aviso pendiente falso.
-let simMascot=null, simTimer=null, simTick=null, simB=null;
-function simBalloon(body, kind){
-  EVENT?.emit("notif:update",{body, kind, ...balloonMeta(kind)});
+let simRunning=false, simMascot=null, simTimer=null, simTick=null, simB=null;
+// el paso puede sobreescribir lo que calcula balloonMeta (p. ej. forzar la
+// severidad para enseñar el mismo aviso en ámbar y en rojo)
+function simBalloon(o){
+  EVENT?.emit("notif:update",{...balloonMeta(o.kind), ...o});
   invoke?.("set_notif_visible",{visible:true});
 }
 // Usa los datos REALES cuando existen (tu propio reset, tu propia alarma) y
@@ -1716,13 +1718,33 @@ function simAlarmBody(){
   const thr=[...getAlarms()].sort((a,b)=>b-a)[0]||80;
   return thr>=95 ? t("notif_hi",thr) : t("notif_lo",thr);
 }
-const SIM_SEQ=[
+const SIM_CAT=[
   {m:"normal"},                                                        // sin globo
   {m:"fire",   b:()=>({kind:"alarm",   body:simAlarmBody()})},
   {m:"break",  b:()=>({kind:"break",   body:breakBody(simReset("session",8*60000))})},
   {m:"zzz",    b:()=>({kind:"zzz",     body:weekBody(simReset("weekly",3*24*3.6e6))})},
   {m:"normal", b:()=>({kind:"session", body:balloonBody("session")})}, // vuelve la cuota
 ];
+// Guion de la PASTILLA: no hay mascota que cambiar, así que recorre los
+// AVISOS — uno por cada severidad e icono del popover. La alarma sale dos
+// veces a propósito: por debajo del 95% es ámbar y por encima es roja, y ver
+// las dos seguidas es la única forma de comparar.
+function simPillSeq(){
+  const low=[...getAlarms()].sort((a,b)=>a-b)[0]||80;
+  const seq=[
+    {b:()=>({kind:"alarm", body:t("notif_lo",low), sev:"warn"})},
+    {b:()=>({kind:"alarm", body:t("notif_hi",95),  sev:"danger"})},
+    {b:()=>({kind:"break", body:breakBody(simReset("session",8*60000))})},
+    {b:()=>({kind:"zzz",   body:weekBody(simReset("weekly",3*24*3.6e6))})},
+  ];
+  // el del presupuesto solo si el usuario puso uno: sin cifra real no se
+  // inventa un importe (invariante: nada de datos de demo en la app real)
+  const bg=+localStorage.getItem("budgetWeek")||0;
+  if(bg>0) seq.push({b:()=>({kind:"budget", body:t("notif_budget", bg.toFixed(2), bg)})});
+  seq.push({b:()=>({kind:"session", body:balloonBody("session")})});
+  return seq;
+}
+let simSeq=SIM_CAT;
 // minutos por estado, ajustables (admite decimales: 0.5 = 30 s). Se lee en
 // cada paso, así que cambiarlo a media simulación afecta al siguiente estado.
 function simMs(){ return Math.max(5, (parseFloat($("simMin").value)||1)*60)*1000; }
@@ -1736,26 +1758,29 @@ function simPush(){
       theme:document.body.classList.contains("light")?"light":"dark"});
   }
 }
+function simLabel(){
+  return getPillStyle()==="cat" ? "🐱 Simular estados" : "🔔 Simular avisos";
+}
 function simStop(msg){
   clearTimeout(simTimer); clearInterval(simTick); simTimer=null; simTick=null;
-  simMascot=null; simB=null; simPush();
+  simRunning=false; simMascot=null; simB=null; simPush();
   invoke?.("set_notif_visible",{visible:false});
   processAcks();          // si había un aviso REAL pendiente, vuelve a salir
-  $("simBtn").textContent="🐱 Simular estados";
+  $("simBtn").textContent=simLabel();
   $("simMsg").textContent=msg||"";
 }
 function simStep(i){
-  if(i>=SIM_SEQ.length){ simStop("listo · de vuelta al estado real"); return; }
-  const step=SIM_SEQ[i];
-  simMascot=step.m; simPush();
+  if(i>=simSeq.length){ simStop("listo · de vuelta al estado real"); return; }
+  const step=simSeq[i];
+  simMascot=step.m||null; simPush();
   // el globo se queda entre pasos y solo cambia de texto (así no parpadea);
   // si al paso no le toca globo, se cierra
   simB = step.b ? step.b() : null;
-  if(simB) simBalloon(simB.body, simB.kind);
+  if(simB) simBalloon(simB);
   else invoke?.("set_notif_visible",{visible:false});
   let left=simMs();
   const paint=()=>{ $("simMsg").textContent=
-    `${i+1}/${SIM_SEQ.length} · ${step.m}${step.b?" + globo":""} · ${simLeft(left)}`; };
+    `${i+1}/${simSeq.length} · ${simB?(simB.sev||simB.kind):step.m} · ${simLeft(left)}`; };
   paint();
   clearInterval(simTick);
   simTick=setInterval(()=>{ left-=1000; if(left>0) paint(); },1000);
@@ -1765,8 +1790,11 @@ if(invoke) invoke("is_dev").then(d=>{ if(d) $("devSimRow").hidden=false; }).catc
 $("simMin").value=localStorage.getItem("simMin")||"1";
 $("simMin").addEventListener("change",()=>localStorage.setItem("simMin",$("simMin").value));
 $("simBtn").addEventListener("click",()=>{
-  if(simTimer||simTick){ simStop("detenido"); return; }
-  if(getPillStyle()!=="cat"){ $("simMsg").textContent="activa el widget gatito primero"; return; }
+  if(simRunning){ simStop("detenido"); return; }
+  // sin widget en pantalla no hay dónde pintar nada de esto
+  if(!pillOn){ $("simMsg").textContent="activa el widget primero"; return; }
+  simSeq = getPillStyle()==="cat" ? SIM_CAT : simPillSeq();
+  simRunning=true;
   $("simBtn").textContent="■ Detener"; simStep(0);
 });
 
@@ -2115,7 +2143,7 @@ function balloonBody(k){
   return t(k==="session"?"notif_back_session":"notif_back_week");
 }
 function processAcks(){
-  if(simMascot) return;          // simulación en curso: no la pises
+  if(simRunning) return;         // simulación en curso: no la pises
   for(const k of ACK_KINDS){
     if(localStorage.getItem("ackPending:"+k)!=="1") continue;
     // NINGÚN aviso va ya a Windows: todos salen como globo sobre el widget
@@ -2132,7 +2160,7 @@ function processAcks(){
 // cada vez que termina un hover (el hover lo oculta para dejar salir el globo
 // de información, y tiene que volver: pasar el mouse no es haberlo leído).
 EVENT?.listen("notif:ready",()=>{
-  if(simMascot){ if(simB) simBalloon(simB.body, simB.kind); return; }
+  if(simRunning){ if(simB) simBalloon(simB); return; }
   for(const k of ACK_KINDS)
     if(localStorage.getItem("ackPending:"+k)==="1"){ showBalloon(balloonBody(k), k); return; }
   const info=infoBalloon();
@@ -2145,7 +2173,7 @@ EVENT?.listen("notif:ack",(e)=>{
   // Globo simulado: cerrarlo no confirma nada real, pero sí debe QUEDARSE
   // cerrado. Sin borrar simB, el `notif:ready` que emite el gatito al salir
   // el mouse lo volvía a levantar y no había forma de quitárselo de encima.
-  if(simMascot){ simB=null; return; }
+  if(simRunning){ simB=null; return; }
   if(ACK_KINDS.includes(kind)){
     localStorage.removeItem("ackPending:"+kind);
     localStorage.removeItem("ackLastToast:"+kind);
@@ -2539,6 +2567,7 @@ $("pillStyleSel").addEventListener("change",()=>{
 function syncCatOnlyRows(){
   const on=getPillStyle()==="cat";
   document.querySelectorAll(".catOnly").forEach(el=>{ el.hidden=!on; });
+  if(!simRunning) $("simBtn").textContent=simLabel();
 }
 for(const [id,key] of [["catArtSel","catArt"],["catSkinSel","catSkin"]]){
   $(id).value=localStorage.getItem(key)||"auto";
