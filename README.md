@@ -74,8 +74,9 @@ El panel tiene **tres pestañas**:
     límite antes del reset?
   - *Gasto por proyecto*: costo estimado de cada proyecto (ver siguiente
     sección) en 1/7/30 días. Pasa el mouse sobre un proyecto para ver su
-    desglose por modelo. La fila *claude.ai / otros* estima (en % de cuota)
-    lo consumido fuera de esta máquina.
+    desglose por modelo. Ojo: esos dólares son **solo de Claude Code**. Lo que
+    uses en claude.ai también gasta tu límite semanal, pero no se puede medir
+    en dólares — el endpoint no dice cuánto vale el tope en dinero.
   - *Tendencia diaria*: gráfica de los últimos 30 días.
   - *Modelos*: qué modelo usas más.
 - **Fuentes de datos** — de dónde salen los números y alta de servidores SSH.

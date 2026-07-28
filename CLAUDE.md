@@ -15,8 +15,9 @@ el uso de Claude (suscripción). Muestra:
 - **Proyección de burn rate**: "a este ritmo llegas al 100% en X min, antes/después del reset".
 - **Gasto por proyecto** (equivalente API, 7 días) y **modelo más usado**,
   desde los logs locales de Claude Code.
-- **Fila "claude.ai / otros"**: estimación por diferencia entre cuota global y
-  actividad local (en % de cuota, nunca en $ inventados).
+- **Nota bajo el gasto**: los dólares son SOLO de Claude Code. Lo usado en
+  claude.ai también gasta el límite semanal pero NO se puede medir en $, así
+  que se dice con palabras en vez de con una cifra inventada.
 - **Icono de bandeja dinámico**: el icono del tray se redibuja con el % de
   sesión (color por estado + barrita semanal), como los medidores de
   batería/CPU. Sustituye a la antigua "franja sobre la barra" (descartada
@@ -255,13 +256,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
    "Opus" sin versión, detectado 2026-07-26).
 7. El tag del plan del header: usar el que reporte el endpoint; si no viene,
    "Suscripción". No inventar "MAX 5×".
-8. La fila "claude.ai / otros" se muestra solo si es estimable con datos
-   fiables; en % de cuota, no en dólares. Y dice SEMANAL: es siempre el %
-   del bucket semanal, elijas la ventana que elijas, así que al lado de
-   una lista de 1 día invitaba a comparar periodos distintos (2026-07-28).
-   Por lo mismo, con la ventana de 1 día el pie oculta la segunda cifra:
-   "hoy" son las últimas 24 h y la ventana de 1 día también, y enseñar el
-   mismo número dos veces con dos nombres parece un error de la app.
+8. NUNCA poner una cifra donde no se puede calcular. La fila
+   "claude.ai / otros" se ELIMINÓ el 2026-07-28 (decisión de Oscar): su
+   etiqueta prometía el desglose de claude.ai y el número era el consumo
+   TOTAL de la semana — el mismo que ya sale en el medidor de arriba. Ese
+   desglose NO es calculable: el gasto local está en dólares y la cuota en
+   porcentaje, y el endpoint nunca expone cuánto vale el tope en dinero. En
+   su lugar va una nota de texto pegada a los dólares (`spend_only_cc`), que
+   es donde nace el malentendido; en un tooltip o en el README no la lee
+   quien la necesita. Por lo mismo, con la ventana de 1 día el pie oculta la
+   segunda cifra: "hoy" son las últimas 24 h y la ventana de 1 día también,
+   y enseñar el mismo número dos veces con dos nombres parece un error.
 9. No tocar `README.md`, `.github/workflows/release.yml` ni `app-icon.png`
    salvo petición explícita.
 10ter. Todo comando de Rust que HAGA ESPERA (SSH, red, escaneo de disco
@@ -328,7 +333,7 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 
 - [x] Panel completo con datos reales
 - [x] Buckets semanales dinámicos (incluido Fable)
-- [x] Fila "claude.ai / otros"
+- [x] Fila "claude.ai / otros" — ELIMINADA 2026-07-28, ver invariante 8
 - [x] Fix de arrastre y flyout
 - [x] `cargo check` limpio (verificado 2026-07-10; la sesión que se cortó a
       mitad de editar Cargo.toml no dejó nada roto)
@@ -839,7 +844,7 @@ de desarrollo (comando `is_dev` = `cfg!(debug_assertions)`), por eso es el
   gasto real para usuarios de API key. La UI lo etiqueta como "equiv. API".
 - Competencia de referencia: ccusage (CLI, $/proyecto), claudeusagewin y
   usage-monitor-for-claude (tray Windows con cuota real). Diferenciadores de
-  esta app: marcador de ritmo + proyección + fila claude.ai/otros + franja
+  esta app: marcador de ritmo + proyección + franja
   sobre la barra.
 - Se publicará en GitHub (GPL-3.0, releases automáticas por tag). La confianza del
   usuario es prioridad: transparencia total sobre el manejo del token y el
