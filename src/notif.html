@@ -150,6 +150,10 @@ if(EVENT){
     document.body.classList.toggle("down", p.pose==="down");
     if(p.tailx!=null) document.body.style.setProperty("--tailx", p.tailx+"px");
   });
+  // Pide el último resumen: de ahí saca el TEMA y qué widget está puesto.
+  // Sin esto era la única ventana que no lo pedía, así que hasta el
+  // siguiente ciclo salía con el tema de fábrica y no con el elegido.
+  EVENT.emit("pill:ready");
   EVENT.emit("notif:ready");   // por si la alarma quedó pendiente de antes
 }else{
   $("msg").textContent="Sesión al 80% de tu límite de 5 h.";  // preview

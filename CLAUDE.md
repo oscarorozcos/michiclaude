@@ -526,6 +526,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       blanco. El tema viaja en el resumen `quota:update`, así que `notif`
       lo escucha solo para eso; en `card` se aplica ANTES del early-return
       de `ok:false`, para que siga al panel aunque conserve el dato viejo.
+      TODAS las ventanas del widget emiten `pill:ready` al cargar para pedir
+      el último resumen; `notif` era la única que no lo hacía y salía con el
+      tema de fábrica hasta el siguiente ciclo, ignorando lo elegido
+      (2026-07-28). Si se añade otra ventana que dependa del resumen, tiene
+      que emitirlo también.
       Además el ARTE del gatito y la PIEL de sus globos se eligen por
       separado (2026-07-27): dos selectores en Preferencias, cada uno
       "Según el tema" (default, sigue al ◐) / Claro / Oscuro, en

@@ -185,8 +185,12 @@
   /* Ventana del gasto: lista desplegable en vez de 1d·7d·30d sueltos. Con
      cuatro opciones la fila se llenaba de texto (2026-07-28). */
   .dsel{font:inherit;font-size:10px;color:var(--accent);font-weight:700;
-    background:transparent;border:0;padding:0;cursor:pointer}
+    background:var(--mica);border:0;padding:0;cursor:pointer}
   .dsel:focus{outline:none}
+  /* La lista desplegada hereda el color del control, y el acento sobre el
+     fondo del sistema no se leía en oscuro. Se le da el mismo par de
+     colores que usan los demás desplegables del panel (2026-07-28). */
+  .dsel option{background:var(--mica);color:var(--txt);font-weight:600}
   /* la fila de "más proyectos" se despliega al hacer clic */
   .pitem.more{cursor:pointer}
   .pitem.more:hover .pname span:not(.swatch){color:var(--accent)}
