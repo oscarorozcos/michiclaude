@@ -422,7 +422,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       el camino del ⚠: sin caché o con más de una semana sin actualizar. Para
       forzarlo hay que cerrar la app DEL TODO (la instancia única hace que un
       segundo `npm run dev` no reinicie nada) y renombrar prices_cache.json
-      antes de arrancar.
+      antes de arrancar. VERIFICADO el 2026-07-28: con el caché fuera y sin
+      red sale el ⚠ y Preferencias dice "Sin conexión — se usa la tabla
+      incluida". OJO al reproducirlo: `Rename-Item` falla si el destino ya
+      existe de un intento anterior, y la app recrea prices_cache.json en
+      cuanto vuelve la red.
       Descripción original de la investigación:
       Hallazgo URGENTE: `price_for()` cobra $15/$75 a opus/fable/mythos, que
       es la tarifa del difunto Opus 4.1; las reales son Opus 5/4.8 $5/$25 y

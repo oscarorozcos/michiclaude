@@ -4,8 +4,8 @@
 > pero siguen llegando mejoras (ver [Roadmap](#roadmap)). Issues y
 > sugerencias son bienvenidos.
 
-Widget de bandeja para **Windows 11** que muestra, en tiempo real, cuánto has
-usado de tu suscripción de Claude y cuánto te queda:
+Widget de bandeja para **Windows 10 y 11** que muestra, en tiempo real,
+cuánto has usado de tu suscripción de Claude y cuánto te queda:
 
 - **Cuota real de tu plan** (sesión de 5 h y límites semanales, con barras por
   modelo) — la misma que ves en claude.ai → Configuración → Uso, porque los
@@ -39,6 +39,28 @@ HTML/CSS/JS sin frameworks, backend Rust mínimo.
 
 > No hay pasos de configuración obligatorios: si usas Claude Code en esa PC,
 > la cuota y los costos por proyecto aparecen solos.
+
+### ¿Qué versión de Windows necesito?
+
+**Windows 10 o Windows 11.** Hasta hoy solo se ha probado en Windows 11 (es
+donde se desarrolla), así que en Windows 10 *debería* funcionar sin cambios
+pero no está verificado — si lo pruebas ahí, cuéntanos en un issue.
+
+Lo que marca ese mínimo no es la app, sino las piezas sobre las que corre:
+
+| pieza | mínimo | por qué |
+| --- | --- | --- |
+| Tauri 2 (el motor) | Windows 10 | la versión 2 dejó de soportar Windows 7 y 8 |
+| WebView2 | Windows 10 | viene preinstalado en 11; en 10 llega con el Edge moderno, y si falta, el instalador lo descarga |
+| Notificaciones | Windows 10 | usan la API moderna de avisos, que no existe antes |
+| Cliente SSH (opcional) | Windows 10 | solo si conectas un servidor; incluido desde entonces |
+| Ventanas del widget | Windows XP | `SetWindowPos` y compañía son APIs antiguas: no limitan nada |
+
+En **Windows 7 y 8 no funciona**, y no es algo que se pueda arreglar del lado
+de MichiClaude.
+
+No hay versión de macOS ni de Linux: el icono de bandeja dinámico y el widget
+flotante están escritos contra las APIs de Windows.
 
 ## Primeros pasos: qué estás viendo
 
@@ -407,9 +429,9 @@ estimados — aunque no los medidores de cuota, que son de suscriptores.
 
 ## Desarrollo
 
-Requisitos (Windows): [Rust](https://rustup.rs) stable, Node.js 18+,
-VS Build Tools (C++), WebView2 (incluido en Windows 11) y Claude Code con
-sesión iniciada.
+Requisitos (Windows 10 u 11): [Rust](https://rustup.rs) stable, Node.js 18+,
+VS Build Tools (C++), WebView2 (preinstalado en Windows 11; en 10 llega con el
+Edge moderno) y Claude Code con sesión iniciada.
 
 ```powershell
 npm install
