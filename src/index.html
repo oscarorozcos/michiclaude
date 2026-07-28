@@ -392,6 +392,18 @@
     <div class="eyebrow"><span data-i18n="srv_saved_title"></span> <span class="q" id="srvCount"></span></div>
     <div id="remList"></div>
   </div>
+  <!-- Los ajustes compartidos viven aquí, y no en Preferencias, porque
+       dependen de tener un servidor: se leen después de la lista, cuando ya
+       sabes cuáles tienes (petición de Oscar 2026-07-28). -->
+  <div class="sect">
+    <div class="eyebrow"><span data-i18n="hub_cfg_label"></span></div>
+    <div class="cfg-note" data-i18n="hub_cfg_hint"></div>
+    <div class="btnrow">
+      <button id="hubSave" data-i18n="hub_cfg_save"></button>
+      <button id="hubLoad" data-i18n="hub_cfg_load"></button>
+      <span id="hubMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+    </div>
+  </div>
   </div><!-- /tab-sources -->
 
   <div id="tab-prefs" hidden>
@@ -470,13 +482,6 @@
         <button id="pricesNow" data-i18n="prices_refresh"></button>
       </div>
       <div id="pricesSources" hidden class="cfg-note" data-i18n-html="prices_sources"></div>
-      <div class="cfg-lbl" data-i18n="hub_cfg_label"></div>
-      <div class="cfg-note" data-i18n="hub_cfg_hint"></div>
-      <div class="btnrow">
-        <button id="hubSave" data-i18n="hub_cfg_save"></button>
-        <button id="hubLoad" data-i18n="hub_cfg_load"></button>
-        <span id="hubMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
-      </div>
       <div class="cfg-lbl" data-i18n="export_label"></div>
       <input id="exportDir" data-i18n-ph="export_dir_ph">
       <div class="btnrow">

@@ -684,7 +684,8 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       `HUB_WINDOWS` tiene que coincidir SIEMPRE con las opciones del selector
       del panel.
       FASE 3 (configuración compartida) IMPLEMENTADA 2026-07-28: dos botones
-      en Preferencias (`save_hub_config` / `load_hub_config`) que guardan y
+      al final de FUENTES DE DATOS —no en Preferencias: dependen de tener un
+      servidor, así que se leen después de la lista— (`save_hub_config` / `load_hub_config`) que guardan y
       traen los ajustes en `~/.michiclaude/config.json` del servidor. Viajan
       idioma, tema, alarmas, presupuesto, ventana, estilo del widget, capa y
       los dos temas del gatito; NO viaja la posición del widget (cada
