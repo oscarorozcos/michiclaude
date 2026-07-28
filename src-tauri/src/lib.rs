@@ -1855,7 +1855,10 @@ fn notif_dx(cfg: &PillConfig) -> f64 {
 /// mide 44 px con 6 de margen, así que con ese valor la cola le caía encima
 /// del texto — solo debe rozar su borde.
 fn notif_overlap(cfg: &PillConfig) -> f64 {
-    if cfg.style == "cat" { 40.0 } else { 8.0 }
+    // Cápsula: la punta del popover no cae en el borde de la ventana sino a
+    // unos 5 px (es un cuadrado girado 45° anclado a 8 px), así que se suma
+    // esa diferencia para que roce el borde de la cápsula y no lo muerda.
+    if cfg.style == "cat" { 40.0 } else { 12.0 }
 }
 
 /// Pliega el detalle de la pastilla y devuelve la cápsula a su sitio.

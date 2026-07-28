@@ -19,36 +19,44 @@
      seguía al tema. Mismos tonos que el panel para que se lean como la misma
      app; el coral sube a #d97757 porque el #C15F3C se apaga sobre oscuro. */
   body.dark{--ink:#e9ebef; --paper:#20242c; --accent:#d97757}
-  /* Con la PASTILLA el globo se viste como ella —cristal, borde fino de
-     acento, esquina redonda— en vez de heredar el trazo grueso de cómic, que
-     es del gatito (2026-07-28). El fondo va más opaco que la cápsula: esto es
-     un mensaje que hay que leer. */
-  body.cap{--paper:rgba(255,255,255,.95); --line:#0b7c8c; --ink:#0f1b26;
-    --accent:#0b7c8c}
-  body.cap.dark{--paper:rgba(21,25,32,.95); --line:#56c7d6; --ink:#eef3f8;
-    --accent:#56c7d6}
-  body.cap .box{border:1px solid var(--line);border-radius:20px}
-  body.cap .x{border-width:1px}
-  /* con borde de 1 px la cola interior casi llena la exterior */
-  body.cap .tail-w{left:calc(var(--tailx) - 20px);bottom:2px;
-    border-width:36px 11px 0 20px}
-  body.cap.down .tail-w{bottom:auto;top:2px;border-width:0 11px 36px 20px}
-  body.cap .tail-b{border-color:var(--line) transparent transparent transparent}
-  body.cap.down .tail-b{border-color:transparent transparent var(--line) transparent}
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;
-    --tailx:188px}
-  .box{position:absolute;left:0;right:0;top:0;bottom:32px;
-    background:var(--paper);border:3px solid var(--ink);border-radius:16px;
-    padding:11px 34px 10px 14px;display:flex;align-items:center;cursor:pointer}
-  body.down .box{top:32px;bottom:0}
-  .msg{font-size:12px;font-weight:700;line-height:1.35}
-  .x{position:absolute;right:6px;top:6px;width:20px;height:20px;border-radius:50%;
-    border:2px solid var(--ink);background:var(--paper);color:var(--ink);
-    font-size:11px;font-weight:800;line-height:1;display:grid;place-items:center;
-    cursor:pointer;padding:0}
-  .x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+  /* Con la PASTILLA el globo NO es un globo de cómic: es el popover de la
+     maqueta de Oscar (2026-07-28) — cristal, esquina de 16, icono en pastilla
+     de color, título + línea secundaria, ✕ redonda y una FLECHA pequeña
+     (cuadrado girado 45°) en vez del pico grande del gatito.
+     La severidad se ve sin leer: --sev tiñe borde, resplandor e icono
+     (acento = informativo, ámbar = ojo, rojo = crítico).
+     La caja se ciñe a su contenido y se pega al lado del widget; el resto de
+     la ventana queda transparente (es fija, no se puede redimensionar). */
+  body.cap{--paper:rgba(255,255,255,.93); --ink:#132029; --sub:#68737e;
+    --sev:#0b7c8c; --xbg:rgba(15,27,38,.06); --xfg:#67727c}
+  body.cap.dark{--paper:rgba(15,19,26,.9); --ink:#eef3f8; --sub:#8994a0;
+    --sev:#56c7d6; --xbg:rgba(255,255,255,.08); --xfg:#aab4be}
+  body.cap.warn{--sev:#e6a417}
+  body.cap.danger{--sev:#f05a41}
+  body.cap .box{top:auto;bottom:14px;border:1px solid var(--sev);border-radius:16px;
+    padding:13px 12px 13px 14px;align-items:flex-start;gap:11px;
+    box-shadow:0 0 18px -2px var(--sev), 0 8px 22px rgba(0,0,0,.35)}
+  body.cap.down .box{top:14px;bottom:auto}
+  body.cap .pico{display:flex;width:30px;height:30px;flex:0 0 auto;border-radius:9px;
+    align-items:center;justify-content:center;color:var(--sev);
+    background:color-mix(in srgb, var(--sev) 16%, transparent)}
+  body.cap .pico svg{width:18px;height:18px}
+  body.cap .ptext{flex:1 1 auto;min-width:0}
+  body.cap .msg{display:block;font-size:12.5px;font-weight:600;line-height:1.35;
+    color:var(--ink)}
+  body.cap .psub{display:block;font-size:11px;margin-top:3px;color:var(--sub)}
+  body.cap .psub:empty{display:none}
+  body.cap .x{position:static;flex:0 0 auto;margin:-2px -2px 0 0;border:0;
+    background:var(--xbg);color:var(--xfg);font-size:11px;font-weight:600}
+  body.cap .x:hover{background:var(--sev);color:var(--paper)}
+  /* flecha: cuadrado girado 45°, con las dos caras exteriores en el borde */
+  body.cap .tail-b,body.cap .tail-w{display:none}
+  body.cap .arrow{display:block;position:absolute;width:14px;height:14px;
+    left:calc(var(--tailx) - 7px);bottom:8px;transform:rotate(45deg);
+    background:var(--paper);border-right:1px solid var(--sev);
+    border-bottom:1px solid var(--sev)}
+  body.cap.down .arrow{bottom:auto;top:8px;
+    border:0;border-left:1px solid var(--sev);border-top:1px solid var(--sev)}
   /* cola: vértice en var(--tailx), hacia abajo por defecto; volteada en "down" */
   .tail-b{position:absolute;left:calc(var(--tailx) - 21px);bottom:0;width:0;height:0;
     border-style:solid;border-width:38px 12px 0 21px;
@@ -64,10 +72,11 @@
 </head>
 <body>
 <div class="box" id="box">
-  <span class="msg" id="msg"></span>
+  <span class="pico" id="pico" hidden></span>
+  <span class="ptext"><span class="msg" id="msg"></span><span class="psub" id="psub"></span></span>
   <button class="x" id="x">✕</button>
 </div>
-<div class="tail-b"></div><div class="tail-w"></div>
+<div class="tail-b"></div><div class="tail-w"></div><div class="arrow" id="arrow"></div>
 
 <script>
 // El panel manda el texto (ya localizado) por evento; el ✕ avisa de vuelta
@@ -81,11 +90,27 @@ const EVENT=TAURI?.event;
 // dar por visto. El globo NUNCA se cierra solo — un reloj no sabe si el
 // usuario estaba frente a la pantalla.
 let kind="alarm";
+// Iconos del popover (SVG aquí dentro; nada se descarga de fuera). El nombre
+// lo manda el panel, así que el conjunto es cerrado — no entra HTML ajeno.
+const SVG=(d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const ICON={
+  bolt: SVG(`<path d="M13 3v7h6l-8 11v-7H5l8-11z"/>`),
+  week: SVG(`<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/>`),
+  ok:   SVG(`<path d="M5 12.5 10 17.5 19 7"/><circle cx="12" cy="12" r="10"/>`),
+  warn: SVG(`<path d="M12 9v4M12 17h.01M10.3 4.3 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/>`),
+};
 if(EVENT){
   EVENT.listen("notif:update", e=>{
     const p=e.payload||{};
     $("msg").textContent=p.body||"";
+    $("psub").textContent=p.sub||"";
     kind=p.kind||"alarm";
+    // severidad: tiñe borde, resplandor e icono. Se comunica sin leer.
+    document.body.classList.remove("warn","danger");
+    if(p.sev==="warn"||p.sev==="danger") document.body.classList.add(p.sev);
+    const ic=ICON[p.icon]||ICON.bolt;
+    $("pico").innerHTML=ic; $("pico").hidden=false;
   });
   // vestido según el widget: cómic con el gatito, cápsula con la pastilla
   EVENT.listen("quota:update", e=>{

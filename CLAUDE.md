@@ -133,11 +133,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   widget pegado a la barra— ancla por el borde inferior y las filas salen
   ENCIMA de la cabecera (`body.up` invierte el orden). Ventana fija más
   alta de lo necesario: el hueco transparente sobrante no estorba porque un
-  clic en cualquier parte pliega. El globo de aviso se VISTE de cápsula
-  cuando el widget es la pastilla (`body.cap` en notif.html: cristal, borde
-  fino de acento, esquina redonda) en vez de heredar el trazo grueso de
-  cómic, que es del gatito; y con la pastilla sigue al tema del panel, NO a
-  los selectores "Arte/Globos del gatito", que ahí no se ven. La punta de la
+  clic en cualquier parte pliega. El globo de aviso NO es un globo de
+  cómic cuando el widget es la pastilla: es un POPOVER (`body.cap` en
+  notif.html, maqueta de Oscar 2026-07-28) — cristal, esquina de 16, icono
+  en pastilla de color, título + línea secundaria, ✕ redonda y una flecha
+  pequeña (cuadrado girado 45°) en vez del pico grande. La SEVERIDAD tiñe
+  borde, resplandor e icono (`--sev`: acento = informativo, ámbar = ojo,
+  rojo = crítico) para que se entienda sin leerlo; la calcula
+  `balloonMeta()` en el panel y el cómic del gatito la ignora. La línea
+  secundaria solo se pone donde aporta (la alarma de %, con el tiempo que
+  falta para el reset). Con la pastilla sigue al tema del panel, NO a los
+  selectores "Arte/Globos del gatito", que ahí no se ven. La punta de la
   cola se mete 40 px en el gatito pero solo 8 en la cápsula (`notif_overlap`):
   el gato tiene márgenes transparentes de sobra y la cápsula mide 44 px, así
   que con 40 la cola le caía encima del texto. Globo y detalle NUNCA a la

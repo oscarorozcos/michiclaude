@@ -1703,7 +1703,7 @@ setInterval(()=>{
 // infoBalloon): al terminar no debe quedar ningún aviso pendiente falso.
 let simMascot=null, simTimer=null, simTick=null, simB=null;
 function simBalloon(body, kind){
-  EVENT?.emit("notif:update",{body, kind});
+  EVENT?.emit("notif:update",{body, kind, ...balloonMeta(kind)});
   invoke?.("set_notif_visible",{visible:true});
 }
 // Usa los datos REALES cuando existen (tu propio reset, tu propia alarma) y
@@ -1988,6 +1988,7 @@ function maybeNotify(pct,resets){
         localStorage.setItem("alarmFired", JSON.stringify(fired));
         localStorage.setItem("ackBody:alarm",
           thr>=95 ? t("notif_hi",Math.round(pct)) : t("notif_lo",Math.round(pct)));
+        localStorage.setItem("ackSev:alarm", thr>=95 ? "danger" : "warn");
         localStorage.setItem("ackPending:alarm","1");
         localStorage.removeItem("ackLastToast:alarm"); // dispara ya, no en 5 min
       }
@@ -2048,6 +2049,20 @@ function trackResets(ses, wk){
 // el gato sigue de break hasta el reset de verdad; solo el de la alarma lo
 // calma, porque ahí el estado ERA "hay un aviso sin ver".
 // El `kind` viaja al globo y vuelve con la ✕ para saber qué dar por cerrado.
+// Severidad, icono y segunda línea de cada aviso. La severidad es lo que
+// permite entenderlo sin leerlo (acento = informativo, ámbar = ojo, rojo =
+// crítico); solo la pinta el popover de la pastilla, el cómic del gatito la
+// ignora. La línea secundaria solo se pone donde aporta: en la alarma de %,
+// donde saber cuánto falta para el reset cambia lo que decides hacer.
+function balloonMeta(kind){
+  const ses=lastPill&&lastPill.session;
+  if(kind==="alarm") return {sev:localStorage.getItem("ackSev:alarm")||"warn",
+    icon:"bolt", sub:ses&&ses.resets?fmtReset(ses.resets):""};
+  if(kind==="break")  return {sev:"danger", icon:"bolt", sub:""};
+  if(kind==="zzz")    return {sev:"danger", icon:"week", sub:""};
+  if(kind==="budget") return {sev:"warn",   icon:"warn", sub:""};
+  return {sev:"ok", icon:"ok", sub:""};      // sesión/semana restablecidas
+}
 function showBalloon(body, kind){
   // Sin widget en pantalla no hay dónde colgar el globo: ahí sí toca el toast
   // de Windows, con su repetición cada 5 min (que es lo que lo salva de ser
@@ -2062,7 +2077,7 @@ function showBalloon(body, kind){
   }
   if(!ACK_KINDS.includes(kind))          // break/zzz: no esperan confirmación,
     localStorage.setItem("infoBalloon", JSON.stringify({body, kind}));  // pero sí sobreviven a un hover
-  EVENT?.emit("notif:update",{body, kind});
+  EVENT?.emit("notif:update",{body, kind, ...balloonMeta(kind)});
   invoke?.("set_notif_visible",{visible:true});
 }
 function infoBalloon(){
