@@ -543,10 +543,10 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       por la que se ve pasar el contenido al hacer scroll.
 - [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
 - [~] Alarmas de uso configurables + avisos de límite/restablecimiento con
-      confirmación "Enterado" — implementado (2026-07-11); FALTA probar en
-      vivo el ciclo completo (cruce de umbral, 100%, reset). Ya NO hace falta
-      esperar a que ocurra: el simulador de estados (ver Comandos) recorre
-      los cinco pasos con sus globos reales en el tiempo que se le diga.
+      confirmación "Enterado" — implementado (2026-07-11). La parte VISUAL
+      quedó validada el 2026-07-28 con el simulador (gatito y pastilla).
+      Falta solo la detección real: cruzar un umbral de verdad, llegar al
+      100% y comprobar que se reconoce la ventana nueva.
 - [x] Widget flotante (pill) sobre la barra — probado en vivo (2026-07-22):
       arrastre, persistencia, sin robo de foco, tema OK.
 - [x] Widget gatito (2026-07-22, validado en vivo por Oscar): mascota con
@@ -575,11 +575,28 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       Oscar A PRUEBA (2026-07-27). Si no convence: pasarla al gato es
       cambiar `curSkin` por `curArt` en `cat.html`, y quitar la opción
       entera es revertir los dos selectores.
-- [~] REDISEÑO DE LA PASTILLA en cápsula + detalle desplegable (`pcard`),
-      con el % en color de acento. FALTA verlo en vivo: que la cabecera no
-      salte de sitio al desplegar (ahí se notaría un error de posición),
-      que el texto quepa en 280 px con idiomas largos, y que no queden
-      halos recortados en otras combinaciones de tema.
+- [x] REDISEÑO DE LA PASTILLA en cápsula + detalle desplegable (`pcard`),
+      con el % en color de acento — VALIDADO en vivo por Oscar el 2026-07-28
+      en los dos temas: la cabecera se queda en su sitio al desplegar, el
+      arrastre funciona, y las esquinas dejaron de recortarse al meter la
+      caja 6 px (el halo se cortaba contra el borde de la ventana).
+- [x] AVISOS de la pastilla como POPOVER con severidad (icono en pastilla de
+      color, título + línea secundaria, ✕ arriba a la derecha, flecha
+      pequeña) — validado en vivo el 2026-07-28 con el simulador: se ven los
+      tres colores y el fondo opaco se lee sobre cualquier escritorio.
+      LECCIÓN: el primer intento salió transparente y apilado porque una
+      edición mía borró las reglas base del CSS de notif.html. Si algo de ese
+      archivo se ve "sin estilo", mirar primero que sigan ahí `*{box-sizing}`,
+      `.box`, `.msg` y `.x` — el bloque `body.cap` solo las ESPECIALIZA.
+      El fondo va OPACO a propósito: con alfa sobre una ventana transparente
+      se lee el escritorio a través del aviso.
+- [x] El globo/popover acompaña al widget al arrastrarlo y se aparta del
+      detalle desplegado (nunca los dos a la vez) — validado 2026-07-28.
+- [~] Simulador con la PASTILLA ("🔔 Simular avisos") — validado en vivo el
+      2026-07-28. Con eso, del ciclo de alarmas ya está visto TODO lo visual;
+      lo que sigue sin probarse de verdad es la DETECCIÓN: cruzar un umbral
+      real, tocar el 100% y que `trackResets()`/`windowChanged()` reconozcan
+      la ventana nueva. Eso solo se comprueba usando la cuota.
 - [x] `cargo check` limpio con todo lo del 2026-07-27 (comando
       `toggle_pill_card`, ventana `pcard`, `notif_dx`, `is_dev`): verificado
       por Oscar en Windows el 2026-07-28, sin errores ni advertencias.
