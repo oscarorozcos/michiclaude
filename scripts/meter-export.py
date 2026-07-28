@@ -8,7 +8,9 @@ de trabajo, precios equivalente-API) y emite el JSON con la forma exacta de
 LocalStats: projects (con by_model), models, cost_today, cost_week (= ventana),
 tokens_week, daily (serie de 30 días).
 
-Uso:  meter-export.py [--days N]      (N = ventana del gasto por proyecto; def. 7)
+Uso:  meter-export.py [--days N] [--exclude-host ID]
+      --days N          ventana del gasto por proyecto (def. 7)
+      --exclude-host ID no devolver el resumen de esa máquina (modo hub)
 
 El meter en Windows lo invoca por SSH. Solo stdlib; sin dependencias.
 """
@@ -192,6 +194,43 @@ def is_estimated(model):
     return not any(f in m for f in ("fable", "mythos", "opus", "haiku", "sonnet"))
 
 
+HOSTS_DIR = Path.home() / ".michiclaude" / "hosts"
+
+
+def read_hosts(exclude_id):
+    """Resúmenes que dejaron OTRAS máquinas en este servidor (modo hub).
+
+    Se devuelven aparte, sin fusionar: quien pregunta les pone la etiqueta de
+    su máquina. Se salta el del propio preguntante — si se le devolviera lo
+    suyo, se contaría dos veces y los totales crecerían solos en cada ciclo.
+    Un archivo ilegible se ignora: un resumen roto no puede tumbar la lectura
+    de los demás.
+    """
+    out = []
+    if not HOSTS_DIR.is_dir():
+        return out
+    for f in sorted(HOSTS_DIR.glob("*.json")):
+        try:
+            snap = json.loads(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(snap, dict) or not isinstance(snap.get("stats"), dict):
+            continue
+        if exclude_id and snap.get("id") == exclude_id:
+            continue
+        out.append({
+            "id": snap.get("id", ""),
+            "machine": snap.get("machine") or f.stem,
+            "stats": snap["stats"],
+            # cuándo se escribió: quien lee decide si está viejo. Aquí no se
+            # borra ni se descarta nada por antigüedad — la app no puede
+            # distinguir "se fue" de "está de vacaciones".
+            "seen_at": datetime.fromtimestamp(f.stat().st_mtime, timezone.utc)
+                       .isoformat(timespec="seconds"),
+        })
+    return out
+
+
 def main():
     days = 7
     args = sys.argv[1:]
@@ -202,6 +241,14 @@ def main():
             pass
     # Precios frescos desde MichiClaude (una sola fuente de verdad). Si el JSON
     # no llega o viene roto, se sigue con la tabla embebida sin quejarse.
+    # Identificador de quien pregunta, para no devolverle su propio resumen.
+    exclude_id = ""
+    if "--exclude-host" in args:
+        try:
+            exclude_id = args[args.index("--exclude-host") + 1]
+        except IndexError:
+            pass
+
     if "--prices-stdin" in args:
         try:
             raw = sys.stdin.read()
@@ -318,6 +365,9 @@ def main():
         "files_scanned": files_scanned,
         "entries_deduped": deduped,
         "daily": [{"date": d, "cost": c} for d, c in sorted(daily.items())],
+        # Modo hub: lo que dejaron las OTRAS máquinas. Un MichiClaude viejo
+        # ignora esta clave y sigue viendo solo los datos de este servidor.
+        "hosts": read_hosts(exclude_id),
     }))
 
 

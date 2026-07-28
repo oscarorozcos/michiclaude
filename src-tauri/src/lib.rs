@@ -211,6 +211,24 @@ struct LocalStats {
     /// Serie diaria de los últimos 30 días (para la gráfica de tendencia).
     #[serde(default)]
     daily: Vec<DailyAgg>,
+    /// Modo hub: resúmenes que OTRAS máquinas dejaron en ese servidor. Llegan
+    /// sin fusionar para que la etiqueta la ponga quien lee. Vacío con un
+    /// exportador viejo, que ni siquiera devuelve la clave.
+    #[serde(default)]
+    hosts: Vec<HubHost>,
+}
+
+/// Una máquina ajena vista a través del servidor.
+#[derive(Serialize, Deserialize, Clone)]
+struct HubHost {
+    #[serde(default)]
+    id: String,
+    machine: String,
+    stats: LocalStats,
+    /// Cuándo se escribió su resumen. No se descarta nada por antigüedad: la
+    /// app no puede distinguir "se fue" de "está de vacaciones".
+    #[serde(default)]
+    seen_at: String,
 }
 
 /// Lo que cada máquina deja en el hub: su identidad y su foto. Se sobreescribe
@@ -953,9 +971,10 @@ fn fetch_remote(r: &RemoteSource, window_days: u32) -> Option<LocalStats> {
     cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
         .arg(&r.host)
         .arg(format!(
-            "{} --days {}{}",
+            "{} --days {} --exclude-host {}{}",
             r.command,
             window_days,
+            hub_identity().id,
             if prices.is_some() { " --prices-stdin" } else { "" }
         ))
         .stdin(std::process::Stdio::piped())
@@ -1395,6 +1414,7 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
         files_scanned: agg.files,
         entries_deduped: agg.deduped,
         daily: Vec::new(),
+        hosts: Vec::new(),   // se rellena al leer los servidores, más abajo
     };
 
     // Subir la foto de ESTA máquina al hub, antes de fusionar nada. Tiene que
@@ -1457,6 +1477,43 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
         }
         for d in remote.daily {
             *daily_map.entry(d.date).or_insert(0.0) += d.cost;
+        }
+        // Modo hub: las demás máquinas que dejaron su resumen en ese
+        // servidor. Cada una se etiqueta con SU nombre, no con el del
+        // servidor: el VPS es el punto de encuentro, no el origen.
+        let me = hub_identity().id;
+        for h in remote.hosts {
+            // Cinturón y tirantes: el exportador ya nos excluye con
+            // --exclude-host, pero si alguno viejo lo ignorase nos
+            // devolvería lo nuestro y lo contaríamos dos veces.
+            if !me.is_empty() && h.id == me {
+                continue;
+            }
+            stats.cost_today += h.stats.cost_today;
+            stats.cost_week += h.stats.cost_week;
+            stats.tokens_week += h.stats.tokens_week;
+            stats.files_scanned += h.stats.files_scanned;
+            stats.entries_deduped += h.stats.entries_deduped;
+            for p in h.stats.projects {
+                stats.projects.push(ProjectAgg {
+                    name: format!("{} · {}", p.name, h.machine),
+                    cost: p.cost,
+                    tokens: p.tokens,
+                    by_model: p.by_model,
+                });
+            }
+            for (m, a) in h.stats.models {
+                let e = stats.models.entry(m).or_default();
+                e.input += a.input;
+                e.output += a.output;
+                e.cache_write += a.cache_write;
+                e.cache_read += a.cache_read;
+                e.cost += a.cost;
+                e.estimated = e.estimated || a.estimated;
+            }
+            for d in h.stats.daily {
+                *daily_map.entry(d.date).or_insert(0.0) += d.cost;
+            }
         }
     }
     stats

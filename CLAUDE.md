@@ -646,7 +646,22 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       que era la comprobación que importaba—, más su serie diaria y sus
       modelos. Nota: el nombre del ARCHIVO va en minúsculas (`safe_name`)
       y el del campo `machine` conserva el original.
-      Diseño completo y casos en `docs/hub-modo-equipo.md`. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
+      Diseño completo y casos en `docs/hub-modo-equipo.md`.
+      FASE 2 (fusionar) IMPLEMENTADA 2026-07-28: `meter-export.py` devuelve
+      una clave `hosts` con los resúmenes que encuentre en
+      `~/.michiclaude/hosts/`, SIN fusionar —la etiqueta la pone quien lee, y
+      lleva el nombre de la MÁQUINA, no el del servidor: el VPS es el punto
+      de encuentro, no el origen—. `fetch_remote` le pasa
+      `--exclude-host <id>` para que no le devuelva lo suyo, y el lado Rust
+      vuelve a filtrar por id por si un exportador viejo ignorase el flag:
+      recibir lo propio de vuelta significaría contarlo dos veces en cada
+      ciclo. Cada resumen viaja con `seen_at` (mtime del archivo) y NO se
+      descarta nada por antigüedad: la app no puede distinguir "se fue" de
+      "está de vacaciones". Probado en el VPS con una máquina falsa
+      (`pc-trabajo.json`): exclusión en los dos sentidos, sin el flag salen
+      las dos, un resumen corrupto se ignora sin tumbar a los demás, sin
+      carpeta `hosts/` todo sigue igual, y la fusión simulada no duplica el
+      proyecto local. FALTA: `cargo check` y verlo en el panel. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
       (2026-07-28): cómo funciona por dentro, el interruptor de qué compartir
       —que va POR SERVIDOR, no global—, los casos de alta/baja/formateo/
       vacaciones con ejemplos numéricos, por qué un permiso de administrador
