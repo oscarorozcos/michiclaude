@@ -270,6 +270,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
     load_hub_config. NO envolver los que tocan ventanas (hover_card,
     set_notif_visible, toggle_pill_card, set_pill_*, update_tray): esos
     tienen que seguir en el hilo principal, y además son instantáneos.
+    VALIDADO en vivo por Oscar el 2026-07-28: el panel pasó a sentirse
+    fluido al cambiar de pestaña. OJO al diagnosticar "la app va lenta":
+    los gifs del gatito parecían el sospechoso obvio y no tenían nada que
+    ver; la pista buena fue que get_quota, la operación MÁS pesada, nunca
+    se sintió lenta porque ya era asíncrona.
 10bis. `[hidden]{display:none !important}` en index.html: NO quitarlo. El
     navegador aplica `hidden` desde su hoja por defecto, así que cualquier
     regla propia con display (`.cfg-row`, `.btnrow`, `.fld` son flex) lo
