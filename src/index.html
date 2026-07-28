@@ -30,6 +30,13 @@
     --accent-weak:rgba(11,124,140,.12); --accent-line:rgba(11,124,140,.30);
     --track:rgba(0,0,0,.09);
   }
+  /* `hidden` gana SIEMPRE. El navegador lo aplica con display:none desde su
+     hoja por defecto, así que cualquier regla nuestra con display propio
+     (.cfg-row, .btnrow, .fld son flex) lo anulaba sin avisar: las filas del
+     gatito seguían viéndose con la pastilla puesta y —lo grave— el
+     simulador, que solo debe existir en desarrollo, se veía en release.
+     Detectado 2026-07-28. No quitar este !important. */
+  [hidden]{display:none !important}
   *{box-sizing:border-box}
   html,body{margin:0;background:transparent;height:100%}
   /* color-scheme: los controles nativos (desplegables, spinners, scrollbars)

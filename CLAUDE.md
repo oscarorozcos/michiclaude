@@ -259,6 +259,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
    fiables; en % de cuota, no en dólares.
 9. No tocar `README.md`, `.github/workflows/release.yml` ni `app-icon.png`
    salvo petición explícita.
+10bis. `[hidden]{display:none !important}` en index.html: NO quitarlo. El
+    navegador aplica `hidden` desde su hoja por defecto, así que cualquier
+    regla propia con display (`.cfg-row`, `.btnrow`, `.fld` son flex) lo
+    anulaba en silencio. Se descubrió el 2026-07-28 porque las filas del
+    gatito seguían viéndose con la pastilla puesta, y arrastraba algo peor:
+    el simulador —que solo debe existir en desarrollo— se veía en RELEASE.
 10. UI multiidioma: diccionario `I18N` en index.html (inglés por defecto,
     español incluido; autodetección por `navigator.language`, persistido en
     localStorage). Todo texto visible pasa por `t()` — nunca hardcodear
