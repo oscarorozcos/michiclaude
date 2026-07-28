@@ -638,8 +638,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       serde(default) — en fase 1 siempre "all", pero el campo existe desde ya
       porque afecta a cómo se construye la subida.
       Los fallos no bloquean nada y quedan en `hub_debug.json`; todavía NO
-      hay nada en la interfaz (eso es la fase 2). FALTA: `cargo check` en el
-      Windows de Oscar y ver el archivo aparecer en el VPS.
+      hay nada en la interfaz (eso es la fase 2).
+      VERIFICADA EN VIVO el 2026-07-28: compila limpio en Windows y el
+      archivo aparece en el VPS como `hosts/oscar-huawei.json` con la
+      máquina OSCAR-HUAWEI, SOLO los dos proyectos locales de Windows
+      (claude-code-meter-tauri $10.37 y system32 $0.30) —ninguno del VPS,
+      que era la comprobación que importaba—, más su serie diaria y sus
+      modelos. Nota: el nombre del ARCHIVO va en minúsculas (`safe_name`)
+      y el del campo `machine` conserva el original.
       Diseño completo y casos en `docs/hub-modo-equipo.md`. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
       (2026-07-28): cómo funciona por dentro, el interruptor de qué compartir
       —que va POR SERVIDOR, no global—, los casos de alta/baja/formateo/
