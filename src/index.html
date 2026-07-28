@@ -159,10 +159,14 @@
   .cfg-form input{background:var(--surface);border:1px solid var(--stroke);border-radius:7px;
     padding:6px 9px;color:var(--txt);font-family:var(--mono);font-size:11px;outline:none}
   .cfg-form input:focus{border-color:var(--accent)}
-  .cfg-form button{align-self:flex-start;background:var(--accent-weak);color:var(--accent);
-    border:1px solid var(--accent-line);border-radius:7px;padding:6px 12px;
-    font-size:11.5px;cursor:pointer;font-family:var(--font)}
-  .cfg-form button:hover{background:var(--accent-line)}
+  /* Un solo aspecto para todos los botones del panel. Los de ajustes
+     compartidos quedaron fuera de .cfg-form al moverlos a Fuentes de datos y
+     salían sin estilo, con otro color que el resto (2026-07-28). */
+  .cfg-form button,.btnrow button{align-self:flex-start;background:var(--accent-weak);
+    color:var(--accent);border:1px solid var(--accent-line);border-radius:7px;
+    padding:6px 12px;font-size:11.5px;cursor:pointer;font-family:var(--font)}
+  .cfg-form button:hover,.btnrow button:hover{background:var(--accent-line)}
+  .cfg-form button:disabled:hover,.btnrow button:disabled:hover{background:var(--accent-weak)}
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
   #remList .pitem{grid-template-columns:1fr auto}
   .cfg-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt-mut)}
@@ -373,11 +377,7 @@
         <label for="rHost" data-i18n="lbl_host"></label>
         <input id="rHost" class="mono" data-i18n-ph="ph_host">
       </div>
-      <div class="fld">
-        <span id="rAdv" data-i18n="lbl_adv" style="cursor:pointer;font-size:10.5px;
-          color:var(--accent);border-bottom:1px dotted var(--accent)"></span>
-      </div>
-      <div class="fld" id="rAdvBox" hidden>
+      <div class="fld" id="rAdvBox">
         <label for="rCmd" data-i18n="lbl_cmd"></label>
         <input id="rCmd" class="mono" data-i18n-ph="ph_cmd">
         <div class="fhint" data-i18n="hint_cmd"></div>
@@ -2721,9 +2721,6 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>show
 // El comando propio es un caso rarísimo (otro binario de python, un
 // contenedor...). Oculto por defecto: verlo sin saber para qué es solo
 // genera dudas, y vacío es lo correcto para casi todo el mundo.
-$("rAdv").addEventListener("click",()=>{
-  $("rAdvBox").hidden = !$("rAdvBox").hidden;
-});
 $("rAdd").addEventListener("click",async()=>{
   const name=$("rName").value.trim()||"server";
   const host=$("rHost").value.trim();
