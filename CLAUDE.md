@@ -414,7 +414,15 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       prices_config.json y en su lugar hay un botón ⓘ que enseña las fuentes.
       Si la descarga falla o lleva más de una semana sin lograrlo, aparece un
       aviso ⚠ junto a "costo estimado" — no un toast: no es urgente ni
-      accionable al instante. FALTA: probarlo sin red.
+      accionable al instante. PROBADO SIN RED el 2026-07-28 (Oscar apagó el
+      wifi): la app degrada bien —dice "Token vencido" en vez de callar, el
+      medidor muestra "—" en vez de inventar cifras, los costes locales se
+      calculan igual, el servidor SSH queda marcado "sin conexión" y los
+      precios caen al caché con su fuente y antigüedad a la vista. FALTA solo
+      el camino del ⚠: sin caché o con más de una semana sin actualizar. Para
+      forzarlo hay que cerrar la app DEL TODO (la instancia única hace que un
+      segundo `npm run dev` no reinicie nada) y renombrar prices_cache.json
+      antes de arrancar.
       Descripción original de la investigación:
       Hallazgo URGENTE: `price_for()` cobra $15/$75 a opus/fable/mythos, que
       es la tarifa del difunto Opus 4.1; las reales son Opus 5/4.8 $5/$25 y
