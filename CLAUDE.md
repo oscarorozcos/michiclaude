@@ -267,6 +267,7 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
    quien la necesita. Por lo mismo, con la ventana de 1 día el pie oculta la
    segunda cifra: "hoy" son las últimas 24 h y la ventana de 1 día también,
    y enseñar el mismo número dos veces con dos nombres parece un error.
+   Ambos cambios validados en vivo por Oscar el 2026-07-28.
 9. No tocar `README.md`, `.github/workflows/release.yml` ni `app-icon.png`
    salvo petición explícita.
 10ter. Todo comando de Rust que HAGA ESPERA (SSH, red, escaneo de disco
