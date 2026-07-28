@@ -622,8 +622,25 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       dejando el comando VACÍO. Comprobar además el caso de error: un host sin
       Python debe fallar con ERR_NO_PYTHON y su mensaje traducido, no darse
       por bueno.
-- [ ] MODO HUB (decidido 2026-07-11, pendiente de implementar tras la semana
-      de pruebas). ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
+- [~] MODO HUB — FASE 1 (subir) IMPLEMENTADA 2026-07-28, sin verificar en
+      vivo. Cada ciclo deja la foto de ESTA máquina en cada servidor, en
+      `~/.michiclaude/hosts/<máquina>.json`, vía `upload_summary()`.
+      Identidad en `hub_identity.json` (id irrepetible + nombre, por defecto
+      COMPUTERNAME); el id viaja DENTRO del archivo y el guard lo comprueba
+      EN EL SERVIDOR dentro del mismo comando SSH: si existe con otro id no
+      sobreescribe y sale con código 3 (dos PCs con el mismo nombre se
+      pisarían en cada ciclo sin que nadie se entere). Guard probado en el
+      VPS con los tres casos (nuevo / mismo id / otro id).
+      CRÍTICO: se sube lo LOCAL A SECAS, antes de fusionar. Subir lo ya
+      fusionado haría que las máquinas se hagan eco y los totales se
+      multipliquen solos.
+      `RemoteSource` gana `share` ("all"/"picked") y `shared`, ambos con
+      serde(default) — en fase 1 siempre "all", pero el campo existe desde ya
+      porque afecta a cómo se construye la subida.
+      Los fallos no bloquean nada y quedan en `hub_debug.json`; todavía NO
+      hay nada en la interfaz (eso es la fase 2). FALTA: `cargo check` en el
+      Windows de Oscar y ver el archivo aparecer en el VPS.
+      Diseño completo y casos en `docs/hub-modo-equipo.md`. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
       (2026-07-28): cómo funciona por dentro, el interruptor de qué compartir
       —que va POR SERVIDOR, no global—, los casos de alta/baja/formateo/
       vacaciones con ejemplos numéricos, por qué un permiso de administrador

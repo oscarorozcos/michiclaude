@@ -181,7 +181,7 @@ struct ModelAgg {
     estimated: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct ProjectAgg {
     name: String,
     cost: f64,
@@ -191,13 +191,13 @@ struct ProjectAgg {
     by_model: HashMap<String, f64>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct DailyAgg {
     date: String, // YYYY-MM-DD (UTC)
     cost: f64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct LocalStats {
     projects: Vec<ProjectAgg>,
     models: HashMap<String, ModelAgg>,
@@ -211,6 +211,16 @@ struct LocalStats {
     /// Serie diaria de los últimos 30 días (para la gráfica de tendencia).
     #[serde(default)]
     daily: Vec<DailyAgg>,
+}
+
+/// Lo que cada máquina deja en el hub: su identidad y su foto. Se sobreescribe
+/// entera en cada ciclo — el hub no acumula historia, la foto ya trae dentro
+/// la serie de los últimos 30 días.
+#[derive(Serialize, Deserialize, Clone)]
+struct HubSnapshot {
+    id: String,
+    machine: String,
+    stats: LocalStats,
 }
 
 /// Precios API por MTok: (input, output, cache_write, cache_read).
@@ -665,6 +675,80 @@ struct RemoteSource {
     name: String,
     host: String,
     command: String,
+    /// Qué se sube a ESTE servidor: "all" (es mío) o "picked" (solo lo
+    /// marcado). Va por servidor y no global porque una misma persona puede
+    /// tener su VPS, donde sube todo, y el de un equipo, donde solo comparte
+    /// el proyecto común. Ver docs/hub-modo-equipo.md.
+    #[serde(default = "share_all")]
+    share: String,
+    /// Proyectos marcados cuando share == "picked". Nacen APAGADOS: el error
+    /// hacia "todo" deja tus datos en el servidor de otra gente y no se puede
+    /// deshacer; el error hacia "nada" solo enseña de menos.
+    #[serde(default)]
+    shared: Vec<String>,
+}
+
+fn share_all() -> String {
+    "all".into()
+}
+
+/// Identidad de esta máquina en el hub. El NOMBRE es el del archivo que se
+/// deja en el servidor (legible por una persona); el ID distingue "soy yo
+/// otra vez" de "somos dos máquinas con el mismo nombre", que si no se
+/// pisarían el archivo en cada ciclo sin que nadie se entere.
+#[derive(Serialize, Deserialize, Clone)]
+struct HubIdentity {
+    id: String,
+    machine: String,
+}
+
+fn hub_identity_path() -> PathBuf {
+    app_data_dir().join("hub_identity.json")
+}
+
+/// Nombre de la máquina tal como lo conoce el sistema, como valor de partida.
+fn host_name() -> String {
+    std::env::var("COMPUTERNAME")
+        .or_else(|_| std::env::var("HOSTNAME"))
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "michiclaude".into())
+}
+
+/// Solo lo que puede vivir en un nombre de archivo, para no depender de cómo
+/// se llame la PC del usuario (espacios, acentos, barras…).
+fn safe_name(n: &str) -> String {
+    let out: String = n
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .collect();
+    let out = out.trim_matches('-').to_lowercase();
+    if out.is_empty() { "michiclaude".into() } else { out.chars().take(48).collect() }
+}
+
+/// Se crea una vez y se queda. El id no pretende ser criptográfico: solo
+/// tiene que ser distinto entre instalaciones.
+fn hub_identity() -> HubIdentity {
+    if let Some(id) = fs::read_to_string(hub_identity_path())
+        .ok()
+        .and_then(|s| serde_json::from_str::<HubIdentity>(&s).ok())
+    {
+        return id;
+    }
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let ident = HubIdentity {
+        id: format!("{:x}-{:x}", nanos, std::process::id()),
+        machine: host_name(),
+    };
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(txt) = serde_json::to_string_pretty(&ident) {
+        let _ = fs::write(hub_identity_path(), txt);
+    }
+    ident
 }
 
 #[derive(Serialize, Deserialize)]
@@ -799,6 +883,57 @@ fn install_remote(host: String) -> Result<String, String> {
     let py = detect_python(&host).ok_or_else(|| "ERR_NO_PYTHON".to_string())?;
     upload_exporter(&host)?;
     Ok(format!("{py} {REMOTE_SCRIPT_PATH}"))
+}
+
+/// Deja el resumen de ESTA máquina en el servidor, en
+/// `~/.michiclaude/hosts/<máquina>.json`. Con eso el servidor deja de ser
+/// solo una fuente y pasa a ser el punto de encuentro donde cada máquina
+/// deja su foto. Ver docs/hub-modo-equipo.md.
+///
+/// La comprobación del id se hace EN EL SERVIDOR, dentro del mismo comando:
+/// si el archivo ya existe y trae otro id, no se sobreescribe y se sale con
+/// código 3. Así una segunda máquina con el mismo nombre no borra los datos
+/// de la primera en silencio, y no cuesta una conexión extra por ciclo.
+fn upload_summary(r: &RemoteSource, stats: &LocalStats) -> Result<(), String> {
+    let me = hub_identity();
+    let file = safe_name(&me.machine);
+    let id = me.id.clone();
+    let payload = HubSnapshot { id: me.id, machine: me.machine, stats: stats.clone() };
+    // to_string (NO pretty) para que el id salga sin espacios —`"id":"..."`—
+    // que es la cadena exacta que busca el grep del servidor.
+    let json = serde_json::to_string(&payload).map_err(|e| e.to_string())?;
+    let guard = format!(
+        "mkdir -p ~/.michiclaude/hosts && f=~/.michiclaude/hosts/{file}.json; \
+if [ -f \"$f\" ] && ! grep -q '\"id\":\"{id}\"' \"$f\"; then exit 3; fi; cat > \"$f\""
+    );
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])
+        .arg(&r.host)
+        .arg(&guard)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let mut child = cmd.spawn().map_err(|e| e.to_string())?;
+    {
+        use std::io::Write;
+        child
+            .stdin
+            .as_mut()
+            .ok_or("ERR_SSH_STDIN")?
+            .write_all(json.as_bytes())
+            .map_err(|e| e.to_string())?;
+    }
+    let st = child.wait().map_err(|e| e.to_string())?;
+    match st.code() {
+        Some(0) => Ok(()),
+        Some(3) => Err(format!("ERR_HUB_NAME_TAKEN:{file}")),
+        _ => Err("ERR_HUB_UPLOAD".into()),
+    }
 }
 
 /// Ejecuta el exportador remoto por SSH. BatchMode: jamás pide contraseña
@@ -1262,9 +1397,41 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
         daily: Vec::new(),
     };
 
+    // Subir la foto de ESTA máquina al hub, antes de fusionar nada. Tiene que
+    // ser lo local a secas: si se subiera lo ya fusionado, las máquinas se
+    // harían eco entre ellas y los totales se multiplicarían solos.
+    let remotes = load_remotes();
+    if !remotes.is_empty() {
+        let mut mine = stats.clone();
+        mine.daily = daily_map
+            .iter()
+            .map(|(date, cost)| DailyAgg { date: date.clone(), cost: *cost })
+            .collect();
+        mine.daily.sort_by(|a, b| a.date.cmp(&b.date));
+        let mut errs: Vec<String> = Vec::new();
+        for r in &remotes {
+            // La red nunca bloquea los datos locales: si falla, se anota y ya.
+            if let Err(e) = upload_summary(r, &mine) {
+                errs.push(format!("{}: {}", r.name, e));
+            }
+        }
+        // Sin interfaz todavía (eso es la fase 2): por ahora queda el rastro,
+        // igual que quota_debug.json, para poder diagnosticar.
+        let _ = fs::write(
+            app_data_dir().join("hub_debug.json"),
+            serde_json::to_string_pretty(&serde_json::json!({
+                "at": Utc::now().to_rfc3339(),
+                "machine": hub_identity().machine,
+                "uploaded_to": remotes.len() - errs.len(),
+                "errors": errs,
+            }))
+            .unwrap_or_default(),
+        );
+    }
+
     // Fusionar fuentes remotas (si remotes.json existe): totales sumados,
     // proyectos etiquetados con su origen, modelos y serie diaria agregados.
-    for r in load_remotes() {
+    for r in remotes {
         let Some(remote) = fetch_remote(&r, window_days) else { continue };
         stats.cost_today += remote.cost_today;
         stats.cost_week += remote.cost_week;
