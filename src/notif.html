@@ -19,37 +19,60 @@
      seguía al tema. Mismos tonos que el panel para que se lean como la misma
      app; el coral sube a #d97757 porque el #C15F3C se apaga sobre oscuro. */
   body.dark{--ink:#e9ebef; --paper:#20242c; --accent:#d97757}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
+  body{font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;
+    --tailx:188px}
+  .box{position:absolute;left:0;right:0;top:0;bottom:32px;
+    background:var(--paper);border:3px solid var(--ink);border-radius:16px;
+    padding:11px 34px 10px 14px;display:flex;align-items:center;cursor:pointer}
+  body.down .box{top:32px;bottom:0}
+  .msg{font-size:12px;font-weight:700;line-height:1.35}
+  .pico,.psub,.arrow{display:none}   /* solo existen en modo cápsula */
+  .ptext{min-width:0}
+  .x{position:absolute;right:6px;top:6px;width:20px;height:20px;border-radius:50%;
+    border:2px solid var(--ink);background:var(--paper);color:var(--ink);
+    font-size:11px;font-weight:800;line-height:1;display:grid;place-items:center;
+    cursor:pointer;padding:0}
+  .x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
   /* Con la PASTILLA el globo NO es un globo de cómic: es el popover de la
-     maqueta de Oscar (2026-07-28) — cristal, esquina de 16, icono en pastilla
-     de color, título + línea secundaria, ✕ redonda y una FLECHA pequeña
-     (cuadrado girado 45°) en vez del pico grande del gatito.
+     maqueta de Oscar (2026-07-28) — esquina de 16, icono en pastilla de
+     color, título + línea secundaria, ✕ redonda arriba a la derecha y una
+     FLECHA pequeña (cuadrado girado 45°) en vez del pico grande del gatito.
      La severidad se ve sin leer: --sev tiñe borde, resplandor e icono
      (acento = informativo, ámbar = ojo, rojo = crítico).
-     La caja se ciñe a su contenido y se pega al lado del widget; el resto de
-     la ventana queda transparente (es fija, no se puede redimensionar). */
-  body.cap{--paper:rgba(255,255,255,.93); --ink:#132029; --sub:#68737e;
-    --sev:#0b7c8c; --xbg:rgba(15,27,38,.06); --xfg:#67727c}
-  body.cap.dark{--paper:rgba(15,19,26,.9); --ink:#eef3f8; --sub:#8994a0;
-    --sev:#56c7d6; --xbg:rgba(255,255,255,.08); --xfg:#aab4be}
-  body.cap.warn{--sev:#e6a417}
-  body.cap.danger{--sev:#f05a41}
-  body.cap .box{top:auto;bottom:14px;border:1px solid var(--sev);border-radius:16px;
-    padding:13px 12px 13px 14px;align-items:flex-start;gap:11px;
-    box-shadow:0 0 18px -2px var(--sev), 0 8px 22px rgba(0,0,0,.35)}
+     Fondo OPACO a propósito: con alfa, sobre una ventana transparente se lee
+     el escritorio a través del aviso y no se entiende nada (2026-07-28).
+     Nada de color-mix ni de heredar el fondo: cada valor va explícito, que
+     esto tiene que pintarse igual en cualquier WebView2. */
+  body.cap{--paper:#f7f9fb; --ink:#132029; --sub:#5c6773;
+    --sev:#0b7c8c; --sevbg:rgba(11,124,140,.13);
+    --xbg:rgba(15,27,38,.07); --xfg:#67727c}
+  body.cap.dark{--paper:#171b22; --ink:#eef3f8; --sub:#98a3af;
+    --sev:#56c7d6; --sevbg:rgba(86,199,214,.16);
+    --xbg:rgba(255,255,255,.09); --xfg:#aab4be}
+  body.cap.warn{--sev:#e6a417; --sevbg:rgba(230,164,23,.16)}
+  body.cap.danger{--sev:#f05a41; --sevbg:rgba(240,90,65,.16)}
+  body.cap .box{display:flex;align-items:flex-start;gap:11px;
+    top:auto;bottom:14px;background:var(--paper);
+    border:1px solid var(--sev);border-radius:16px;
+    padding:13px 38px 13px 13px;
+    box-shadow:0 0 16px -3px var(--sev), 0 8px 22px rgba(0,0,0,.35)}
   body.cap.down .box{top:14px;bottom:auto}
   body.cap .pico{display:flex;width:30px;height:30px;flex:0 0 auto;border-radius:9px;
-    align-items:center;justify-content:center;color:var(--sev);
-    background:color-mix(in srgb, var(--sev) 16%, transparent)}
+    align-items:center;justify-content:center;color:var(--sev);background:var(--sevbg)}
   body.cap .pico svg{width:18px;height:18px}
   body.cap .ptext{flex:1 1 auto;min-width:0}
   body.cap .msg{display:block;font-size:12.5px;font-weight:600;line-height:1.35;
     color:var(--ink)}
   body.cap .psub{display:block;font-size:11px;margin-top:3px;color:var(--sub)}
   body.cap .psub:empty{display:none}
-  body.cap .x{position:static;flex:0 0 auto;margin:-2px -2px 0 0;border:0;
-    background:var(--xbg);color:var(--xfg);font-size:11px;font-weight:600}
+  /* la ✕ se queda arriba a la derecha, como en el cómic */
+  body.cap .x{border:0;background:var(--xbg);color:var(--xfg);
+    font-size:11px;font-weight:600;right:9px;top:9px}
   body.cap .x:hover{background:var(--sev);color:var(--paper)}
-  /* flecha: cuadrado girado 45°, con las dos caras exteriores en el borde */
+  /* flecha: cuadrado girado 45° con sus dos caras exteriores en el borde. El
+     relleno es el MISMO opaco de la caja, para que la costura no se vea. */
   body.cap .tail-b,body.cap .tail-w{display:none}
   body.cap .arrow{display:block;position:absolute;width:14px;height:14px;
     left:calc(var(--tailx) - 7px);bottom:8px;transform:rotate(45deg);
