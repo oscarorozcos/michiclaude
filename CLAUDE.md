@@ -565,10 +565,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       salte de sitio al desplegar (ahí se notaría un error de posición),
       que el texto quepa en 280 px con idiomas largos, y que no queden
       halos recortados en otras combinaciones de tema.
-- [ ] CARGO CHECK PENDIENTE (2026-07-27): los últimos commits tocan Rust
-      (comando `toggle_pill_card`, ventana `pcard`, `notif_dx`, `is_dev`) y
-      NO se han compilado — en el VPS no hay toolchain, esa verificación
-      corre en el Windows de Oscar.
+- [x] `cargo check` limpio con todo lo del 2026-07-27 (comando
+      `toggle_pill_card`, ventana `pcard`, `notif_dx`, `is_dev`): verificado
+      por Oscar en Windows el 2026-07-28, sin errores ni advertencias.
+      RECORDATORIO: en el VPS no hay toolchain de Rust, así que esa
+      verificación SIEMPRE corre en el Windows de Oscar.
 - [ ] VERIFICAR alta automática de servidor (2026-07-27): el flujo nuevo
       (detectar Python -> subir el lector a ~/.michiclaude/ -> guardar el
       comando resuelto) NO se ha probado en vivo, porque el servidor de Oscar
