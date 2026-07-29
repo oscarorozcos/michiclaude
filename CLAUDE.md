@@ -651,6 +651,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   --- Jornada 2026-07-27 (26 commits). Lo validado en vivo por Oscar y lo
       que quedó pendiente de mirar: ---
 
+- [x] ARTE REESCALADO a la mitad (2026-07-29, validado en vivo por Oscar en
+      los dos temas: "se ven bien, no se ven mal a nivel visual"). Los gifs
+      venían en 800² para dibujar un gato de ~180 px en pantalla — 19 veces
+      los píxeles que se ven. A 400² sobra incluso para pantallas de alta
+      densidad y el arte pasa de 11.1 MB a 3.0 MB. El `cat-break-black` de
+      lienzo raro quedó en 706x430 (misma proporción, desvío 0.071%).
+      NO se tocó código: el recorte del margen transparente está en
+      PORCENTAJES desde el principio y por eso sobrevivió al cambio de
+      escala. Verificado por programa antes de reemplazar: mismos fotogramas,
+      transparencia intacta, proporción del lienzo idéntica.
+      Hecho con `gifsicle --scale 0.5 --resize-method mix --colors 256 -O3`.
 - [x] Cuarto estado del gatito, `break` (sesión agotada, espera al reset) y
       su arte en los dos temas. OJO: `cat-break-black.gif` vino en lienzo
       1411x860 en vez de 800² y se recoloca por CSS (`.cat.odd-canvas`).
@@ -903,6 +914,47 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
 NO hacer (dilución de foco): rastrear otras herramientas (Codex/Gemini/Copilot),
 base de datos de historial largo (contradice "nada que se pueda perder"), modo
 equipo/empresa (fuera del público Pro/Max individual).
+
+## Consumo de recursos (medido 2026-07-29 en el Windows de Oscar)
+
+Cifras REALES, no estimadas. Se midieron con la app compilada en RELEASE,
+sumando `michiclaude.exe` y todos sus procesos hijos de WebView2 (hay que
+seguir la cadena de PID padre: `Get-Process msedgewebview2` a secas incluye
+los de OTRAS apps del sistema — Copilot, Outlook nuevo, Teams — y da un
+número que no es nuestro).
+
+| | Antes | Después del reescalado |
+|---|---|---|
+| Instalador NSIS | 12.3 MB | ~7 MB (pendiente de recompilar) |
+| `michiclaude.exe` | 21.7 MB (release) · 46 MB (dev) | |
+| Datos en disco | < 1 MB | |
+| **RAM** | **~830 MB** | pendiente de medir |
+
+LO QUE HAY QUE SABER ANTES DE VOLVER A DIAGNOSTICAR ESTO:
+
+1. **Compilar en release NO baja la RAM.** dev 817 MB vs release 830 MB. El
+   `.exe` sí baja a la mitad, pero el peso está en los ~11 procesos de
+   WebView2 y a esos les da igual el perfil de compilación. Se comprobó.
+2. **El gatito NO es el culpable** (es la SEGUNDA vez que lo parece y no lo
+   es; la primera fue con la lentitud, que era el hilo de la UI bloqueado).
+   Medido con el simulador: cargar los cuatro dibujos sube ~120 MB de pico y
+   los DEVUELVE (939 -> 828), así que tampoco hay fuga de memoria.
+3. **El costo real son las SEIS ventanas.** Cada WebView2 tiene un piso de
+   ~57 MB aunque esté vacía y oculta — se ve en la propia medición: la
+   pastilla (una cápsula con dos líneas) y el globo de aviso pesan eso. Seis
+   ventanas son ~345 MB de piso antes de dibujar nada, más la infraestructura
+   (GPU, red, almacenamiento, crashpad).
+4. Para comparar: el instalador está muy bien (una app equivalente en
+   Electron ronda 90-150 MB), pero la RAM está al nivel de Slack o Discord,
+   que es justo lo que un widget de bandeja no debería costar.
+
+PENDIENTE con el mayor ahorro conocido (~115 MB): la pastilla y el gatito son
+EXCLUYENTES, así que dos de las seis ventanas nunca se muestran — con el
+gatito puesto, `pill` y `pcard` se cargan y no pintan nada jamás. Crear solo
+el par que corresponde al estilo elegido es el siguiente arreglo. OJO: no
+choca con la regla de no redimensionar ventanas transparentes (esa prohíbe
+CAMBIAR EL TAMAÑO de una ventana viva, no crear menos ventanas), pero obliga
+a re-validar gatito, globos, arrastre y capas.
 
 ## Retención de los logs (requisito del analizador)
 
