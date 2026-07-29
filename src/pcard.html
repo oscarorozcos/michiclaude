@@ -46,6 +46,8 @@
   .grip{flex:0 0 auto;width:13px;color:var(--dim);font-size:11px;
     letter-spacing:-1px;text-align:center}
   .mk{flex:0 0 auto;width:24px;height:24px;display:grid;place-items:center}
+  .mk img{width:24px;height:24px;object-fit:contain;display:block;
+    -webkit-user-drag:none}
   .lab{font-size:13px;font-weight:500;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap}
   .pct{font-size:13.5px;font-weight:700;color:var(--txt-strong);white-space:nowrap}
@@ -80,7 +82,7 @@
 <div class="box">
   <div class="hdr">
     <span class="grip">⠿</span>
-    <span class="mk" id="mk"></span>
+    <span class="mk"><img src="icon-mini-panel.png" alt="" draggable="false"></span>
     <span class="lab" id="sesLab"></span><b class="pct" id="sPct">—</b>
     <span class="m" id="wBox" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -112,18 +114,8 @@ const TAURI=window.__TAURI__;
 const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 
-// marca (mini sunburst, igual que la pastilla)
-(function(){
-  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="22" height="22" viewBox="0 0 ${S} ${S}">`;
-  for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
-    const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
-    const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
-    const pts=[[cx+ux*base,cy+uy*base],[cx+ux*mid+px*hw,cy+uy*mid+py*hw],
-      [cx+ux*tip,cy+uy*tip],[cx+ux*mid-px*hw,cy+uy*mid-py*hw]]
-      .map(q=>q.map(n=>n.toFixed(2)).join(",")).join(" ");
-    p+=`<polygon points="${pts}" fill="var(--brand)"/>`}
-  $("mk").innerHTML=p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
-})();
+// la marca es la imagen icon-mini-panel.png (arte de Oscar 2026-07-29;
+// antes era el mini sunburst dibujado a mano)
 
 const ICON={
   ses:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
