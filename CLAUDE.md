@@ -799,10 +799,14 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       privada solo en los secretos del repo y en las copias de Oscar. Si se
       pierde: llave nueva + versión nueva + los usuarios instalan a mano UNA
       vez; no se pierde ningún dato porque todo es local.
-      FALTA: (a) el cambio en `.github/workflows/release.yml` —lo tiene que
-      aplicar OSCAR: el token de este entorno no puede tocar archivos de
-      workflows, GitHub lo rechaza sin el permiso `workflow`—, (b) cargar
-      los dos secretos en el repo y (c) publicar un tag para probarlo.
+      El workflow ya firma (lo aplicó Oscar el 2026-07-29 desde la web: el
+      token de este entorno NO puede tocar `.github/workflows/`, GitHub lo
+      rechaza sin el permiso `workflow` — cualquier cambio ahí hay que
+      pedírselo a él). NO hace falta `uploadUpdaterJson`: tauri-action ya lo
+      publica por defecto (y OJO, `includeUpdaterJson` no existe).
+      FALTA: (a) cargar los dos secretos en el repo, (b) DECIDIR si el repo
+      se hace público —con él privado las releases no se pueden descargar sin
+      autenticación y el updater no puede funcionar— y (c) publicar un tag.
 
 ## Diferenciadores estratégicos (post-pulido Windows, decididos 2026-07-24)
 
