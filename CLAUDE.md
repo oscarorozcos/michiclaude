@@ -633,6 +633,8 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       se le pone `margin-bottom` a `.tabs`, se abre una rendija transparente
       por la que se ve pasar el contenido al hacer scroll.
 - [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
+- [x] Umbrales de prueba devueltos a valores normales (Oscar, 2026-07-29):
+      los 25 que había puestos eran para ver el simulador.
 - [~] Alarmas de uso configurables + avisos de límite/restablecimiento con
       confirmación "Enterado" — implementado (2026-07-11). La parte VISUAL
       quedó validada el 2026-07-28 con el simulador (gatito y pastilla).
@@ -873,7 +875,25 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       del presupuesto → gato feliz"), estados de ánimo con el tiempo. Barato,
       imposible de copiar (es la marca), ataca el problema real: que nadie
       conoce un proyecto nuevo. Empezar por la tarjeta (mejor esfuerzo/impacto).
-- [ ] **APUESTA #3 — De "medidor" a "asesor"** (más ambicioso, tras el Hub):
+- [ ] **APUESTA #3 — Analizador de fugas de tokens** — SIGUIENTE
+      IMPLEMENTACIÓN GRANDE. Diseño completo en `docs/analizador-fugas.md`
+      (2026-07-29): los cinco elementos de un hallazgo, el catálogo de
+      detectores, por qué es DETERMINISTA y nunca un modelo local, y la
+      redacción de los mensajes. Leerlo antes de escribir código.
+      Orden acordado: (1) MCP servers inactivos —resta de conjuntos, el más
+      barato—, (2) archivos releídos, (3) sesiones que se inflan, y luego el
+      antes/después, que no depende del código sino de tener semanas de
+      historial a los dos lados.
+      DOS TRAMPAS ANOTADAS: el CLAUDE.md inflado se MIDE con los conteos de
+      cache read que ya están en los JSONL, nunca se estima multiplicando
+      líneas por turnos (exagera ~5x porque tras el primer turno está
+      cacheado); y el 70% del tiempo va en validar que los números son
+      correctos, no en escribirlos.
+      La parte de NEGOCIO (precio, auditorías, posicionamiento) vive FUERA
+      del repo en `~/.michiclaude/notas-negocio-analizador.md`: al hacer
+      público el repo para el updater se publica también todo el historial de
+      git, y un archivo borrado después sigue siendo legible.
+      Idea original, más amplia:
       insights accionables — proyección SEMANAL ("a este ritmo llegas al límite
       el jueves"), desglose caro por proyecto ("60% es lectura de caché"),
       sugerencia de ahorro por modelo ("usaste Opus donde Haiku bastaba →
@@ -883,6 +903,16 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
 NO hacer (dilución de foco): rastrear otras herramientas (Codex/Gemini/Copilot),
 base de datos de historial largo (contradice "nada que se pueda perder"), modo
 equipo/empresa (fuera del público Pro/Max individual).
+
+## Retención de los logs (requisito del analizador)
+
+Claude Code borra `~/.claude/projects/**/*.jsonl` a los **30 días** por
+defecto. El analizador de fugas compara ventanas ANTES y DESPUÉS de aplicar
+un fix, así que sin historial no tiene contra qué comparar — y lo borrado no
+se recupera. Se sube con `cleanupPeriodDays` en `~/.claude/settings.json`:
+
+- VPS: puesto en **365** el 2026-07-29 (respaldo en `settings.json.bak`).
+- Windows de Oscar: PENDIENTE.
 
 ## Comandos
 
