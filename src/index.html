@@ -187,6 +187,12 @@
   .exp-open{flex:0 0 auto;background:none;border:0;color:var(--ok);
     font-size:11.5px;cursor:pointer;padding:0;font-family:var(--font)}
   #expBox.bad .exp-open{display:none}
+  /* Sin temporizador, como el resto de avisos de la app: lo cierra el
+     usuario. Y se va solo al cambiar de pestaña, porque el mensaje
+     pertenece a ese momento y no al panel entero (2026-07-29). */
+  .exp-x{flex:0 0 auto;background:none;border:0;color:var(--txt-dim);
+    font-size:11px;cursor:pointer;padding:0 2px;line-height:1}
+  .exp-x:hover{color:var(--txt)}
   /* el lápiz avisa de que el nombre se puede tocar; sin él nadie
      descubre que es editable (2026-07-29) */
   .srv-name{cursor:text}
@@ -537,6 +543,7 @@
           <div class="exp-p" id="expPath"></div>
         </div>
         <button class="exp-open" id="expOpen"></button>
+        <button class="exp-x" id="expX" aria-label="✕">✕</button>
       </div>
     </div>
   </div>
@@ -2879,6 +2886,7 @@ function renderRemotes(){
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
 function showTab(name){
   for(const k of ["main","sources","prefs"]) $("tab-"+k).hidden = (k!==name);
+  $("expBox").hidden = true;                      // el aviso era de ese momento
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
   if(name==="sources") loadRemotes();             // refresca estado de servidores
   if(name==="prefs") renderPricesStatus();        // la descarga de fondo puede
@@ -3075,6 +3083,7 @@ function expShow(path, format, err){
   $("expOpen").textContent = t("exp_open");
 }
 $("expOpen").addEventListener("click",()=>invoke?.("open_export"));
+$("expX").addEventListener("click",()=>{ $("expBox").hidden=true; });
 $("expCsv").addEventListener("click",()=>doExport("csv"));
 $("expJson").addEventListener("click",()=>doExport("json"));
 
