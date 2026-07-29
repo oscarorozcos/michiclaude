@@ -92,10 +92,14 @@
   .tab:hover{color:var(--txt)}
   .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
   /* contador de hallazgos NUEVOS sin ver: lo enciende la pasada diaria y lo
-     apaga abrir la pestaña. El color es la severidad del más caro. */
-  .tab .tdot{display:inline-block;min-width:15px;padding:0 4px;margin-left:5px;
-    border-radius:999px;font-size:9.5px;line-height:15px;font-weight:700;
-    color:#fff;background:var(--warn);vertical-align:1px}
+     apaga abrir la pestaña. Cápsula ROJA flotando en la esquina superior
+     derecha de la pestaña (maqueta de Oscar 2026-07-29), tope en 9+; el
+     border-radius tipo cápsula la ensancha sola si el número crece. */
+  .tab{position:relative}
+  .tab .tdot{position:absolute;top:0;right:-6px;min-width:16px;height:14px;
+    padding:0 4px;border-radius:999px;background:var(--bad);color:#fff;
+    font-size:9px;line-height:14px;font-weight:700;text-align:center;
+    box-shadow:0 1px 3px rgba(0,0,0,.35)}
 
   .sect{border-top:1px solid var(--stroke-soft);padding-top:11px;margin-top:11px}
   .sect:first-of-type{border-top:0;margin-top:0;padding-top:0}
@@ -3195,9 +3199,9 @@ function fndBadgeCalc(){
 function renderFndDot(){
   const d=$("fndTabDot");
   d.hidden=!fndBadge;
-  if(fndBadge){ d.textContent=fndBadge.n>9?"9+":String(fndBadge.n);
-    d.style.background=fndBadge.sev==="bad"?"var(--bad)"
-      :fndBadge.sev==="warn"?"var(--warn)":"var(--accent)"; }
+  // rojo fijo, como el post-it y la campana (maqueta de Oscar): el rojo ES
+  // la señal de "hay algo nuevo"; la severidad se ve en las tarjetas
+  if(fndBadge) d.textContent=fndBadge.n>9?"9+":String(fndBadge.n);
 }
 async function fndAutoScan(){
   if(!invoke) return;
