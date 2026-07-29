@@ -972,8 +972,39 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       del presupuesto → gato feliz"), estados de ánimo con el tiempo. Barato,
       imposible de copiar (es la marca), ataca el problema real: que nadie
       conoce un proyecto nuevo. Empezar por la tarjeta (mejor esfuerzo/impacto).
-- [ ] **APUESTA #3 — Analizador de fugas de tokens** — SIGUIENTE
-      IMPLEMENTACIÓN GRANDE. Diseño completo en `docs/analizador-fugas.md`
+- [~] **APUESTA #3 — Analizador de fugas de tokens** — PRIMERA VERSIÓN
+      FUNCIONANDO, validada en vivo por Oscar el 2026-07-29 (tarjetas, colores
+      de severidad, Ignorar, selector de ventana e idiomas). Tres piezas:
+      (1) MOTOR en `meter-export.py` (`scan_findings`, flag `--findings`) —
+      pasada aparte sin caché que el ciclo del panel nunca paga;
+      (2) RÉPLICA Rust (`scan_local_findings` + comando `get_findings`, async
+      por partida doble: SSH y escaneo de disco) que analiza este PC + WSL y
+      pide los hallazgos de cada servidor; mantener AMBOS lados en sincronía
+      como la agregación;
+      (3) PESTAÑA Hallazgos (cuarta, entre Fuentes de datos y Preferencias):
+      severidad en el borde, costo en $ y tokens con "~" solo donde hay
+      heurística, recomendación del catálogo en tono "hazlo así y sale
+      gratis", Ignorar persistente (localStorage `fndIgnore`) y ventana
+      propia (`fndDays`).
+      Detectores v1: archivos releídos (MIDE los chars devueltos por cada
+      lectura — no estima por tamaño de archivo), sesiones que acumulan
+      contexto (costo de cache_read MEDIDO del log), peticiones mecánicas
+      (solo git/pytest/cargo check/npm test-ci-install; lista corta a
+      propósito) y MCP configurado sin invocar. Umbrales en constantes
+      (REREAD_MIN 3 / 2000 tok, INFLATE 50k+10 turnos, MECH 5, tope 12).
+      LA VALIDACIÓN PAGÓ DOS VECES el primer día: el cálculo manual de
+      relecturas exageraba ~100x (multiplicaba por el tamaño del archivo
+      cuando casi todas las lecturas eran parciales — la trampa documentada,
+      cazada por el propio detector midiendo), y el costo de contexto por
+      sesión cuadró contra la agregación normal (camino independiente) al
+      0.4%. Hallazgo estrella real: $403 de la semana eran UNA conversación
+      de 1392 turnos releyendo su propio contexto.
+      FALTA para el diseño completo: el aviso EN EL MOMENTO (globito una vez
+      al día — hoy todo es reporte bajo demanda), la verificación
+      antes/después (necesita semanas de historial, ya asegurado con
+      cleanupPeriodDays=365), el detector de líneas de CLAUDE.md sin
+      respaldo y el de rupturas de caché.
+      Idea original: Diseño completo en `docs/analizador-fugas.md`
       (2026-07-29): los cinco elementos de un hallazgo, el catálogo de
       detectores, por qué es DETERMINISTA y nunca un modelo local, y la
       redacción de los mensajes. Leerlo antes de escribir código.
