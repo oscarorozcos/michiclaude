@@ -168,6 +168,12 @@
   .cfg-form button:hover,.btnrow button:hover{background:var(--accent-line)}
   .cfg-form button:disabled:hover,.btnrow button:disabled:hover{background:var(--accent-weak)}
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
+  /* La ruta de exportación era el único mensaje del panel sin estilo:
+     heredaba el tamaño del texto normal y cantaba al lado de los demás,
+     que van a 10.5-11 px. Salta de línea por caracteres porque una ruta
+     larga no tiene espacios donde partir (2026-07-29). */
+  #expMsg{flex-basis:100%;font-size:10.5px;color:var(--txt-dim);
+    font-family:var(--mono);line-height:1.5;word-break:break-all}
   /* el lápiz avisa de que el nombre se puede tocar; sin él nadie
      descubre que es editable (2026-07-29) */
   .srv-name{cursor:text}
