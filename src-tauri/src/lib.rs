@@ -1791,6 +1791,7 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             show_main_panel(app);
         }))
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -1813,6 +1814,9 @@ pub fn run() {
             toggle_pill_card,
             save_hub_config,
             load_hub_config,
+            check_update,
+            install_update,
+            open_releases,
             is_dev,
             get_pill_layer,
             set_pill_layer,
@@ -2411,6 +2415,61 @@ fn ssh_write_file(host: &str, path: &str, content: &str) -> Result<(), String> {
         Ok(())
     } else {
         Err("ERR_SSH_WRITE".into())
+    }
+}
+
+/// Dirección de descargas. Va ESCRITA AQUÍ a propósito y nunca sale de un
+/// archivo descargado: un aviso manipulado podría cambiar el texto, pero
+/// jamás a dónde lleva el botón.
+const RELEASES_URL: &str = "https://github.com/oscarorozcos/michiclaude/releases/latest";
+
+/// ¿Hay versión nueva? Devuelve su número, o nada. Un fallo de red no es un
+/// error que merezca molestar: se devuelve `None` y se reintenta otro día.
+#[tauri::command]
+async fn check_update(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let up = app.updater().map_err(|e| e.to_string())?;
+    match up.check().await {
+        Ok(Some(u)) => Ok(Some(u.version.clone())),
+        Ok(None) => Ok(None),
+        Err(_) => Ok(None),
+    }
+}
+
+/// Descarga e instala. Si la FIRMA no cuadra —el caso de "se perdió la llave
+/// y se generó otra"— falla aquí, y el panel enseña el aviso de descarga
+/// manual en vez de dejar al usuario congelado en una versión vieja sin
+/// enterarse. La app se reinicia sola al terminar.
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let up = app.updater().map_err(|e| e.to_string())?;
+    let Some(u) = up.check().await.map_err(|_| "ERR_UPD_CHECK".to_string())? else {
+        return Err("ERR_UPD_NONE".into());
+    };
+    u.download_and_install(|_, _| {}, || {})
+        .await
+        .map_err(|_| "ERR_UPD_INSTALL".to_string())?;
+    app.restart();
+    #[allow(unreachable_code)]
+    Ok(())
+}
+
+/// Abre la página de descargas en el navegador. La URL es la constante de
+/// arriba: no se acepta ninguna que venga de fuera.
+#[tauri::command]
+fn open_releases() {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", RELEASES_URL])
+            .creation_flags(0x0800_0000)
+            .spawn();
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(RELEASES_URL).spawn();
     }
 }
 

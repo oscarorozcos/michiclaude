@@ -778,7 +778,31 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       (--exclude-host <hostname>) para no contar doble; (3) opcional: config
       compartida (servidores/presupuesto) guardada también en el hub para que
       una PC nueva herede todo al conectar el VPS.
-- [ ] Auto-updater (tauri-plugin-updater)
+- [~] Auto-updater (tauri-plugin-updater) — IMPLEMENTADO 2026-07-29, sin
+      probar en vivo (hace falta publicar un tag). Comprueba GitHub al
+      arrancar (8 s después, para no competir con la primera carga) y avisa
+      en una franja de la cabecera FIJA —visible desde cualquier pestaña— más
+      un globo persistente del widget, por si el usuario no abre el panel en
+      días. Comandos propios en Rust (`check_update`, `install_update`,
+      `open_releases`) en vez de la API JS del plugin: invariante #4, sin
+      dependencias npm de runtime.
+      DOS DECISIONES DE SEGURIDAD:
+      (1) Un fallo al instalar —el caso "se perdió la llave y se firmó con
+      otra"— NO deja al usuario congelado sin enterarse: enseña "descárgala
+      una vez a mano" con botón a las descargas.
+      (2) Esa URL es una CONSTANTE en Rust (`RELEASES_URL`) y jamás sale de
+      un archivo descargado. Se descartó la idea de un "archivo de avisos"
+      remoto: al no ir firmado, quien lo manipulara podría mandar a todos los
+      usuarios a donde quisiera. El texto puede venir de fuera; el destino
+      del botón, nunca.
+      La llave pública vive en tauri.conf.json (es pública a propósito); la
+      privada solo en los secretos del repo y en las copias de Oscar. Si se
+      pierde: llave nueva + versión nueva + los usuarios instalan a mano UNA
+      vez; no se pierde ningún dato porque todo es local.
+      FALTA: (a) el cambio en `.github/workflows/release.yml` —lo tiene que
+      aplicar OSCAR: el token de este entorno no puede tocar archivos de
+      workflows, GitHub lo rechaza sin el permiso `workflow`—, (b) cargar
+      los dos secretos en el repo y (c) publicar un tag para probarlo.
 
 ## Diferenciadores estratégicos (post-pulido Windows, decididos 2026-07-24)
 

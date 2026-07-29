@@ -281,6 +281,14 @@
 <body>
 <div class="panel">
   <div class="p-top">
+  <!-- Aviso de versión nueva. Va en la cabecera fija para que se vea desde
+       cualquier pestaña: enterrado en Preferencias no lo encuentra nadie. -->
+  <div id="updBar" hidden style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    background:var(--accent-weak);border:1px solid var(--accent-line);border-radius:8px;
+    padding:7px 10px;margin-bottom:9px;font-size:11px">
+    <span id="updMsg" style="flex:1 1 auto;min-width:0"></span>
+    <button id="updBtn"></button>
+  </div>
   <div class="p-head" id="pHead">
     <span class="mark" id="mark"></span>
     <div class="p-htext">
@@ -551,6 +559,12 @@ en:{
   others:n=>`More projects (${n})`,
   others_less:"Show less",
   hub_cfg_label:"Shared settings",
+  upd_found:v=>`New version ${v} available`,
+  upd_do:"Update now",
+  upd_doing:"Updating… the app will restart",
+  upd_manual:"Could not install it on its own. Download it once from GitHub and the next ones will be automatic again.",
+  upd_open:"Open downloads",
+  upd_balloon:v=>`MichiClaude ${v} is available`,
   hub_cfg_hint:"Saves how you have MichiClaude set up — language, theme, alarms, budget and your servers — to get it back on another PC. It does not save keys or passwords.",
   hub_cfg_save:"Save to server",
   hub_cfg_load:"Restore from server",
@@ -696,6 +710,12 @@ es:{
   others:n=>`Más proyectos (${n})`,
   others_less:"Ver menos",
   hub_cfg_label:"Ajustes compartidos",
+  upd_found:v=>`Versión ${v} disponible`,
+  upd_do:"Actualizar ahora",
+  upd_doing:"Actualizando… la app se reiniciará",
+  upd_manual:"No se pudo instalar sola. Descárgala una vez desde GitHub y las siguientes volverán a ser automáticas.",
+  upd_open:"Abrir descargas",
+  upd_balloon:v=>`MichiClaude ${v} ya está disponible`,
   hub_cfg_hint:"Guarda cómo tienes MichiClaude —idioma, tema, alarmas, presupuesto y tus servidores— para recuperarlo en otra PC. No guarda llaves ni contraseñas.",
   hub_cfg_save:"Guardar en el servidor",
   hub_cfg_load:"Restaurar desde el servidor",
@@ -841,6 +861,12 @@ pt:{
   others:n=>`Mais projetos (${n})`,
   others_less:"Ver menos",
   hub_cfg_label:"Configurações compartilhadas",
+  upd_found:v=>`Versão ${v} disponível`,
+  upd_do:"Atualizar agora",
+  upd_doing:"Atualizando… o app vai reiniciar",
+  upd_manual:"Não deu para instalar sozinho. Baixe uma vez do GitHub e as próximas voltam a ser automáticas.",
+  upd_open:"Abrir downloads",
+  upd_balloon:v=>`MichiClaude ${v} já está disponível`,
   hub_cfg_hint:"Salva como você tem o MichiClaude —idioma, tema, alarmes, orçamento e seus servidores— para recuperar em outro PC. Não salva chaves nem senhas.",
   hub_cfg_save:"Salvar no servidor",
   hub_cfg_load:"Restaurar do servidor",
@@ -986,6 +1012,12 @@ fr:{
   others:n=>`Autres projets (${n})`,
   others_less:"Voir moins",
   hub_cfg_label:"Réglages partagés",
+  upd_found:v=>`Version ${v} disponible`,
+  upd_do:"Mettre à jour",
+  upd_doing:"Mise à jour… l’app va redémarrer",
+  upd_manual:"Impossible de l’installer seule. Téléchargez-la une fois depuis GitHub et les suivantes redeviendront automatiques.",
+  upd_open:"Ouvrir les téléchargements",
+  upd_balloon:v=>`MichiClaude ${v} est disponible`,
   hub_cfg_hint:"Enregistre votre configuration de MichiClaude —langue, thème, alertes, budget et vos serveurs— pour la retrouver sur un autre PC. N’enregistre ni clés ni mots de passe.",
   hub_cfg_save:"Enregistrer sur le serveur",
   hub_cfg_load:"Restaurer depuis le serveur",
@@ -1131,6 +1163,12 @@ de:{
   others:n=>`Weitere Projekte (${n})`,
   others_less:"Weniger anzeigen",
   hub_cfg_label:"Geteilte Einstellungen",
+  upd_found:v=>`Version ${v} verfügbar`,
+  upd_do:"Jetzt aktualisieren",
+  upd_doing:"Aktualisiere… die App startet neu",
+  upd_manual:"Konnte sich nicht selbst installieren. Lade sie einmal von GitHub und die nächsten laufen wieder automatisch.",
+  upd_open:"Downloads öffnen",
+  upd_balloon:v=>`MichiClaude ${v} ist verfügbar`,
   hub_cfg_hint:"Sichert deine MichiClaude-Einrichtung —Sprache, Thema, Alarme, Budget und deine Server— um sie auf einem anderen PC wiederherzustellen. Keine Schlüssel, keine Passwörter.",
   hub_cfg_save:"Auf Server sichern",
   hub_cfg_load:"Vom Server wiederherstellen",
@@ -1276,6 +1314,12 @@ ja:{
   others:n=>`他のプロジェクト (${n})`,
   others_less:"閉じる",
   hub_cfg_label:"共有設定",
+  upd_found:v=>`バージョン ${v} が利用できます`,
+  upd_do:"今すぐ更新",
+  upd_doing:"更新中… アプリが再起動します",
+  upd_manual:"自動で更新できませんでした。GitHub から一度ダウンロードすれば、次からはまた自動になります。",
+  upd_open:"ダウンロードを開く",
+  upd_balloon:v=>`MichiClaude ${v} が公開されました`,
   hub_cfg_hint:"MichiClaude の設定（言語・テーマ・アラーム・予算・サーバー）を保存し、別のPCで復元できます。鍵やパスワードは保存しません。",
   hub_cfg_save:"サーバーに保存",
   hub_cfg_load:"サーバーから復元",
@@ -1421,6 +1465,12 @@ ko:{
   others:n=>`기타 프로젝트 (${n})`,
   others_less:"접기",
   hub_cfg_label:"공유 설정",
+  upd_found:v=>`버전 ${v} 사용 가능`,
+  upd_do:"지금 업데이트",
+  upd_doing:"업데이트 중… 앱이 다시 시작돼요",
+  upd_manual:"자동으로 설치하지 못했어요. GitHub에서 한 번만 내려받으면 다음부터는 다시 자동이에요.",
+  upd_open:"다운로드 열기",
+  upd_balloon:v=>`MichiClaude ${v} 가 나왔어요`,
   hub_cfg_hint:"MichiClaude 설정(언어, 테마, 알림, 예산, 서버)을 저장해 다른 PC에서 복원할 수 있어요. 키나 비밀번호는 저장하지 않아요.",
   hub_cfg_save:"서버에 저장",
   hub_cfg_load:"서버에서 복원",
@@ -1566,6 +1616,12 @@ zh:{
   others:n=>`更多项目 (${n})`,
   others_less:"收起",
   hub_cfg_label:"共享设置",
+  upd_found:v=>`有新版本 ${v}`,
+  upd_do:"立即更新",
+  upd_doing:"正在更新… 应用将重启",
+  upd_manual:"无法自动安装。请从 GitHub 手动下载一次，之后就会恢复自动更新。",
+  upd_open:"打开下载页",
+  upd_balloon:v=>`MichiClaude ${v} 已发布`,
   hub_cfg_hint:"保存你的 MichiClaude 设置（语言、主题、提醒、预算和服务器），以便在另一台电脑上恢复。不保存密钥或密码。",
   hub_cfg_save:"保存到服务器",
   hub_cfg_load:"从服务器恢复",
@@ -1999,6 +2055,41 @@ $("hubLoad").addEventListener("click",()=>{
     })
     .catch(()=>{ $("hubMsg").textContent=t("hub_cfg_err"); });
 });
+
+// ---------- actualizaciones ----------
+// Se comprueba al arrancar y nada más: no hay que preguntarle a GitHub cada
+// tres minutos. Un fallo de red devuelve "no hay nada" y se reintenta mañana.
+let updVer=null;
+function updShow(msg, btn, act){
+  $("updBar").hidden=false;
+  $("updMsg").textContent=msg;
+  $("updBtn").textContent=btn;
+  $("updBtn").onclick=act;
+  $("updBtn").hidden=!btn;
+}
+async function updCheck(){
+  if(!invoke) return;
+  let v=null;
+  try{ v=await invoke("check_update"); }catch(e){ return; }
+  if(!v) return;
+  updVer=v;
+  updShow(t("upd_found",v), t("upd_do"), async()=>{
+    $("updBtn").disabled=true;
+    $("updMsg").textContent=t("upd_doing");
+    try{
+      await invoke("install_update");     // si va bien, la app se reinicia
+    }catch(e){
+      // La firma no cuadra (o la descarga falló). Ni se instala a medias ni
+      // se deja al usuario congelado sin enterarse: se le manda a GitHub, y
+      // el enlace vive en el backend para que nadie pueda cambiarlo.
+      updShow(t("upd_manual"), t("upd_open"), ()=>invoke("open_releases"));
+      $("updBtn").disabled=false;
+    }
+  });
+  // Y por si no abre el panel en días: el widget lo dice y se queda ahí.
+  showBalloon(t("upd_balloon",v), "update");
+}
+setTimeout(updCheck, 8000);   // sin competir con la primera carga del panel
 
 if(invoke) invoke("is_dev").then(d=>{ if(d) $("devSimRow").hidden=false; }).catch(()=>{});
 $("simMin").value=localStorage.getItem("simMin")||"1";
