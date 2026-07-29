@@ -94,6 +94,20 @@
 
   .sect{border-top:1px solid var(--stroke-soft);padding-top:11px;margin-top:11px}
   .sect:first-of-type{border-top:0;margin-top:0;padding-top:0}
+  /* Tarjetas del analizador de fugas (pestaña Hallazgos). El borde
+     izquierdo lleva la severidad, como el popover de avisos: se entiende
+     sin leer. */
+  .fnd{border:1px solid var(--stroke-soft);border-left:3px solid var(--accent);
+    border-radius:9px;padding:9px 11px;margin-top:8px}
+  .fnd.warn{border-left-color:var(--warn)}
+  .fnd.bad{border-left-color:var(--bad)}
+  .fnd-t{font-size:12px;font-weight:600}
+  .fnd-m{font-size:11px;color:var(--txt-dim);margin-top:2px;overflow-wrap:anywhere}
+  .fnd-c{font-family:var(--mono);font-size:11.5px;margin-top:4px}
+  .fnd-f{font-size:11px;margin-top:4px}
+  .fnd-x{float:right;background:transparent;border:0;color:var(--txt-dim);
+    font-size:10.5px;cursor:pointer;padding:2px 4px}
+  .fnd-x:hover{color:var(--txt)}
   .eyebrow{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt-dim);
     font-weight:700;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
   .eyebrow .q{font-family:var(--mono);letter-spacing:0;text-transform:none;
@@ -328,6 +342,7 @@
   <div class="tabs">
     <button class="tab on" data-tab="main" data-i18n="tab_main"></button>
     <button class="tab" data-tab="sources" data-i18n="sources_title"></button>
+    <button class="tab" data-tab="findings" data-i18n="fnd_tab"></button>
     <button class="tab" data-tab="prefs" data-i18n="prefs_title"></button>
   </div>
   </div><!-- /p-top -->
@@ -450,6 +465,18 @@
     </div>
   </div>
   </div><!-- /tab-sources -->
+
+  <div id="tab-findings" hidden>
+    <div class="sect">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="eyebrow" data-i18n="fnd_title"></div>
+        <span class="q"><select id="fndDays" class="dsel"><option value="1">1 d</option><option value="7">7 d</option><option value="15">15 d</option><option value="30">30 d</option></select></span>
+      </div>
+      <p style="font-size:11px;color:var(--txt-dim);margin:6px 0 2px" data-i18n="fnd_intro"></p>
+      <div id="fndList"></div>
+      <div id="fndFoot" style="font-size:10.5px;color:var(--txt-dim);margin-top:8px"></div>
+    </div>
+  </div>
 
   <div id="tab-prefs" hidden>
   <div class="sect" id="prefSect">
@@ -683,6 +710,25 @@ en:{
   status_fail:"unreachable",
   pill_label:"Floating widget above the taskbar",
   tray_open:"Open panel", tray_widget:"Floating widget", tray_quit:"Quit",
+  fnd_tab:"Findings",
+  fnd_title:"Token leak analyzer",
+  fnd_intro:"Structural leaks found in your logs, with their measured cost. Nothing is applied automatically — you decide.",
+  fnd_scanning:"Analyzing your logs…",
+  fnd_none:"No leaks in this window. All clean.",
+  fnd_err:"Could not analyze. Check the connection to your servers.",
+  fnd_reread_t:n=>`One file was read ${n}x in the same session`,
+  fnd_inflate_t:n=>`One conversation kept growing for ${n} turns`,
+  fnd_mech_t:n=>`${n} requests just for git/tests`,
+  fnd_mcp_t:s=>`Unused MCP server: ${s}`,
+  fnd_reread_f:"Ask for the part that matters (line ranges) instead of the whole file — each read stacks onto the conversation, it does not replace the previous one.",
+  fnd_inflate_f:"A /clear when you change topics splits the context: every turn re-reads everything that came before.",
+  fnd_mech_f:"Batch them at the end, or run them yourself in the terminal — that way they are free.",
+  fnd_mcp_f:"Its tool definitions travel in every request anyway. Removing it from the config is one line, and reconnecting is another.",
+  fnd_ignore:"Ignore",
+  fnd_hidden:n=>`${n} hidden`,
+  fnd_restore:"show again",
+  fnd_turns:"turns",
+  fnd_est_note:"~ = estimated; the rest is measured from your logs.",
   pill_style_label:"Widget style",
   pill_style_plain:"Pill",
   pill_style_cat:"Cat with laptop 🐱",
@@ -837,6 +883,25 @@ es:{
   status_fail:"sin conexión",
   pill_label:"Widget flotante sobre la barra de tareas",
   tray_open:"Abrir panel", tray_widget:"Widget flotante", tray_quit:"Salir",
+  fnd_tab:"Hallazgos",
+  fnd_title:"Analizador de fugas de tokens",
+  fnd_intro:"Fugas estructurales encontradas en tus logs, con su costo medido. Nada se aplica solo — tú decides.",
+  fnd_scanning:"Analizando tus logs…",
+  fnd_none:"Sin fugas en esta ventana. Todo limpio.",
+  fnd_err:"No se pudo analizar. Revisa la conexión con tus servidores.",
+  fnd_reread_t:n=>`Un archivo se leyó ${n} veces en la misma sesión`,
+  fnd_inflate_t:n=>`Una conversación siguió creciendo durante ${n} turnos`,
+  fnd_mech_t:n=>`${n} peticiones solo para git/tests`,
+  fnd_mcp_t:s=>`Servidor MCP sin usar: ${s}`,
+  fnd_reread_f:"Pide el trozo que importa (rangos de líneas) en vez del archivo entero — cada lectura se apila en la conversación, no reemplaza a la anterior.",
+  fnd_inflate_f:"Un /clear al cambiar de tema parte el contexto: cada turno relee todo lo anterior.",
+  fnd_mech_f:"Agrúpalas al final, o hazlas tú en la terminal — así salen gratis.",
+  fnd_mcp_f:"Sus definiciones viajan en cada petición de todas formas. Quitarlo de la configuración es una línea, y reconectarlo otra.",
+  fnd_ignore:"Ignorar",
+  fnd_hidden:n=>`${n} ocultos`,
+  fnd_restore:"volver a mostrar",
+  fnd_turns:"turnos",
+  fnd_est_note:"~ = estimado; el resto está medido de tus logs.",
   pill_style_label:"Estilo del widget",
   pill_style_plain:"Pastilla",
   pill_style_cat:"Gatito con laptop 🐱",
@@ -991,6 +1056,25 @@ pt:{
   status_fail:"sem conexão",
   pill_label:"Widget flutuante sobre a barra de tarefas",
   tray_open:"Abrir painel", tray_widget:"Widget flutuante", tray_quit:"Sair",
+  fnd_tab:"Achados",
+  fnd_title:"Analisador de fugas de tokens",
+  fnd_intro:"Fugas estruturais encontradas nos seus logs, com o custo medido. Nada se aplica sozinho — você decide.",
+  fnd_scanning:"Analisando seus logs…",
+  fnd_none:"Sem fugas nesta janela. Tudo limpo.",
+  fnd_err:"Não foi possível analisar. Verifique a conexão com seus servidores.",
+  fnd_reread_t:n=>`Um arquivo foi lido ${n} vezes na mesma sessão`,
+  fnd_inflate_t:n=>`Uma conversa continuou crescendo por ${n} turnos`,
+  fnd_mech_t:n=>`${n} pedidos só para git/testes`,
+  fnd_mcp_t:s=>`Servidor MCP sem uso: ${s}`,
+  fnd_reread_f:"Peça o trecho que importa (intervalos de linhas) em vez do arquivo inteiro — cada leitura se empilha na conversa, não substitui a anterior.",
+  fnd_inflate_f:"Um /clear ao mudar de assunto divide o contexto: cada turno relê tudo o que veio antes.",
+  fnd_mech_f:"Agrupe-os no final, ou faça você mesmo no terminal — assim saem de graça.",
+  fnd_mcp_f:"Suas definições viajam em cada pedido de qualquer forma. Removê-lo da configuração é uma linha, e reconectar é outra.",
+  fnd_ignore:"Ignorar",
+  fnd_hidden:n=>`${n} ocultos`,
+  fnd_restore:"mostrar de novo",
+  fnd_turns:"turnos",
+  fnd_est_note:"~ = estimado; o resto foi medido dos seus logs.",
   pill_style_label:"Estilo do widget",
   pill_style_plain:"Pílula",
   pill_style_cat:"Gatinho com laptop 🐱",
@@ -1145,6 +1229,25 @@ fr:{
   status_fail:"injoignable",
   pill_label:"Widget flottant au-dessus de la barre des tâches",
   tray_open:"Ouvrir le panneau", tray_widget:"Widget flottant", tray_quit:"Quitter",
+  fnd_tab:"Constats",
+  fnd_title:"Analyseur de fuites de tokens",
+  fnd_intro:"Fuites structurelles trouvées dans vos logs, avec leur coût mesuré. Rien ne s'applique tout seul — c'est vous qui décidez.",
+  fnd_scanning:"Analyse de vos logs…",
+  fnd_none:"Aucune fuite sur cette fenêtre. Tout est propre.",
+  fnd_err:"Analyse impossible. Vérifiez la connexion à vos serveurs.",
+  fnd_reread_t:n=>`Un fichier a été lu ${n} fois dans la même session`,
+  fnd_inflate_t:n=>`Une conversation n'a cessé de grossir pendant ${n} tours`,
+  fnd_mech_t:n=>`${n} requêtes juste pour git/tests`,
+  fnd_mcp_t:s=>`Serveur MCP inutilisé : ${s}`,
+  fnd_reread_f:"Demandez la partie qui compte (plages de lignes) plutôt que le fichier entier — chaque lecture s'empile dans la conversation, elle ne remplace pas la précédente.",
+  fnd_inflate_f:"Un /clear quand vous changez de sujet coupe le contexte : chaque tour relit tout ce qui précède.",
+  fnd_mech_f:"Regroupez-les à la fin, ou faites-les vous-même dans le terminal — là, c'est gratuit.",
+  fnd_mcp_f:"Ses définitions voyagent dans chaque requête de toute façon. Le retirer de la config tient en une ligne, le reconnecter aussi.",
+  fnd_ignore:"Ignorer",
+  fnd_hidden:n=>`${n} masqués`,
+  fnd_restore:"réafficher",
+  fnd_turns:"tours",
+  fnd_est_note:"~ = estimé ; le reste est mesuré depuis vos logs.",
   pill_style_label:"Style du widget",
   pill_style_plain:"Pastille",
   pill_style_cat:"Chat avec ordi 🐱",
@@ -1299,6 +1402,25 @@ de:{
   status_fail:"nicht erreichbar",
   pill_label:"Schwebendes Widget über der Taskleiste",
   tray_open:"Panel öffnen", tray_widget:"Schwebendes Widget", tray_quit:"Beenden",
+  fnd_tab:"Befunde",
+  fnd_title:"Token-Leck-Analyse",
+  fnd_intro:"Strukturelle Lecks aus deinen Logs, mit gemessenen Kosten. Nichts wird automatisch angewendet — du entscheidest.",
+  fnd_scanning:"Logs werden analysiert…",
+  fnd_none:"Keine Lecks in diesem Zeitraum. Alles sauber.",
+  fnd_err:"Analyse nicht möglich. Prüfe die Verbindung zu deinen Servern.",
+  fnd_reread_t:n=>`Eine Datei wurde ${n}-mal in derselben Sitzung gelesen`,
+  fnd_inflate_t:n=>`Eine Unterhaltung wuchs über ${n} Züge immer weiter`,
+  fnd_mech_t:n=>`${n} Anfragen nur für git/Tests`,
+  fnd_mcp_t:s=>`Ungenutzter MCP-Server: ${s}`,
+  fnd_reread_f:"Frag nach dem relevanten Teil (Zeilenbereiche) statt nach der ganzen Datei — jede Lektüre stapelt sich im Gespräch, sie ersetzt die vorherige nicht.",
+  fnd_inflate_f:"Ein /clear beim Themenwechsel teilt den Kontext: Jeder Zug liest alles Vorherige erneut.",
+  fnd_mech_f:"Bündle sie am Ende, oder führe sie selbst im Terminal aus — dann sind sie gratis.",
+  fnd_mcp_f:"Seine Tool-Definitionen reisen ohnehin in jeder Anfrage mit. Ihn aus der Konfiguration zu nehmen ist eine Zeile, das Wiederverbinden auch.",
+  fnd_ignore:"Ignorieren",
+  fnd_hidden:n=>`${n} ausgeblendet`,
+  fnd_restore:"wieder anzeigen",
+  fnd_turns:"Züge",
+  fnd_est_note:"~ = geschätzt; der Rest ist aus deinen Logs gemessen.",
   pill_style_label:"Widget-Stil",
   pill_style_plain:"Pille",
   pill_style_cat:"Katze mit Laptop 🐱",
@@ -1453,6 +1575,25 @@ ja:{
   status_fail:"接続不可",
   pill_label:"タスクバー上のフローティングウィジェット",
   tray_open:"パネルを開く", tray_widget:"フローティングウィジェット", tray_quit:"終了",
+  fnd_tab:"検出結果",
+  fnd_title:"トークンリーク分析",
+  fnd_intro:"ログから見つかった構造的なリークと、その実測コストです。自動では何も適用されません — 判断はあなたに委ねられます。",
+  fnd_scanning:"ログを分析中…",
+  fnd_none:"この期間にリークはありません。問題なしです。",
+  fnd_err:"分析できませんでした。サーバーへの接続を確認してください。",
+  fnd_reread_t:n=>`同じセッションで1つのファイルが${n}回読まれました`,
+  fnd_inflate_t:n=>`1つの会話が${n}ターンにわたり肥大化し続けました`,
+  fnd_mech_t:n=>`git/テストだけのリクエストが${n}件`,
+  fnd_mcp_t:s=>`未使用のMCPサーバー: ${s}`,
+  fnd_reread_f:"ファイル全体ではなく必要な部分（行範囲）を指定してください — 読み込みは会話に積み重なり、前の内容を置き換えません。",
+  fnd_inflate_f:"話題が変わるときの /clear がコンテキストを区切ります。各ターンはそれまでの全てを読み直しています。",
+  fnd_mech_f:"最後にまとめるか、ターミナルで自分で実行すれば無料です。",
+  fnd_mcp_f:"ツール定義は毎回のリクエストに載っています。設定から外すのも再接続も1行です。",
+  fnd_ignore:"無視",
+  fnd_hidden:n=>`${n}件を非表示`,
+  fnd_restore:"再表示",
+  fnd_turns:"ターン",
+  fnd_est_note:"~ = 推定値。それ以外はログからの実測値です。",
   pill_style_label:"ウィジェットのスタイル",
   pill_style_plain:"ピル",
   pill_style_cat:"ノートPCの猫 🐱",
@@ -1607,6 +1748,25 @@ ko:{
   status_fail:"연결 불가",
   pill_label:"작업 표시줄 위 플로팅 위젯",
   tray_open:"패널 열기", tray_widget:"플로팅 위젯", tray_quit:"종료",
+  fnd_tab:"발견 항목",
+  fnd_title:"토큰 누수 분석",
+  fnd_intro:"로그에서 발견된 구조적 누수와 실측 비용입니다. 자동으로 적용되는 것은 없습니다 — 결정은 사용자의 몫입니다.",
+  fnd_scanning:"로그 분석 중…",
+  fnd_none:"이 기간에는 누수가 없습니다. 깨끗합니다.",
+  fnd_err:"분석할 수 없습니다. 서버 연결을 확인하세요.",
+  fnd_reread_t:n=>`한 파일이 같은 세션에서 ${n}번 읽혔습니다`,
+  fnd_inflate_t:n=>`한 대화가 ${n}턴 동안 계속 커졌습니다`,
+  fnd_mech_t:n=>`git/테스트만을 위한 요청 ${n}건`,
+  fnd_mcp_t:s=>`사용하지 않는 MCP 서버: ${s}`,
+  fnd_reread_f:"파일 전체 대신 필요한 부분(줄 범위)을 요청하세요 — 읽기는 대화에 쌓이며 이전 내용을 대체하지 않습니다.",
+  fnd_inflate_f:"주제가 바뀔 때 /clear 가 컨텍스트를 나눕니다. 매 턴마다 이전 내용 전부를 다시 읽습니다.",
+  fnd_mech_f:"마지막에 몰아서 하거나 터미널에서 직접 실행하면 무료입니다.",
+  fnd_mcp_f:"도구 정의는 어차피 매 요청마다 전송됩니다. 설정에서 빼는 것도, 다시 연결하는 것도 한 줄입니다.",
+  fnd_ignore:"무시",
+  fnd_hidden:n=>`${n}개 숨김`,
+  fnd_restore:"다시 표시",
+  fnd_turns:"턴",
+  fnd_est_note:"~ = 추정치. 나머지는 로그에서 실측한 값입니다.",
   pill_style_label:"위젯 스타일",
   pill_style_plain:"알약",
   pill_style_cat:"노트북 고양이 🐱",
@@ -1761,6 +1921,25 @@ zh:{
   status_fail:"无法连接",
   pill_label:"任务栏上方的浮动小组件",
   tray_open:"打开面板", tray_widget:"浮动小组件", tray_quit:"退出",
+  fnd_tab:"发现",
+  fnd_title:"Token 泄漏分析",
+  fnd_intro:"从你的日志中找到的结构性泄漏及其实测成本。不会自动应用任何更改 — 由你决定。",
+  fnd_scanning:"正在分析日志…",
+  fnd_none:"此时间段没有泄漏。一切正常。",
+  fnd_err:"无法分析。请检查与服务器的连接。",
+  fnd_reread_t:n=>`同一会话中一个文件被读取了${n}次`,
+  fnd_inflate_t:n=>`一段对话在${n}轮中不断膨胀`,
+  fnd_mech_t:n=>`仅用于 git/测试的请求有${n}条`,
+  fnd_mcp_t:s=>`未使用的 MCP 服务器：${s}`,
+  fnd_reread_f:"请求需要的部分（行范围）而不是整个文件 — 每次读取都会叠加到对话中，不会替换上一次。",
+  fnd_inflate_f:"换话题时用 /clear 切分上下文：每一轮都会重读之前的全部内容。",
+  fnd_mech_f:"攒到最后一起做，或自己在终端里执行 — 那样是免费的。",
+  fnd_mcp_f:"它的工具定义反正每次请求都会传输。从配置中移除只需一行，重新连接也是。",
+  fnd_ignore:"忽略",
+  fnd_hidden:n=>`已隐藏${n}项`,
+  fnd_restore:"重新显示",
+  fnd_turns:"轮",
+  fnd_est_note:"~ = 估算；其余均为日志实测。",
   pill_style_label:"小组件样式",
   pill_style_plain:"药丸",
   pill_style_cat:"笔记本小猫 🐱",
@@ -2914,15 +3093,90 @@ function renderRemotes(){
 }
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
 function showTab(name){
-  for(const k of ["main","sources","prefs"]) $("tab-"+k).hidden = (k!==name);
+  for(const k of ["main","sources","findings","prefs"]) $("tab-"+k).hidden = (k!==name);
   $("expBox").hidden = true;                      // el aviso era de ese momento
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
   if(name==="sources") loadRemotes();             // refresca estado de servidores
+  if(name==="findings") loadFindings(false);      // usa el resultado en memoria si lo hay
   if(name==="prefs") renderPricesStatus();        // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
   document.querySelector(".panel").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+
+// ---------- pestaña Hallazgos (analizador de fugas) ----------
+// El backend mide; aquí solo se pinta. Reglas de docs/analizador-fugas.md:
+// costos con "~" cuando llevan heurística, nunca se aplica nada solo, y el
+// botón Ignorar persiste (un hallazgo despachado no debe volver cada semana).
+let fndDays=+(localStorage.getItem("fndDays")||7);
+if(![1,7,15,30].includes(fndDays)) fndDays=7;
+$("fndDays").value=String(fndDays);
+let fndCache=null, fndBusy=false;
+$("fndDays").addEventListener("change",()=>{
+  fndDays=+$("fndDays").value; localStorage.setItem("fndDays",String(fndDays));
+  loadFindings(true);
+});
+function fndKey(f){ return [f.kind,f.file||f.server||f.session,f.origin||""].join("|"); }
+function fndIgnored(){ try{ return new Set(JSON.parse(localStorage.getItem("fndIgnore")||"[]")); }catch(_){ return new Set(); } }
+function fmtTok(n){ return n>=1e6 ? (n/1e6).toFixed(1)+"M" : n>=1e3 ? Math.round(n/1e3)+"k" : String(n); }
+// nombre legible del proyecto: la carpeta cruda viene tipo
+// "-opt-projects-michiclaude" o "C--Users-oscar-mi-proyecto"
+function fndProj(raw){
+  const m=String(raw).match(/projects-(.+)$/);
+  return m ? m[1] : String(raw).replace(/^-+/,"").split("-").pop() || raw;
+}
+async function loadFindings(force){
+  if(!invoke) return;
+  if(fndBusy) return;
+  if(fndCache && !force){ renderFindings(); return; }
+  fndBusy=true;
+  $("fndList").innerHTML=`<div style="font-size:11px;color:var(--txt-dim);margin-top:8px">${t("fnd_scanning")}</div>`;
+  $("fndFoot").textContent="";
+  try{ fndCache=await invoke("get_findings",{days:fndDays}); renderFindings(); }
+  catch(_){ $("fndList").innerHTML=`<div style="font-size:11px;color:var(--bad);margin-top:8px">${t("fnd_err")}</div>`; }
+  finally{ fndBusy=false; }
+}
+function renderFindings(){
+  const ign=fndIgnored();
+  const list=(fndCache||[]).filter(f=>!ign.has(fndKey(f)));
+  const hid=(fndCache||[]).length-list.length;
+  if(!list.length){
+    $("fndList").innerHTML=`<div style="font-size:11.5px;margin-top:10px">${t("fnd_none")}</div>`;
+  }else{
+    $("fndList").innerHTML=list.map(f=>{
+      // severidad por costo, como los avisos: rojo duele, ámbar avisa
+      const sev=f.cost>=10?"bad":f.cost>=1||f.kind==="mcp_unused"?"warn":"";
+      const est=f.estimated?"~":"";
+      const title=f.kind==="reread"?t("fnd_reread_t",f.count)
+        :f.kind==="inflate"?t("fnd_inflate_t",f.turns)
+        :f.kind==="mech"?t("fnd_mech_t",f.count)
+        :t("fnd_mcp_t",f.server);
+      const meta=[f.file?f.file.split(/[\\/]/).pop():"",
+        f.project?fndProj(f.project):"", f.origin||t("src_local")]
+        .filter(Boolean).join(" · ");
+      const cost=f.cost>0?`${est}$${f.cost.toFixed(2)} · ${est}${fmtTok(f.tokens)} tok`
+        :f.tokens>0?`${est}${fmtTok(f.tokens)} tok`:"";
+      return `<div class="fnd ${sev}">
+        <button class="fnd-x" data-k="${fndKey(f).replace(/"/g,"&quot;")}">${t("fnd_ignore")} ✕</button>
+        <div class="fnd-t">${title}</div>
+        <div class="fnd-m">${meta}</div>
+        ${cost?`<div class="fnd-c">${cost}</div>`:""}
+        <div class="fnd-f">${t("fnd_"+f.kind.split("_")[0]+"_f")||""}</div>
+      </div>`;
+    }).join("");
+    $("fndList").querySelectorAll(".fnd-x").forEach(b=>b.addEventListener("click",()=>{
+      const ign2=fndIgnored(); ign2.add(b.dataset.k);
+      localStorage.setItem("fndIgnore",JSON.stringify([...ign2]));
+      renderFindings();
+    }));
+  }
+  const bits=[t("fnd_est_note")];
+  if(hid>0) bits.push(`${t("fnd_hidden",hid)} · <a href="#" id="fndRestore" style="color:var(--accent)">${t("fnd_restore")}</a>`);
+  $("fndFoot").innerHTML=bits.join(" · ");
+  const r=$("fndRestore");
+  if(r) r.addEventListener("click",e=>{ e.preventDefault();
+    localStorage.removeItem("fndIgnore"); renderFindings(); });
+}
 // El comando propio es un caso rarísimo (otro binario de python, un
 // contenedor...). Oculto por defecto: verlo sin saber para qué es solo
 // genera dudas, y vacío es lo correcto para casi todo el mundo.
