@@ -337,7 +337,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
     hasta el 2026-07-29, que lo vio Oscar con la app en español. Ahora el
     panel se lo manda ya traducido desde `applyI18n()` con el comando
     `set_tray_menu`, al cargar y en cada cambio de idioma; las etiquetas de
-    `setup()` quedan como respaldo para los milisegundos previos. REGLA: si
+    `setup()` quedan como respaldo para los milisegundos previos.
+    VALIDADO en vivo por Oscar el 2026-07-29 en español y japonés, cambiando
+    el idioma con la app abierta: el menú cambia al momento, sin reiniciar. REGLA: si
     algún día se añade otra cosa que Rust dibuje con texto, tiene que llegarle
     igual — desde el panel, nunca escrita en el backend.
 11. Tema claro/oscuro: variables CSS con override en `body.light`, toggle ◐
