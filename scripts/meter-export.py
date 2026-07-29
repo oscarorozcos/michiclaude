@@ -194,6 +194,184 @@ def is_estimated(model):
     return not any(f in m for f in ("fable", "mythos", "opus", "haiku", "sonnet"))
 
 
+# ---------------------------------------------------------------------------
+# Analizador de fugas (--findings). Diseño completo en docs/analizador-fugas.md
+# — leerlo antes de tocar esto. Las reglas que no se negocian:
+#   · Solo hallazgos ESTRUCTURALES y medibles. Nada que exija adivinar qué tan
+#     difícil era una tarea ("esto no merecía Opus" está PROHIBIDO).
+#   · Costos MEDIDOS de los propios logs siempre que se pueda; donde entre una
+#     heurística (chars/4 ≈ tokens) el hallazgo va con estimated:true y la UI
+#     lo enseña con "~".
+#   · Pasada APARTE que solo corre bajo el flag (patrón want_rows): necesita
+#     detalle por línea (sesión, herramientas, contenidos devueltos) que el
+#     caché de escaneo no guarda, y el ciclo normal del panel no debe pagarla.
+# ---------------------------------------------------------------------------
+
+# Comandos deterministas: turnos donde Claude no piensa, solo ejecuta. La
+# lista es CORTA a propósito — un falso positivo aquí ("marcó como mecánico
+# algo que sí pensaba") cuesta la credibilidad del detector entero.
+MECH_RE = re.compile(
+    r"^\s*(?:cd\s+\S+\s*(?:&&|;)\s*)?"
+    r"(?:git\b|pytest\b|cargo\s+(?:check|fmt|clippy)\b|"
+    r"npm\s+(?:test|ci|install)\b)")
+
+REREAD_MIN = 3          # lecturas del mismo archivo en una sesión para avisar
+REREAD_MIN_TOKENS = 2000  # por debajo es ruido: una tarjeta de $0.00 devalúa
+                          # a las demás (y el usuario deja de mirarlas)
+INFLATE_MIN_GROWTH = 50_000   # tokens de contexto acumulados
+INFLATE_MIN_TURNS = 10
+MECH_MIN = 5            # peticiones mecánicas en la ventana para avisar
+MAX_FINDINGS = 12       # las tarjetas no son un log: lo más caro primero
+
+
+def mcp_servers_configured():
+    """Servidores MCP dados de alta en ~/.claude.json (global y por proyecto)."""
+    out = set()
+    try:
+        cfg = json.loads((Path.home() / ".claude.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return out
+    if isinstance(cfg.get("mcpServers"), dict):
+        out |= set(cfg["mcpServers"])
+    for p in (cfg.get("projects") or {}).values():
+        if isinstance(p, dict) and isinstance(p.get("mcpServers"), dict):
+            out |= set(p["mcpServers"])
+    return out
+
+
+def scan_findings(projects_dir, window_ago, days):
+    """Corre los detectores sobre la ventana pedida y devuelve la lista de
+    hallazgos, la más cara primero. Relee los .jsonl (sin caché): solo corre
+    bajo --findings y tarda ~1 s por cada 50 MB de logs."""
+    sessions = {}   # sid -> estado por sesión
+    pend_reads = {}  # tool_use_id -> (sid, ruta)  para casar con su resultado
+    mech = [0, 0, 0.0]           # [peticiones, tokens, costo]
+    mcp_used = set()
+    seen = set()                 # misma dedup que la agregación
+    skip_before = (window_ago - timedelta(days=2)).timestamp()
+
+    if projects_dir.is_dir():
+        for proj in sorted(projects_dir.iterdir()):
+            if not proj.is_dir():
+                continue
+            for f in sorted(proj.glob("*.jsonl")):
+                try:
+                    if f.stat().st_mtime < skip_before:
+                        continue
+                    lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+                except OSError:
+                    continue
+                for line in lines:
+                    try:
+                        v = json.loads(line)
+                    except ValueError:
+                        continue
+                    if not isinstance(v, dict):
+                        continue
+                    sid = v.get("sessionId") or ""
+                    msg = v.get("message") or {}
+                    content = msg.get("content")
+                    blocks = content if isinstance(content, list) else []
+                    S = sessions.setdefault(sid, {
+                        "first_cr": None, "last_cr": None, "turns": 0,
+                        "cr_cost": 0.0, "reads": {}, "read_chars": {},
+                        "models": {}, "proj": proj.name})
+                    # resultados de lecturas: se MIDE lo que viajó de verdad
+                    for b in blocks:
+                        if not isinstance(b, dict):
+                            continue
+                        if b.get("type") == "tool_result":
+                            k = pend_reads.pop(b.get("tool_use_id"), None)
+                            if k:
+                                c = b.get("content")
+                                n = (len(c) if isinstance(c, str) else
+                                     sum(len(x.get("text") or "") for x in c
+                                         if isinstance(x, dict)) if isinstance(c, list) else 0)
+                                st = sessions[k[0]]
+                                st["read_chars"][k[1]] = st["read_chars"].get(k[1], 0) + n
+                    usage = msg.get("usage")
+                    if not isinstance(usage, dict):
+                        continue
+                    key = "%s:%s" % (msg.get("id") or "", v.get("requestId") or "")
+                    if key != ":":
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                    model = msg.get("model") or "unknown"
+                    if model == "<synthetic>":
+                        continue
+                    ts = parse_ts(v.get("timestamp"))
+                    if ts is None or ts < window_ago:
+                        continue
+                    inp = usage.get("input_tokens") or 0
+                    out_t = usage.get("output_tokens") or 0
+                    cw = usage.get("cache_creation_input_tokens") or 0
+                    cr = usage.get("cache_read_input_tokens") or 0
+                    pi, po, pcw, pcr = price_for(model)
+                    S["turns"] += 1
+                    S["models"][model] = S["models"].get(model, 0) + 1
+                    if S["first_cr"] is None:
+                        S["first_cr"] = cr
+                    S["last_cr"] = cr
+                    S["cr_cost"] += cr * pcr / 1e6   # MEDIDO: releer el contexto
+                    uses = [b for b in blocks
+                            if isinstance(b, dict) and b.get("type") == "tool_use"]
+                    for b in uses:
+                        name = b.get("name") or ""
+                        if name.startswith("mcp__"):
+                            mcp_used.add(name.split("__")[1] if "__" in name[5:]
+                                         else name[5:])
+                        if name == "Read":
+                            p = (b.get("input") or {}).get("file_path")
+                            if p:
+                                S["reads"][p] = S["reads"].get(p, 0) + 1
+                                pend_reads[b.get("id")] = (sid, p)
+                    if uses and all(b.get("name") == "Bash" and MECH_RE.match(
+                            str((b.get("input") or {}).get("command") or ""))
+                            for b in uses):
+                        mech[0] += 1
+                        mech[1] += inp + out_t + cw
+                        mech[2] += (inp * pi + out_t * po + cw * pcw + cr * pcr) / 1e6
+
+    findings = []
+    for sid, S in sessions.items():
+        if not S["models"]:
+            continue
+        top_model = max(S["models"], key=S["models"].get)
+        pi = price_for(top_model)[0]
+        # archivos releídos: el contenido se APILA en la conversación, no se
+        # reemplaza. Tokens ~ chars/4 de lo devuelto tras la primera lectura;
+        # el costo es el PISO (una ingesta a precio de input) — la realidad es
+        # mayor porque además se relee en cada turno posterior.
+        for path, n in S["reads"].items():
+            if n < REREAD_MIN:
+                continue
+            chars = S["read_chars"].get(path, 0)
+            stacked = int(chars * (n - 1) / n / 4) if n else 0
+            if stacked < REREAD_MIN_TOKENS:
+                continue
+            findings.append({
+                "kind": "reread", "file": path, "project": S["proj"],
+                "count": n, "tokens": stacked,
+                "cost": stacked * pi / 1e6, "estimated": True,
+                "session": sid[:8]})
+        growth = ((S["last_cr"] or 0) - (S["first_cr"] or 0))
+        if growth >= INFLATE_MIN_GROWTH and S["turns"] >= INFLATE_MIN_TURNS:
+            findings.append({
+                "kind": "inflate", "project": S["proj"], "session": sid[:8],
+                "turns": S["turns"], "tokens": growth,
+                "cost": S["cr_cost"], "estimated": False})
+    if mech[0] >= MECH_MIN:
+        findings.append({"kind": "mech", "count": mech[0],
+                         "tokens": mech[1], "cost": mech[2],
+                         "estimated": False})
+    for server in sorted(mcp_servers_configured() - mcp_used):
+        findings.append({"kind": "mcp_unused", "server": server,
+                         "tokens": 0, "cost": 0.0, "estimated": False})
+    findings.sort(key=lambda x: -x["cost"])
+    return findings[:MAX_FINDINGS]
+
+
 HOSTS_DIR = Path.home() / ".michiclaude" / "hosts"
 
 
@@ -261,6 +439,8 @@ def main():
     # Filas del reporte (fecha × proyecto × modelo). Solo cuando se piden:
     # el panel no las necesita y engordarían cada consulta.
     want_rows = "--rows" in args
+    # Hallazgos del analizador de fugas: pasada aparte, solo bajo demanda.
+    want_findings = "--findings" in args
 
     if "--prices-stdin" in args:
         try:
@@ -395,6 +575,10 @@ def main():
              "model": model, "cost": c, "tokens": t}
             for (d, raw, model), (c, t) in sorted(rows.items())
         ],
+        # Analizador de fugas: solo bajo --findings, para que ni el ciclo del
+        # panel ni las fotos del hub paguen la pasada extra.
+        "findings": scan_findings(projects_dir, window_ago, days)
+        if want_findings else [],
     }))
 
 
