@@ -3212,6 +3212,11 @@ async function fndAutoScan(){
 }
 setTimeout(fndAutoScan,90*1000);      // sin competir con la primera carga
 setInterval(fndAutoScan,30*60*1000);  // tic barato; el guard de 20 h decide
+// PRECARGA: el primer escaneo (local + SSH) tarda segundos, y pagarlos con
+// la pestaña abierta se siente lento (lo notó Oscar el 2026-07-29). Se paga
+// una vez de fondo al arrancar y la pestaña abre al instante desde memoria.
+// Cambiar la ventana 1/7/15/30 sigue re-escaneando: es otra consulta.
+setTimeout(()=>{ if(fndCache===null && $("tab-findings").hidden) loadFindings(false); },15*1000);
 fndBadgeCalc();                       // lo pendiente de ayer revive al abrir
 // clic en el sticker/puntito del widget: el panel abre YA en Hallazgos
 EVENT?.listen("panel:findings",()=>showTab("findings"));
@@ -3274,10 +3279,14 @@ function renderFindings(){
   if(r) r.addEventListener("click",e=>{ e.preventDefault();
     localStorage.removeItem("fndIgnore"); renderFindings(); });
   // lo que quedó A LA VISTA cuenta como visto: el contador y el sticker se
-  // apagan y estas tarjetas no los vuelven a encender (las de mañana sí)
-  const seen=fndSeen(); list.forEach(f=>seen.add(fndKey(f)));
-  localStorage.setItem("fndSeen",JSON.stringify([...seen].slice(-300)));
-  fndBadgeCalc();
+  // apagan y estas tarjetas no los vuelven a encender (las de mañana sí).
+  // SOLO si la pestaña está de verdad en pantalla: la precarga de fondo
+  // también pinta, y marcar visto lo que nadie vio mataría el aviso.
+  if(!$("tab-findings").hidden){
+    const seen=fndSeen(); list.forEach(f=>seen.add(fndKey(f)));
+    localStorage.setItem("fndSeen",JSON.stringify([...seen].slice(-300)));
+    fndBadgeCalc();
+  }
 }
 // El comando propio es un caso rarísimo (otro binario de python, un
 // contenedor...). Oculto por defecto: verlo sin saber para qué es solo

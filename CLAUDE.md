@@ -1039,6 +1039,23 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       en apply() (un fallo pasajero de cuota no apaga un aviso pendiente) y
       el contador de la pestaña vive en un <span> DENTRO del botón porque
       applyI18n pisa el textContent de todo [data-i18n].
+      VALIDADO en vivo por Oscar el 2026-07-29 — y el aviso funcionó TAN
+      bien que la primera vez pareció roto: Oscar abrió la pestaña buscando
+      la notificación y ese vistazo marcó las tarjetas como vistas antes de
+      ver el sticker (fndSeen tenía las 4 claves; se confirmó por consola).
+      Ajustes de la maqueta de Oscar tras verlo: en el GATITO el sticker es
+      globito ROJO FIJO con número blanco y leve transparencia (sin tinte
+      por severidad — esa vive en tarjetas y contador de la pestaña); en la
+      PASTILLA es una CAMPANA roja SVG (más brillante en oscuro, #ff5a5a vs
+      #ef4444) con meneo al clic, y la MARCA dejó de ser el sunburst: ahora
+      es el sticker del gatito (variante -white/-black según tema, misma
+      regla que los gifs) — la mascota ES la marca. PRECARGA de Hallazgos:
+      la primera apertura pagaba el escaneo local+SSH en la cara del usuario
+      (lo sintió lento Oscar); ahora se paga de fondo a los 15 s de arrancar
+      y la pestaña abre de memoria. TRAMPA que trajo la precarga: pintar en
+      la pestaña OCULTA no debe marcar visto (mataría el aviso) — el marcado
+      está condicionado a !$("tab-findings").hidden. Para re-armar el aviso
+      al probar: borrar fndSeen y fndAutoLast del localStorage del panel.
       FALTA para el diseño completo: el aviso EN EL MOMENTO con texto (el
       globito una vez al día — el indicador de arriba es la versión pasiva),
       la verificación antes/después (necesita semanas de historial, ya

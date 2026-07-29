@@ -41,8 +41,10 @@
   .grip{flex:0 0 auto;width:13px;color:var(--dim);cursor:grab;
     font-size:11px;letter-spacing:-1px;text-align:center}
   .grip:active{cursor:grabbing}
-  .mkbtn{flex:0 0 auto;width:24px;height:24px;padding:0;border:0;background:none;
+  .mkbtn{flex:0 0 auto;width:26px;height:26px;padding:0;border:0;background:none;
     cursor:pointer;display:grid;place-items:center}
+  .mkbtn img{width:26px;height:26px;object-fit:contain;display:block;
+    -webkit-user-drag:none}
   .lab{font-size:13px;font-weight:500;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap}
   .pct{font-size:13.5px;font-weight:700;color:var(--txt-strong);white-space:nowrap}
@@ -54,16 +56,19 @@
   .spk{animation:tw 2.4s ease-in-out infinite}
   @keyframes tw{0%,100%{opacity:1}50%{opacity:.55}}
   .chev{margin-left:auto;flex:0 0 auto;width:13px;height:13px;color:var(--dim)}
-  /* puntito de hallazgos NUEVOS (color = severidad); clic → panel en Hallazgos */
-  .fdot{flex:0 0 auto;width:9px;height:9px;border-radius:50%;cursor:pointer;
-    background:var(--warn);box-shadow:0 0 4px rgba(0,0,0,.25)}
+  /* campana ROJA de hallazgos nuevos (maqueta de Oscar 2026-07-29: rojo
+     fijo, un poco más brillante en oscuro); clic → panel directo en Hallazgos */
+  .fbell{flex:0 0 auto;display:inline-flex;cursor:pointer;color:#ff5a5a}
+  body.light .fbell{color:#ef4444}
+  .fbell svg{width:16px;height:16px;display:block}
+  .fbell[hidden]{display:none}
   body.loading .pct,body.stale .pct{color:var(--dim)}
 </style>
 </head>
 <body class="loading">
 <div class="cap" id="cap">
   <span class="grip" id="grip" title="⠿">⠿</span>
-  <button class="mkbtn" id="mkbtn"><span id="mk"></span></button>
+  <button class="mkbtn" id="mkbtn"><img id="mkImg" src="sticker-black.png" alt="" draggable="false"></button>
   <span class="lab" id="sesLab"></span><b class="pct" id="sPct">—</b>
   <span class="m" id="wBox" hidden>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -78,7 +83,13 @@
       <path d="M18 4v3M19.5 5.5h-3M18 15v3M19.5 16.5h-3"/>
     </svg><span id="xPct"></span>
   </span>
-  <span class="fdot" id="fdot" hidden></span>
+  <span class="fbell" id="fdot" hidden role="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M10 5a2 2 0 1 1 4 0 7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/>
+      <path d="M9 17v1a3 3 0 0 0 6 0v-1"/>
+    </svg>
+  </span>
   <svg class="chev" id="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M6 9l6 6 6-6"/>
@@ -92,18 +103,13 @@ const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
 
-// marca (mini sunburst, igual que el panel)
-(function(){
-  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="22" height="22" viewBox="0 0 ${S} ${S}">`;
-  for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
-    const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
-    const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
-    const pts=[[cx+ux*base,cy+uy*base],[cx+ux*mid+px*hw,cy+uy*mid+py*hw],
-      [cx+ux*tip,cy+uy*tip],[cx+ux*mid-px*hw,cy+uy*mid-py*hw]]
-      .map(q=>q.map(n=>n.toFixed(2)).join(",")).join(" ");
-    p+=`<polygon points="${pts}" fill="var(--brand)"/>`}
-  $("mk").innerHTML=p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
-})();
+// marca: el GATITO (sticker en variante por tema, misma regla que los gifs:
+// claro → -white, oscuro → -black). Antes era el mini sunburst; se cambió a
+// petición de Oscar el 2026-07-29 — la mascota ES la marca.
+function syncMk(light){
+  const src = light ? "sticker-white.png" : "sticker-black.png";
+  if($("mkImg").getAttribute("src")!==src) $("mkImg").setAttribute("src",src);
+}
 
 // Color de los porcentajes. El verde de "todo bien" se cambió por el acento
 // de la app (petición de Oscar 2026-07-27: el mismo tono del tag
@@ -118,14 +124,13 @@ function col(p,pace){ if(p>=95) return "var(--bad)";
 function render(d){
   document.body.classList.remove("loading");
   document.body.classList.toggle("light", d?.theme==="light");
+  syncMk(d?.theme==="light");
   if(d?.labels) $("sesLab").textContent=d.labels.cardSes||d.labels.ses||"Session";
-  // puntito de hallazgos: va ANTES del early-return de ok:false — un fallo
+  // campana de hallazgos: va ANTES del early-return de ok:false — un fallo
   // pasajero de la cuota no debe apagar un aviso que sigue pendiente
   const f=d?.fnd;
   $("fdot").hidden=!f;
-  if(f){ $("fdot").style.background = f.sev==="bad" ? "var(--bad)"
-      : f.sev==="warn" ? "var(--warn)" : "var(--acc)";
-    $("fdot").title=f.tip||""; }
+  if(f) $("fdot").title=f.tip||"";
   if(!d || d.ok===false){
     document.body.classList.add("stale");
     $("sPct").textContent="—"; $("wBox").hidden=true; $("xBox").hidden=true; return;
@@ -162,7 +167,10 @@ function syncChev(){ $("chev").style.transform = open?"rotate(180deg)":""; }
 $("cap").addEventListener("click",e=>{
   if(dragging || e.target.closest("#grip")) return;
   if(e.target.closest("#mkbtn")){ invoke?.("show_panel"); return; }  // la marca abre el panel
-  if(e.target.closest("#fdot")){  // el puntito abre el panel YA en Hallazgos
+  if(e.target.closest("#fdot")){  // la campana abre el panel YA en Hallazgos
+    $("fdot").animate([{transform:"rotate(0)"},{transform:"rotate(-14deg)"},
+      {transform:"rotate(12deg)"},{transform:"rotate(-6deg)"},{transform:"rotate(0)"}],
+      {duration:420});
     EVENT?.emit("panel:findings"); invoke?.("show_panel"); return; }
   open=!open; syncChev();
   invoke?.("toggle_pill_card",{open});
