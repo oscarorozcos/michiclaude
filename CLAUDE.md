@@ -279,8 +279,21 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
     `test_remote`, que es un SSH de 1-2 s. Envueltos así: test_remote,
     install_remote, get_local_stats, export_data, save_hub_config y
     load_hub_config. NO envolver los que tocan ventanas (hover_card,
-    set_notif_visible, toggle_pill_card, set_pill_*, update_tray): esos
+    set_notif_visible, toggle_pill_card, set_pill_visible, update_tray): esos
     tienen que seguir en el hilo principal, y además son instantáneos.
+    EXCEPCIÓN, y por un motivo OPUESTO: `set_pill_style` SÍ es `async fn`
+    desde el 2026-07-29, no porque sea lento sino porque CREA una ventana.
+    Crear una ventana desde un comando síncrono CONGELA la app entera en
+    Windows: la ventana nueva necesita que el bucle de eventos avance para
+    nacer, y ese bucle está detenido esperando a que el comando termine. Se
+    esperan mutuamente. Pasó en vivo al cambiar a la pastilla —el gatito se
+    quedaba en pantalla y el panel dejaba de responder a todo, hasta al
+    filtro de días— y se arregló solo añadiendo `async`, que hace que Tauri
+    lo ejecute fuera del hilo de la interfaz. En `setup()` la misma llamada
+    puede ser síncrona porque ahí el bucle todavía no ha arrancado — por eso
+    el gatito aparecía bien al arrancar y el fallo solo salía al cambiar de
+    widget. REGLA para lo que venga: todo comando que cree ventanas tiene
+    que ser async.
     VALIDADO en vivo por Oscar el 2026-07-28: el panel pasó a sentirse
     fluido al cambiar de pestaña. OJO al diagnosticar "la app va lenta":
     los gifs del gatito parecían el sospechoso obvio y no tenían nada que
