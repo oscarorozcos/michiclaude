@@ -948,13 +948,24 @@ LO QUE HAY QUE SABER ANTES DE VOLVER A DIAGNOSTICAR ESTO:
    Electron ronda 90-150 MB), pero la RAM está al nivel de Slack o Discord,
    que es justo lo que un widget de bandeja no debería costar.
 
-PENDIENTE con el mayor ahorro conocido (~115 MB): la pastilla y el gatito son
-EXCLUYENTES, así que dos de las seis ventanas nunca se muestran — con el
-gatito puesto, `pill` y `pcard` se cargan y no pintan nada jamás. Crear solo
-el par que corresponde al estilo elegido es el siguiente arreglo. OJO: no
-choca con la regla de no redimensionar ventanas transparentes (esa prohíbe
-CAMBIAR EL TAMAÑO de una ventana viva, no crear menos ventanas), pero obliga
-a re-validar gatito, globos, arrastre y capas.
+ARREGLADO 2026-07-29 (~115 MB): la pastilla y el gatito son EXCLUYENTES, así
+que dos de las seis ventanas no se mostraban NUNCA — con el gatito puesto,
+`pill` y `pcard` se cargaban para no pintar nada jamás. Ahora `pill`, `pcard`,
+`cat` y `card` YA NO ESTÁN en tauri.conf.json: las crea
+`ensure_widget_windows()` en Rust, solo el par del estilo elegido, y al
+cambiar de widget se crea el par nuevo y se DESTRUYE el viejo (si solo se
+ocultara, quien probara los dos acabaría con las cuatro cargadas hasta
+reiniciar). En el json solo quedan `main` y `notif`, que salen con los dos
+estilos.
+CONSECUENCIA para el mantenimiento: el TAMAÑO de esas cuatro ventanas ya no
+se toca en el json, se toca en `ensure_widget_windows()`. Y las capabilities
+tienen que seguir listando las seis etiquetas: los permisos van por etiqueta,
+así que una ventana creada en caliente hereda los mismos.
+No choca con la regla de no redimensionar ventanas transparentes: esa prohíbe
+cambiar el TAMAÑO de una ventana viva, y aquí cada una nace con el suyo fijo.
+Lo que lo hizo barato: TODOS los usos de esas ventanas ya toleraban su
+ausencia (`if let Some` / `else { return }`), así que no hubo que blindar
+nada — solo crearlas antes de medirlas en `set_pill_style`.
 
 ## Retención de los logs (requisito del analizador)
 

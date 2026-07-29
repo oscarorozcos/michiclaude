@@ -2047,22 +2047,20 @@ pub fn run() {
             // Widget flotante: sin robo de foco; se muestra si el usuario lo dejó activo.
             {
                 use tauri::Manager;
-                if let Some(pill) = app.get_webview_window("pill") {
+                let cfg = load_pill_config();
+                // Solo el par que corresponde al estilo elegido; el otro se
+                // crea si el usuario cambia de widget. Ahí va el make_noactivate
+                // de esas cuatro ventanas (ver ensure_widget_windows).
+                ensure_widget_windows(app.handle(), &cfg.style);
+                // el globo de avisos sale con los DOS estilos, así que sigue
+                // declarado en tauri.conf.json y se le aplica aquí
+                if let Some(w) = app.get_webview_window("notif") {
                     #[cfg(windows)]
-                    if let Ok(h) = pill.hwnd() {
+                    if let Ok(h) = w.hwnd() {
                         win_taskbar::make_noactivate(h.0 as isize);
                     }
                 }
-                // ni el gatito ni sus globos (hover/notificación) roban foco
-                for label in ["cat", "card", "notif", "pcard"] {
-                    if let Some(w) = app.get_webview_window(label) {
-                        #[cfg(windows)]
-                        if let Ok(h) = w.hwnd() {
-                            win_taskbar::make_noactivate(h.0 as isize);
-                        }
-                    }
-                }
-                if load_pill_config().visible {
+                if cfg.visible {
                     set_pill_visible_impl(app.handle(), true);
                 }
             }
@@ -2674,6 +2672,67 @@ fn set_pill_layer(app: tauri::AppHandle, layer: String) {
     reassert_layers(&app);
 }
 
+/// Crea, solo si hacen falta, las dos ventanas del estilo de widget elegido.
+///
+/// La pastilla y el gatito son EXCLUYENTES: con el gatito puesto, `pill` y
+/// `pcard` no se muestran JAMÁS, y al revés. Declarándolas las cuatro en
+/// tauri.conf.json se creaban todas al arrancar, y cada WebView2 cuesta un
+/// piso de ~57 MB aunque esté vacía y oculta: eran ~115 MB para no pintar
+/// nada (medido en el Windows de Oscar el 2026-07-29 — ver la sección de
+/// consumo de recursos en CLAUDE.md).
+///
+/// OJO, esto NO choca con la regla de "nunca redimensionar una ventana
+/// transparente": esa prohíbe cambiar el TAMAÑO de una ventana viva, que es
+/// lo que deja a WebView2 sin pintar. Aquí cada ventana nace con su tamaño
+/// fijo y no se toca más.
+///
+/// Los valores son los mismos que tenían en tauri.conf.json. Si se cambia el
+/// tamaño de una ventana del widget, se cambia AQUÍ (ya no está en el json).
+fn ensure_widget_windows(app: &tauri::AppHandle, style: &str) {
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+    let wins: [(&str, &str, &str, f64, f64); 2] = if style == "cat" {
+        [
+            ("cat", "cat.html", "MichiClaude — cat", 210.0, 157.0),
+            ("card", "card.html", "MichiClaude — card", 294.0, 322.0),
+        ]
+    } else {
+        [
+            ("pill", "pill.html", "MichiClaude — widget", 280.0, 56.0),
+            ("pcard", "pcard.html", "MichiClaude — detalle", 280.0, 300.0),
+        ]
+    };
+    for (label, url, title, w, h) in wins {
+        if app.get_webview_window(label).is_some() {
+            continue;
+        }
+        let built = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
+            .title(title)
+            .inner_size(w, h)
+            .resizable(false)
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .shadow(false)
+            .focused(false)
+            .visible(false)
+            .build();
+        match built {
+            // el widget NUNCA roba el foco: sin esto, mostrarlo sacaría al
+            // usuario de lo que estuviera escribiendo
+            Ok(_win) => {
+                #[cfg(windows)]
+                if let Ok(hw) = _win.hwnd() {
+                    win_taskbar::make_noactivate(hw.0 as isize);
+                }
+            }
+            // que falle una ventana del widget no debe tumbar la app: el
+            // panel y el icono de la bandeja siguen sirviendo igual
+            Err(e) => eprintln!("MichiClaude: no se pudo crear la ventana {label}: {e}"),
+        }
+    }
+}
+
 fn set_pill_visible_impl(app: &tauri::AppHandle, visible: bool) {
     use tauri::{Emitter, Manager};
     let mut cfg = load_pill_config();
@@ -2735,6 +2794,11 @@ fn set_pill_style(app: tauri::AppHandle, style: String) {
     use tauri::Manager;
     let mut cfg = load_pill_config();
     let new_style = if style == "cat" { "cat" } else { "plain" };
+    // El par del estilo nuevo puede no existir todavía (se crean bajo
+    // demanda). Hay que crearlo ANTES de medir su alto unas líneas más
+    // abajo: sin ventana no hay `outer_size`, y el widget aparecería
+    // desplazado en vertical al cambiar de estilo.
+    ensure_widget_windows(&app, new_style);
     // al alternar pastilla ↔ gatito (alturas distintas) se conserva el borde
     // INFERIOR de la posición guardada, para que el widget no "salte"
     if cfg.style != new_style {
@@ -2754,6 +2818,19 @@ fn set_pill_style(app: tauri::AppHandle, style: String) {
     save_pill_config(&cfg);
     // muestra/oculta la ventana que corresponda (pastilla O gatito)
     set_pill_visible_impl(&app, cfg.visible);
+    // Y se liberan las del estilo que se acaba de abandonar: si solo se
+    // ocultaran, quien probara los dos widgets acabaría con las cuatro
+    // cargadas —los ~115 MB que este diseño evita— hasta reiniciar la app.
+    // `destroy` en vez de `close` porque no queremos pasar por el evento de
+    // cierre; el panel (`main`) sigue existiendo, así que la app no se cae
+    // por quedarse sin ventanas. Vuelven a crearse solas si el usuario
+    // cambia de opinión.
+    let stale = if new_style == "cat" { ["pill", "pcard"] } else { ["cat", "card"] };
+    for label in stale {
+        if let Some(w) = app.get_webview_window(label) {
+            let _ = w.destroy();
+        }
+    }
 }
 
 /// El widget avisa tras un arrastre; persistimos su nueva posición.
