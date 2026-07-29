@@ -331,6 +331,15 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
     `ERR_*` (ERR_NO_TOKEN, ERR_TOKEN_EXPIRED, ERR_RATE_LIMITED:<min>,
     ERR_API:<status>, ERR_NET, ERR_BAD_RESPONSE) que el frontend traduce.
     Tono claro y accionable en ambos idiomas.
+    EL CASO RARO: el menú del icono de bandeja (clic derecho) lo construye
+    RUST al arrancar, cuando el idioma —que vive en el localStorage del
+    panel— todavía no se conoce. Se quedaba en inglés para todo el mundo
+    hasta el 2026-07-29, que lo vio Oscar con la app en español. Ahora el
+    panel se lo manda ya traducido desde `applyI18n()` con el comando
+    `set_tray_menu`, al cargar y en cada cambio de idioma; las etiquetas de
+    `setup()` quedan como respaldo para los milisegundos previos. REGLA: si
+    algún día se añade otra cosa que Rust dibuje con texto, tiene que llegarle
+    igual — desde el panel, nunca escrita en el backend.
 11. Tema claro/oscuro: variables CSS con override en `body.light`, toggle ◐
     en el header, persistido en localStorage.
 

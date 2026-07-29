@@ -682,6 +682,7 @@ en:{
   status_active:"connected",
   status_fail:"unreachable",
   pill_label:"Floating widget above the taskbar",
+  tray_open:"Open panel", tray_widget:"Floating widget", tray_quit:"Quit",
   pill_style_label:"Widget style",
   pill_style_plain:"Pill",
   pill_style_cat:"Cat with laptop 🐱",
@@ -835,6 +836,7 @@ es:{
   status_active:"conectado",
   status_fail:"sin conexión",
   pill_label:"Widget flotante sobre la barra de tareas",
+  tray_open:"Abrir panel", tray_widget:"Widget flotante", tray_quit:"Salir",
   pill_style_label:"Estilo del widget",
   pill_style_plain:"Pastilla",
   pill_style_cat:"Gatito con laptop 🐱",
@@ -988,6 +990,7 @@ pt:{
   status_active:"conectado",
   status_fail:"sem conexão",
   pill_label:"Widget flutuante sobre a barra de tarefas",
+  tray_open:"Abrir painel", tray_widget:"Widget flutuante", tray_quit:"Sair",
   pill_style_label:"Estilo do widget",
   pill_style_plain:"Pílula",
   pill_style_cat:"Gatinho com laptop 🐱",
@@ -1141,6 +1144,7 @@ fr:{
   status_active:"connecté",
   status_fail:"injoignable",
   pill_label:"Widget flottant au-dessus de la barre des tâches",
+  tray_open:"Ouvrir le panneau", tray_widget:"Widget flottant", tray_quit:"Quitter",
   pill_style_label:"Style du widget",
   pill_style_plain:"Pastille",
   pill_style_cat:"Chat avec ordi 🐱",
@@ -1294,6 +1298,7 @@ de:{
   status_active:"verbunden",
   status_fail:"nicht erreichbar",
   pill_label:"Schwebendes Widget über der Taskleiste",
+  tray_open:"Panel öffnen", tray_widget:"Schwebendes Widget", tray_quit:"Beenden",
   pill_style_label:"Widget-Stil",
   pill_style_plain:"Pille",
   pill_style_cat:"Katze mit Laptop 🐱",
@@ -1447,6 +1452,7 @@ ja:{
   status_active:"接続中",
   status_fail:"接続不可",
   pill_label:"タスクバー上のフローティングウィジェット",
+  tray_open:"パネルを開く", tray_widget:"フローティングウィジェット", tray_quit:"終了",
   pill_style_label:"ウィジェットのスタイル",
   pill_style_plain:"ピル",
   pill_style_cat:"ノートPCの猫 🐱",
@@ -1600,6 +1606,7 @@ ko:{
   status_active:"연결됨",
   status_fail:"연결 불가",
   pill_label:"작업 표시줄 위 플로팅 위젯",
+  tray_open:"패널 열기", tray_widget:"플로팅 위젯", tray_quit:"종료",
   pill_style_label:"위젯 스타일",
   pill_style_plain:"알약",
   pill_style_cat:"노트북 고양이 🐱",
@@ -1753,6 +1760,7 @@ zh:{
   status_active:"已连接",
   status_fail:"无法连接",
   pill_label:"任务栏上方的浮动小组件",
+  tray_open:"打开面板", tray_widget:"浮动小组件", tray_quit:"退出",
   pill_style_label:"小组件样式",
   pill_style_plain:"药丸",
   pill_style_cat:"笔记本小猫 🐱",
@@ -1812,6 +1820,13 @@ function applyI18n(){
   document.querySelectorAll("[data-i18n-title]").forEach(el=>{ el.title=t(el.dataset.i18nTitle); });
   $("hideBtn").title=t("hide_title"); $("themeBtn").title=t("theme_title");
   $("langSel").value=lang;
+  // El menú del icono de bandeja lo construye Rust al arrancar y no puede
+  // pasar por t(): el idioma vive aquí. Se lo mandamos ya traducido, al
+  // cargar y en cada cambio de idioma (era el único texto que se quedaba
+  // en inglés — invariante #10).
+  if(typeof invoke!=="undefined" && invoke)
+    invoke("set_tray_menu",{open:t("tray_open"),widget:t("tray_widget"),quit:t("tray_quit")})
+      .catch(()=>{});
 }
 
 // Traducción de códigos de error del backend (ERR_*)

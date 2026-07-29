@@ -1999,6 +1999,7 @@ pub fn run() {
             refresh_prices_now,
             hover_card,
             set_notif_visible,
+            set_tray_menu,
             pill_moved
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -2670,6 +2671,34 @@ fn set_pill_layer(app: tauri::AppHandle, layer: String) {
     };
     save_pill_config(&cfg);
     reassert_layers(&app);
+}
+
+/// Traduce el menú del icono de bandeja (el del clic derecho).
+///
+/// Era el ÚNICO texto visible de la app que se quedaba en inglés, y no por
+/// olvido: lo construye Rust al arrancar, mientras que el idioma elegido vive
+/// en el localStorage del PANEL. Así que lo manda el panel — `applyI18n()`
+/// llama aquí con las tres etiquetas ya traducidas, al cargar y cada vez que
+/// se cambia de idioma. Lo vio Oscar el 2026-07-29 teniendo la app en español.
+///
+/// El menú se reconstruye entero en vez de guardar los tres items en el
+/// estado para irles cambiando el texto: son tres líneas y ocurre dos veces
+/// por sesión. Los ids NO cambian, que son los que enrutan `on_menu_event`.
+#[tauri::command]
+fn set_tray_menu(app: tauri::AppHandle, open: String, widget: String, quit: String) {
+    use tauri::menu::{Menu, MenuItem};
+    use tauri::Manager;
+    let (Ok(a), Ok(b), Ok(c)) = (
+        MenuItem::with_id(&app, "tray_panel", open, true, None::<&str>),
+        MenuItem::with_id(&app, "tray_pill", widget, true, None::<&str>),
+        MenuItem::with_id(&app, "tray_quit", quit, true, None::<&str>),
+    ) else {
+        return;
+    };
+    let Ok(menu) = Menu::with_items(&app, &[&a, &b, &c]) else { return };
+    if let Some(tray) = app.tray_by_id("main-tray") {
+        let _ = tray.set_menu(Some(menu));
+    }
 }
 
 /// Crea, solo si hacen falta, las dos ventanas del estilo de widget elegido.
