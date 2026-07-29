@@ -2789,8 +2789,18 @@ fn get_pill_style() -> String {
 /// Cambia el estilo del widget (pastilla sola / con gatito): guarda la
 /// preferencia y redimensiona la ventana conservando el borde inferior
 /// (para que siga pegada encima de la barra) y la posición horizontal.
+/// ASYNC OBLIGATORIO, y por un motivo distinto al del invariante 10ter (que
+/// es sobre operaciones lentas): este comando CREA una ventana, y hacerlo
+/// desde un comando SÍNCRONO congela la app entera en Windows. La ventana
+/// nueva necesita que el bucle de eventos avance para nacer, pero ese bucle
+/// está detenido esperando a que el comando termine — se esperan mutuamente.
+/// Siendo async, Tauri lo ejecuta fuera del hilo de la interfaz, el bucle
+/// sigue vivo y la ventana se crea. Pasó en vivo el 2026-07-29: al cambiar a
+/// la pastilla se quedaba el gatito en pantalla y el panel dejaba de
+/// responder. En `setup()` la misma llamada sí puede ser síncrona, porque
+/// ahí el bucle de eventos todavía no ha arrancado.
 #[tauri::command]
-fn set_pill_style(app: tauri::AppHandle, style: String) {
+async fn set_pill_style(app: tauri::AppHandle, style: String) {
     use tauri::Manager;
     let mut cfg = load_pill_config();
     let new_style = if style == "cat" { "cat" } else { "plain" };
