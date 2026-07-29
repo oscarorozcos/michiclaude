@@ -665,10 +665,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       sube con permiso de ejecución y quien probara `./meter-export.py` en el
       servidor se topaba con un error incomprensible. `upload_exporter`
       normaliza los saltos.
-      (2) El campo "Comando a ejecutar" nace OCULTO y solo aparece si la
-      instalación automática falla (ERR_NO_PYTHON): es la salida de
-      emergencia para un servidor raro, y enseñárselo a todo el mundo hacía
-      que un campo que sobra el 99% de las veces pareciera obligatorio.
+      (2) El campo "Comando a ejecutar" DESAPARECIÓ (2026-07-29). Nació
+      oculto y revelándose al fallar la detección, pero eso no servía: si no
+      hay Python, `install_remote` se detiene ANTES de subir el lector, así
+      que el comando que escribiera el usuario apuntaría a un archivo que no
+      existe. En su lugar el campo pregunta "¿dónde está Python?"
+      (`lbl_py`/`hint_py`), que es un dato que el usuario SÍ puede averiguar
+      con `which python3`; `install_remote(host, python)` verifica ese binario
+      con `verify_python` —si no, se guardaría un comando roto y el servidor
+      saldría "conectado" sin devolver datos— y arma el comando la app.
+      El caso "script propio" ya no está en la interfaz: quien lo necesite
+      puede editar remotes.json a mano.
       OJO al probar cambios del exportador: tras el alta automática, el que
       corre en el servidor es la copia EMBEBIDA en el binario, que la app
       re-sube al arrancar. Editar `scripts/meter-export.py` en el VPS ya NO

@@ -929,14 +929,47 @@ then echo \"$p\"; exit 0; fi; done; exit 1";
 /// SSH de dos segundos congelaba el panel entero — se notaba al cambiar de
 /// pestaña, que dispara este comando (2026-07-28).
 #[tauri::command]
-async fn install_remote(host: String) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || install_remote_impl(host))
+async fn install_remote(host: String, python: Option<String>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || install_remote_impl(host, python))
         .await
         .map_err(|e| e.to_string())?
 }
 
-fn install_remote_impl(host: String) -> Result<String, String> {
-    let py = detect_python(&host).ok_or_else(|| "ERR_NO_PYTHON".to_string())?;
+/// Comprueba que ESE binario concreto sirve. Sin esto se guardaría un comando
+/// roto y el servidor aparecería "conectado" sin devolver ningún dato — el
+/// fallo silencioso que ya nos mordió una vez.
+fn verify_python(host: &str, py: &str) -> bool {
+    let probe = format!(
+        "command -v {py} >/dev/null 2>&1 && {py} -c \
+'import sys;raise SystemExit(0 if sys.version_info>=(3,7) else 1)'"
+    );
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])
+        .arg(host)
+        .arg(probe);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    cmd.output().map(|o| o.status.success()).unwrap_or(false)
+}
+
+/// `python` = la ruta que escribió el usuario cuando la detección falló. Se
+/// pregunta ESO y no el comando entero porque es un dato que sí puede saber
+/// (`which python3` en su servidor); el comando lo arma la app, que además
+/// necesita subir el lector — cosa que no ocurriría si el usuario diera un
+/// comando propio (2026-07-29).
+fn install_remote_impl(host: String, python: Option<String>) -> Result<String, String> {
+    let py = match python.map(|p| p.trim().to_string()).filter(|p| !p.is_empty()) {
+        Some(p) => {
+            if !verify_python(&host, &p) {
+                return Err("ERR_BAD_PYTHON".into());
+            }
+            p
+        }
+        None => detect_python(&host).ok_or_else(|| "ERR_NO_PYTHON".to_string())?,
+    };
     upload_exporter(&host)?;
     Ok(format!("{py} {REMOTE_SCRIPT_PATH}"))
 }
