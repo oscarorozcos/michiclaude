@@ -547,7 +547,11 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] Multiidioma (8): EN default, ES, PT, FR, DE, JA, KO, ZH — diccionario
       I18N, autodetección, selector en ajustes, errores del backend como
       códigos ERR_* traducidos en el frontend.
-- [~] Fuente WSL implementada (el sufijo es "wsl-<distro>" desde
+- [~] Fuente WSL — SIGUE SIN PROBARSE: no hay ninguna máquina con WSL a
+      mano, ni la de Oscar ni el VPS. El camino en el código se puede seguir
+      línea por línea pero NO se ha ejecutado nunca; si WSL no se detecta,
+      simplemente no salen esas filas y no rompe nada.
+      Fuente WSL implementada (el sufijo es "wsl-<distro>" desde
       el 2026-07-29; antes todas caían bajo un "wsl" genérico y con dos
       instaladas no había forma de distinguirlas): `wsl.exe -l -q` (UTF-16LE) + escaneo de
       \\wsl.localhost\<distro>\{home/*,root}\.claude como fuente local extra
@@ -602,6 +606,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
         dinámicas, y Excel la calcula con un clic.
       · Periodo PROPIO (1/7/15/30, persistido): mirar 1 día en pantalla y
         querer exportar 30 es un caso normal.
+      VERIFICADO EN VIVO el 2026-07-29 con los dos formatos: el CSV abre en
+      Excel con los acentos correctos (se acabó el "Â·") y el JSON trae las 28
+      filas de los DOS orígenes, ordenadas por fecha descendente y por costo
+      dentro de cada día. Al cuadrar los totales contra el servidor salía una
+      diferencia de $0.57: no era un fallo, era que la sesión de Claude Code
+      seguía gastando MIENTRAS medíamos — la fila del día creció $1.10 en dos
+      minutos. Un export es una foto, no un cierre contable.
       El JSON exporta las MISMAS filas, más lo único que un CSV no puede
       llevar: `generated_at`, `window_days` y la nota del costo. Quien lo
       procese con un script no tiene que adivinar de cuándo es ni de qué
@@ -834,9 +845,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       rechaza sin el permiso `workflow` — cualquier cambio ahí hay que
       pedírselo a él). NO hace falta `uploadUpdaterJson`: tauri-action ya lo
       publica por defecto (y OJO, `includeUpdaterJson` no existe).
-      FALTA: (a) cargar los dos secretos en el repo, (b) DECIDIR si el repo
-      se hace público —con él privado las releases no se pueden descargar sin
-      autenticación y el updater no puede funcionar— y (c) publicar un tag.
+      Los dos secretos ya están cargados en el repo (Oscar, 2026-07-29).
+      FALTA: (a) DECIDIR si el repo se hace público —con él privado las
+      releases no se pueden descargar sin autenticación y el updater
+      devolvería 404 a todo el mundo, incluido Oscar— y (b) publicar un tag
+      para probarlo de punta a punta. Hasta entonces el código está puesto y
+      no estorba: sin releases, la comprobación no encuentra nada y calla.
 
 ## Diferenciadores estratégicos (post-pulido Windows, decididos 2026-07-24)
 
