@@ -242,6 +242,42 @@ struct LocalStats {
     /// exportador viejo, que ni siquiera devuelve la clave.
     #[serde(default)]
     hosts: Vec<HubHost>,
+    /// Analizador de fugas: solo se llenan bajo el flag --findings (patrón
+    /// want_rows). El serde(default) es OBLIGATORIO: un exportador viejo no
+    /// devuelve la clave y sin él se invalidaría la respuesta ENTERA (la
+    /// misma mordida que ExportRow.origin el 2026-07-29).
+    #[serde(default)]
+    findings: Vec<Finding>,
+}
+
+/// Un hallazgo del analizador de fugas. Campos planos con default para que
+/// cada `kind` llene solo los suyos y un exportador de otra versión no rompa
+/// nada: reread (file/count/session), inflate (session/turns), mech (count),
+/// mcp_unused (server). `origin` lo pone QUIEN LEE con el nombre que el
+/// usuario dio al servidor — igual que en ExportRow.
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct Finding {
+    kind: String,
+    #[serde(default)]
+    file: String,
+    #[serde(default)]
+    project: String,
+    #[serde(default)]
+    server: String,
+    #[serde(default)]
+    session: String,
+    #[serde(default)]
+    count: u64,
+    #[serde(default)]
+    turns: u64,
+    #[serde(default)]
+    tokens: u64,
+    #[serde(default)]
+    cost: f64,
+    #[serde(default)]
+    estimated: bool,
+    #[serde(default)]
+    origin: String,
 }
 
 /// Una máquina ajena vista a través del servidor.
@@ -1075,7 +1111,12 @@ if [ -f \"$f\" ] && ! grep -q '\"id\":\"{id}\"' \"$f\"; then exit 3; fi; cat > \
 
 /// Ejecuta el exportador remoto por SSH. BatchMode: jamás pide contraseña
 /// (requiere llave configurada, la misma que usa VS Code Remote-SSH).
-fn fetch_remote(r: &RemoteSource, window_days: u32, want_rows: bool) -> Option<LocalStats> {
+fn fetch_remote(
+    r: &RemoteSource,
+    window_days: u32,
+    want_rows: bool,
+    want_findings: bool,
+) -> Option<LocalStats> {
     use std::io::Write;
     // Los precios frescos se le pasan al exportador por stdin: así hay UNA sola
     // fuente de verdad y su tabla embebida queda solo como respaldo. Un
@@ -1096,7 +1137,7 @@ fn fetch_remote(r: &RemoteSource, window_days: u32, want_rows: bool) -> Option<L
             hub_identity().id,
             if prices.is_some() { " --prices-stdin" } else { "" },
             if want_rows { " --rows" } else { "" }
-        ))
+        ) + if want_findings { " --findings" } else { "" })
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
@@ -1638,7 +1679,7 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
     // Fusionar fuentes remotas (si remotes.json existe): totales sumados,
     // proyectos etiquetados con su origen, modelos y serie diaria agregados.
     for r in remotes {
-        let Some(remote) = fetch_remote(&r, window_days, false) else { continue };
+        let Some(remote) = fetch_remote(&r, window_days, false, false) else { continue };
         stats.cost_today += remote.cost_today;
         stats.cost_week += remote.cost_week;
         stats.tokens_week += remote.tokens_week;
@@ -1737,7 +1778,7 @@ fn collect_export_rows(window_days: u32) -> Vec<ExportRow> {
     let (mine, _) = collect_own_stats(window_days, true);
     let mut rows = mine.rows;
     for r in load_remotes() {
-        let Some(rem) = fetch_remote(&r, window_days, true) else { continue };
+        let Some(rem) = fetch_remote(&r, window_days, true, false) else { continue };
         // el origen lo pone quien lee, con el nombre que el usuario le dio al
         // servidor — el exportador remoto no sabe cómo se llama a sí mismo
         rows.extend(rem.rows.into_iter().map(|mut x| {
@@ -1752,6 +1793,332 @@ fn collect_export_rows(window_days: u32) -> Vec<ExportRow> {
             .then(b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal))
     });
     rows
+}
+
+// ---------------------------------------------------------------------------
+// Analizador de fugas — réplica EXACTA de scan_findings en meter-export.py.
+// Mantener AMBOS en sincronía, como la agregación (invariante #1). Diseño y
+// reglas en docs/analizador-fugas.md: solo hallazgos estructurales medibles,
+// nada que exija adivinar qué tan difícil era una tarea; costos MEDIDOS y,
+// donde entre la heurística chars/4, el hallazgo va con estimated:true.
+// Pasada APARTE sin caché (necesita detalle por línea que el scan_cache no
+// guarda) y solo bajo demanda: el ciclo del panel nunca la paga.
+// ---------------------------------------------------------------------------
+
+const REREAD_MIN: u64 = 3;
+const REREAD_MIN_TOKENS: u64 = 2000;
+const INFLATE_MIN_GROWTH: u64 = 50_000;
+const INFLATE_MIN_TURNS: u64 = 10;
+const MECH_MIN: u64 = 5;
+const MAX_FINDINGS: usize = 12;
+
+/// Comandos deterministas: turnos donde Claude no piensa, solo ejecuta.
+/// Pareja del MECH_RE del exportador — sin crate regex (invariante #4), así
+/// que va con recortes de string. La lista es CORTA a propósito: un falso
+/// positivo aquí cuesta la credibilidad del detector entero.
+fn is_mech_cmd(cmd: &str) -> bool {
+    let mut s = cmd.trim_start();
+    // prefijo opcional "cd <ruta> && " o "cd <ruta> ; "
+    if s.starts_with("cd ") {
+        if let Some(i) = s.find("&&") {
+            s = s[i + 2..].trim_start();
+        } else if let Some(i) = s.find(';') {
+            s = s[i + 1..].trim_start();
+        }
+    }
+    s == "git"
+        || s.starts_with("git ")
+        || s.starts_with("pytest")
+        || s.starts_with("cargo check")
+        || s.starts_with("cargo fmt")
+        || s.starts_with("cargo clippy")
+        || s.starts_with("npm test")
+        || s.starts_with("npm ci")
+        || s.starts_with("npm install")
+}
+
+/// Servidores MCP dados de alta en ~/.claude.json (global y por proyecto).
+fn mcp_servers_configured() -> HashSet<String> {
+    let mut out = HashSet::new();
+    let Some(home) = dirs::home_dir() else { return out };
+    let Ok(raw) = fs::read_to_string(home.join(".claude.json")) else { return out };
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else { return out };
+    if let Some(m) = v["mcpServers"].as_object() {
+        out.extend(m.keys().cloned());
+    }
+    if let Some(projs) = v["projects"].as_object() {
+        for p in projs.values() {
+            if let Some(m) = p["mcpServers"].as_object() {
+                out.extend(m.keys().cloned());
+            }
+        }
+    }
+    out
+}
+
+#[derive(Default)]
+struct SessFindings {
+    first_cr: Option<u64>,
+    last_cr: u64,
+    turns: u64,
+    cr_cost: f64,
+    reads: HashMap<String, u64>,
+    read_chars: HashMap<String, u64>,
+    models: HashMap<String, u64>,
+    proj: String,
+}
+
+/// Corre los detectores sobre las fuentes locales (este PC + WSL) en la
+/// ventana pedida. Los hallazgos de servidores llegan aparte, por
+/// fetch_remote con --findings, y el origen lo etiqueta quien lee.
+fn scan_local_findings(window_days: u32) -> Vec<Finding> {
+    let now = Utc::now();
+    let window_ago = now - Duration::days(window_days as i64);
+    let skip_before = (window_ago - Duration::days(2)).timestamp();
+
+    let mut sessions: HashMap<String, SessFindings> = HashMap::new();
+    let mut pend: HashMap<String, (String, String)> = HashMap::new();
+    let mut mcp_used: HashSet<String> = HashSet::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    let (mut mech_count, mut mech_tokens, mut mech_cost) = (0u64, 0u64, 0f64);
+
+    let mut dirs_to_scan = vec![claude_dir().join("projects")];
+    for (_distro, d) in wsl_claude_dirs() {
+        dirs_to_scan.push(d.join("projects"));
+    }
+    for pdir in dirs_to_scan {
+        let Ok(projs) = fs::read_dir(&pdir) else { continue };
+        for proj in projs.flatten() {
+            let ppath = proj.path();
+            if !ppath.is_dir() {
+                continue;
+            }
+            let proj_name = proj.file_name().to_string_lossy().to_string();
+            let Ok(files) = fs::read_dir(&ppath) else { continue };
+            for f in files.flatten() {
+                let fp = f.path();
+                if fp.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+                    continue;
+                }
+                // demasiado viejo para la ventana: ni se abre (mismo margen
+                // de 2 días que el exportador)
+                if let Ok(md) = f.metadata() {
+                    if let Ok(mt) = md.modified() {
+                        let secs = mt
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map(|d| d.as_secs() as i64)
+                            .unwrap_or(0);
+                        if secs < skip_before {
+                            continue;
+                        }
+                    }
+                }
+                let Ok(text) = fs::read_to_string(&fp) else { continue };
+                for line in text.lines() {
+                    let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else {
+                        continue;
+                    };
+                    let sid = v["sessionId"].as_str().unwrap_or("").to_string();
+                    // resultados de lecturas: se MIDE lo que viajó de verdad
+                    // (va ANTES del filtro de usage: estas líneas no lo traen)
+                    if let Some(blocks) = v["message"]["content"].as_array() {
+                        for b in blocks {
+                            if b["type"].as_str() != Some("tool_result") {
+                                continue;
+                            }
+                            let Some(id) = b["tool_use_id"].as_str() else { continue };
+                            let Some((s2, path)) = pend.remove(id) else { continue };
+                            let n = if let Some(s) = b["content"].as_str() {
+                                s.len() as u64
+                            } else if let Some(arr) = b["content"].as_array() {
+                                arr.iter()
+                                    .filter_map(|x| x["text"].as_str())
+                                    .map(|t| t.len() as u64)
+                                    .sum()
+                            } else {
+                                0
+                            };
+                            let st = sessions.entry(s2).or_default();
+                            *st.read_chars.entry(path).or_insert(0) += n;
+                        }
+                    }
+                    let usage = &v["message"]["usage"];
+                    if !usage.is_object() {
+                        continue;
+                    }
+                    let key = format!(
+                        "{}:{}",
+                        v["message"]["id"].as_str().unwrap_or(""),
+                        v["requestId"].as_str().unwrap_or("")
+                    );
+                    if key != ":" && !seen.insert(key) {
+                        continue;
+                    }
+                    let model = v["message"]["model"].as_str().unwrap_or("unknown").to_string();
+                    if model == "<synthetic>" {
+                        continue;
+                    }
+                    let Some(ts) = v["timestamp"]
+                        .as_str()
+                        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                        .map(|d| d.with_timezone(&Utc))
+                    else {
+                        continue;
+                    };
+                    if ts < window_ago {
+                        continue;
+                    }
+                    let inp = usage["input_tokens"].as_u64().unwrap_or(0);
+                    let out_t = usage["output_tokens"].as_u64().unwrap_or(0);
+                    let cw = usage["cache_creation_input_tokens"].as_u64().unwrap_or(0);
+                    let cr = usage["cache_read_input_tokens"].as_u64().unwrap_or(0);
+                    {
+                        let st = sessions.entry(sid.clone()).or_default();
+                        if st.proj.is_empty() {
+                            st.proj = proj_name.clone();
+                        }
+                        st.turns += 1;
+                        *st.models.entry(model.clone()).or_insert(0) += 1;
+                        if st.first_cr.is_none() {
+                            st.first_cr = Some(cr);
+                        }
+                        st.last_cr = cr;
+                        // MEDIDO: lo que costó releer el contexto en este turno
+                        st.cr_cost += cost_of(&model, 0, 0, 0, cr);
+                    }
+                    let empty = Vec::new();
+                    let uses: Vec<&serde_json::Value> = v["message"]["content"]
+                        .as_array()
+                        .unwrap_or(&empty)
+                        .iter()
+                        .filter(|b| b["type"].as_str() == Some("tool_use"))
+                        .collect();
+                    let mut all_mech = !uses.is_empty();
+                    for b in &uses {
+                        let name = b["name"].as_str().unwrap_or("");
+                        if let Some(rest) = name.strip_prefix("mcp__") {
+                            mcp_used
+                                .insert(rest.split("__").next().unwrap_or(rest).to_string());
+                        }
+                        if name == "Read" {
+                            if let Some(p) = b["input"]["file_path"].as_str() {
+                                let st = sessions.entry(sid.clone()).or_default();
+                                *st.reads.entry(p.to_string()).or_insert(0) += 1;
+                                if let Some(id) = b["id"].as_str() {
+                                    pend.insert(id.to_string(), (sid.clone(), p.to_string()));
+                                }
+                            }
+                        }
+                        if name != "Bash"
+                            || !is_mech_cmd(b["input"]["command"].as_str().unwrap_or(""))
+                        {
+                            all_mech = false;
+                        }
+                    }
+                    if all_mech {
+                        mech_count += 1;
+                        mech_tokens += inp + out_t + cw;
+                        mech_cost += cost_of(&model, inp, out_t, cw, cr);
+                    }
+                }
+            }
+        }
+    }
+
+    let mut findings: Vec<Finding> = Vec::new();
+    for (sid, s) in &sessions {
+        if s.models.is_empty() {
+            continue;
+        }
+        let top_model = s
+            .models
+            .iter()
+            .max_by_key(|(_, c)| **c)
+            .map(|(m, _)| m.clone())
+            .unwrap_or_default();
+        let pi = price_for(&top_model).0;
+        let sid8: String = sid.chars().take(8).collect();
+        // archivos releídos: el contenido se APILA en la conversación, no se
+        // reemplaza. Tokens ~ chars/4 de lo devuelto tras la primera lectura;
+        // el costo es el PISO (una ingesta a precio de input) — la realidad
+        // es mayor porque además se relee en cada turno posterior.
+        for (path, n) in &s.reads {
+            if *n < REREAD_MIN {
+                continue;
+            }
+            let chars = s.read_chars.get(path).copied().unwrap_or(0);
+            let stacked = chars * (*n - 1) / *n / 4;
+            if stacked < REREAD_MIN_TOKENS {
+                continue;
+            }
+            findings.push(Finding {
+                kind: "reread".into(),
+                file: path.clone(),
+                project: s.proj.clone(),
+                count: *n,
+                tokens: stacked,
+                cost: stacked as f64 * pi / 1_000_000.0,
+                estimated: true,
+                session: sid8.clone(),
+                ..Default::default()
+            });
+        }
+        let growth = s.last_cr.saturating_sub(s.first_cr.unwrap_or(0));
+        if growth >= INFLATE_MIN_GROWTH && s.turns >= INFLATE_MIN_TURNS {
+            findings.push(Finding {
+                kind: "inflate".into(),
+                project: s.proj.clone(),
+                session: sid8,
+                turns: s.turns,
+                tokens: growth,
+                cost: s.cr_cost,
+                ..Default::default()
+            });
+        }
+    }
+    if mech_count >= MECH_MIN {
+        findings.push(Finding {
+            kind: "mech".into(),
+            count: mech_count,
+            tokens: mech_tokens,
+            cost: mech_cost,
+            ..Default::default()
+        });
+    }
+    let mut unused: Vec<String> = mcp_servers_configured()
+        .into_iter()
+        .filter(|s| !mcp_used.contains(s))
+        .collect();
+    unused.sort();
+    for server in unused {
+        findings.push(Finding { kind: "mcp_unused".into(), server, ..Default::default() });
+    }
+    findings.sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
+    findings.truncate(MAX_FINDINGS);
+    findings
+}
+
+/// Analizador de fugas: detectores locales (este PC + WSL) más los de cada
+/// servidor vía --findings, con el origen etiquetado por quien lee. Async +
+/// spawn_blocking obligatorio (invariante 10ter: SSH y escaneo de disco).
+#[tauri::command]
+async fn get_findings(days: Option<u32>) -> Result<Vec<Finding>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let window_days = days.unwrap_or(7).clamp(1, 90);
+        let mut out = scan_local_findings(window_days);
+        for r in load_remotes() {
+            let Some(rem) = fetch_remote(&r, window_days, false, true) else { continue };
+            for mut f in rem.findings {
+                f.origin = r.name.clone();
+                out.push(f);
+            }
+        }
+        out.sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
+        out.truncate(MAX_FINDINGS);
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Escapa un campo de CSV: comillas alrededor y las internas duplicadas. Antes
@@ -2000,6 +2367,7 @@ pub fn run() {
             hover_card,
             set_notif_visible,
             set_tray_menu,
+            get_findings,
             pill_moved
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
