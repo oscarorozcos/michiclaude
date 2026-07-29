@@ -244,6 +244,25 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 3. Seguridad: el token nunca se loggea, nunca se muestra en UI, nunca viaja a
    otro dominio que `api.anthropic.com`. Mantener CSP restrictiva en
    `tauri.conf.json`. Sin telemetría.
+   MATIZ OBLIGATORIO (2026-07-29): `security` lleva
+   `"dangerousDisableAssetCspModification": ["style-src"]`, y NO se puede
+   quitar sin romper la app COMPILADA. Tauri, al compilar, inyecta sus
+   propios nonces y hashes en la CSP; y el estándar CSP dice que cuando una
+   directiva tiene un nonce o un hash, se IGNORA `'unsafe-inline'`. Resultado:
+   en release se bloqueaban todos los estilos escritos al vuelo —el ancho y el
+   color de cada barra de gasto, las barras de la tendencia diaria, las del
+   globo del gatito y las del detalle de la pastilla, y la línea de precios de
+   Preferencias— mientras en desarrollo se veía perfecto, porque ahí no se
+   inyecta nada. La app instalada se veía a medio pintar y NADIE lo habría
+   achacado a la CSP. Lo encontró Oscar comparando dev contra release.
+   Lo que este ajuste NO toca: `script-src` sigue con la protección de Tauri
+   intacta, que es donde vive el riesgo de XSS de verdad. Solo se le pide a
+   Tauri que no reescriba `style-src`, para que sobreviva el `'unsafe-inline'`
+   que ya estaba declarado a mano. La alternativa —pasar los ~40 estilos en
+   línea a asignaciones por JavaScript, que la CSP no bloquea— se descartó por
+   ser un refactor grande de una interfaz recién validada.
+   AL DIAGNOSTICAR: si algo se ve bien con `npm run dev` y mal con
+   `npm run build`, sospechar de la CSP ANTES que del código.
 4. Frontend: `index.html` y `bar.html` vanilla. No agregar frameworks,
    bundlers ni dependencias npm de runtime. Dependencias Rust nuevas: solo
    imprescindibles y con features mínimas.
