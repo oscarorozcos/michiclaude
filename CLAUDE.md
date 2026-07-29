@@ -878,7 +878,12 @@ de desarrollo (comando `is_dev` = `cfg!(debug_assertions)`), por eso es el
 
 ## Flujo de trabajo del repo
 
-- Remoto: `https://github.com/oscarorozcos/michiclaude` (público desde 2026-07-24; URL vieja redirige).
+- Remoto: `https://github.com/oscarorozcos/michiclaude` — PRIVADO a fecha
+  2026-07-29 (comprobado: da 404 sin sesión). La nota de "público desde
+  2026-07-24" era falsa. CONSECUENCIA para el auto-updater: los archivos de
+  una release privada NO se pueden descargar sin autenticación, así que el
+  endpoint configurado devolvería 404 a todo el mundo. El updater no puede
+  funcionar hasta que el repo (o al menos sus releases) sea público.
 - El desarrollo y las pruebas ocurren en el PC Windows de Oscar; en el VPS vive
   un clon espejo (`/opt/projects/michiclaude`) para revisión de código.
 - Antes de empezar a trabajar en cualquiera de los dos lados: `git pull`.
