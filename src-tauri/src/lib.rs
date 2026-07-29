@@ -1489,8 +1489,10 @@ fn collect_own_stats(window_days: u32) -> (LocalStats, HashMap<String, f64>) {
         })
         .collect();
 
-    let mut daily_map = agg.daily;
-    let mut stats = LocalStats {
+    // sin `mut`: aquí solo se construyen; quien los modifica es
+    // collect_local_stats, que los recibe por valor
+    let daily_map = agg.daily;
+    let stats = LocalStats {
         projects,
         models: agg.models,
         cost_today: agg.cost_today,
