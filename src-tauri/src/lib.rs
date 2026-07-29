@@ -206,6 +206,12 @@ struct ExportRow {
     date: String,
     project: String,
     model: String,
+    /// Lo rellena QUIEN LEE, con el nombre que el usuario dio al servidor: el
+    /// exportador remoto no sabe cómo se llama a sí mismo, así que sus filas
+    /// llegan sin este campo. Sin `default`, serde daba por inválida la
+    /// respuesta entera y las filas del servidor se perdían sin avisar
+    /// (visto 2026-07-29 en las capturas de Oscar: solo salían las locales).
+    #[serde(default)]
     origin: String,
     cost: f64,
     tokens: u64,
@@ -1852,7 +1858,16 @@ fn export_data_impl(
         }
         s
     } else {
-        serde_json::to_string_pretty(&rows).map_err(|e| e.to_string())?
+        // MISMOS datos que el CSV, más lo único que un CSV no puede llevar:
+        // de cuándo es y de qué ventana. Quien lo procese con un script no
+        // tiene que adivinarlo por el nombre del archivo.
+        serde_json::to_string_pretty(&serde_json::json!({
+            "generated_at": Utc::now().to_rfc3339(),
+            "window_days": days.unwrap_or(7).clamp(1, 90),
+            "cost_note": "equiv. API, solo Claude Code",
+            "rows": rows,
+        }))
+        .map_err(|e| e.to_string())?
     };
     fs::write(&path, content).map_err(|e| e.to_string())?;
     if let Ok(mut g) = LAST_EXPORT

@@ -600,7 +600,15 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
         dinámicas, y Excel la calcula con un clic.
       · Periodo PROPIO (1/7/15/30, persistido): mirar 1 día en pantalla y
         querer exportar 30 es un caso normal.
-      El JSON exporta las mismas filas, por coherencia.
+      El JSON exporta las MISMAS filas, más lo único que un CSV no puede
+      llevar: `generated_at`, `window_days` y la nota del costo. Quien lo
+      procese con un script no tiene que adivinar de cuándo es ni de qué
+      ventana. Y conserva la precisión completa, sin los 4 decimales del CSV.
+      OJO (mordió el 2026-07-29): `ExportRow.origin` DEBE llevar
+      `#[serde(default)]`. El exportador remoto manda sus filas SIN ese campo
+      —a propósito, no sabe cómo lo llamó el usuario— y sin el default serde
+      daba por inválida la respuesta entera: las filas del servidor
+      desaparecían del reporte sin ningún aviso.
 - [x] Panel en 3 PESTAÑAS (2026-07-21, decisión de Oscar): Principal
       (cuota/proyección/gasto/tendencia/modelos) · Fuentes de datos
       (nota + servidores con estado y alta) · Preferencias (idioma, widget,
