@@ -3235,10 +3235,34 @@ async function loadFindings(force){
   if(fndBusy) return;
   if(fndCache && !force){ renderFindings(); return; }
   fndBusy=true;
-  $("fndList").innerHTML=`<div style="font-size:11px;color:var(--txt-dim);margin-top:8px">${t("fnd_scanning")}</div>`;
-  $("fndFoot").textContent="";
-  try{ fndCache=await invoke("get_findings",{days:fndDays}); renderFindings(); }
-  catch(_){ $("fndList").innerHTML=`<div style="font-size:11px;color:var(--bad);margin-top:8px">${t("fnd_err")}</div>`; }
+  // el primer escaneo de la sesión tarda segundos (SSH incluido): mientras
+  // llega, se enseña el ÚLTIMO resultado guardado de la misma ventana, con
+  // el "Analizando…" en el pie para no vender lo viejo como fresco
+  let warm=false;
+  if(!fndCache){
+    try{
+      const s=JSON.parse(localStorage.getItem("fndCacheSaved")||"null");
+      if(s && s.days===fndDays && Array.isArray(s.list)){
+        fndCache=s.list; warm=true; renderFindings();
+        $("fndFoot").textContent=t("fnd_scanning");
+      }
+    }catch(_){}
+  }
+  if(!warm){
+    $("fndList").innerHTML=`<div style="font-size:11px;color:var(--txt-dim);margin-top:8px">${t("fnd_scanning")}</div>`;
+    $("fndFoot").textContent="";
+  }
+  try{
+    fndCache=await invoke("get_findings",{days:fndDays});
+    try{ localStorage.setItem("fndCacheSaved",
+      JSON.stringify({days:fndDays,list:fndCache})); }catch(_){}
+    renderFindings();
+  }
+  catch(_){
+    // con datos viejos ya en pantalla se quedan; el pie dice que falló
+    if(warm) $("fndFoot").textContent=t("fnd_err");
+    else $("fndList").innerHTML=`<div style="font-size:11px;color:var(--bad);margin-top:8px">${t("fnd_err")}</div>`;
+  }
   finally{ fndBusy=false; }
 }
 function renderFindings(){
