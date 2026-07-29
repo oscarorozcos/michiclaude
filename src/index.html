@@ -91,6 +91,11 @@
     padding:7px 10px;cursor:pointer;letter-spacing:.2px}
   .tab:hover{color:var(--txt)}
   .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+  /* contador de hallazgos NUEVOS sin ver: lo enciende la pasada diaria y lo
+     apaga abrir la pestaña. El color es la severidad del más caro. */
+  .tab .tdot{display:inline-block;min-width:15px;padding:0 4px;margin-left:5px;
+    border-radius:999px;font-size:9.5px;line-height:15px;font-weight:700;
+    color:#fff;background:var(--warn);vertical-align:1px}
 
   .sect{border-top:1px solid var(--stroke-soft);padding-top:11px;margin-top:11px}
   .sect:first-of-type{border-top:0;margin-top:0;padding-top:0}
@@ -342,7 +347,7 @@
   <div class="tabs">
     <button class="tab on" data-tab="main" data-i18n="tab_main"></button>
     <button class="tab" data-tab="sources" data-i18n="sources_title"></button>
-    <button class="tab" data-tab="findings" data-i18n="fnd_tab"></button>
+    <button class="tab" data-tab="findings"><span data-i18n="fnd_tab"></span><span class="tdot" id="fndTabDot" hidden></span></button>
     <button class="tab" data-tab="prefs" data-i18n="prefs_title"></button>
   </div>
   </div><!-- /p-top -->
@@ -530,6 +535,12 @@
           <option value="bottom" data-i18n="pill_layer_bottom"></option>
         </select>
       </div>
+      <!-- El sticker/puntito de hallazgos nuevos en el widget. Encendido por
+           defecto; quien lo sienta encima lo apaga aquí. El contador de la
+           pestaña se queda siempre: no interrumpe a nadie. -->
+      <label class="cfg-row" style="cursor:pointer;margin-top:2px">
+        <input type="checkbox" id="fndBadgeChk"> <span data-i18n="fnd_badge_label"></span>
+      </label>
       <!-- Simulador de estados del gatito: SOLO visible en compilaciones de
            desarrollo (is_dev). Nunca llega a un usuario, por eso es el único
            control cuyos textos no pasan por t(). -->
@@ -731,6 +742,8 @@ en:{
   fnd_restore:"show again",
   fnd_turns:"turns",
   fnd_est_note:"~ = estimated; the rest is measured from your logs.",
+  fnd_badge_label:"Alert me to new findings on the widget",
+  fnd_badge_tip:n=>`New findings: ${n}`,
   pill_style_label:"Widget style",
   pill_style_plain:"Pill",
   pill_style_cat:"Cat with laptop 🐱",
@@ -906,6 +919,8 @@ es:{
   fnd_restore:"volver a mostrar",
   fnd_turns:"turnos",
   fnd_est_note:"~ = estimado; el resto está medido de tus logs.",
+  fnd_badge_label:"Avisarme de hallazgos nuevos en el widget",
+  fnd_badge_tip:n=>`Hallazgos nuevos: ${n}`,
   pill_style_label:"Estilo del widget",
   pill_style_plain:"Pastilla",
   pill_style_cat:"Gatito con laptop 🐱",
@@ -1081,6 +1096,8 @@ pt:{
   fnd_restore:"mostrar de novo",
   fnd_turns:"turnos",
   fnd_est_note:"~ = estimado; o resto foi medido dos seus logs.",
+  fnd_badge_label:"Avisar-me de achados novos no widget",
+  fnd_badge_tip:n=>`Achados novos: ${n}`,
   pill_style_label:"Estilo do widget",
   pill_style_plain:"Pílula",
   pill_style_cat:"Gatinho com laptop 🐱",
@@ -1256,6 +1273,8 @@ fr:{
   fnd_restore:"réafficher",
   fnd_turns:"tours",
   fnd_est_note:"~ = estimé ; le reste est mesuré depuis vos logs.",
+  fnd_badge_label:"M'avertir des nouveaux constats sur le widget",
+  fnd_badge_tip:n=>`Nouveaux constats : ${n}`,
   pill_style_label:"Style du widget",
   pill_style_plain:"Pastille",
   pill_style_cat:"Chat avec ordi 🐱",
@@ -1431,6 +1450,8 @@ de:{
   fnd_restore:"wieder anzeigen",
   fnd_turns:"Züge",
   fnd_est_note:"~ = geschätzt; der Rest ist aus deinen Logs gemessen.",
+  fnd_badge_label:"Bei neuen Befunden am Widget hinweisen",
+  fnd_badge_tip:n=>`Neue Befunde: ${n}`,
   pill_style_label:"Widget-Stil",
   pill_style_plain:"Pille",
   pill_style_cat:"Katze mit Laptop 🐱",
@@ -1606,6 +1627,8 @@ ja:{
   fnd_restore:"再表示",
   fnd_turns:"ターン",
   fnd_est_note:"~ = 推定値。それ以外はログからの実測値です。",
+  fnd_badge_label:"新しい検出結果をウィジェットで知らせる",
+  fnd_badge_tip:n=>`新しい検出結果: ${n}件`,
   pill_style_label:"ウィジェットのスタイル",
   pill_style_plain:"ピル",
   pill_style_cat:"ノートPCの猫 🐱",
@@ -1781,6 +1804,8 @@ ko:{
   fnd_restore:"다시 표시",
   fnd_turns:"턴",
   fnd_est_note:"~ = 추정치. 나머지는 로그에서 실측한 값입니다.",
+  fnd_badge_label:"새 발견 항목을 위젯에서 알림",
+  fnd_badge_tip:n=>`새 발견 항목: ${n}개`,
   pill_style_label:"위젯 스타일",
   pill_style_plain:"알약",
   pill_style_cat:"노트북 고양이 🐱",
@@ -1956,6 +1981,8 @@ zh:{
   fnd_restore:"重新显示",
   fnd_turns:"轮",
   fnd_est_note:"~ = 估算；其余均为日志实测。",
+  fnd_badge_label:"在小组件上提醒新发现",
+  fnd_badge_tip:n=>`新发现：${n} 项`,
   pill_style_label:"小组件样式",
   pill_style_plain:"药丸",
   pill_style_cat:"笔记本小猫 🐱",
@@ -2120,6 +2147,9 @@ function emitPill(ses, wk, extras){
     // buckets semanales extra (Fable, futuros…) tal como los reporte el
     // endpoint — DINÁMICO, nunca nombres hardcodeados (invariante #6)
     extras: extras||[],
+    // hallazgos nuevos sin ver, para el sticker/puntito del widget;
+    // null = nada que enseñar (o el usuario lo apagó en Preferencias)
+    fnd: fndBadgeOn()&&fndBadge ? {...fndBadge, tip:t("fnd_badge_tip",fndBadge.n)} : null,
     tip: ses?t("tray_tip",Math.round(ses.pct),fmtReset(ses.resets),weekPct!=null?Math.round(weekPct):null):t("tray_no_data")};
   EVENT?.emit("quota:update", lastPill);
 }
@@ -3141,6 +3171,56 @@ function fndProj(raw){
   const m=String(raw).match(/projects-(.+)$/);
   return m ? m[1] : String(raw).replace(/^-+/,"").split("-").pop() || raw;
 }
+// ---------- aviso de hallazgos nuevos (contador + sticker del widget) ----------
+// El panel es el ÚNICO que escanea: una pasada ligera de 1 día, como mucho una
+// vez cada FND_SCAN_MS. Los widgets solo reciben {n, sev, tip} dentro de
+// quota:update y pintan. "Visto" = la tarjeta llegó a pintarse en la pestaña;
+// su clave se guarda y el aviso se apaga — mismo espíritu que el globo: se
+// despacha una vez, no persigue. El resultado de la pasada se guarda
+// (fndAuto) para que reiniciar la app no apague un aviso que nadie vio.
+const FND_SCAN_MS=20*3600*1000;   // ~diaria, con margen para no ir derivando
+let fndBadge=null;                // {n, sev} o null
+function fndSeen(){ try{ return new Set(JSON.parse(localStorage.getItem("fndSeen")||"[]")); }catch(_){ return new Set(); } }
+function fndBadgeOn(){ return localStorage.getItem("fndBadgeOff")!=="1"; }
+function fndBadgeCalc(){
+  let saved=[]; try{ saved=JSON.parse(localStorage.getItem("fndAuto")||"[]"); }catch(_){ saved=[]; }
+  const seen=fndSeen(), ign=fndIgnored();
+  const fresh=saved.filter(x=>!seen.has(x.k)&&!ign.has(x.k));
+  // misma escala de severidad que las tarjetas: rojo duele, ámbar avisa
+  fndBadge = fresh.length ? {n:fresh.length,
+    sev: fresh.some(x=>x.c>=10)?"bad":fresh.some(x=>x.c>=1||x.mcp)?"warn":"acc"} : null;
+  renderFndDot();
+  if(lastPillArgs) emitPill(...lastPillArgs);   // el widget lo ve al instante
+}
+function renderFndDot(){
+  const d=$("fndTabDot");
+  d.hidden=!fndBadge;
+  if(fndBadge){ d.textContent=fndBadge.n>9?"9+":String(fndBadge.n);
+    d.style.background=fndBadge.sev==="bad"?"var(--bad)"
+      :fndBadge.sev==="warn"?"var(--warn)":"var(--accent)"; }
+}
+async function fndAutoScan(){
+  if(!invoke) return;
+  if(Date.now()-(+localStorage.getItem("fndAutoLast")||0)<FND_SCAN_MS) return;
+  try{
+    const list=await invoke("get_findings",{days:1});
+    localStorage.setItem("fndAutoLast",String(Date.now()));
+    localStorage.setItem("fndAuto",JSON.stringify(
+      (list||[]).map(f=>({k:fndKey(f),c:f.cost,mcp:f.kind==="mcp_unused"}))));
+    fndBadgeCalc();
+  }catch(_){/* sin datos o sin red: el siguiente tic reintenta */}
+}
+setTimeout(fndAutoScan,90*1000);      // sin competir con la primera carga
+setInterval(fndAutoScan,30*60*1000);  // tic barato; el guard de 20 h decide
+fndBadgeCalc();                       // lo pendiente de ayer revive al abrir
+// clic en el sticker/puntito del widget: el panel abre YA en Hallazgos
+EVENT?.listen("panel:findings",()=>showTab("findings"));
+$("fndBadgeChk").checked=fndBadgeOn();
+$("fndBadgeChk").addEventListener("change",()=>{
+  if($("fndBadgeChk").checked) localStorage.removeItem("fndBadgeOff");
+  else localStorage.setItem("fndBadgeOff","1");
+  if(lastPillArgs) emitPill(...lastPillArgs);
+});
 async function loadFindings(force){
   if(!invoke) return;
   if(fndBusy) return;
@@ -3193,6 +3273,11 @@ function renderFindings(){
   const r=$("fndRestore");
   if(r) r.addEventListener("click",e=>{ e.preventDefault();
     localStorage.removeItem("fndIgnore"); renderFindings(); });
+  // lo que quedó A LA VISTA cuenta como visto: el contador y el sticker se
+  // apagan y estas tarjetas no los vuelven a encender (las de mañana sí)
+  const seen=fndSeen(); list.forEach(f=>seen.add(fndKey(f)));
+  localStorage.setItem("fndSeen",JSON.stringify([...seen].slice(-300)));
+  fndBadgeCalc();
 }
 // El comando propio es un caso rarísimo (otro binario de python, un
 // contenedor...). Oculto por defecto: verlo sin saber para qué es solo

@@ -1017,11 +1017,35 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       sesión cuadró contra la agregación normal (camino independiente) al
       0.4%. Hallazgo estrella real: $403 de la semana eran UNA conversación
       de 1392 turnos releyendo su propio contexto.
-      FALTA para el diseño completo: el aviso EN EL MOMENTO (globito una vez
-      al día — hoy todo es reporte bajo demanda), la verificación
-      antes/después (necesita semanas de historial, ya asegurado con
-      cleanupPeriodDays=365) y el detector de líneas de CLAUDE.md sin
-      respaldo. El de rupturas de caché ya está (detector 5, arriba).
+      INDICADOR DE HALLAZGOS NUEVOS (2026-07-29, implementado; SIN validar
+      en vivo aún — solo frontend, cero cambios en Rust): una señal, tres
+      superficies — sticker cómic en la laptop del gatito (posición en
+      variables --bx/--by/--bs de cat.html, como la zona de la cabeza),
+      puntito en la cápsula de la pastilla y contador en la pestaña
+      Hallazgos. Color = severidad de la tarjeta más cara (misma escala:
+      rojo ≥$10, ámbar ≥$1 o MCP, acento el resto). CÓMO FUNCIONA: el panel
+      —único que escanea— corre una pasada ligera de 1 día como mucho cada
+      20 h (get_findings days:1, guard fndAutoLast) y guarda el resultado en
+      localStorage `fndAuto` para que reiniciar no apague un aviso que nadie
+      vio; los widgets solo reciben {n, sev, tip} dentro de quota:update.
+      "VISTO" = la tarjeta llegó a pintarse en la pestaña (claves en
+      `fndSeen`, tope 300): el aviso se apaga y esas tarjetas no lo vuelven
+      a encender — se despacha una vez, no persigue, como el globo. Ignorar
+      también lo apaga. Clic en sticker/puntito = evento `panel:findings` +
+      show_panel: el panel abre YA en Hallazgos. Checkbox en Preferencias
+      (encendido por defecto; localStorage `fndBadgeOff`) que apaga SOLO el
+      widget — el contador de la pestaña se queda siempre porque no
+      interrumpe. El sticker del gato va ANTES del early-return de ok:false
+      en apply() (un fallo pasajero de cuota no apaga un aviso pendiente) y
+      el contador de la pestaña vive en un <span> DENTRO del botón porque
+      applyI18n pisa el textContent de todo [data-i18n].
+      FALTA para el diseño completo: el aviso EN EL MOMENTO con texto (el
+      globito una vez al día — el indicador de arriba es la versión pasiva),
+      la verificación antes/después (necesita semanas de historial, ya
+      asegurado con cleanupPeriodDays=365 en ambos lados), el detector de
+      líneas de CLAUDE.md sin respaldo y el fix personalizado por
+      `entrypoint` (VS Code vs. terminal, con respaldo genérico — acordado
+      con Oscar el 2026-07-29). El de rupturas de caché ya está (detector 5).
       Idea original: Diseño completo en `docs/analizador-fugas.md`
       (2026-07-29): los cinco elementos de un hallazgo, el catálogo de
       detectores, por qué es DETERMINISTA y nunca un modelo local, y la
