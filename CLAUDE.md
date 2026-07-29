@@ -676,6 +676,10 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       saldría "conectado" sin devolver datos— y arma el comando la app.
       El caso "script propio" ya no está en la interfaz: quien lo necesite
       puede editar remotes.json a mano.
+      (3) El NOMBRE de un servidor guardado se edita haciendo clic en él
+      (2026-07-29): antes había que borrarlo y volver a darlo de alta por
+      una errata. Como el nombre es el sufijo que llevan sus proyectos
+      ("proyecto · nombre"), al cambiarlo se recarga el panel.
       OJO al probar cambios del exportador: tras el alta automática, el que
       corre en el servidor es la copia EMBEBIDA en el binario, que la app
       re-sube al arrancar. Editar `scripts/meter-export.py` en el VPS ya NO
