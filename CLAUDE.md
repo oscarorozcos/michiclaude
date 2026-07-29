@@ -621,10 +621,10 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       estado real). Cuatro avisos: alarma, break, zzz y restablecimiento.
 - [x] Los globos siguen al tema oscuro, y arte del gatito / piel de los
       globos se eligen por separado en Preferencias.
-- [~] La CÁPSULA del % va con los globos y no con el gato — decisión de
-      Oscar A PRUEBA (2026-07-27). Si no convence: pasarla al gato es
-      cambiar `curSkin` por `curArt` en `cat.html`, y quitar la opción
-      entera es revertir los dos selectores.
+- [x] La CÁPSULA del % va con los globos y no con el gato — a prueba desde
+      el 2026-07-27 y CONFIRMADA por Oscar el 2026-07-29 tras usarla dos
+      días. (Si algún día se quisiera al revés: cambiar `curSkin` por
+      `curArt` en `cat.html`.)
 - [x] REDISEÑO DE LA PASTILLA en cápsula + detalle desplegable (`pcard`),
       con el % en color de acento — VALIDADO en vivo por Oscar el 2026-07-28
       en los dos temas: la cabecera se queda en su sitio al desplegar, el
