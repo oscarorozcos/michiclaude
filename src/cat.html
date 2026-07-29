@@ -19,10 +19,10 @@
        invisible; el resto de la ventana —laptop y márgenes— solo arrastra.
        Para calibrarla: pinta .head con background:rgba(255,0,0,.25) */
     --hx:53%; --hy:47%; --hw:40%; --hh:39%;
-    /* globito de hallazgos nuevos en la ESQUINA SUPERIOR IZQUIERDA de la
-       tapa (posición marcada por Oscar en captura, 2026-07-29). Variables
+    /* post-it de hallazgos nuevos pegado en la tapa de la laptop, lado
+       izquierdo (iterado con Oscar en capturas, 2026-07-29). Variables
        para recalibrar sin tocar nada más, como la zona de la cabeza. */
-    --bx:11%; --by:34%; --bs:20px;
+    --bx:11%; --by:44%; --bs:20px;
   }
   /* Tema oscuro: el cómic se invierte —relleno oscuro, trazo y texto claros—
      en vez de quedarse en papel blanco, que era lo único del widget que no
@@ -73,21 +73,22 @@
   /* Al arrancar (o sin token) todavía no hay % que enseñar. Mejor que el
      gatito salga solo a que enseñe una cápsula vacía, que parece un error. */
   body.nodata .plabel{display:none}
-  /* globito cómic de hallazgos NUEVOS: burbuja de MENSAJE (esquinas
-     redondeadas + colita de cuadrado girado 45°, el mismo truco del popover)
-     roja con el número en blanco y translúcida (maqueta de Oscar
-     2026-07-29: rojo fijo, sin tinte por severidad — esa vive en las
-     tarjetas y en el contador de la pestaña). Solo aparece cuando el panel
-     avisa (hasfnd); clic = panel directo en Hallazgos. */
+  /* POST-IT cómic de hallazgos NUEVOS pegado en la tapa: cuadrado rojo con
+     el número en blanco, ligeramente ladeado y con su cinta adhesiva arriba,
+     translúcido (iterado con Oscar 2026-07-29: rojo fijo, sin tinte por
+     severidad — esa vive en las tarjetas y en el contador de la pestaña).
+     Solo aparece cuando el panel avisa (hasfnd); clic = panel en Hallazgos. */
   .fbadge{position:absolute;left:var(--bx);top:var(--by);width:var(--bs);height:var(--bs);
-    border:1.6px solid var(--ink);border-radius:6px;background:var(--bad);
+    border:1.6px solid var(--ink);border-radius:2px;background:var(--bad);
     color:#fff;font-family:var(--mono);font-weight:800;font-size:10.5px;
     display:none;align-items:center;justify-content:center;padding:0;
-    opacity:.78;transition:opacity .15s;cursor:pointer;z-index:4;
-    box-shadow:0 1px 3px rgba(0,0,0,.3)}
-  .fbadge::after{content:"";position:absolute;left:2px;bottom:-4.6px;
-    width:7px;height:7px;background:var(--bad);transform:rotate(45deg);
-    border-right:1.6px solid var(--ink);border-bottom:1.6px solid var(--ink)}
+    transform:rotate(-6deg);opacity:.78;transition:opacity .15s;
+    cursor:pointer;z-index:4;box-shadow:0 2px 3px rgba(0,0,0,.3)}
+  /* la cinta adhesiva: tirita clara cruzando el borde de arriba */
+  .fbadge::after{content:"";position:absolute;top:-3.5px;left:50%;
+    width:11px;height:5px;transform:translateX(-50%) rotate(3deg);
+    background:rgba(255,255,255,.6);border:1px solid var(--ink);
+    border-radius:1px}
   .fbadge:hover{opacity:1}
   body.hasfnd .fbadge{display:flex}
 </style>
