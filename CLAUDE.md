@@ -1120,7 +1120,9 @@ un fix, así que sin historial no tiene contra qué comparar — y lo borrado no
 se recupera. Se sube con `cleanupPeriodDays` en `~/.claude/settings.json`:
 
 - VPS: puesto en **365** el 2026-07-29 (respaldo en `settings.json.bak`).
-- Windows de Oscar: PENDIENTE.
+- Windows de Oscar: **365** confirmado el 2026-07-29 (ya estaba puesto en su
+  `settings.json`; verificado por Oscar mirando el archivo). AMBOS lados
+  conservan ya un año de logs — el antes/después solo espera historial.
 
 ## Comandos
 

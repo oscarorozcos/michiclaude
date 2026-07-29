@@ -412,7 +412,7 @@ cuota — pero eso no sale de los logs.
 - [x] Retención de logs subida a 365 días en el VPS (2026-07-29). Sin esto, el
       antes/después no tiene contra qué comparar: Claude Code borra a los 30
       días por defecto y lo borrado no vuelve.
-- [ ] Lo mismo en el Windows de Oscar.
+- [x] Lo mismo en el Windows de Oscar (confirmado 2026-07-29: ya estaba en 365).
 - [x] Detector 1: MCP servers inactivos (2026-07-29, validado en vivo).
 - [x] Detector 2: archivos releídos (2026-07-29, validado en vivo — y cazó la
       trampa: la estimación por tamaño de archivo exageraba ~100x; se MIDE lo
