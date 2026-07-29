@@ -413,7 +413,34 @@ cuota — pero eso no sale de los logs.
       antes/después no tiene contra qué comparar: Claude Code borra a los 30
       días por defecto y lo borrado no vuelve.
 - [ ] Lo mismo en el Windows de Oscar.
-- [ ] Detector 1: MCP servers inactivos.
-- [ ] Detector 2: archivos releídos.
-- [ ] Detector 3: sesiones que se inflan.
+- [x] Detector 1: MCP servers inactivos (2026-07-29, validado en vivo).
+- [x] Detector 2: archivos releídos (2026-07-29, validado en vivo — y cazó la
+      trampa: la estimación por tamaño de archivo exageraba ~100x; se MIDE lo
+      devuelto por cada lectura).
+- [x] Detector 3: sesiones que se inflan (2026-07-29, validado en vivo;
+      cuadró al 0.4% contra la agregación normal por un camino independiente).
+- [x] Detector extra: peticiones mecánicas (git/tests; lista corta a propósito).
+- [x] Detector 4: rupturas de caché (2026-07-29). Turnos del hilo principal
+      donde el prefijo cacheado se PERDIÓ (cache_read cae a menos de la mitad
+      del contexto del turno anterior) y la conversación entera se reescribió
+      a precio de ESCRITURA (1.25x input) en vez de leerse a 0.1x. Causas
+      típicas: pausa mayor al TTL del caché o cambio de modelo (cada modelo
+      tiene el suyo). Costo MEDIDO: `min(cache_write, contexto_previo)` — el
+      piso, solo lo que ya estaba escrito — a la tarifa de escritura del
+      modelo de ese turno. Exclusiones OBLIGATORIAS, las dos verificadas en
+      logs reales: subagentes (`isSidechain` — llevan SU contexto y mezclarlos
+      fabrica rupturas que no existieron) y compactaciones (`isCompactSummary`
+      / `compact_boundary` ±120 s — ahí reescribir es el ahorro, no la fuga).
+      Umbrales: prefijo mínimo 20k para evaluar; 300k reescritos por sesión
+      para avisar. Validado contra los logs del VPS con una exploración
+      independiente ANTES de escribir el detector — cuadre exacto: 21
+      rupturas / $80.85 en la sesión monstruo de 1392 turnos (la de los $403:
+      cada pausa larga sobre ~900k tokens de contexto costó ~$6 en
+      reescritura), 6 / $22.27 y 2 / $4.37 en otras dos. Es la fuga más cara
+      del catálogo y ningún otro detector la veía: inflate mide lo que cuesta
+      RELEER el contexto; este mide lo que cuesta REESCRIBIRLO cuando el
+      caché se pierde.
 - [ ] El antes/después (necesita semanas de historial).
+- [ ] Detector: líneas de CLAUDE.md sin respaldo (§5, las tres cubetas).
+- [ ] El aviso EN EL MOMENTO (globito una vez al día, §7) — hoy todo es
+      reporte bajo demanda.

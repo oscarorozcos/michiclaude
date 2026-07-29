@@ -992,6 +992,22 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       (solo git/pytest/cargo check/npm test-ci-install; lista corta a
       propósito) y MCP configurado sin invocar. Umbrales en constantes
       (REREAD_MIN 3 / 2000 tok, INFLATE 50k+10 turnos, MECH 5, tope 12).
+      Detector 5 (2026-07-29, AÚN SIN cargo check — el VPS no tiene
+      toolchain): RUPTURAS DE CACHÉ. Turnos del hilo principal donde
+      cache_read cae a menos de la mitad del contexto del turno anterior:
+      el prefijo cacheado se perdió y la conversación entera se reescribió
+      a 1.25x input en vez de leerse a 0.1x (causas típicas: pausa mayor al
+      TTL o cambio de modelo). Costo MEDIDO como piso min(cache_write,
+      contexto_previo). DOS EXCLUSIONES obligatorias: isSidechain (los
+      subagentes llevan SU contexto; mezclarlos fabrica rupturas falsas) y
+      compactaciones (isCompactSummary/compact_boundary ±120 s — ahí
+      reescribir es el ahorro, no la fuga). Umbrales CACHEBREAK_MIN_PREV
+      20k / CACHEBREAK_MIN_TOKENS 300k. Validado en el VPS con exploración
+      independiente ANTES de escribir el detector, cuadre exacto: $80.85 en
+      la sesión de los $403 (cada pausa sobre ~900k de contexto = ~$6 de
+      reescritura), $22.27 y $4.37 en otras dos; los hallazgos previos
+      salieron IDÉNTICOS con y sin el cambio (diff limpio). Es la fuga más
+      cara del catálogo: inflate mide RELEER, este mide REESCRIBIR.
       LA VALIDACIÓN PAGÓ DOS VECES el primer día: el cálculo manual de
       relecturas exageraba ~100x (multiplicaba por el tamaño del archivo
       cuando casi todas las lecturas eran parciales — la trampa documentada,
@@ -1002,8 +1018,8 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       FALTA para el diseño completo: el aviso EN EL MOMENTO (globito una vez
       al día — hoy todo es reporte bajo demanda), la verificación
       antes/después (necesita semanas de historial, ya asegurado con
-      cleanupPeriodDays=365), el detector de líneas de CLAUDE.md sin
-      respaldo y el de rupturas de caché.
+      cleanupPeriodDays=365) y el detector de líneas de CLAUDE.md sin
+      respaldo. El de rupturas de caché ya está (detector 5, arriba).
       Idea original: Diseño completo en `docs/analizador-fugas.md`
       (2026-07-29): los cinco elementos de un hallazgo, el catálogo de
       detectores, por qué es DETERMINISTA y nunca un modelo local, y la

@@ -17,3 +17,5 @@ remotes.json
 *.log
 *.pem
 *.key
+__pycache__/
+*.pyc

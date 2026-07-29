@@ -1811,6 +1811,8 @@ const REREAD_MIN_TOKENS: u64 = 2000;
 const INFLATE_MIN_GROWTH: u64 = 50_000;
 const INFLATE_MIN_TURNS: u64 = 10;
 const MECH_MIN: u64 = 5;
+const CACHEBREAK_MIN_PREV: u64 = 20_000;
+const CACHEBREAK_MIN_TOKENS: u64 = 300_000;
 const MAX_FINDINGS: usize = 12;
 
 /// Comandos deterministas: turnos donde Claude no piensa, solo ejecuta.
@@ -1867,6 +1869,11 @@ struct SessFindings {
     read_chars: HashMap<String, u64>,
     models: HashMap<String, u64>,
     proj: String,
+    /// hilo principal en orden (epoch, modelo, cache_read, cache_write)
+    /// para el detector de rupturas de caché
+    cb: Vec<(i64, String, u64, u64)>,
+    /// timestamps de compactaciones: ahí reescribir es el ahorro, no la fuga
+    compacts: Vec<i64>,
 }
 
 /// Corre los detectores sobre las fuentes locales (este PC + WSL) en la
@@ -1920,6 +1927,23 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                         continue;
                     };
                     let sid = v["sessionId"].as_str().unwrap_or("").to_string();
+                    // una compactación reescribe el contexto A PROPÓSITO: se
+                    // marca para no contarla como ruptura de caché (estas
+                    // líneas tampoco traen usage, así que va antes del filtro)
+                    if v["isCompactSummary"].as_bool().unwrap_or(false)
+                        || v["subtype"].as_str() == Some("compact_boundary")
+                    {
+                        if let Some(cts) = v["timestamp"]
+                            .as_str()
+                            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                        {
+                            sessions
+                                .entry(sid.clone())
+                                .or_default()
+                                .compacts
+                                .push(cts.timestamp());
+                        }
+                    }
                     // resultados de lecturas: se MIDE lo que viajó de verdad
                     // (va ANTES del filtro de usage: estas líneas no lo traen)
                     if let Some(blocks) = v["message"]["content"].as_array() {
@@ -1986,6 +2010,12 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                         st.last_cr = cr;
                         // MEDIDO: lo que costó releer el contexto en este turno
                         st.cr_cost += cost_of(&model, 0, 0, 0, cr);
+                        // hilo principal para el detector de rupturas; los
+                        // subagentes llevan SU contexto y mezclarlos
+                        // fabricaría rupturas que no existieron
+                        if !v["isSidechain"].as_bool().unwrap_or(false) {
+                            st.cb.push((ts.timestamp(), model.clone(), cr, cw));
+                        }
                     }
                     let empty = Vec::new();
                     let uses: Vec<&serde_json::Value> = v["message"]["content"]
@@ -2069,10 +2099,44 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
             findings.push(Finding {
                 kind: "inflate".into(),
                 project: s.proj.clone(),
-                session: sid8,
+                session: sid8.clone(),
                 turns: s.turns,
                 tokens: growth,
                 cost: s.cr_cost,
+                ..Default::default()
+            });
+        }
+        // rupturas de caché: turnos donde el prefijo cacheado se PERDIÓ
+        // (cache_read cae a menos de la mitad) y la conversación se
+        // reescribió a precio de escritura (1.25x input) en vez de leerse
+        // a 0.1x. Causas típicas: pausa mayor al TTL del caché o cambio de
+        // modelo (cada modelo tiene el suyo). El costo es MEDIDO: tokens
+        // que ya estaban escritos, cobrados otra vez a tarifa de escritura.
+        let mut cb = s.cb.clone();
+        cb.sort_by_key(|t| t.0);
+        let (mut breaks, mut rew_tok, mut rew_cost) = (0u64, 0u64, 0f64);
+        for w in cb.windows(2) {
+            let prev = w[0].2 + w[0].3;
+            let (ts_i, m_i, cr_i, cw_i) = (w[1].0, &w[1].1, w[1].2, w[1].3);
+            if prev < CACHEBREAK_MIN_PREV || cr_i * 2 >= prev {
+                continue;
+            }
+            if s.compacts.iter().any(|c| (ts_i - *c).abs() < 120) {
+                continue;
+            }
+            let rew = cw_i.min(prev); // PISO: solo lo que ya estaba escrito
+            breaks += 1;
+            rew_tok += rew;
+            rew_cost += rew as f64 * price_for(m_i).2 / 1_000_000.0;
+        }
+        if rew_tok >= CACHEBREAK_MIN_TOKENS {
+            findings.push(Finding {
+                kind: "cachebreak".into(),
+                project: s.proj.clone(),
+                session: sid8,
+                count: breaks,
+                tokens: rew_tok,
+                cost: rew_cost,
                 ..Default::default()
             });
         }

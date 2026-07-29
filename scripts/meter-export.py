@@ -221,6 +221,8 @@ REREAD_MIN_TOKENS = 2000  # por debajo es ruido: una tarjeta de $0.00 devalúa
 INFLATE_MIN_GROWTH = 50_000   # tokens de contexto acumulados
 INFLATE_MIN_TURNS = 10
 MECH_MIN = 5            # peticiones mecánicas en la ventana para avisar
+CACHEBREAK_MIN_PREV = 20_000    # prefijo cacheado mínimo para evaluar un turno
+CACHEBREAK_MIN_TOKENS = 300_000  # reescritos por sesión para avisar (~$2-4)
 MAX_FINDINGS = 12       # las tarjetas no son un log: lo más caro primero
 
 
@@ -275,7 +277,14 @@ def scan_findings(projects_dir, window_ago, days):
                     S = sessions.setdefault(sid, {
                         "first_cr": None, "last_cr": None, "turns": 0,
                         "cr_cost": 0.0, "reads": {}, "read_chars": {},
-                        "models": {}, "proj": proj.name})
+                        "models": {}, "proj": proj.name,
+                        "cb": [], "compacts": []})
+                    # una compactación reescribe el contexto A PROPÓSITO:
+                    # se marca para no contarla como ruptura de caché
+                    if v.get("isCompactSummary") or v.get("subtype") == "compact_boundary":
+                        cts = parse_ts(v.get("timestamp"))
+                        if cts:
+                            S["compacts"].append(cts)
                     # resultados de lecturas: se MIDE lo que viajó de verdad
                     for b in blocks:
                         if not isinstance(b, dict):
@@ -314,6 +323,11 @@ def scan_findings(projects_dir, window_ago, days):
                         S["first_cr"] = cr
                     S["last_cr"] = cr
                     S["cr_cost"] += cr * pcr / 1e6   # MEDIDO: releer el contexto
+                    # hilo principal en orden para el detector de rupturas;
+                    # los subagentes llevan SU contexto y mezclarlos
+                    # fabricaría rupturas que no existieron
+                    if not v.get("isSidechain"):
+                        S["cb"].append((ts, model, cr, cw))
                     uses = [b for b in blocks
                             if isinstance(b, dict) and b.get("type") == "tool_use"]
                     for b in uses:
@@ -361,6 +375,31 @@ def scan_findings(projects_dir, window_ago, days):
                 "kind": "inflate", "project": S["proj"], "session": sid[:8],
                 "turns": S["turns"], "tokens": growth,
                 "cost": S["cr_cost"], "estimated": False})
+        # rupturas de caché: turnos donde el prefijo cacheado se PERDIÓ
+        # (cache_read cae a menos de la mitad) y la conversación se
+        # reescribió a precio de escritura (1.25x input) en vez de leerse
+        # a 0.1x. Causas típicas: pausa mayor al TTL del caché o cambio de
+        # modelo (cada modelo tiene el suyo). El costo es MEDIDO: tokens
+        # que ya estaban escritos, cobrados otra vez a tarifa de escritura.
+        cb = sorted(S["cb"], key=lambda x: x[0])
+        breaks, rew_tok, rew_cost = 0, 0, 0.0
+        for i in range(1, len(cb)):
+            ts_i, m_i, cr_i, cw_i = cb[i]
+            prev = cb[i - 1][2] + cb[i - 1][3]
+            if prev < CACHEBREAK_MIN_PREV or cr_i * 2 >= prev:
+                continue
+            if any(abs((ts_i - c).total_seconds()) < 120
+                   for c in S["compacts"]):
+                continue
+            rew = min(cw_i, prev)   # PISO: solo lo que ya estaba escrito
+            breaks += 1
+            rew_tok += rew
+            rew_cost += rew * price_for(m_i)[2] / 1e6
+        if rew_tok >= CACHEBREAK_MIN_TOKENS:
+            findings.append({
+                "kind": "cachebreak", "project": S["proj"],
+                "session": sid[:8], "count": breaks, "tokens": rew_tok,
+                "cost": rew_cost, "estimated": False})
     if mech[0] >= MECH_MIN:
         findings.append({"kind": "mech", "count": mech[0],
                          "tokens": mech[1], "cost": mech[2],
