@@ -22,7 +22,7 @@
     /* post-it de hallazgos nuevos pegado en la tapa de la laptop, lado
        izquierdo (iterado con Oscar en capturas, 2026-07-29). Variables
        para recalibrar sin tocar nada más, como la zona de la cabeza. */
-    --bx:11%; --by:44%; --bs:20px;
+    --bx:11%; --by:50%; --bs:20px;
   }
   /* Tema oscuro: el cómic se invierte —relleno oscuro, trazo y texto claros—
      en vez de quedarse en papel blanco, que era lo único del widget que no
@@ -73,30 +73,38 @@
   /* Al arrancar (o sin token) todavía no hay % que enseñar. Mejor que el
      gatito salga solo a que enseñe una cápsula vacía, que parece un error. */
   body.nodata .plabel{display:none}
-  /* POST-IT cómic de hallazgos NUEVOS pegado en la tapa: cuadrado rojo con
-     el número en blanco, ligeramente ladeado y con su cinta adhesiva arriba,
+  /* POST-IT cómic de hallazgos NUEVOS pegado en la tapa: una PILITA — dos
+     notas asoman por detrás (ámbar y papel, cada una con su giro) y encima
+     el post-it rojo ladeado con su cinta adhesiva, número blanco y
      translúcido (iterado con Oscar 2026-07-29: rojo fijo, sin tinte por
      severidad — esa vive en las tarjetas y en el contador de la pestaña).
      Solo aparece cuando el panel avisa (hasfnd); clic = panel en Hallazgos. */
-  .fbadge{position:absolute;left:var(--bx);top:var(--by);width:var(--bs);height:var(--bs);
-    border:1.6px solid var(--ink);border-radius:2px;background:var(--bad);
-    color:#fff;font-family:var(--mono);font-weight:800;font-size:10.5px;
-    display:none;align-items:center;justify-content:center;padding:0;
-    transform:rotate(-6deg);opacity:.78;transition:opacity .15s;
-    cursor:pointer;z-index:4;box-shadow:0 2px 3px rgba(0,0,0,.3)}
+  .fstack{position:absolute;left:var(--bx);top:var(--by);width:var(--bs);height:var(--bs);
+    display:none;opacity:.78;transition:opacity .15s;cursor:pointer;z-index:4}
+  .fstack:hover{opacity:1}
+  body.hasfnd .fstack{display:block}
+  /* las orillas de los otros post-its, encimados por detrás */
+  .fstack i{position:absolute;inset:0;border:1.6px solid var(--ink);
+    border-radius:2px}
+  .fn1{background:var(--warn);transform:translate(3.5px,2.5px) rotate(7deg)}
+  .fn2{background:var(--paper);transform:translate(-2.5px,3.5px) rotate(-15deg)}
+  .fbadge{position:absolute;inset:0;border:1.6px solid var(--ink);
+    border-radius:2px;background:var(--bad);color:#fff;
+    font-family:var(--mono);font-weight:800;font-size:10.5px;
+    display:flex;align-items:center;justify-content:center;padding:0;
+    transform:rotate(-6deg);cursor:pointer;
+    box-shadow:0 2px 3px rgba(0,0,0,.3)}
   /* la cinta adhesiva: tirita clara cruzando el borde de arriba */
   .fbadge::after{content:"";position:absolute;top:-3.5px;left:50%;
     width:11px;height:5px;transform:translateX(-50%) rotate(3deg);
     background:rgba(255,255,255,.6);border:1px solid var(--ink);
     border-radius:1px}
-  .fbadge:hover{opacity:1}
-  body.hasfnd .fbadge{display:flex}
 </style>
 </head>
 <body class="nodata">
 <img class="cat" id="cat" src="cat-black.gif" alt="" draggable="false">
 <button class="head" id="head" aria-label="MichiClaude"></button>
-<button class="fbadge" id="fbadge">!</button>
+<div class="fstack" id="fstack"><i class="fn2"></i><i class="fn1"></i><button class="fbadge" id="fbadge">!</button></div>
 <div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b></div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
@@ -197,10 +205,11 @@ $("head").addEventListener("mousedown",e=>e.stopPropagation());
 $("head").addEventListener("click",e=>{
   e.stopPropagation(); foldBubble(); invoke?.("show_panel");
 });
-// clic en el sticker = abrir el panel directo en la pestaña Hallazgos (el
-// panel escucha panel:findings; al pintarse las tarjetas el sticker se apaga)
-$("fbadge").addEventListener("mousedown",e=>e.stopPropagation());
-$("fbadge").addEventListener("click",e=>{
+// clic en la pilita de post-its = abrir el panel directo en Hallazgos (el
+// panel escucha panel:findings; al pintarse las tarjetas el aviso se apaga).
+// Va en el contenedor para que las orillas que asoman también sean botón.
+$("fstack").addEventListener("mousedown",e=>e.stopPropagation());
+$("fstack").addEventListener("click",e=>{
   e.stopPropagation(); foldBubble();
   EVENT?.emit("panel:findings"); invoke?.("show_panel");
 });
