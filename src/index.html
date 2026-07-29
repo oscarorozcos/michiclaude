@@ -168,8 +168,12 @@
   .cfg-form button:hover,.btnrow button:hover{background:var(--accent-line)}
   .cfg-form button:disabled:hover,.btnrow button:disabled:hover{background:var(--accent-weak)}
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
+  /* el lápiz avisa de que el nombre se puede tocar; sin él nadie
+     descubre que es editable (2026-07-29) */
   .srv-name{cursor:text}
   .srv-name:hover{color:var(--accent)}
+  .srv-name .pen{margin-left:6px;opacity:.4;vertical-align:-1px}
+  .srv-name:hover .pen{opacity:1}
   #remList .pitem{grid-template-columns:1fr auto}
   .cfg-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt-mut)}
   /* select con colores SÓLIDOS explícitos: el popup nativo de opciones no
@@ -2676,13 +2680,14 @@ function syncHubButtons(){
   if(!on) $("hubMsg").textContent = t("hub_cfg_needs");
   else if($("hubMsg").textContent === t("hub_cfg_needs")) $("hubMsg").textContent = "";
 }
+const PENCIL='<svg class="pen" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>';
 const TRASH='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>';
 function renderRemotes(){
   $("srvCount").textContent = t("srv_count", remotes.length);
   $("remList").innerHTML = remotes.map((r,i)=>`
     <div class="srv-row">
       <div style="min-width:0">
-        <div class="srv-name" data-i="${i}" title="${escapeHtml(t("rename_server"))}">${escapeHtml(r.name)}</div>
+        <div class="srv-name" data-i="${i}" title="${escapeHtml(t("rename_server"))}">${escapeHtml(r.name)}${PENCIL}</div>
         <div class="srv-meta" title="${escapeHtml(r.host)} · ${escapeHtml(r.command||"")}">${escapeHtml(r.host)} · ${escapeHtml(r.command||"")}</div>
       </div>
       <span class="spill wait" id="rstat-${i}"><i></i>…</span>
