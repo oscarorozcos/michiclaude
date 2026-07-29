@@ -579,10 +579,31 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] Multiidioma (8): EN default, ES, PT, FR, DE, JA, KO, ZH — diccionario
       I18N, autodetección, selector en ajustes, errores del backend como
       códigos ERR_* traducidos en el frontend.
-- [~] Fuente WSL — SIGUE SIN PROBARSE: no hay ninguna máquina con WSL a
-      mano, ni la de Oscar ni el VPS. El camino en el código se puede seguir
-      línea por línea pero NO se ha ejecutado nunca; si WSL no se detecta,
-      simplemente no salen esas filas y no rompe nada.
+- [x] Fuente WSL — VERIFICADA EN VIVO el 2026-07-29, tras semanas anotada
+      como "sin probar". Resulta que el Windows de Oscar SÍ tiene Ubuntu
+      (llegó con una actualización y nunca lo usó); se descubrió mirando la
+      lista de procesos por RAM, donde aparecía `vmmemWSL`.
+      Como no había uso real, se probó con un registro sintético: un
+      `.jsonl` de una sola entrada escrito en
+      `\\wsl.localhost\Ubuntu\home\oscar\.claude\projects\-tmp-prueba-wsl\`
+      y borrado al terminar. Salió la fila `prueba-wsl` con la etiqueta
+      `wsl-Ubuntu` en las ventanas 1d/7d/30d. Con eso queda probada la cadena
+      COMPLETA: `wsl.exe -l -q` con su UTF-16LE, el barrido de
+      `home/*/.claude`, la lectura desde Windows por `\\wsl.localhost`, el
+      parseo y el sufijo con el nombre REAL de la distro.
+      REGALO: el coste salió $0.40 donde la tabla embebida daría $0.60 —
+      es el precio INTRODUCTORIO de Sonnet 5 de la tabla descargada. Sin
+      buscarlo, quedó probado que los precios dinámicos se aplican de verdad.
+      SIGUE SIN PROBARSE una sola cosa de WSL: el token de RESPALDO (usar el
+      `.credentials.json` de la distro cuando el de Windows venció). Es otro
+      camino del código y necesita una sesión de Claude Code iniciada DENTRO
+      de Ubuntu.
+      CÓMO REPETIR LA PRUEBA (dos trampas que costaron intentos): escribir el
+      archivo desde `wsl bash -lc 'echo "{...}"'` NO funciona — PowerShell se
+      come las comillas y deja un archivo de 20 bytes; hay que escribirlo
+      desde Windows por la ruta `\\wsl.localhost`. Y con `Set-Content` hay
+      que usar `-Encoding ascii`: la opción `utf8` mete un BOM que rompe la
+      primera línea del JSON y parecería un fallo de la app.
       Fuente WSL implementada (el sufijo es "wsl-<distro>" desde
       el 2026-07-29; antes todas caían bajo un "wsl" genérico y con dos
       instaladas no había forma de distinguirlas): `wsl.exe -l -q` (UTF-16LE) + escaneo de

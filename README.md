@@ -228,7 +228,7 @@ qué* lo usas, sino *en qué máquina* corre. Así que:
   servidor: agrégalo una vez en Fuentes de datos.
 
 > 🔑 **Regla de oro:** no importa **con qué** uses Claude Code, sino **dónde
-> corre**. Misma PC → local automático; WSL → "· wsl" automático; servidor por
+> corre**. Misma PC → local automático; WSL → "· wsl-Ubuntu" automático; servidor por
 > SSH → agregarlo una vez.
 
 ## ¿De dónde salen los dólares? (costo estimado)
@@ -319,7 +319,9 @@ servidor, así que lo eliges tú).
 
 - **Este PC**: automático (logs de Claude Code).
 - **claude.ai**: automático vía la cuota de tu cuenta.
-- **WSL**: automático — sus proyectos salen como "nombre · wsl".
+- **WSL**: automático — sus proyectos salen como "nombre · wsl-<distro>"
+  (p. ej. "· wsl-Ubuntu"), así que con dos distribuciones instaladas se
+  distinguen entre sí.
 - **Servidores** (VPS, etc.): nombre + host SSH en *Fuentes de datos* y listo —
   **no tienes que copiar ni instalar nada**. Sus proyectos aparecen como
   "nombre · servidor"; si un servidor no responde, se ignora en silencio y tus
