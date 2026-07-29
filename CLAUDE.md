@@ -652,14 +652,27 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       por Oscar en Windows el 2026-07-28, sin errores ni advertencias.
       RECORDATORIO: en el VPS no hay toolchain de Rust, así que esa
       verificación SIEMPRE corre en el Windows de Oscar.
-- [ ] VERIFICAR alta automática de servidor (2026-07-27): el flujo nuevo
-      (detectar Python -> subir el lector a ~/.michiclaude/ -> guardar el
-      comando resuelto) NO se ha probado en vivo, porque el servidor de Oscar
-      sigue guardado con la ruta vieja de cuando se configuró a mano. Para
-      probarlo hay que borrarlo con el bote de la lista y volver a agregarlo
-      dejando el comando VACÍO. Comprobar además el caso de error: un host sin
-      Python debe fallar con ERR_NO_PYTHON y su mensaje traducido, no darse
-      por bueno.
+- [x] Alta automática de servidor — VERIFICADA en vivo el 2026-07-29: Oscar
+      borró su VPS y lo volvió a agregar con el comando VACÍO. La app detectó
+      Python, subió el lector a `~/.michiclaude/meter-export.py` y guardó el
+      comando resuelto sola. Comprobado en el servidor que el archivo existe y
+      corre. FALTA aún el caso de error (un host SIN Python debe fallar con
+      ERR_NO_PYTHON traducido, no darse por bueno).
+      DOS COSAS QUE SALIERON DE ESA PRUEBA:
+      (1) El archivo subido llevaba saltos CRLF —git los mete al clonar en
+      Windows e `include_str!` los embebe—, así que el shebang quedaba como
+      `python3\r`. Funciona porque se ejecuta con `python3 archivo`, pero se
+      sube con permiso de ejecución y quien probara `./meter-export.py` en el
+      servidor se topaba con un error incomprensible. `upload_exporter`
+      normaliza los saltos.
+      (2) El campo "Comando a ejecutar" nace OCULTO y solo aparece si la
+      instalación automática falla (ERR_NO_PYTHON): es la salida de
+      emergencia para un servidor raro, y enseñárselo a todo el mundo hacía
+      que un campo que sobra el 99% de las veces pareciera obligatorio.
+      OJO al probar cambios del exportador: tras el alta automática, el que
+      corre en el servidor es la copia EMBEBIDA en el binario, que la app
+      re-sube al arrancar. Editar `scripts/meter-export.py` en el VPS ya NO
+      tiene efecto — hay que recompilar.
 - [~] MODO HUB — FASE 1 (subir) IMPLEMENTADA 2026-07-28, sin verificar en
       vivo. Cada ciclo deja la foto de ESTA máquina en cada servidor, en
       `~/.michiclaude/hosts/<máquina>.json`, vía `upload_summary()`.

@@ -874,7 +874,13 @@ fn upload_exporter(host: &str) -> Result<(), String> {
     }
     let mut child = cmd.spawn().map_err(|e| format!("No pude ejecutar ssh: {e}"))?;
     if let Some(mut si) = child.stdin.take() {
-        si.write_all(REMOTE_SCRIPT.as_bytes())
+        // Saltos de línea de Unix SIEMPRE. Git entrega el archivo con CRLF al
+        // clonar en Windows e include_str! lo embebe así; el script funciona
+        // igual porque se ejecuta como `python3 archivo`, pero se sube con
+        // permiso de ejecución y quien pruebe `./meter-export.py` en el
+        // servidor se topa con un intérprete llamado "python3\r" y un error
+        // que no dice nada (visto 2026-07-28).
+        si.write_all(REMOTE_SCRIPT.replace("\r\n", "\n").as_bytes())
             .map_err(|e| format!("No pude enviar el script: {e}"))?;
     }
     let out = child.wait_with_output().map_err(|e| e.to_string())?;

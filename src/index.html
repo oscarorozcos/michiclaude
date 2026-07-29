@@ -378,7 +378,12 @@
         <label for="rHost" data-i18n="lbl_host"></label>
         <input id="rHost" class="mono" data-i18n-ph="ph_host">
       </div>
-      <div class="fld">
+      <!-- El comando propio es la salida de emergencia para un servidor raro
+           (otro binario de Python, un contenedor). Nace OCULTO y solo sale si
+           la instalación automática falla: enseñárselo a todo el mundo hace
+           que un campo que sobra el 99% de las veces parezca obligatorio
+           (2026-07-29). -->
+      <div class="fld" id="rCmdBox" hidden>
         <label for="rCmd" data-i18n="lbl_cmd"></label>
         <input id="rCmd" class="mono" data-i18n-ph="ph_cmd">
         <div class="fhint" data-i18n="hint_cmd"></div>
@@ -2730,6 +2735,9 @@ $("rAdd").addEventListener("click",async()=>{
     // los códigos ERR_* del backend se traducen; el resto se muestra tal cual
     const m=String(e);
     $("rMsg").textContent="✗ "+(m==="ERR_NO_PYTHON"?t("err_no_python"):m);
+    // No pudo instalarlo solo: ahora el campo del comando SÍ sirve de algo,
+    // y aparece con el error delante, que es lo que le da sentido.
+    if(m==="ERR_NO_PYTHON") $("rCmdBox").hidden=false;
   }
   finally{ $("rAdd").disabled=false; }
 });
