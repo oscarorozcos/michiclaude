@@ -258,6 +258,10 @@ def main():
         except IndexError:
             pass
 
+    # Filas del reporte (fecha × proyecto × modelo). Solo cuando se piden:
+    # el panel no las necesita y engordarían cada consulta.
+    want_rows = "--rows" in args
+
     if "--prices-stdin" in args:
         try:
             raw = sys.stdin.read()
@@ -278,6 +282,7 @@ def main():
     seen = set()
     display = {}
     per_project = {}   # raw -> [cost, tokens, {model: cost}]
+    rows = {}          # (fecha, proyecto, modelo) -> [cost, tokens]
     models = {}
     daily = {}
     cost_today = cost_window = 0.0
@@ -341,6 +346,11 @@ def main():
                         e[0] += cost
                         e[1] += inp + out + cw
                         e[2][model] = e[2].get(model, 0.0) + cost
+                        if want_rows:
+                            k = (ts.strftime("%Y-%m-%d"), raw, model)
+                            r = rows.setdefault(k, [0.0, 0])
+                            r[0] += cost
+                            r[1] += inp + out + cw
                         m = models.setdefault(model, {
                             "input": 0, "output": 0, "cache_write": 0,
                             "cache_read": 0, "cost": 0.0, "estimated": False})
@@ -377,6 +387,14 @@ def main():
         # Modo hub: lo que dejaron las OTRAS máquinas. Un MichiClaude viejo
         # ignora esta clave y sigue viendo solo los datos de este servidor.
         "hosts": read_hosts(exclude_id, days),
+        # El nombre legible del proyecto se resuelve aquí: durante el recorrido
+        # solo se tiene la carpeta cruda, y el bonito puede aparecer en
+        # cualquier línea del .jsonl.
+        "rows": [
+            {"date": d, "project": display.get(raw) or raw.rsplit("-", 1)[-1] or raw,
+             "model": model, "cost": c, "tokens": t}
+            for (d, raw, model), (c, t) in sorted(rows.items())
+        ],
     }))
 
 

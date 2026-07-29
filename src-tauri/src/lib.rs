@@ -197,6 +197,20 @@ struct DailyAgg {
     cost: f64,
 }
 
+/// Una fila del reporte: un hecho por fila, y todas las columnas aplican a
+/// todas. Sustituye al CSV viejo, que metía tres tablas distintas en una
+/// (proyectos, modelos y días) con una columna `name_or_date` que a veces
+/// era un nombre y a veces una fecha (2026-07-29).
+#[derive(Serialize, Deserialize, Clone)]
+struct ExportRow {
+    date: String,
+    project: String,
+    model: String,
+    origin: String,
+    cost: f64,
+    tokens: u64,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 struct LocalStats {
     projects: Vec<ProjectAgg>,
@@ -211,6 +225,11 @@ struct LocalStats {
     /// Serie diaria de los últimos 30 días (para la gráfica de tendencia).
     #[serde(default)]
     daily: Vec<DailyAgg>,
+    /// Filas del reporte. Solo se llenan cuando alguien exporta: calcularlas
+    /// en cada refresco del panel sería trabajo tirado, y engordarían la foto
+    /// que se sube al hub.
+    #[serde(default)]
+    rows: Vec<ExportRow>,
     /// Modo hub: resúmenes que OTRAS máquinas dejaron en ese servidor. Llegan
     /// sin fusionar para que la etiqueta la ponga quien lee. Vacío con un
     /// exportador viejo, que ni siquiera devuelve la clave.
@@ -746,6 +765,19 @@ fn host_name() -> String {
         .unwrap_or_else(|| "michiclaude".into())
 }
 
+/// Cómo se llama el origen "esta máquina" en el reporte. El panel lo manda
+/// traducido antes de exportar; si no, queda en inglés.
+static LOCAL_LABEL: std::sync::OnceLock<std::sync::Mutex<String>> = std::sync::OnceLock::new();
+
+fn local_label() -> String {
+    LOCAL_LABEL
+        .get()
+        .and_then(|m| m.lock().ok())
+        .map(|g| g.clone())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "Local".into())
+}
+
 /// Solo lo que puede vivir en un nombre de archivo, para no depender de cómo
 /// se llame la PC del usuario (espacios, acentos, barras…).
 fn safe_name(n: &str) -> String {
@@ -1036,7 +1068,7 @@ if [ -f \"$f\" ] && ! grep -q '\"id\":\"{id}\"' \"$f\"; then exit 3; fi; cat > \
 
 /// Ejecuta el exportador remoto por SSH. BatchMode: jamás pide contraseña
 /// (requiere llave configurada, la misma que usa VS Code Remote-SSH).
-fn fetch_remote(r: &RemoteSource, window_days: u32) -> Option<LocalStats> {
+fn fetch_remote(r: &RemoteSource, window_days: u32, want_rows: bool) -> Option<LocalStats> {
     use std::io::Write;
     // Los precios frescos se le pasan al exportador por stdin: así hay UNA sola
     // fuente de verdad y su tabla embebida queda solo como respaldo. Un
@@ -1051,11 +1083,12 @@ fn fetch_remote(r: &RemoteSource, window_days: u32) -> Option<LocalStats> {
     cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
         .arg(&r.host)
         .arg(format!(
-            "{} --days {} --exclude-host {}{}",
+            "{} --days {} --exclude-host {}{}{}",
             r.command,
             window_days,
             hub_identity().id,
-            if prices.is_some() { " --prices-stdin" } else { "" }
+            if prices.is_some() { " --prices-stdin" } else { "" },
+            if want_rows { " --rows" } else { "" }
         ))
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
@@ -1159,6 +1192,9 @@ struct LocalAgg {
     projects: HashMap<String, ProjSlot>, // clave: ruta única de la carpeta
     models: HashMap<String, ModelAgg>,
     daily: HashMap<String, f64>, // YYYY-MM-DD -> USD (últimos 30 días)
+    /// (fecha, proyecto, modelo, origen) -> (USD, tokens). Solo si want_rows.
+    rows: HashMap<(String, String, String, String), (f64, u64)>,
+    want_rows: bool,
     cost_today: f64,
     cost_window: f64,
     tokens_window: u64,
@@ -1416,6 +1452,20 @@ fn scan_projects_dir(
                         slot.tokens += e.inp + e.out + e.cw;
                         *slot.by_model.entry(e.model.clone()).or_insert(0.0) += cost;
                     }
+                    if agg.want_rows {
+                        let slot = agg.projects.get(&slot_key).unwrap();
+                        let base = slot.display.clone().unwrap_or_else(|| slot.fallback.clone());
+                        let origin = slot.suffix.clone().unwrap_or_else(|| local_label());
+                        let k = (
+                            ts.format("%Y-%m-%d").to_string(),
+                            base,
+                            e.model.clone(),
+                            origin,
+                        );
+                        let r = agg.rows.entry(k).or_insert((0.0, 0));
+                        r.0 += cost;
+                        r.1 += e.inp + e.out + e.cw;
+                    }
                     let m = agg.models.entry(e.model.clone()).or_default();
                     m.input += e.inp;
                     m.output += e.out;
@@ -1443,9 +1493,9 @@ fn scan_projects_dir(
 /// una tirada: el hub las necesita todas, porque quien lee un resumen ajeno
 /// no puede recortarlo a otra ventana —el desglose por proyecto ya viene
 /// sumado— y enseñaría el número de otra semana sin avisar (2026-07-28).
-fn collect_own_stats(window_days: u32) -> (LocalStats, HashMap<String, f64>) {
+fn collect_own_stats(window_days: u32, want_rows: bool) -> (LocalStats, HashMap<String, f64>) {
     let now = Utc::now();
-    let mut agg = LocalAgg::default();
+    let mut agg = LocalAgg { want_rows, ..Default::default() };
     // Caché de parseo compartido por todas las fuentes locales. Si esta
     // ejecución necesita más historial del guardado, load_scan_cache lo
     // descarta y se reconstruye en vez de devolver de menos.
@@ -1501,6 +1551,13 @@ fn collect_own_stats(window_days: u32) -> (LocalStats, HashMap<String, f64>) {
         files_scanned: agg.files,
         entries_deduped: agg.deduped,
         daily: Vec::new(),
+        rows: agg
+            .rows
+            .into_iter()
+            .map(|((date, project, model, origin), (cost, tokens))| ExportRow {
+                date, project, model, origin, cost, tokens,
+            })
+            .collect(),
         hosts: Vec::new(),   // se rellena al leer los servidores, más abajo
     };
     (stats, daily_map)
@@ -1512,7 +1569,7 @@ fn collect_own_stats(window_days: u32) -> (LocalStats, HashMap<String, f64>) {
 const HUB_WINDOWS: [u32; 4] = [1, 7, 15, 30];
 
 fn collect_local_stats(window_days: u32) -> LocalStats {
-    let (mut stats, mut daily_map) = collect_own_stats(window_days);
+    let (mut stats, mut daily_map) = collect_own_stats(window_days, false);
 
     // Subir la foto de ESTA máquina al hub, antes de fusionar nada. Tiene que
     // ser lo local a secas: si se subiera lo ya fusionado, las máquinas se
@@ -1534,7 +1591,7 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
             let mut st = if w == window_days {
                 stats.clone()
             } else {
-                collect_own_stats(w).0
+                collect_own_stats(w, false).0
             };
             st.daily = daily.clone();
             windows.insert(w.to_string(), st);
@@ -1568,7 +1625,7 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
     // Fusionar fuentes remotas (si remotes.json existe): totales sumados,
     // proyectos etiquetados con su origen, modelos y serie diaria agregados.
     for r in remotes {
-        let Some(remote) = fetch_remote(&r, window_days) else { continue };
+        let Some(remote) = fetch_remote(&r, window_days, false) else { continue };
         stats.cost_today += remote.cost_today;
         stats.cost_week += remote.cost_week;
         stats.tokens_week += remote.tokens_week;
@@ -1661,6 +1718,35 @@ fn get_local_stats_impl(days: Option<u32>) -> Result<LocalStats, String> {
     Ok(collect_local_stats(days.unwrap_or(7).clamp(1, 90)))
 }
 
+/// Filas del reporte de TODAS las fuentes. Solo la usa el export: el panel no
+/// necesita este detalle y calcularlo en cada ciclo sería trabajo tirado.
+fn collect_export_rows(window_days: u32) -> Vec<ExportRow> {
+    let (mine, _) = collect_own_stats(window_days, true);
+    let mut rows = mine.rows;
+    for r in load_remotes() {
+        let Some(rem) = fetch_remote(&r, window_days, true) else { continue };
+        // el origen lo pone quien lee, con el nombre que el usuario le dio al
+        // servidor — el exportador remoto no sabe cómo se llama a sí mismo
+        rows.extend(rem.rows.into_iter().map(|mut x| {
+            x.origin = r.name.clone();
+            x
+        }));
+    }
+    // fecha descendente, y dentro de cada día lo más caro primero
+    rows.sort_by(|a, b| {
+        b.date
+            .cmp(&a.date)
+            .then(b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal))
+    });
+    rows
+}
+
+/// Escapa un campo de CSV: comillas alrededor y las internas duplicadas. Antes
+/// se sustituían las comas por espacios, que mutila el dato en vez de citarlo.
+fn csv_field(v: &str) -> String {
+    format!("\"{}\"", v.replace('"', "\"\""))
+}
+
 /// Exporta los datos agregados a CSV o JSON. `dir` vacío = carpeta Descargas.
 /// Devuelve la ruta del archivo escrito.
 /// Envuelto para que el trabajo NO corra en el hilo principal. Tauri ejecuta
@@ -1668,8 +1754,16 @@ fn get_local_stats_impl(days: Option<u32>) -> Result<LocalStats, String> {
 /// SSH de dos segundos congelaba el panel entero — se notaba al cambiar de
 /// pestaña, que dispara este comando (2026-07-28).
 #[tauri::command]
-async fn export_data(format: String, dir: Option<String>, days: Option<u32>) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || export_data_impl(format, dir, days))
+async fn export_data(
+    format: String,
+    dir: Option<String>,
+    days: Option<u32>,
+    headers: Option<Vec<String>>,
+    local: Option<String>,
+) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        export_data_impl(format, dir, days, headers, local)
+    })
         .await
         .map_err(|e| e.to_string())?
 }
@@ -1706,8 +1800,22 @@ fn open_export() {
     }
 }
 
-fn export_data_impl(format: String, dir: Option<String>, days: Option<u32>) -> Result<String, String> {
-    let stats = collect_local_stats(days.unwrap_or(7).clamp(1, 90));
+fn export_data_impl(
+    format: String,
+    dir: Option<String>,
+    days: Option<u32>,
+    headers: Option<Vec<String>>,
+    local: Option<String>,
+) -> Result<String, String> {
+    if let Some(l) = local.filter(|s| !s.trim().is_empty()) {
+        if let Ok(mut g) = LOCAL_LABEL
+            .get_or_init(|| std::sync::Mutex::new(String::new()))
+            .lock()
+        {
+            *g = l;
+        }
+    }
+    let rows = collect_export_rows(days.unwrap_or(7).clamp(1, 90));
     let folder = dir
         .filter(|s| !s.trim().is_empty())
         .map(PathBuf::from)
@@ -1719,29 +1827,32 @@ fn export_data_impl(format: String, dir: Option<String>, days: Option<u32>) -> R
     let path = folder.join(format!("michiclaude-{stamp}.{ext}"));
 
     let content = if format == "csv" {
-        let mut s = String::from("type,name_or_date,cost_usd,tokens\n");
-        for p in &stats.projects {
+        let h = headers.filter(|v| v.len() == 6).unwrap_or_else(|| {
+            ["Date", "Project", "Model", "Source", "Estimated cost (USD)", "Tokens"]
+                .iter()
+                .map(|x| x.to_string())
+                .collect()
+        });
+        // BOM: sin él, Excel abre el .csv como texto de Windows y un "·" se
+        // ve como "Â·". Tres bytes que evitan que todos los acentos salgan
+        // rotos (2026-07-29).
+        let mut s = String::from("\u{feff}");
+        s.push_str(&h.iter().map(|x| csv_field(x)).collect::<Vec<_>>().join(","));
+        s.push('\n');
+        for r in &rows {
             s.push_str(&format!(
-                "project,{},{:.4},{}\n",
-                p.name.replace(',', " "),
-                p.cost,
-                p.tokens
+                "{},{},{},{},{:.4},{}\n",
+                csv_field(&r.date),
+                csv_field(&r.project),
+                csv_field(&r.model),
+                csv_field(&r.origin),
+                r.cost,
+                r.tokens
             ));
-        }
-        for (m, a) in &stats.models {
-            s.push_str(&format!(
-                "model,{},{:.4},{}\n",
-                m,
-                a.cost,
-                a.input + a.output + a.cache_write
-            ));
-        }
-        for d in &stats.daily {
-            s.push_str(&format!("daily,{},{:.4},\n", d.date, d.cost));
         }
         s
     } else {
-        serde_json::to_string_pretty(&stats).map_err(|e| e.to_string())?
+        serde_json::to_string_pretty(&rows).map_err(|e| e.to_string())?
     };
     fs::write(&path, content).map_err(|e| e.to_string())?;
     if let Ok(mut g) = LAST_EXPORT

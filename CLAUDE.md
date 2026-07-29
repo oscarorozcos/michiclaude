@@ -579,8 +579,28 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] Presupuesto semanal con notificación toast de Windows (funciona con el
       panel cerrado; anti-spam 1 aviso/semana). Se compara contra la suma de
       los últimos 7 días de la serie diaria, no contra la ventana elegida.
-- [x] Export CSV/JSON a carpeta elegida por el usuario (vacía = Descargas),
-      comando `export_data`.
+- [x] Export CSV/JSON — REHECHO 2026-07-29 (maqueta de Oscar). Antes era un
+      volcado con tres tablas en una (proyectos, modelos y días) y una columna
+      `name_or_date` que a veces era un nombre y a veces una fecha. Ahora es
+      UNA FILA POR HECHO: fecha × proyecto × modelo × origen, con costo y
+      tokens — todas las columnas aplican a todas las filas, así que Excel
+      puede hacer tablas dinámicas. 25 filas para 30 días de datos reales.
+      DETALLES QUE IMPORTAN:
+      · BOM al inicio del CSV: sin él Excel lo abre como texto de Windows y un
+        "·" se ve como "Â·". Tres bytes que salvan todos los acentos.
+      · Campos entre comillas con las internas duplicadas. Antes se sustituían
+        las comas por espacios, que mutila el dato en vez de citarlo.
+      · Las filas solo se calculan al exportar (`want_rows`): hacerlo en cada
+        ciclo del panel sería trabajo tirado y engordaría la foto del hub.
+      · El exportador remoto las devuelve con `--rows`, y el ORIGEN lo pone
+        quien lee con el nombre que el usuario dio al servidor — el script
+        remoto no sabe cómo se llama a sí mismo.
+      · Títulos traducidos a los 8 idiomas (`exp_cols`), y el origen local usa
+        `src_local`. Sin fila de totales A PROPÓSITO: rompería las tablas
+        dinámicas, y Excel la calcula con un clic.
+      · Periodo PROPIO (1/7/15/30, persistido): mirar 1 día en pantalla y
+        querer exportar 30 es un caso normal.
+      El JSON exporta las mismas filas, por coherencia.
 - [x] Panel en 3 PESTAÑAS (2026-07-21, decisión de Oscar): Principal
       (cuota/proyección/gasto/tendencia/modelos) · Fuentes de datos
       (nota + servidores con estado y alta) · Preferencias (idioma, widget,

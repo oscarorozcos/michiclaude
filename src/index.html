@@ -530,6 +530,12 @@
       <div class="cfg-lbl" data-i18n="export_label"></div>
       <input id="exportDir" data-i18n-ph="export_dir_ph">
       <div class="btnrow">
+        <!-- periodo PROPIO del export: mirar 1 día en pantalla y querer
+             exportar 30 es un caso normal (2026-07-29) -->
+        <select id="expDays" class="dsel" style="font-size:11.5px">
+          <option value="1">1 d</option><option value="7">7 d</option>
+          <option value="15">15 d</option><option value="30" selected>30 d</option>
+        </select>
         <button id="expCsv">CSV</button>
         <button id="expJson">JSON</button>
       </div>
@@ -672,6 +678,7 @@ en:{
   export_dir_ph:"destination folder (empty = Downloads)",
   exp_ok:f=>`${f} exported`,
   exp_open:"Open",
+  exp_cols:["Date", "Project", "Model", "Source", "Estimated cost (USD)", "Tokens"],
   status_active:"connected",
   status_fail:"unreachable",
   pill_label:"Floating widget above the taskbar",
@@ -824,6 +831,7 @@ es:{
   export_dir_ph:"carpeta destino (vacía = Descargas)",
   exp_ok:f=>`${f} exportado`,
   exp_open:"Abrir",
+  exp_cols:["Fecha", "Proyecto", "Modelo", "Origen", "Costo estimado (USD)", "Tokens"],
   status_active:"conectado",
   status_fail:"sin conexión",
   pill_label:"Widget flotante sobre la barra de tareas",
@@ -976,6 +984,7 @@ pt:{
   export_dir_ph:"pasta de destino (vazia = Downloads)",
   exp_ok:f=>`${f} exportado`,
   exp_open:"Abrir",
+  exp_cols:["Data", "Projeto", "Modelo", "Origem", "Custo estimado (USD)", "Tokens"],
   status_active:"conectado",
   status_fail:"sem conexão",
   pill_label:"Widget flutuante sobre a barra de tarefas",
@@ -1128,6 +1137,7 @@ fr:{
   export_dir_ph:"dossier de destination (vide = Téléchargements)",
   exp_ok:f=>`${f} exporté`,
   exp_open:"Ouvrir",
+  exp_cols:["Date", "Projet", "Modèle", "Origine", "Coût estimé (USD)", "Jetons"],
   status_active:"connecté",
   status_fail:"injoignable",
   pill_label:"Widget flottant au-dessus de la barre des tâches",
@@ -1280,6 +1290,7 @@ de:{
   export_dir_ph:"Zielordner (leer = Downloads)",
   exp_ok:f=>`${f} exportiert`,
   exp_open:"Öffnen",
+  exp_cols:["Datum", "Projekt", "Modell", "Herkunft", "Geschätzte Kosten (USD)", "Tokens"],
   status_active:"verbunden",
   status_fail:"nicht erreichbar",
   pill_label:"Schwebendes Widget über der Taskleiste",
@@ -1432,6 +1443,7 @@ ja:{
   export_dir_ph:"保存先フォルダー（空 = ダウンロード）",
   exp_ok:f=>`${f} を書き出しました`,
   exp_open:"開く",
+  exp_cols:["日付", "プロジェクト", "モデル", "取得元", "推定コスト (USD)", "トークン"],
   status_active:"接続中",
   status_fail:"接続不可",
   pill_label:"タスクバー上のフローティングウィジェット",
@@ -1584,6 +1596,7 @@ ko:{
   export_dir_ph:"대상 폴더 (비우면 다운로드)",
   exp_ok:f=>`${f} 내보냄`,
   exp_open:"열기",
+  exp_cols:["날짜", "프로젝트", "모델", "출처", "예상 비용 (USD)", "토큰"],
   status_active:"연결됨",
   status_fail:"연결 불가",
   pill_label:"작업 표시줄 위 플로팅 위젯",
@@ -1736,6 +1749,7 @@ zh:{
   export_dir_ph:"目标文件夹（留空 = 下载）",
   exp_ok:f=>`已导出 ${f}`,
   exp_open:"打开",
+  exp_cols:["日期", "项目", "模型", "来源", "预估费用 (USD)", "Tokens"],
   status_active:"已连接",
   status_fail:"无法连接",
   pill_label:"任务栏上方的浮动小组件",
@@ -3059,7 +3073,13 @@ $("pricesNow").addEventListener("click",()=>{
 });
 function doExport(format){
   expShow(null);
-  invoke("export_data",{format, dir:$("exportDir").value.trim()||null, days:curDays})
+  invoke("export_data",{
+    format,
+    dir:$("exportDir").value.trim()||null,
+    days:+$("expDays").value||30,
+    headers:t("exp_cols"),
+    local:t("src_local"),          // cómo se llama "esta máquina" en el archivo
+  })
     .then(p=>expShow(p, format))
     .catch(e=>expShow(null, format, String(e)));
 }
@@ -3084,6 +3104,8 @@ function expShow(path, format, err){
 }
 $("expOpen").addEventListener("click",()=>invoke?.("open_export"));
 $("expX").addEventListener("click",()=>{ $("expBox").hidden=true; });
+$("expDays").value=localStorage.getItem("expDays")||"30";
+$("expDays").addEventListener("change",()=>localStorage.setItem("expDays",$("expDays").value));
 $("expCsv").addEventListener("click",()=>doExport("csv"));
 $("expJson").addEventListener("click",()=>doExport("json"));
 
