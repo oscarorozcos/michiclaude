@@ -118,7 +118,8 @@ tu casa, pero es otro "cuartito".
 - *Ejemplo:* Juan abre su "Ubuntu" (WSL se ve como una app más), escribe
   `claude` ahí dentro y trabaja. Los recibos quedan en ese cuartito Linux.
 - *En MichiClaude:* **también automático.** Se asoma a ese Linux dentro de tu
-  Windows y los lee. Aparecen con el sufijo **"· wsl"** (ej: *mi-proyecto · wsl*).
+  Windows y los lee. Aparecen con el sufijo de su distro (ej: *mi-proyecto · wsl-Ubuntu*), así
+  que si tienes varias sabes cuál es cuál.
 
 > 💡 **Nativo vs WSL en una frase:** *nativo* = Claude Code corre en Windows a
 > secas; *WSL* = corre en un Linux que vive dentro de tu Windows. Para ti,
@@ -145,7 +146,7 @@ tu PC, pero todo pasa **en esa otra máquina**, y los recibos quedan **allá**.
 | Caso | ¿Dónde corre Claude Code? | ¿Qué haces en MichiClaude? |
 |---|---|---|
 | 🪟 Windows nativo | En tu PC, directo | Nada — automático ("Este PC") |
-| 🐧 WSL | En un Linux dentro de tu PC | Nada — automático ("· wsl") |
+| 🐧 WSL | En un Linux dentro de tu PC | Nada — automático ("· wsl-Ubuntu") |
 | 🌐 SSH | En otra computadora (servidor) | Agregarla una vez en Fuentes de datos (sale con el nombre que le pongas) |
 
 **¿Cómo sé cuál tengo yo?** Mira qué abres para usar Claude Code:
@@ -168,7 +169,7 @@ qué* lo usas, sino *en qué máquina* corre. Así que:
 - **VS Code / Cursor local en tu PC** (sin conectarte a nada) → automático,
   sale como **"Este PC"**, igual que si usaras la terminal.
 - **VS Code trabajando dentro de WSL** (abajo a la izquierda dice `WSL: …`) →
-  automático, sale como **"· wsl"**.
+  automático, sale como **"· wsl-Ubuntu"**.
 - **VS Code Remote-SSH** (abajo a la izquierda dice `SSH: …`) → es el caso del
   servidor: agrégalo una vez en Fuentes de datos.
 
