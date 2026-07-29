@@ -357,10 +357,10 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] Ajustes en el panel (botón ⚙): alta/baja de servidores SSH con prueba
       de conexión (comandos get_remotes/save_remotes/test_remote); escribe
       remotes.json. Este PC y claude.ai no requieren configuración.
-- [~] Fuente remota VPS (Oscar usa Claude Code sobre todo en el VPS vía
-      VS Code SSH): exportador + fusión implementados y el script probado
-      contra los logs reales del VPS. FALTA: crear remotes.json en Windows y
-      verificar en vivo la fusión (proyectos "· vps").
+- [x] Fuente remota VPS: exportador + fusión, verificados en vivo. Los
+      proyectos del servidor salen etiquetados con el nombre corto que el
+      usuario le puso, y desde el 2026-07-29 ese nombre se puede editar con
+      un clic (antes había que borrar el servidor y darlo de alta otra vez).
 - [x] PULIDO Windows ronda 1 (2026-07-24/25, validado por Oscar): barrido de
       mayúsculas/gramática en TODAS las cadenas visibles de los 8 idiomas
       (JA/KO/ZH sin caja); nota de Fuentes de datos como lista con viñetas;
@@ -427,7 +427,7 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       en vez del wrapper de Tauri. Al depurar, confirmar primero el valor
       real de `layer` en pill_config.json (en "normal"/"bottom" el
       comportamiento observado sería el correcto).
-- [~] PRECIOS DINÁMICOS — IMPLEMENTADO 2026-07-26, falta probar en vivo.
+- [x] PRECIOS DINÁMICOS — implementados y probados en vivo, con red y sin ella.
       `price_for()` consulta primero la tabla descargada y cae a la embebida
       (ya corregida). Cascada en `fetch_prices()`: LiteLLM → models.dev →
       OpenRouter; primera que responde gana (NO es verificación cruzada).
@@ -684,8 +684,8 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       corre en el servidor es la copia EMBEBIDA en el binario, que la app
       re-sube al arrancar. Editar `scripts/meter-export.py` en el VPS ya NO
       tiene efecto — hay que recompilar.
-- [~] MODO HUB — FASE 1 (subir) IMPLEMENTADA 2026-07-28, sin verificar en
-      vivo. Cada ciclo deja la foto de ESTA máquina en cada servidor, en
+- [x] MODO HUB — LAS TRES FASES IMPLEMENTADAS Y VERIFICADAS contra el VPS
+      real (2026-07-28/29). Fase 1 (subir): Cada ciclo deja la foto de ESTA máquina en cada servidor, en
       `~/.michiclaude/hosts/<máquina>.json`, vía `upload_summary()`.
       Identidad en `hub_identity.json` (id irrepetible + nombre, por defecto
       COMPUTERNAME); el id viaja DENTRO del archivo y el guard lo comprueba
@@ -788,7 +788,7 @@ competido pero ganable; Linux sin app gráfica nativa = hueco). El combo actual
 nadie junta cuota Y costo, casi nadie hace multi-máquina, y NADIE tiene mascota.
 Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
 
-- [ ] **APUESTA #1 — Terminar el Modo HUB** (ver arriba). Es el foso técnico
+- [x] **APUESTA #1 — Modo HUB TERMINADO** (2026-07-29, ver arriba). Es el foso técnico
       real y lo más difícil de copiar; los demás leen una sola máquina. Además
       es lo más vendible en el CV de Oscar ("sistema distribuido que consolida
       uso entre máquinas"). Prioridad #1: no es función nueva, es rematar lo
