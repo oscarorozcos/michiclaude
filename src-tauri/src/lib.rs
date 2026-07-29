@@ -1517,12 +1517,15 @@ fn collect_own_stats(window_days: u32, want_rows: bool) -> (LocalStats, HashMap<
         &cache_in, &mut cache_out,
     );
     // 2) Distros WSL (si existen): misma máquina, cero configuración
-    // El sufijo lleva el NOMBRE de la distro, no un "wsl" genérico: con
-    // Ubuntu y Debian a la vez, todo caía bajo la misma etiqueta y no había
-    // forma de distinguirlas ni en el panel ni en el reporte (2026-07-29).
+    // Sufijo "wsl-<distro>" (p. ej. "wsl-Ubuntu"). Dos cosas en una: sin el
+    // nombre, Ubuntu y Debian caían bajo la misma etiqueta y no había forma
+    // de distinguirlas; sin el prefijo, un "Ubuntu" suelto en la columna
+    // Origen parece OTRA máquina en vez del Linux de este mismo PC
+    // (2026-07-29, idea de Oscar).
     for (distro, d) in wsl_claude_dirs() {
+        let tag = format!("wsl-{distro}");
         scan_projects_dir(
-            &d.join("projects"), Some(&distro), now, window_days, &mut agg,
+            &d.join("projects"), Some(&tag), now, window_days, &mut agg,
             &cache_in, &mut cache_out,
         );
     }
