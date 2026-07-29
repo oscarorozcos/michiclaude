@@ -3078,7 +3078,10 @@ function doExport(format){
     dir:$("exportDir").value.trim()||null,
     days:+$("expDays").value||30,
     headers:t("exp_cols"),
-    local:t("src_local"),          // cómo se llama "esta máquina" en el archivo
+    // En el reporte el origen es un nombre propio junto a "VPS-EU" o
+    // "Ubuntu", así que va en mayúscula. En el panel es una etiqueta pequeña
+    // dentro de una frase y ahí va en minúscula: mismo dato, dos contextos.
+    local:(x=>x.charAt(0).toUpperCase()+x.slice(1))(t("src_local")),
   })
     .then(p=>expShow(p, format))
     .catch(e=>expShow(null, format, String(e)));

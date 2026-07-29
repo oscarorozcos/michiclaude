@@ -76,7 +76,7 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 5. Agrega: por proyecto (ventana 1/7/30 días, con desglose `by_model` por
    proyecto), por modelo, coste hoy y de la ventana (`cost_week`), y la serie
    `daily` de los últimos 30 días para la gráfica de tendencia. Los proyectos
-   llevan sufijo de origen (" · wsl", " · <servidor>"); el frontend etiqueta
+   llevan sufijo de origen (" · <distro>", " · <servidor>"); el frontend etiqueta
    "local" a los que no llevan sufijo.
 
 **C) Fuentes remotas opcionales (dentro de `get_local_stats`):**
@@ -547,7 +547,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 - [x] Multiidioma (8): EN default, ES, PT, FR, DE, JA, KO, ZH — diccionario
       I18N, autodetección, selector en ajustes, errores del backend como
       códigos ERR_* traducidos en el frontend.
-- [~] Fuente WSL implementada: `wsl.exe -l -q` (UTF-16LE) + escaneo de
+- [~] Fuente WSL implementada (el sufijo lleva el NOMBRE de la distro desde
+      el 2026-07-29; antes todas caían bajo un "wsl" genérico y con dos
+      instaladas no había forma de distinguirlas): `wsl.exe -l -q` (UTF-16LE) + escaneo de
       \\wsl.localhost\<distro>\{home/*,root}\.claude como fuente local extra
       (proyectos "nombre · wsl") y token de respaldo desde WSL antes que los
       remotos. FALTA probar en una máquina con WSL real.

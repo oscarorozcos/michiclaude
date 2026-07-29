@@ -1136,7 +1136,7 @@ fn pretty_project(dir_name: &str) -> String {
 // una fuente local más — cero configuración del usuario.
 
 #[cfg(windows)]
-fn wsl_claude_dirs() -> Vec<PathBuf> {
+fn wsl_claude_dirs() -> Vec<(String, PathBuf)> {
     let mut out = Vec::new();
     let mut cmd = std::process::Command::new("wsl.exe");
     cmd.args(["-l", "-q"]);
@@ -1164,20 +1164,20 @@ fn wsl_claude_dirs() -> Vec<PathBuf> {
             for h in homes.flatten() {
                 let d = h.path().join(".claude");
                 if d.is_dir() {
-                    out.push(d);
+                    out.push((distro.to_string(), d));
                 }
             }
         }
         let root = base.join("root").join(".claude");
         if root.is_dir() {
-            out.push(root);
+            out.push((distro.to_string(), root));
         }
     }
     out
 }
 
 #[cfg(not(windows))]
-fn wsl_claude_dirs() -> Vec<PathBuf> {
+fn wsl_claude_dirs() -> Vec<(String, PathBuf)> {
     Vec::new()
 }
 
@@ -1517,9 +1517,12 @@ fn collect_own_stats(window_days: u32, want_rows: bool) -> (LocalStats, HashMap<
         &cache_in, &mut cache_out,
     );
     // 2) Distros WSL (si existen): misma máquina, cero configuración
-    for d in wsl_claude_dirs() {
+    // El sufijo lleva el NOMBRE de la distro, no un "wsl" genérico: con
+    // Ubuntu y Debian a la vez, todo caía bajo la misma etiqueta y no había
+    // forma de distinguirlas ni en el panel ni en el reporte (2026-07-29).
+    for (distro, d) in wsl_claude_dirs() {
         scan_projects_dir(
-            &d.join("projects"), Some("wsl"), now, window_days, &mut agg,
+            &d.join("projects"), Some(&distro), now, window_days, &mut agg,
             &cache_in, &mut cache_out,
         );
     }
