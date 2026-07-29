@@ -1043,26 +1043,51 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       bien que la primera vez pareció roto: Oscar abrió la pestaña buscando
       la notificación y ese vistazo marcó las tarjetas como vistas antes de
       ver el sticker (fndSeen tenía las 4 claves; se confirmó por consola).
-      Ajustes de la maqueta de Oscar tras verlo: en el GATITO el sticker es
-      globito ROJO FIJO con número blanco y leve transparencia (sin tinte
-      por severidad — esa vive en tarjetas y contador de la pestaña); en la
-      PASTILLA es una CAMPANA roja SVG (más brillante en oscuro, #ff5a5a vs
-      #ef4444) con meneo al clic, y la MARCA dejó de ser el sunburst: ahora
-      es el sticker del gatito (variante -white/-black según tema, misma
-      regla que los gifs) — la mascota ES la marca. PRECARGA de Hallazgos:
-      la primera apertura pagaba el escaneo local+SSH en la cara del usuario
-      (lo sintió lento Oscar); ahora se paga de fondo a los 15 s de arrancar
-      y la pestaña abre de memoria. TRAMPA que trajo la precarga: pintar en
-      la pestaña OCULTA no debe marcar visto (mataría el aviso) — el marcado
-      está condicionado a !$("tab-findings").hidden. Para re-armar el aviso
-      al probar: borrar fndSeen y fndAutoLast del localStorage del panel.
-      FALTA para el diseño completo: el aviso EN EL MOMENTO con texto (el
-      globito una vez al día — el indicador de arriba es la versión pasiva),
-      la verificación antes/después (necesita semanas de historial, ya
-      asegurado con cleanupPeriodDays=365 en ambos lados), el detector de
-      líneas de CLAUDE.md sin respaldo y el fix personalizado por
-      `entrypoint` (VS Code vs. terminal, con respaldo genérico — acordado
-      con Oscar el 2026-07-29). El de rupturas de caché ya está (detector 5).
+      DISEÑO FINAL, iterado en capturas y VALIDADO por Oscar el 2026-07-29
+      ("se ve y funciona bien"): en el GATITO es una PILITA DE POST-ITS
+      pegada en la tapa de la laptop (dos notas asoman por detrás — ámbar y
+      papel, la de papel sigue al tema de los globos — y encima el post-it
+      ROJO ladeado con cinta adhesiva, número blanco y translúcido al 78%;
+      toda la pilita es botón; posición en --bx/--by/--bs). El rojo es FIJO,
+      sin tinte por severidad — decisión de Oscar: rojo = "hay algo nuevo",
+      la severidad se ve en las tarjetas. En la PASTILLA es una CAMPANA roja
+      SVG (más brillante en oscuro, #ff5a5a vs #ef4444) con meneo al clic, y
+      la MARCA dejó de ser el sunburst: la cápsula lleva el sticker del
+      gatito (variante -white/-black según tema, misma regla que los gifs) y
+      el detalle desplegado lleva icon-mini-panel.png — la mascota ES la
+      marca; los tres PNG los subió Oscar desde Windows. En el PANEL el
+      contador es cápsula roja flotante en la esquina de la pestaña, tope
+      9+. PRIMERA APERTURA de Hallazgos: enseña AL INSTANTE el último
+      resultado guardado (localStorage fndCacheSaved, por ventana) con
+      "Analizando…" en el pie mientras el escaneo fresco corre detrás y
+      reemplaza al llegar; si falla, lo viejo se queda y el pie avisa. Más
+      la PRECARGA de fondo a los 15 s de arrancar. DOS TRAMPAS: pintar en la
+      pestaña OCULTA no debe marcar visto (mataría el aviso — el marcado
+      está condicionado a !$("tab-findings").hidden) y la primera prueba
+      pareció rota porque el propio Oscar abrió la pestaña buscando la
+      notificación y ese vistazo la despachó. Para re-armar el aviso al
+      probar: borrar fndSeen y fndAutoLast del localStorage del panel.
+      FALTA para el diseño completo, EN ESTE ORDEN (acordado con Oscar el
+      2026-07-29 al cierre — LO SIGUIENTE A TRABAJAR son los tres detectores
+      nuevos de "lo instalado"):
+      (1) DETECTOR skills instaladas sin uso — calca el de MCP: skills en
+          disco (~/.claude/skills/, plugins, y las de proyecto) contra
+          invocaciones en los logs (las <command-name> de los .jsonl);
+      (2) DETECTOR subagentes caros — los isSidechain traen usage PROPIO en
+          los logs: costo EXACTO por semana, sin estimar, hoy invisible
+          porque se mezcla con el total ("overhead de subagentes" del
+          catálogo del doc);
+      (3) DETECTOR hooks ruidosos — salida de hooks que se repite cada
+          turno, medible por tamaño × turnos (el más raro, al final);
+      REGLA de los tres, ya acordada: señalan lo instalado que NO se usa y
+      lo que cuesta CARGARLO — nunca califican si una skill que sí se usa
+      "gastó de más" (categoría prohibida del doc).
+      Después: el detector de líneas de CLAUDE.md sin respaldo, el aviso EN
+      EL MOMENTO con texto (el globito 1×/día — el indicador ya es la
+      versión pasiva), el fix personalizado por `entrypoint` (VS Code vs.
+      terminal, con respaldo genérico) y la verificación antes/después
+      (necesita semanas de historial, ya asegurado con cleanupPeriodDays=365
+      en ambos lados). El de rupturas de caché ya está (detector 5).
       Idea original: Diseño completo en `docs/analizador-fugas.md`
       (2026-07-29): los cinco elementos de un hallazgo, el catálogo de
       detectores, por qué es DETERMINISTA y nunca un modelo local, y la

@@ -442,7 +442,20 @@ cuota — pero eso no sale de los logs.
       del catálogo y ningún otro detector la veía: inflate mide lo que cuesta
       RELEER el contexto; este mide lo que cuesta REESCRIBIRLO cuando el
       caché se pierde.
-- [ ] El antes/después (necesita semanas de historial).
+- [x] Indicador de hallazgos nuevos (2026-07-29, validado en vivo): pilita
+      de post-its en el gatito, campana roja en la pastilla y cápsula 9+ en
+      la pestaña; pasada diaria ligera; "visto" al abrir la pestaña; primera
+      apertura instantánea con el último resultado guardado. Es la versión
+      PASIVA del aviso en el momento.
+- [ ] SIGUIENTE (acordado 2026-07-29, en este orden): los tres detectores de
+      "lo instalado" — (1) skills instaladas sin uso (calca el de MCP:
+      disco vs. <command-name> en los logs), (2) subagentes caros (los
+      isSidechain traen usage propio: costo exacto, hoy invisible), y
+      (3) hooks ruidosos (salida repetida cada turno, tamaño × turnos).
+      Regla: señalan lo que NO se usa y lo que cuesta cargarlo — nunca
+      califican lo que sí se usa.
 - [ ] Detector: líneas de CLAUDE.md sin respaldo (§5, las tres cubetas).
-- [ ] El aviso EN EL MOMENTO (globito una vez al día, §7) — hoy todo es
-      reporte bajo demanda.
+- [ ] El aviso EN EL MOMENTO con texto (globito una vez al día, §7).
+- [ ] Fix personalizado por entrypoint (VS Code vs. terminal, respaldo
+      genérico — mismo patrón que prettyModel/price_for).
+- [ ] El antes/después (necesita semanas de historial).
