@@ -883,7 +883,11 @@ cd src-tauri; cargo check   # verificación rápida del backend
 Verificación obligatoria al terminar cualquier cambio en Rust: `cargo check`
 limpio dentro de `src-tauri`, y listar archivos tocados con el motivo.
 (En el VPS NO hay toolchain de Rust: es solo espejo de código. `cargo check`
-corre en el Windows de Oscar.)
+corre en el Windows de Oscar. CONSECUENCIA: al cambiar la FIRMA de una
+función hay que buscar TODOS sus usos con grep antes de subir — el
+compilador no está para avisar. Pasó el 2026-07-29 con `wsl_claude_dirs`:
+se actualizó el uso de la agregación y se olvidó el del token de
+respaldo, y el error lo descubrió Oscar al compilar.)
 
 **Simulador** (Preferencias). Se adapta al widget elegido:
 - Con el GATITO ("🐱 Simular estados") recorre el ciclo COMPLETO —dibujo y

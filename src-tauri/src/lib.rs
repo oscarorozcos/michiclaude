@@ -74,7 +74,8 @@ async fn get_quota() -> Result<serde_json::Value, String> {
         .and_then(|raw| parse_credentials(&raw))
         .filter(|(_, exp)| *exp > now_ms);
     if cred.is_none() {
-        for d in wsl_claude_dirs() {
+        // aquí la distro no importa: solo se busca un token vigente
+        for (_distro, d) in wsl_claude_dirs() {
             if let Some(c) = fs::read_to_string(d.join(".credentials.json"))
                 .ok()
                 .and_then(|raw| parse_credentials(&raw))
