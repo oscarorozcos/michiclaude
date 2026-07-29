@@ -1613,6 +1613,7 @@ fn collect_own_stats(window_days: u32, want_rows: bool) -> (LocalStats, HashMap<
             })
             .collect(),
         hosts: Vec::new(),   // se rellena al leer los servidores, más abajo
+        findings: Vec::new(), // solo los llena get_findings, bajo demanda
     };
     (stats, daily_map)
 }
@@ -3055,7 +3056,6 @@ fn set_pill_layer(app: tauri::AppHandle, layer: String) {
 #[tauri::command]
 fn set_tray_menu(app: tauri::AppHandle, open: String, widget: String, quit: String) {
     use tauri::menu::{Menu, MenuItem};
-    use tauri::Manager;
     let (Ok(a), Ok(b), Ok(c)) = (
         MenuItem::with_id(&app, "tray_panel", open, true, None::<&str>),
         MenuItem::with_id(&app, "tray_pill", widget, true, None::<&str>),
