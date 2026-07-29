@@ -964,12 +964,22 @@ seguir la cadena de PID padre: `Get-Process msedgewebview2` a secas incluye
 los de OTRAS apps del sistema — Copilot, Outlook nuevo, Teams — y da un
 número que no es nuestro).
 
-| | Antes | Después del reescalado |
+| | Antes | Después |
 |---|---|---|
-| Instalador NSIS | 12.3 MB | ~7 MB (pendiente de recompilar) |
-| `michiclaude.exe` | 21.7 MB (release) · 46 MB (dev) | |
-| Datos en disco | < 1 MB | |
-| **RAM** | **~830 MB** | pendiente de medir |
+| Instalador NSIS | 12.3 MB | **5.8 MB** |
+| `michiclaude.exe` | 21.7 MB (release) · 46 MB (dev) | igual |
+| Datos en disco | < 1 MB | igual |
+| RAM (suma de working sets) | ~830 MB | ~695 MB |
+| **RAM privada — la cifra HONESTA** | | **276 MB** |
+
+CUIDADO CON LA MEDICIÓN (esto invalidó medio día de conclusiones): sumar
+`WorkingSet64` de cada proceso CUENTA VARIAS VECES la memoria que comparten
+entre sí, y con 10 procesos de WebView2 infla el resultado más del doble. La
+cifra real es la suma de `WorkingSetPrivate`
+(`Win32_PerfRawData_PerfProc_Process`): 276 MB, no 695. Para dar contexto, en
+la misma máquina y el mismo momento: VS Code 799 MB, Brave 730 MB,
+explorer 360 MB. O sea, un tercio del editor — bastante mejor de lo que
+parecía. Está publicado en el README con el comando para reproducirlo.
 
 LO QUE HAY QUE SABER ANTES DE VOLVER A DIAGNOSTICAR ESTO:
 

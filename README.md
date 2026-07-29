@@ -62,6 +62,60 @@ de MichiClaude.
 No hay versión de macOS ni de Linux: el icono de bandeja dinámico y el widget
 flotante están escritos contra las APIs de Windows.
 
+### ¿Cuánto ocupa y cuánta memoria usa?
+
+Cifras **medidas**, no estimadas (Windows 11, versión compilada, con el panel
+abierto y el gatito en pantalla):
+
+| | |
+| --- | --- |
+| Instalador | **5.8 MB** |
+| Instalada en disco | ~22 MB |
+| Tus datos (cachés y ajustes) | **menos de 1 MB** |
+| Memoria en uso | **~276 MB** |
+
+**El instalador es pequeño porque la app no lleva un navegador dentro.** La
+interfaz está hecha con HTML, pero usa el WebView2 que Windows ya trae de
+fábrica en lugar de empaquetar el suyo. Una app equivalente hecha con Electron
+ronda los 90-150 MB de descarga.
+
+La memoria es la otra cara de esa misma decisión: cada ventana del programa
+—el panel, el widget, sus globos— es una vista web y cuesta lo suyo. Para que
+esos 276 MB signifiquen algo, aquí están medidos con la misma vara y en el
+mismo momento, en la máquina de desarrollo:
+
+| | memoria |
+| --- | --- |
+| Visual Studio Code | 799 MB |
+| Navegador (Brave) | 730 MB |
+| Explorador de Windows | 360 MB |
+| **MichiClaude** | **276 MB** |
+
+O sea: **un tercio de lo que gasta tu editor**. En una máquina de 8 GB no vas
+a notarlo; en una de 4 GB con el navegador abierto, sí.
+
+Lo decimos claro porque nadie más publica este dato: si lo que buscas es la
+huella mínima absoluta, una herramienta de terminal siempre va a ganar —
+la ejecutas, te da el número y desaparece. MichiClaude está siempre encendido
+a cambio de avisarte antes de quedarte sin cuota.
+
+<details>
+<summary>Cómo medirlo tú (PowerShell)</summary>
+
+Cuidado con el método: sumar la memoria "de trabajo" de cada proceso
+**cuenta varias veces** lo que comparten entre ellos, e infla el resultado
+más del doble. Esto suma la memoria **privada**, que es la real:
+
+```powershell
+$w=Get-CimInstance Win32_Process
+$ids=@($w|? Name -eq 'michiclaude.exe'|% ProcessId)
+do{$n=@($w|?{$ids -contains $_.ParentProcessId -and $ids -notcontains $_.ProcessId}|% ProcessId);$ids+=$n}while($n.Count)
+$pf=Get-CimInstance Win32_PerfRawData_PerfProc_Process
+"{0:N0} MB" -f ((($pf|?{$ids -contains $_.IDProcess}|measure WorkingSetPrivate -Sum).Sum)/1MB)
+```
+
+</details>
+
 ## Primeros pasos: qué estás viendo
 
 El panel tiene **tres pestañas**:
