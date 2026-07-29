@@ -594,10 +594,23 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       REGALO: el coste salió $0.40 donde la tabla embebida daría $0.60 —
       es el precio INTRODUCTORIO de Sonnet 5 de la tabla descargada. Sin
       buscarlo, quedó probado que los precios dinámicos se aplican de verdad.
-      SIGUE SIN PROBARSE una sola cosa de WSL: el token de RESPALDO (usar el
-      `.credentials.json` de la distro cuando el de Windows venció). Es otro
-      camino del código y necesita una sesión de Claude Code iniciada DENTRO
-      de Ubuntu.
+      TOKEN DE RESPALDO desde WSL — probado a medias el 2026-07-29, falta el
+      último eslabón. NO hace falta iniciar sesión dentro de Ubuntu: basta un
+      `.credentials.json` con token FALSO y `expiresAt` en el futuro, porque
+      `get_quota` se queda con el PRIMER token válido (Windows -> WSL ->
+      remotos) y si ese da 401 NO prueba con el siguiente. Así, con la
+      credencial de Windows apartada y `remotes.json` apartado, cualquier
+      respuesta HTTP demuestra que usó el de WSL, y un ERR_NO_TOKEN
+      demostraría lo contrario.
+      VERIFICADO de esa cadena: la app lista la distro (`Ubuntu`), recorre los
+      hogares (`oscar`) y encuentra la carpeta `.claude` — los tres pasos que
+      podían fallar. Falta ver la llamada final, que quedó tapada por un 429.
+      LO QUE ESTORBÓ, y hay que preverlo al repetirlo: abrir y cerrar la app
+      muchas veces seguidas (compilar, probar, medir) dispara una consulta en
+      cada arranque y acaba en un 429 de 60 MINUTOS. Con el endpoint
+      bloqueado no se puede leer ningún veredicto, porque la app respeta el
+      Retry-After y deja de preguntar. Repetir la prueba en frío, sin haber
+      reiniciado la app en un rato.
       CÓMO REPETIR LA PRUEBA (dos trampas que costaron intentos): escribir el
       archivo desde `wsl bash -lc 'echo "{...}"'` NO funciona — PowerShell se
       come las comillas y deja un archivo de 20 bytes; hay que escribirlo
