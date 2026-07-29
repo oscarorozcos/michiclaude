@@ -570,6 +570,15 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
       \\wsl.localhost\<distro>\{home/*,root}\.claude como fuente local extra
       (proyectos "nombre · wsl") y token de respaldo desde WSL antes que los
       remotos. FALTA probar en una máquina con WSL real.
+- [x] El resumen del widget se RECALCULA entero al cambiar de widget, no se
+      parchea (2026-07-29). `skinTheme` se decide SEGÚN el estilo —con la
+      pastilla los globos siguen al panel; con el gatito, al selector "Globos
+      del gatito"—, así que parchear solo `style` en el objeto anterior
+      dejaba el tema del ciclo pasado: al irse a la pastilla y volver, el
+      globo del gatito regresaba en oscuro con "Claro" elegido. Lo encontró
+      Oscar probando el cambio de ventanas. REGLA: si se toca algo que
+      `emitPill()` calcula, se llama a `emitPill(...lastPillArgs)` — nunca se
+      escribe un campo suelto de `lastPill`.
 - [x] Tema claro/oscuro con toggle ◐ persistido. Alcanza también a las
       ventanas del gatito (2026-07-27): la cápsula del % y los dos globos
       (`card`, `notif`) invierten el cómic en oscuro (relleno #20242c, trazo

@@ -2977,7 +2977,14 @@ $("pillStyleSel").addEventListener("change",()=>{
   localStorage.setItem("pillStyle",st);
   invoke?.("set_pill_style",{style:st});
   syncCatOnlyRows();
-  if(lastPill){ lastPill.style=st; EVENT?.emit("quota:update",lastPill); }
+  // Recalcular el resumen ENTERO, no parchear `style` a mano: `skinTheme` se
+  // decide SEGÚN el widget (con la pastilla los globos siguen al panel; con
+  // el gatito, al selector "Globos del gatito"), así que un parche parcial
+  // dejaba el tema del ciclo anterior. Se veía al irse a la pastilla y
+  // volver: el globo del gatito regresaba en oscuro con "Claro" elegido
+  // (2026-07-29). Es lo que ya hacían bien los selectores de arte y globos.
+  if(lastPillArgs) emitPill(...lastPillArgs);
+  else if(lastPill){ lastPill.style=st; EVENT?.emit("quota:update",lastPill); }
   processAcks();   // re-enruta al instante la alarma pendiente (globo/toast)
 });
 // Arte y globos del gatito, cada uno por su lado (solo tienen sentido con el
