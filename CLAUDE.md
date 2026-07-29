@@ -992,8 +992,10 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       (solo git/pytest/cargo check/npm test-ci-install; lista corta a
       propósito) y MCP configurado sin invocar. Umbrales en constantes
       (REREAD_MIN 3 / 2000 tok, INFLATE 50k+10 turnos, MECH 5, tope 12).
-      Detector 5 (2026-07-29, AÚN SIN cargo check — el VPS no tiene
-      toolchain): RUPTURAS DE CACHÉ. Turnos del hilo principal donde
+      Detector 5 (2026-07-29; cargo check limpio y VALIDADO EN VIVO por
+      Oscar el mismo día — la tarjeta salió etiquetada VPS-EU, o sea que la
+      cadena exportador→SSH→fusión→i18n quedó probada entera): RUPTURAS DE
+      CACHÉ. Turnos del hilo principal donde
       cache_read cae a menos de la mitad del contexto del turno anterior:
       el prefijo cacheado se perdió y la conversación entera se reescribió
       a 1.25x input en vez de leerse a 0.1x (causas típicas: pausa mayor al

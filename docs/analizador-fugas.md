@@ -420,7 +420,9 @@ cuota — pero eso no sale de los logs.
 - [x] Detector 3: sesiones que se inflan (2026-07-29, validado en vivo;
       cuadró al 0.4% contra la agregación normal por un camino independiente).
 - [x] Detector extra: peticiones mecánicas (git/tests; lista corta a propósito).
-- [x] Detector 4: rupturas de caché (2026-07-29). Turnos del hilo principal
+- [x] Detector 4: rupturas de caché (2026-07-29; cargo check limpio y
+      validado en vivo por Oscar ese mismo día, con la tarjeta llegando
+      desde el VPS por SSH). Turnos del hilo principal
       donde el prefijo cacheado se PERDIÓ (cache_read cae a menos de la mitad
       del contexto del turno anterior) y la conversación entera se reescribió
       a precio de ESCRITURA (1.25x input) en vez de leerse a 0.1x. Causas
