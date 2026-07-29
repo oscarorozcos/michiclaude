@@ -1672,6 +1672,38 @@ async fn export_data(format: String, dir: Option<String>, days: Option<u32>) -> 
         .map_err(|e| e.to_string())?
 }
 
+/// Último archivo exportado. Se guarda AQUÍ y no se acepta una ruta desde el
+/// panel: abrir lo que diga el frontend sería abrir lo que diga cualquiera
+/// que consiga hablarle. Solo se puede abrir lo que esta misma app escribió.
+static LAST_EXPORT: std::sync::OnceLock<std::sync::Mutex<Option<PathBuf>>> =
+    std::sync::OnceLock::new();
+
+/// Abre el explorador con el último archivo exportado seleccionado.
+#[tauri::command]
+fn open_export() {
+    let Some(p) = LAST_EXPORT
+        .get()
+        .and_then(|m| m.lock().ok())
+        .and_then(|g| g.clone())
+    else {
+        return;
+    };
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let _ = std::process::Command::new("explorer")
+            .arg(format!("/select,{}", p.display()))
+            .creation_flags(0x0800_0000)
+            .spawn();
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = std::process::Command::new("xdg-open")
+            .arg(p.parent().unwrap_or(&p))
+            .spawn();
+    }
+}
+
 fn export_data_impl(format: String, dir: Option<String>, days: Option<u32>) -> Result<String, String> {
     let stats = collect_local_stats(days.unwrap_or(7).clamp(1, 90));
     let folder = dir
@@ -1710,6 +1742,12 @@ fn export_data_impl(format: String, dir: Option<String>, days: Option<u32>) -> R
         serde_json::to_string_pretty(&stats).map_err(|e| e.to_string())?
     };
     fs::write(&path, content).map_err(|e| e.to_string())?;
+    if let Ok(mut g) = LAST_EXPORT
+        .get_or_init(|| std::sync::Mutex::new(None))
+        .lock()
+    {
+        *g = Some(path.clone());
+    }
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -1817,6 +1855,7 @@ pub fn run() {
             check_update,
             install_update,
             open_releases,
+            open_export,
             is_dev,
             get_pill_layer,
             set_pill_layer,

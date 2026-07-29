@@ -172,8 +172,21 @@
      heredaba el tamaño del texto normal y cantaba al lado de los demás,
      que van a 10.5-11 px. Salta de línea por caracteres porque una ruta
      larga no tiene espacios donde partir (2026-07-29). */
-  #expMsg{flex-basis:100%;font-size:10.5px;color:var(--txt-dim);
-    font-family:var(--mono);line-height:1.5;word-break:break-all}
+  #expBox{display:flex;align-items:center;gap:10px;margin-top:8px;
+    padding:9px 11px;border-radius:8px;background:var(--surface);
+    border-left:3px solid var(--ok)}
+  #expBox.bad{border-left-color:var(--bad)}
+  .exp-ico{flex:0 0 auto;display:grid;place-items:center;color:var(--ok)}
+  #expBox.bad .exp-ico{color:var(--bad)}
+  .exp-txt{min-width:0;flex:1 1 auto}
+  .exp-t{font-size:12px;color:var(--txt)}
+  /* una ruta no tiene espacios donde partir, así que se recorta en una línea
+     y la completa vive en el title */
+  .exp-p{font-size:10.5px;font-family:var(--mono);color:var(--txt-dim);
+    margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .exp-open{flex:0 0 auto;background:none;border:0;color:var(--ok);
+    font-size:11.5px;cursor:pointer;padding:0;font-family:var(--font)}
+  #expBox.bad .exp-open{display:none}
   /* el lápiz avisa de que el nombre se puede tocar; sin él nadie
      descubre que es editable (2026-07-29) */
   .srv-name{cursor:text}
@@ -513,7 +526,17 @@
       <div class="btnrow">
         <button id="expCsv">CSV</button>
         <button id="expJson">JSON</button>
-        <span id="expMsg"></span>
+      </div>
+      <!-- Resultado de la exportación (maqueta de Oscar 2026-07-29): franja de
+           color por resultado, icono, qué se exportó y la ruta RECORTADA POR
+           EL PRINCIPIO — de una ruta larga lo que importa es el final. -->
+      <div id="expBox" hidden>
+        <span class="exp-ico" id="expIco"></span>
+        <div class="exp-txt">
+          <div class="exp-t" id="expTitle"></div>
+          <div class="exp-p" id="expPath"></div>
+        </div>
+        <button class="exp-open" id="expOpen"></button>
       </div>
     </div>
   </div>
@@ -640,7 +663,8 @@ en:{
   est_tip:"Estimated: this model is not in any price table",
   export_label:"Export data (CSV/JSON)",
   export_dir_ph:"destination folder (empty = Downloads)",
-  msg_exported:p=>`✓ saved to ${p}`,
+  exp_ok:f=>`${f} exported`,
+  exp_open:"Open",
   status_active:"connected",
   status_fail:"unreachable",
   pill_label:"Floating widget above the taskbar",
@@ -791,7 +815,8 @@ es:{
   est_tip:"Estimado: este modelo no está en ninguna tabla de precios",
   export_label:"Exportar datos (CSV/JSON)",
   export_dir_ph:"carpeta destino (vacía = Descargas)",
-  msg_exported:p=>`✓ guardado en ${p}`,
+  exp_ok:f=>`${f} exportado`,
+  exp_open:"Abrir",
   status_active:"conectado",
   status_fail:"sin conexión",
   pill_label:"Widget flotante sobre la barra de tareas",
@@ -942,7 +967,8 @@ pt:{
   est_tip:"Estimado: este modelo não está em nenhuma tabela de preços",
   export_label:"Exportar dados (CSV/JSON)",
   export_dir_ph:"pasta de destino (vazia = Downloads)",
-  msg_exported:p=>`✓ salvo em ${p}`,
+  exp_ok:f=>`${f} exportado`,
+  exp_open:"Abrir",
   status_active:"conectado",
   status_fail:"sem conexão",
   pill_label:"Widget flutuante sobre a barra de tarefas",
@@ -1093,7 +1119,8 @@ fr:{
   est_tip:"Estimé : ce modèle ne figure dans aucune table de prix",
   export_label:"Exporter les données (CSV/JSON)",
   export_dir_ph:"dossier de destination (vide = Téléchargements)",
-  msg_exported:p=>`✓ enregistré dans ${p}`,
+  exp_ok:f=>`${f} exporté`,
+  exp_open:"Ouvrir",
   status_active:"connecté",
   status_fail:"injoignable",
   pill_label:"Widget flottant au-dessus de la barre des tâches",
@@ -1244,7 +1271,8 @@ de:{
   est_tip:"Geschätzt: Dieses Modell steht in keiner Preistabelle",
   export_label:"Daten exportieren (CSV/JSON)",
   export_dir_ph:"Zielordner (leer = Downloads)",
-  msg_exported:p=>`✓ gespeichert in ${p}`,
+  exp_ok:f=>`${f} exportiert`,
+  exp_open:"Öffnen",
   status_active:"verbunden",
   status_fail:"nicht erreichbar",
   pill_label:"Schwebendes Widget über der Taskleiste",
@@ -1395,7 +1423,8 @@ ja:{
   est_tip:"推定: このモデルは料金表にありません",
   export_label:"データのエクスポート（CSV/JSON）",
   export_dir_ph:"保存先フォルダー（空 = ダウンロード）",
-  msg_exported:p=>`✓ 保存先: ${p}`,
+  exp_ok:f=>`${f} を書き出しました`,
+  exp_open:"開く",
   status_active:"接続中",
   status_fail:"接続不可",
   pill_label:"タスクバー上のフローティングウィジェット",
@@ -1546,7 +1575,8 @@ ko:{
   est_tip:"추정: 이 모델은 가격표에 없습니다",
   export_label:"데이터 내보내기 (CSV/JSON)",
   export_dir_ph:"대상 폴더 (비우면 다운로드)",
-  msg_exported:p=>`✓ 저장됨: ${p}`,
+  exp_ok:f=>`${f} 내보냄`,
+  exp_open:"열기",
   status_active:"연결됨",
   status_fail:"연결 불가",
   pill_label:"작업 표시줄 위 플로팅 위젯",
@@ -1697,7 +1727,8 @@ zh:{
   est_tip:"估算: 该模型不在任何价格表中",
   export_label:"导出数据（CSV/JSON）",
   export_dir_ph:"目标文件夹（留空 = 下载）",
-  msg_exported:p=>`✓ 已保存到 ${p}`,
+  exp_ok:f=>`已导出 ${f}`,
+  exp_open:"打开",
   status_active:"已连接",
   status_fail:"无法连接",
   pill_label:"任务栏上方的浮动小组件",
@@ -3018,14 +3049,32 @@ $("pricesNow").addEventListener("click",()=>{
   invoke?.("refresh_prices_now")
     .catch(()=>{ $("pricesMsg").textContent=t("prices_err"); });
 });
-async function doExport(format){
-  if(!invoke) return;
-  $("expMsg").textContent="…";
-  try{
-    const p=await invoke("export_data",{format, dir:$("exportDir").value.trim()||null, days:curDays});
-    $("expMsg").textContent=t("msg_exported", p);
-  }catch(e){ $("expMsg").textContent="✗ "+e; }
+function doExport(format){
+  expShow(null);
+  invoke("export_data",{format, dir:$("exportDir").value.trim()||null, days:curDays})
+    .then(p=>expShow(p, format))
+    .catch(e=>expShow(null, format, String(e)));
 }
+// La ruta se recorta por el PRINCIPIO: de "C:\\Users\\oscar\\Downloads\\x.csv"
+// lo que importa es el final, no la letra de la unidad.
+function shortPath(p){
+  const parts=String(p).split(/[\\/]/);
+  return parts.length>2 ? "…" + p.slice(p.length - (parts.at(-1).length + parts.at(-2).length + 2)) : p;
+}
+function expShow(path, format, err){
+  const b=$("expBox");
+  if(!path && !err){ b.hidden=true; return; }      // en curso: sin ruido
+  b.hidden=false;
+  b.classList.toggle("bad", !!err);
+  $("expIco").innerHTML = err
+    ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>`
+    : `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>`;
+  $("expTitle").textContent = err ? err : t("exp_ok", format.toUpperCase());
+  $("expPath").textContent = err ? "" : shortPath(path);
+  $("expPath").title = err ? "" : path;
+  $("expOpen").textContent = t("exp_open");
+}
+$("expOpen").addEventListener("click",()=>invoke?.("open_export"));
 $("expCsv").addEventListener("click",()=>doExport("csv"));
 $("expJson").addEventListener("click",()=>doExport("json"));
 
