@@ -1071,9 +1071,9 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       pareció rota porque el propio Oscar abrió la pestaña buscando la
       notificación y ese vistazo la despachó. Para re-armar el aviso al
       probar: borrar fndSeen y fndAutoLast del localStorage del panel.
-      FALTA para el diseño completo, EN ESTE ORDEN (acordado con Oscar el
-      2026-07-29 al cierre — LO SIGUIENTE A TRABAJAR son los tres detectores
-      nuevos de "lo instalado"):
+      LOS TRES DETECTORES DE "LO INSTALADO": HECHOS los tres el 2026-07-30
+      (LO SIGUIENTE A TRABAJAR: cargo check de los tres en el Windows de
+      Oscar, y de ahí el detector de líneas de CLAUDE.md sin respaldo):
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
           validado en el VPS: caza exactamente eliminar-proyecto y respeta
           las ventanas; Rust SIN cargo check aún). UNA tarjeta agregada
@@ -1090,8 +1090,19 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           turno isSidechain; validado con fixture sintético al centavo —
           $0.2775 — porque los logs del VPS tienen CERO sidechains; falta
           verlo con datos reales en Windows y el cargo check);
-      (3) DETECTOR hooks ruidosos — salida de hooks que se repite cada
-          turno, medible por tamaño × turnos (el más raro, al final);
+      (3) DETECTOR hooks ruidosos — HECHO 2026-07-30 (kind hooks_noise,
+          umbrales HOOKNOISE_MIN_FIRES 15 / HOOKNOISE_MIN_TOKENS 10k). El
+          formato se averiguó GENERANDO un log real (hook de prueba +
+          `claude -p` con Haiku en carpeta temporal, luego borrada): cada
+          disparo queda como attachment `hook_success` con `hookName` y
+          `content` = lo que entró al contexto; dedup por uuid. Tokens ~
+          chars/4 (tarjeta con "~") y costo piso a input del modelo
+          dominante de la sesión. Validado al centavo con el fixture
+          amplificado (20×2960 chars = 14 800 tok = $0.0148 Haiku) y
+          regresión limpia en 7d/30d; falta cargo check en Windows y un
+          hook real (Oscar no usa hooks — OJO: el VPS tampoco, y todas las
+          menciones de "hook" en sus logs son conversaciones SOBRE hooks,
+          no salida de hooks: el detector mira attachments, no texto);
       REGLA de los tres, ya acordada: señalan lo instalado que NO se usa y
       lo que cuesta CARGARLO — nunca califican si una skill que sí se usa
       "gastó de más" (categoría prohibida del doc).

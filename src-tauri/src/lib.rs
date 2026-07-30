@@ -1814,6 +1814,8 @@ const MECH_MIN: u64 = 5;
 const CACHEBREAK_MIN_PREV: u64 = 20_000;
 const CACHEBREAK_MIN_TOKENS: u64 = 300_000;
 const SUB_MIN_TOKENS: u64 = 50_000;
+const HOOKNOISE_MIN_FIRES: u64 = 15;
+const HOOKNOISE_MIN_TOKENS: u64 = 10_000;
 const MAX_FINDINGS: usize = 12;
 
 /// Comandos deterministas: turnos donde Claude no piensa, solo ejecuta.
@@ -1930,6 +1932,9 @@ struct SessFindings {
     cb: Vec<(i64, String, u64, u64)>,
     /// timestamps de compactaciones: ahí reescribir es el ahorro, no la fuga
     compacts: Vec<i64>,
+    /// hookName -> (disparos, chars de `content`) para el detector de
+    /// hooks ruidosos
+    hooks: HashMap<String, (u64, u64)>,
 }
 
 /// Corre los detectores sobre las fuentes locales (este PC + WSL) en la
@@ -2021,6 +2026,34 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                                 }
                             }
                         }
+                    }
+                    // salida de hooks: cada disparo queda como attachment
+                    // hook_success y su `content` es EXACTAMENTE lo que entró
+                    // al contexto en ese turno (verificado con un log real
+                    // 2026-07-30). Dedup por uuid: las reanudaciones copian
+                    // las líneas viejas al archivo nuevo.
+                    if v["type"].as_str() == Some("attachment") {
+                        let a = &v["attachment"];
+                        if a["type"].as_str() == Some("hook_success") {
+                            let in_window = v["timestamp"]
+                                .as_str()
+                                .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                                .map(|d| d.with_timezone(&Utc) >= window_ago)
+                                .unwrap_or(false);
+                            let uuid = v["uuid"].as_str().unwrap_or("");
+                            if in_window && !uuid.is_empty() && seen.insert(uuid.to_string())
+                            {
+                                let hname =
+                                    a["hookName"].as_str().unwrap_or("?").to_string();
+                                let chars =
+                                    a["content"].as_str().map(|s| s.len() as u64).unwrap_or(0);
+                                let st = sessions.entry(sid.clone()).or_default();
+                                let e = st.hooks.entry(hname).or_insert((0, 0));
+                                e.0 += 1;
+                                e.1 += chars;
+                            }
+                        }
+                        continue; // los attachments nunca traen usage
                     }
                     // resultados de lecturas: se MIDE lo que viajó de verdad
                     // (va ANTES del filtro de usage: estas líneas no lo traen)
@@ -2148,6 +2181,8 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     }
 
     let mut findings: Vec<Finding> = Vec::new();
+    // hookName -> (disparos, chars, costo) sumado entre sesiones
+    let mut hooks_g: HashMap<String, (u64, u64, f64)> = HashMap::new();
     for (sid, s) in &sessions {
         if s.models.is_empty() {
             continue;
@@ -2159,6 +2194,14 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
             .map(|(m, _)| m.clone())
             .unwrap_or_default();
         let pi = price_for(&top_model).0;
+        // los disparos se acumulan por hook GLOBAL, pero el costo se valora
+        // con el modelo dominante de la sesión donde ocurrieron
+        for (hname, (nf, nch)) in &s.hooks {
+            let g = hooks_g.entry(hname.clone()).or_insert((0, 0, 0.0));
+            g.0 += nf;
+            g.1 += nch;
+            g.2 += *nch as f64 / 4.0 * pi / 1_000_000.0;
+        }
         let sid8: String = sid.chars().take(8).collect();
         // archivos releídos: el contenido se APILA en la conversación, no se
         // reemplaza. Tokens ~ chars/4 de lo devuelto tras la primera lectura;
@@ -2250,6 +2293,29 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
             count: sub_count,
             tokens: sub_tokens,
             cost: sub_cost,
+            ..Default::default()
+        });
+    }
+    // hooks ruidosos: la salida de un hook entra al contexto en CADA disparo
+    // (tamaño × turnos). Tokens ~ chars/4 (heurística → "~") y costo PISO a
+    // precio de input — la realidad es mayor porque además se relee en los
+    // turnos posteriores. No juzga si el hook sirve: mide lo que cuesta
+    // cargarlo, igual que skills_unused y mcp_unused.
+    let mut hnames: Vec<&String> = hooks_g.keys().collect();
+    hnames.sort();
+    for hname in hnames {
+        let (nf, nch, hcost) = hooks_g[hname];
+        let tok = nch / 4;
+        if nf < HOOKNOISE_MIN_FIRES || tok < HOOKNOISE_MIN_TOKENS {
+            continue;
+        }
+        findings.push(Finding {
+            kind: "hooks_noise".into(),
+            file: hname.clone(),
+            count: nf,
+            tokens: tok,
+            cost: hcost,
+            estimated: true,
             ..Default::default()
         });
     }

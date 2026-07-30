@@ -464,7 +464,30 @@ cuota — pero eso no sale de los logs.
           costo MEDIDO del usage propio de cada turno isSidechain — ya está
           dentro del total, la tarjeta solo lo hace visible. No juzga si
           valieron la pena.
-      (3) [ ] hooks ruidosos (salida repetida cada turno, tamaño × turnos).
+      (3) [x] hooks ruidosos — 2026-07-30, Python validado con un fixture de
+          FORMATO REAL. Como en el VPS no hay hooks configurados (y todas
+          las menciones de "hook" en sus logs eran conversaciones SOBRE
+          hooks), el formato se averiguó generándolo: un hook de prueba en
+          una carpeta temporal + un turno mínimo de Haiku (`claude -p`), y
+          el log resultante se guardó como fixture y se borró de projects.
+          LO APRENDIDO del log real: cada disparo queda como una entrada
+          `type:"attachment"` con `attachment.type:"hook_success"`, y ahí
+          vienen `hookName` ("PostToolUse:Bash", "UserPromptSubmit"...),
+          `content` (EXACTAMENTE lo que entró al contexto), `command` y
+          `durationMs`; el envoltorio trae uuid/timestamp/sessionId. El
+          detector suma disparos × chars de `content` por hookName (dedup
+          por uuid: las reanudaciones copian líneas), tokens ~ chars/4
+          (heurística → tarjeta con "~"), costo PISO a precio de input del
+          modelo dominante de cada sesión — la realidad es mayor porque esa
+          salida se relee en cada turno posterior. Umbrales: 15+ disparos y
+          ~10k tokens en la ventana (HOOKNOISE_MIN_FIRES/_TOKENS). Cuadre
+          exacto contra el fixture amplificado: 20 disparos × 2960 chars =
+          14 800 tok = $0.0148 a precio de Haiku, con el duplicado de uuid
+          ignorado y el hook de 5 disparos correctamente callado; regresión
+          limpia (hallazgos reales idénticos con y sin el detector, 7d y
+          30d). No juzga si el hook sirve: mide lo que cuesta cargarlo,
+          como skills_unused y mcp_unused. Falta cargo check en Windows y
+          verlo con un hook real (Oscar no usa hooks todavía).
 - [x] Evaluado y DESCARTADO (2026-07-30): coach con LLM local
       (Bonsai/Gemma) dentro de MichiClaude — contradice §5 (determinista,
       testeable, dice "no sé"), la batalla de RAM ganada (276 MB) y la

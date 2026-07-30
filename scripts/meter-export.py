@@ -224,6 +224,8 @@ MECH_MIN = 5            # peticiones mecánicas en la ventana para avisar
 CACHEBREAK_MIN_PREV = 20_000    # prefijo cacheado mínimo para evaluar un turno
 CACHEBREAK_MIN_TOKENS = 300_000  # reescritos por sesión para avisar (~$2-4)
 SUB_MIN_TOKENS = 50_000  # tokens de trabajo de subagentes para avisar
+HOOKNOISE_MIN_FIRES = 15    # disparos de un hook en la ventana para avisar
+HOOKNOISE_MIN_TOKENS = 10_000  # ~tokens inyectados (chars/4) para avisar
 MAX_FINDINGS = 12       # las tarjetas no son un log: lo más caro primero
 
 
@@ -315,7 +317,7 @@ def scan_findings(projects_dir, window_ago, days):
                         "first_cr": None, "last_cr": None, "turns": 0,
                         "cr_cost": 0.0, "reads": {}, "read_chars": {},
                         "models": {}, "proj": proj.name,
-                        "cb": [], "compacts": []})
+                        "cb": [], "compacts": [], "hooks": {}})
                     # una compactación reescribe el contexto A PROPÓSITO:
                     # se marca para no contarla como ruptura de caché
                     if v.get("isCompactSummary") or v.get("subtype") == "compact_boundary":
@@ -334,6 +336,23 @@ def scan_findings(projects_dir, window_ago, days):
                                 for m in SKILL_CMD_RE.finditer(tx):
                                     skills_used.add(
                                         m.group(1).split(":")[-1].lower())
+                    # salida de hooks: cada disparo queda como attachment
+                    # hook_success y su `content` es EXACTAMENTE lo que entró
+                    # al contexto en ese turno (verificado con un log real
+                    # 2026-07-30). Dedup por uuid: las reanudaciones copian
+                    # las líneas viejas al archivo nuevo.
+                    if v.get("type") == "attachment":
+                        a = v.get("attachment") or {}
+                        if a.get("type") == "hook_success":
+                            cts = parse_ts(v.get("timestamp"))
+                            u = v.get("uuid") or ""
+                            if cts and cts >= window_ago and u and u not in seen:
+                                seen.add(u)
+                                hk = S["hooks"].setdefault(
+                                    a.get("hookName") or "?", [0, 0])
+                                hk[0] += 1
+                                hk[1] += len(a.get("content") or "")
+                        continue   # los attachments nunca traen usage
                     # resultados de lecturas: se MIDE lo que viajó de verdad
                     for b in blocks:
                         if not isinstance(b, dict):
@@ -408,11 +427,19 @@ def scan_findings(projects_dir, window_ago, days):
                         mech[2] += (inp * pi + out_t * po + cw * pcw + cr * pcr) / 1e6
 
     findings = []
+    hooks_g = {}   # hookName -> [disparos, chars, costo] sumado entre sesiones
     for sid, S in sessions.items():
         if not S["models"]:
             continue
         top_model = max(S["models"], key=S["models"].get)
         pi = price_for(top_model)[0]
+        # los disparos se acumulan por hook GLOBAL, pero el costo se valora
+        # con el modelo dominante de la sesión donde ocurrieron
+        for hname, hk in S["hooks"].items():
+            g = hooks_g.setdefault(hname, [0, 0, 0.0])
+            g[0] += hk[0]
+            g[1] += hk[1]
+            g[2] += hk[1] / 4 * pi / 1e6
         # archivos releídos: el contenido se APILA en la conversación, no se
         # reemplaza. Tokens ~ chars/4 de lo devuelto tras la primera lectura;
         # el costo es el PISO (una ingesta a precio de input) — la realidad es
@@ -471,6 +498,18 @@ def scan_findings(projects_dir, window_ago, days):
         findings.append({"kind": "subagents", "count": sub[0],
                          "tokens": sub[1], "cost": sub[2],
                          "estimated": False})
+    # hooks ruidosos: la salida de un hook entra al contexto en CADA disparo
+    # (tamaño × turnos). Tokens ~ chars/4 (heurística → "~") y costo PISO a
+    # precio de input — la realidad es mayor porque además se relee en los
+    # turnos posteriores. No juzga si el hook sirve: mide lo que cuesta
+    # cargarlo, igual que skills_unused y mcp_unused.
+    for hname in sorted(hooks_g):
+        nf, nch, hcost = hooks_g[hname]
+        tok = nch // 4
+        if nf < HOOKNOISE_MIN_FIRES or tok < HOOKNOISE_MIN_TOKENS:
+            continue
+        findings.append({"kind": "hooks_noise", "file": hname, "count": nf,
+                         "tokens": tok, "cost": hcost, "estimated": True})
     for server in sorted(mcp_servers_configured() - mcp_used):
         findings.append({"kind": "mcp_unused", "server": server,
                          "tokens": 0, "cost": 0.0, "estimated": False})
