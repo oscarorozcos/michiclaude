@@ -531,9 +531,16 @@ cuota — pero eso no sale de los logs.
       instante. Sin regex A PROPÓSITO: el lado Rust no puede usar el crate
       (invariante #4) y dos algoritmos distintos entre los lados es como
       nacen los desfases. Cargo check limpio 2026-07-30.
-- [~] EL GLOBO DEL DÍA (2026-07-30, implementado; SIN validar en vivo —
-      solo frontend, cero Rust): el aviso con texto, evolución del "aviso
-      en el momento" de §7. Un hallazgo NUEVO que duela en dólares merece
+- [x] EL GLOBO DEL DÍA (2026-07-30, implementado y VALIDADO EN VIVO por
+      Oscar ese mismo día con capturas: el globo salió solo con un
+      hallazgo REAL del VPS llegado por SSH — "164 turnos · ~$34.17",
+      título i18n correcto —, el clic abrió el panel directo en Hallazgos
+      con la tarjeta etiquetada VPS-EU, y al verla se despacharon globo y
+      post-it; la cadena entera exportador→SSH→fusión→umbral→globo→clic→
+      pestaña→visto quedó probada de una sola vez. Solo frontend, cero
+      Rust. Nota visual correcta por diseño: el cómic del gatito ignora el
+      tinte de severidad; el popover de la pastilla sí lo tiñe): el aviso
+      con texto, evolución del "aviso en el momento" de §7. Un hallazgo NUEVO que duela en dólares merece
       un empujón activo, no solo el post-it. Cómo funciona: al terminar la
       pasada diaria (fndAutoScan, que ahora guarda kind/count/server para
       poder armar el título), fndNudge() busca hallazgos no vistos, no

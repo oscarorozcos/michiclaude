@@ -1087,8 +1087,11 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       congelada. Cuesta ~7 s extra en --findings 7d+ (asumido y
       documentado); cargo check limpio 2026-07-30. Detalle completo en
       docs/analizador-fugas.md §11.
-      EL GLOBO DEL DÍA — IMPLEMENTADO 2026-07-30, SIN validar en vivo
-      (solo frontend: index.html + notif.html, cero Rust). Un hallazgo
+      EL GLOBO DEL DÍA — IMPLEMENTADO 2026-07-30 y VALIDADO EN VIVO por
+      Oscar el mismo día (capturas: globo con hallazgo real del VPS "164
+      turnos · ~$34.17", clic abrió Hallazgos con la tarjeta VPS-EU, y al
+      verla se despacharon globo y post-it — la cadena completa probada de
+      una vez; solo frontend: index.html + notif.html, cero Rust). Un hallazgo
       NUEVO con costo ≥ umbral configurable (fndNudgeUsd, $1 default,
       campo en Preferencias) sale como globo notif kind "findings" al
       terminar la pasada diaria: título de tarjeta + ~$X, clic = panel
