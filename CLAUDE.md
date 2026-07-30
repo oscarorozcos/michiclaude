@@ -1055,7 +1055,11 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       la MARCA dejó de ser el sunburst: la cápsula lleva el sticker del
       gatito (variante -white/-black según tema, misma regla que los gifs) y
       el detalle desplegado lleva icon-mini-panel.png — la mascota ES la
-      marca; los tres PNG los subió Oscar desde Windows. En el PANEL el
+      marca; los tres PNG los subió Oscar desde Windows. OJO: los tres son
+      IDÉNTICOS byte a byte A PROPÓSITO (validado por Oscar el 2026-07-30 en
+      ambos widgets y ambos temas: "está bien") — no es un error que haya
+      que corregir; si algún día quiere variantes por tema o icono propio
+      del detalle, basta reemplazar los archivos, el código ya lo soporta. En el PANEL el
       contador es cápsula roja flotante en la esquina de la pestaña, tope
       9+. PRIMERA APERTURA de Hallazgos: enseña AL INSTANTE el último
       resultado guardado (localStorage fndCacheSaved, por ventana) con
