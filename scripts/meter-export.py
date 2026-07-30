@@ -226,6 +226,8 @@ CACHEBREAK_MIN_TOKENS = 300_000  # reescritos por sesión para avisar (~$2-4)
 SUB_MIN_TOKENS = 50_000  # tokens de trabajo de subagentes para avisar
 HOOKNOISE_MIN_FIRES = 15    # disparos de un hook en la ventana para avisar
 HOOKNOISE_MIN_TOKENS = 10_000  # ~tokens inyectados (chars/4) para avisar
+CLAUDEMD_MIN_LINES = 5      # líneas sin respaldo en un CLAUDE.md para avisar
+CLAUDEMD_MAX_TOKENS = 400   # tope de identificadores a buscar por archivo
 MAX_FINDINGS = 12       # las tarjetas no son un log: lo más caro primero
 
 
@@ -263,6 +265,101 @@ def skills_used_at(window_ago):
 SKILL_CMD_RE = re.compile(r"<command-name>/?([^<\s]+)</command-name>")
 
 
+def _md_token_ok(tok):
+    """Filtro de identificadores del CLAUDE.md. Descarta lo corto (falsos
+    verdes por subcadena), los patrones con comodines, las URLs (son
+    referencias, no afirmaciones de uso) y lo que no lleva letras."""
+    if len(tok) < 4 or len(tok) > 80:
+        return False
+    if tok.startswith("http://") or tok.startswith("https://"):
+        return False
+    if any(c in "<>{}*$|`\"" or c.isspace() for c in tok):
+        return False
+    return any(c.isalpha() for c in tok)
+
+
+def _md_line_tokens(line):
+    """Identificadores verificables de una línea de CLAUDE.md: lo que va
+    entre backticks (ahí el autor señala código) más palabras sueltas con
+    pinta de ruta o de archivo.ext. Determinista y conservador: una línea
+    sin nada verificable queda GRIS (sin opinión), nunca roja."""
+    toks = []
+    parts = line.split("`")
+    for i, seg in enumerate(parts):
+        if i % 2 == 1:               # dentro de backticks
+            span = seg.strip()
+            if span:
+                toks.append(span.split()[0])
+        else:                        # texto normal: rutas y archivo.ext
+            for w in seg.split():
+                w = w.lstrip("(\"'«“[").rstrip(".,;:!?)\"'»”]")
+                dotted = any(w[j] == "." and w[j - 1].isalnum()
+                             and w[j + 1].isalnum()
+                             for j in range(1, len(w) - 1))
+                if "/" in w or "\\" in w or dotted:
+                    toks.append(w)
+    out = []
+    for tok in toks:
+        tl = tok.lower()
+        if _md_token_ok(tl) and tl not in out:
+            out.append(tl)
+    return out
+
+
+def _claude_mds(projects_dir, skip_before):
+    """CLAUDE.md global + el de cada proyecto con actividad en la ventana.
+    El cwd real sale de las primeras líneas de sus .jsonl: el nombre de la
+    carpeta de logs viene aplanado y no se puede revertir sin ambigüedad."""
+    mds = []   # (ruta, proyecto_o_None, texto)
+    vistos = set()   # por ruta real: un symlink de carpeta renombrada haría
+    #                  analizar (y cobrar) dos veces el mismo archivo
+    g = Path.home() / ".claude" / "CLAUDE.md"
+    try:
+        mds.append((str(g), None, g.read_text(encoding="utf-8",
+                                              errors="replace")))
+        vistos.add(os.path.realpath(g))
+    except OSError:
+        pass
+    if projects_dir.is_dir():
+        for proj in sorted(projects_dir.iterdir()):
+            if not proj.is_dir():
+                continue
+            cwd = None
+            for f in sorted(proj.glob("*.jsonl")):
+                try:
+                    if f.stat().st_mtime < skip_before:
+                        continue
+                    with open(f, encoding="utf-8", errors="replace") as fh:
+                        for _ in range(20):
+                            ln = fh.readline()
+                            if not ln:
+                                break
+                            try:
+                                c = json.loads(ln).get("cwd")
+                            except ValueError:
+                                continue
+                            if c:
+                                cwd = c
+                                break
+                except OSError:
+                    continue
+                if cwd:
+                    break
+            if not cwd:
+                continue
+            p = Path(cwd) / "CLAUDE.md"
+            rp = os.path.realpath(p)
+            if rp in vistos:
+                continue
+            try:
+                mds.append((str(p), proj.name,
+                            p.read_text(encoding="utf-8", errors="replace")))
+                vistos.add(rp)
+            except OSError:
+                continue
+    return mds
+
+
 def mcp_servers_configured():
     """Servidores MCP dados de alta en ~/.claude.json (global y por proyecto)."""
     out = set()
@@ -291,6 +388,32 @@ def scan_findings(projects_dir, window_ago, days):
     seen = set()                 # misma dedup que la agregación
     skip_before = (window_ago - timedelta(days=2)).timestamp()
 
+    # CLAUDE.md sin respaldo: identificadores por línea, a buscar en el
+    # texto CRUDO de los logs de la ventana. Solo con 7+ días, como skills:
+    # "no lo mencionaste HOY" no dice nada. El tope de búsqueda va por
+    # archivo y en orden de lectura; las líneas cuyos identificadores no
+    # entraron quedan grises (sin opinión), nunca rojas.
+    md_meta = []      # (ruta, proyecto_o_None)
+    md_lines = []     # (md_idx, line_no, chars, [tokens buscados])
+    md_pending = set()
+    md_found = set()
+    if days >= 7:
+        for ruta, pj, texto in _claude_mds(projects_dir, skip_before):
+            idx = len(md_meta)
+            md_meta.append((ruta, pj))
+            added = set()
+            for ln_no, ln in enumerate(texto.splitlines(), 1):
+                keep = []
+                for tok in _md_line_tokens(ln):
+                    if tok in md_pending or tok in added:
+                        keep.append(tok)
+                    elif len(added) < CLAUDEMD_MAX_TOKENS:
+                        added.add(tok)
+                        keep.append(tok)
+                if keep:
+                    md_lines.append((idx, ln_no, len(ln), keep))
+            md_pending |= added
+
     if projects_dir.is_dir():
         for proj in sorted(projects_dir.iterdir()):
             if not proj.is_dir():
@@ -299,10 +422,18 @@ def scan_findings(projects_dir, window_ago, days):
                 try:
                     if f.stat().st_mtime < skip_before:
                         continue
-                    lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+                    text = f.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
-                for line in lines:
+                # identificadores del CLAUDE.md contra el texto crudo, con
+                # eliminación temprana: el encontrado deja de buscarse
+                if md_pending:
+                    low = text.lower()
+                    for tok in list(md_pending):
+                        if tok in low:
+                            md_pending.discard(tok)
+                            md_found.add(tok)
+                for line in text.splitlines():
                     try:
                         v = json.loads(line)
                     except ValueError:
@@ -525,6 +656,36 @@ def scan_findings(projects_dir, window_ago, days):
         findings.append({"kind": "skills_unused", "count": len(unused),
                          "file": shown, "tokens": 0, "cost": 0.0,
                          "estimated": False})
+    # líneas de CLAUDE.md sin respaldo: NINGUNA de sus menciones aparece en
+    # los logs de la ventana. Costo PISO, nunca "líneas × turnos" (la trampa
+    # documentada: tras el primer turno está cacheado): esas líneas entran
+    # al contexto UNA vez por sesión — tokens ~ chars/4 ("~") por sesión de
+    # la ventana, al precio de input del modelo dominante de cada una.
+    # Limitación asumida (dirección segura del error): si el CLAUDE.md se
+    # leyó o editó en la ventana, sus líneas viajan en los logs y salen
+    # verdes — el detector calla en vez de arriesgar un falso rojo.
+    for idx, (ruta, pj) in enumerate(md_meta):
+        reds = [(ln_no, ch) for (i2, ln_no, ch, toks) in md_lines
+                if i2 == idx and all(t not in md_found for t in toks)]
+        if len(reds) < CLAUDEMD_MIN_LINES:
+            continue
+        tok_est = sum(ch for _, ch in reds) // 4
+        cost = 0.0
+        for S in sessions.values():
+            if not S["models"]:
+                continue
+            if pj is not None and S["proj"] != pj:
+                continue
+            pi2 = price_for(max(S["models"], key=S["models"].get))[0]
+            cost += tok_est * pi2 / 1e6
+        if cost <= 0:
+            continue   # sin sesiones en la ventana, ese CLAUDE.md no viajó
+        nums = ", ".join("L%d" % ln_no for ln_no, _ in reds[:6]) \
+            + (" …" if len(reds) > 6 else "")
+        findings.append({"kind": "claudemd", "count": len(reds),
+                         "file": "%s · %s" % (ruta, nums),
+                         "project": pj or "", "tokens": tok_est,
+                         "cost": cost, "estimated": True})
     findings.sort(key=lambda x: -x["cost"])
     return findings[:MAX_FINDINGS]
 

@@ -1816,6 +1816,8 @@ const CACHEBREAK_MIN_TOKENS: u64 = 300_000;
 const SUB_MIN_TOKENS: u64 = 50_000;
 const HOOKNOISE_MIN_FIRES: u64 = 15;
 const HOOKNOISE_MIN_TOKENS: u64 = 10_000;
+const CLAUDEMD_MIN_LINES: usize = 5;
+const CLAUDEMD_MAX_TOKENS: usize = 400;
 const MAX_FINDINGS: usize = 12;
 
 /// Comandos deterministas: turnos donde Claude no piensa, solo ejecuta.
@@ -1898,6 +1900,136 @@ fn command_names(text: &str, out: &mut HashSet<String>) {
     }
 }
 
+/// Filtro de identificadores del CLAUDE.md — pareja de _md_token_ok del
+/// exportador. Descarta lo corto (falsos verdes por subcadena), los
+/// patrones con comodines, las URLs y lo que no lleva letras.
+fn md_token_ok(tok: &str) -> bool {
+    let n = tok.chars().count();
+    if !(4..=80).contains(&n) {
+        return false;
+    }
+    if tok.starts_with("http://") || tok.starts_with("https://") {
+        return false;
+    }
+    if tok.chars().any(|c| "<>{}*$|`\"".contains(c) || c.is_whitespace()) {
+        return false;
+    }
+    tok.chars().any(|c| c.is_alphabetic())
+}
+
+/// Identificadores verificables de una línea de CLAUDE.md — pareja de
+/// _md_line_tokens del exportador: lo que va entre backticks más palabras
+/// con pinta de ruta o de archivo.ext. Una línea sin nada verificable
+/// queda GRIS (sin opinión), nunca roja.
+fn md_line_tokens(line: &str) -> Vec<String> {
+    let mut toks: Vec<String> = Vec::new();
+    for (i, seg) in line.split('`').enumerate() {
+        if i % 2 == 1 {
+            if let Some(first) = seg.trim().split_whitespace().next() {
+                toks.push(first.to_string());
+            }
+        } else {
+            for w in seg.split_whitespace() {
+                let w = w
+                    .trim_start_matches(|c| "(\"'«“[".contains(c))
+                    .trim_end_matches(|c| ".,;:!?)\"'»”]".contains(c));
+                let cs: Vec<char> = w.chars().collect();
+                let dotted = (1..cs.len().saturating_sub(1)).any(|j| {
+                    cs[j] == '.' && cs[j - 1].is_alphanumeric() && cs[j + 1].is_alphanumeric()
+                });
+                if w.contains('/') || w.contains('\\') || dotted {
+                    toks.push(w.to_string());
+                }
+            }
+        }
+    }
+    let mut out: Vec<String> = Vec::new();
+    for tok in toks {
+        let tl = tok.to_lowercase();
+        if md_token_ok(&tl) && !out.contains(&tl) {
+            out.push(tl);
+        }
+    }
+    out
+}
+
+/// CLAUDE.md global + el de cada proyecto con actividad en la ventana —
+/// pareja de _claude_mds del exportador. El cwd real sale de las primeras
+/// líneas de los .jsonl (el nombre de la carpeta de logs viene aplanado y
+/// no se puede revertir sin ambigüedad); los cwd de WSL no resuelven desde
+/// Windows y se saltan solos al fallar la lectura. Dedup por ruta real: un
+/// symlink de carpeta renombrada haría analizar dos veces el mismo archivo.
+fn claude_mds(pdirs: &[PathBuf], skip_before: i64) -> Vec<(String, Option<String>, String)> {
+    use std::io::BufRead;
+    let mut mds = Vec::new();
+    let mut vistos: HashSet<PathBuf> = HashSet::new();
+    let g = claude_dir().join("CLAUDE.md");
+    if let Ok(texto) = fs::read_to_string(&g) {
+        vistos.insert(fs::canonicalize(&g).unwrap_or_else(|_| g.clone()));
+        mds.push((g.to_string_lossy().to_string(), None, texto));
+    }
+    for pdir in pdirs {
+        let Ok(projs) = fs::read_dir(pdir) else { continue };
+        let mut dirs: Vec<PathBuf> = projs.flatten().map(|e| e.path()).collect();
+        dirs.sort();
+        for ppath in dirs {
+            if !ppath.is_dir() {
+                continue;
+            }
+            let proj_name = ppath
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let Ok(files) = fs::read_dir(&ppath) else { continue };
+            let mut jsonls: Vec<PathBuf> = files
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("jsonl"))
+                .collect();
+            jsonls.sort();
+            let mut cwd: Option<String> = None;
+            for fp in jsonls {
+                if let Ok(md) = fs::metadata(&fp) {
+                    if let Ok(mt) = md.modified() {
+                        let secs = mt
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map(|d| d.as_secs() as i64)
+                            .unwrap_or(0);
+                        if secs < skip_before {
+                            continue;
+                        }
+                    }
+                }
+                let Ok(fh) = fs::File::open(&fp) else { continue };
+                for line in std::io::BufReader::new(fh).lines().take(20).flatten() {
+                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(&line) {
+                        if let Some(c) = v["cwd"].as_str() {
+                            if !c.is_empty() {
+                                cwd = Some(c.to_string());
+                                break;
+                            }
+                        }
+                    }
+                }
+                if cwd.is_some() {
+                    break;
+                }
+            }
+            let Some(c) = cwd else { continue };
+            let p = PathBuf::from(&c).join("CLAUDE.md");
+            let rp = fs::canonicalize(&p).unwrap_or_else(|_| p.clone());
+            if vistos.contains(&rp) {
+                continue;
+            }
+            if let Ok(texto) = fs::read_to_string(&p) {
+                vistos.insert(rp);
+                mds.push((p.to_string_lossy().to_string(), Some(proj_name), texto));
+            }
+        }
+    }
+    mds
+}
+
 /// Servidores MCP dados de alta en ~/.claude.json (global y por proyecto).
 fn mcp_servers_configured() -> HashSet<String> {
     let mut out = HashSet::new();
@@ -1957,6 +2089,39 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     for (_distro, d) in wsl_claude_dirs() {
         dirs_to_scan.push(d.join("projects"));
     }
+
+    // CLAUDE.md sin respaldo: identificadores por línea, a buscar en el
+    // texto CRUDO de los logs de la ventana. Solo con 7+ días, como skills:
+    // "no lo mencionaste HOY" no dice nada. El tope de búsqueda va por
+    // archivo y en orden de lectura; las líneas cuyos identificadores no
+    // entraron quedan grises (sin opinión), nunca rojas.
+    let mut md_meta: Vec<(String, Option<String>)> = Vec::new();
+    let mut md_lines: Vec<(usize, usize, usize, Vec<String>)> = Vec::new();
+    let mut md_pending: HashSet<String> = HashSet::new();
+    let mut md_found: HashSet<String> = HashSet::new();
+    if window_days >= 7 {
+        for (ruta, pj, texto) in claude_mds(&dirs_to_scan, skip_before) {
+            let idx = md_meta.len();
+            md_meta.push((ruta, pj));
+            let mut added: HashSet<String> = HashSet::new();
+            for (ln_no, ln) in texto.lines().enumerate() {
+                let mut keep: Vec<String> = Vec::new();
+                for tok in md_line_tokens(ln) {
+                    if md_pending.contains(&tok) || added.contains(&tok) {
+                        keep.push(tok);
+                    } else if added.len() < CLAUDEMD_MAX_TOKENS {
+                        added.insert(tok.clone());
+                        keep.push(tok);
+                    }
+                }
+                if !keep.is_empty() {
+                    md_lines.push((idx, ln_no + 1, ln.chars().count(), keep));
+                }
+            }
+            md_pending.extend(added);
+        }
+    }
+
     for pdir in dirs_to_scan {
         let Ok(projs) = fs::read_dir(&pdir) else { continue };
         for proj in projs.flatten() {
@@ -1985,6 +2150,19 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                     }
                 }
                 let Ok(text) = fs::read_to_string(&fp) else { continue };
+                // identificadores del CLAUDE.md contra el texto crudo, con
+                // eliminación temprana: el encontrado deja de buscarse
+                if !md_pending.is_empty() {
+                    let low = text.to_lowercase();
+                    md_pending.retain(|tok| {
+                        if low.contains(tok.as_str()) {
+                            md_found.insert(tok.clone());
+                            false
+                        } else {
+                            true
+                        }
+                    });
+                }
                 for line in text.lines() {
                     let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else {
                         continue;
@@ -2183,6 +2361,9 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     let mut findings: Vec<Finding> = Vec::new();
     // hookName -> (disparos, chars, costo) sumado entre sesiones
     let mut hooks_g: HashMap<String, (u64, u64, f64)> = HashMap::new();
+    // (proyecto, precio de input del modelo dominante) por sesión de la
+    // ventana, para el costo piso del detector de CLAUDE.md
+    let mut sess_pi: Vec<(String, f64)> = Vec::new();
     for (sid, s) in &sessions {
         if s.models.is_empty() {
             continue;
@@ -2194,6 +2375,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
             .map(|(m, _)| m.clone())
             .unwrap_or_default();
         let pi = price_for(&top_model).0;
+        sess_pi.push((s.proj.clone(), pi));
         // los disparos se acumulan por hook GLOBAL, pero el costo se valora
         // con el modelo dominante de la sesión donde ocurrieron
         for (hname, (nf, nch)) in &s.hooks {
@@ -2350,6 +2532,58 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                 ..Default::default()
             });
         }
+    }
+    // líneas de CLAUDE.md sin respaldo: NINGUNA de sus menciones aparece en
+    // los logs de la ventana. Costo PISO, nunca "líneas × turnos" (la trampa
+    // documentada: tras el primer turno está cacheado): esas líneas entran
+    // al contexto UNA vez por sesión — tokens ~ chars/4 ("~") por sesión de
+    // la ventana, al precio de input del modelo dominante de cada una.
+    // Limitación asumida (dirección segura del error): si el CLAUDE.md se
+    // leyó o editó en la ventana, sus líneas viajan en los logs y salen
+    // verdes — el detector calla en vez de arriesgar un falso rojo.
+    for (idx, (ruta, pj)) in md_meta.iter().enumerate() {
+        let reds: Vec<(usize, usize)> = md_lines
+            .iter()
+            .filter(|(i2, _, _, toks)| {
+                *i2 == idx && toks.iter().all(|t| !md_found.contains(t))
+            })
+            .map(|(_, ln_no, ch, _)| (*ln_no, *ch))
+            .collect();
+        if reds.len() < CLAUDEMD_MIN_LINES {
+            continue;
+        }
+        let tok_est = (reds.iter().map(|(_, ch)| *ch as u64).sum::<u64>()) / 4;
+        let mut cost = 0.0;
+        for (sproj, pi2) in &sess_pi {
+            if let Some(p) = pj {
+                if sproj != p {
+                    continue;
+                }
+            }
+            cost += tok_est as f64 * pi2 / 1_000_000.0;
+        }
+        if cost <= 0.0 {
+            continue; // sin sesiones en la ventana, ese CLAUDE.md no viajó
+        }
+        let mut nums = reds
+            .iter()
+            .take(6)
+            .map(|(ln_no, _)| format!("L{}", ln_no))
+            .collect::<Vec<_>>()
+            .join(", ");
+        if reds.len() > 6 {
+            nums.push_str(" …");
+        }
+        findings.push(Finding {
+            kind: "claudemd".into(),
+            count: reds.len() as u64,
+            file: format!("{} · {}", ruta, nums),
+            project: pj.clone().unwrap_or_default(),
+            tokens: tok_est,
+            cost,
+            estimated: true,
+            ..Default::default()
+        });
     }
     findings.sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
     findings.truncate(MAX_FINDINGS);

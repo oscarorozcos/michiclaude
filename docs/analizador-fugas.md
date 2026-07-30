@@ -496,7 +496,41 @@ cuota — pero eso no sale de los logs.
       hooks de Claude Code quedan anotados como opción futura (opt-in) para
       el aviso en el momento. Análisis completo en
       ~/.michiclaude/notas-coach-local.md (fuera del repo a propósito).
-- [ ] Detector: líneas de CLAUDE.md sin respaldo (§5, las tres cubetas).
+- [x] Detector: líneas de CLAUDE.md sin respaldo (2026-07-30, §5, las tres
+      cubetas tal cual: verde/roja/gris). Identificadores por línea — lo que
+      va entre backticks más palabras con pinta de ruta o archivo.ext; sin
+      nada verificable la línea queda GRIS (sin opinión, justo donde un
+      modelo adivinaría). Se buscan LITERALMENTE (subcadena, minúsculas) en
+      el texto crudo de los logs de la ventana, con eliminación temprana; una
+      línea es roja solo si NINGUNA de sus menciones aparece. Analiza el
+      CLAUDE.md global y el de cada proyecto con actividad (el cwd real sale
+      de las primeras líneas de sus .jsonl — el nombre aplanado de la
+      carpeta de logs no se puede revertir sin ambigüedad), con dedup por
+      ruta real (el symlink claude-code-meter→michiclaude lo analizaba
+      doble). Costo PISO, nunca "líneas × turnos" (la trampa de §4): esas
+      líneas entran UNA vez por sesión — chars/4 ("~") × sesiones de la
+      ventana al input del modelo dominante de cada una. Umbrales: 5+ líneas
+      rojas (CLAUDEMD_MIN_LINES) y tope de 400 identificadores por archivo
+      (CLAUDEMD_MAX_TOKENS; los que no entran dejan su línea gris). Solo
+      ventanas de 7+ días, como skills. VALIDADO: fixture con números
+      conocidos (6 rojas L2–L7, 81 tok, $0.000081 haiku — cuadre exacto, las
+      vivas verdes, el global sin identificadores calla, 1 día calla) y
+      contra los logs reales del VPS: de 367 identificadores solo 3 sin
+      respaldo — y los 3 CORRECTOS (rutas de Windows tipo %APPDATA% que
+      jamás pisan los logs del VPS), bajo umbral → calla. Regresión
+      byte-idéntica sobre copia CONGELADA de los logs (la comparación en
+      vivo difería solo porque esta misma sesión crecía entre corridas).
+      LIMITACIONES ASUMIDAS, todas en la dirección segura (callar): si el
+      CLAUDE.md se leyó/editó en la ventana sus líneas viajan en los logs y
+      salen verdes; los cwd de WSL no resuelven desde Windows y se saltan;
+      el md deduplicado queda asociado a la carpeta del symlink viejo (si el
+      costo da 0, calla). COSTO EN TIEMPO medido: +7 s sobre los 44 MB del
+      VPS (el barrido literal de los identificadores no encontrados), solo
+      bajo --findings con ventana 7+; la pasada diaria del indicador es de
+      1 día y no lo paga, y la pestaña enseña el resultado guardado al
+      instante. Sin regex A PROPÓSITO: el lado Rust no puede usar el crate
+      (invariante #4) y dos algoritmos distintos entre los lados es como
+      nacen los desfases. Falta cargo check en Windows.
 - [ ] El aviso EN EL MOMENTO con texto (globito una vez al día, §7).
 - [ ] Fix personalizado por entrypoint (VS Code vs. terminal, respaldo
       genérico — mismo patrón que prettyModel/price_for).

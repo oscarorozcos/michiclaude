@@ -1072,9 +1072,23 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       notificación y ese vistazo la despachó. Para re-armar el aviso al
       probar: borrar fndSeen y fndAutoLast del localStorage del panel.
       LOS TRES DETECTORES DE "LO INSTALADO": HECHOS los tres el 2026-07-30,
-      con cargo check limpio ese mismo día en el Windows de Oscar (LO
-      SIGUIENTE A TRABAJAR: el detector de líneas de CLAUDE.md sin
-      respaldo):
+      con cargo check limpio ese mismo día en el Windows de Oscar.
+      DETECTOR 9 — líneas de CLAUDE.md sin respaldo: HECHO 2026-07-30 (kind
+      claudemd; umbrales CLAUDEMD_MIN_LINES 5 / CLAUDEMD_MAX_TOKENS 400;
+      solo ventanas 7+). Las tres cubetas del doc: identificadores por línea
+      (backticks + rutas/archivo.ext) buscados como subcadena en el texto
+      crudo de los logs; sin identificadores = gris (sin opinión); roja solo
+      si NINGUNA mención aparece. CLAUDE.md global + el de cada proyecto con
+      actividad (cwd de las primeras líneas del .jsonl; dedup por ruta real
+      por el symlink claude-code-meter). Costo PISO chars/4 × sesiones (~),
+      NUNCA líneas × turnos (la trampa del doc). Validado con fixture al
+      número exacto y en el VPS (367 identificadores, 3 sin respaldo y los
+      3 correctos: rutas de Windows); regresión byte-idéntica sobre copia
+      congelada. Cuesta ~7 s extra en --findings 7d+ (asumido y
+      documentado); falta cargo check en Windows. Detalle completo en
+      docs/analizador-fugas.md §11.
+      (LO SIGUIENTE A TRABAJAR: el aviso EN EL MOMENTO con texto — el
+      globito 1×/día; Oscar pidió avisarle antes de empezarlo.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
           validado en el VPS: caza exactamente eliminar-proyecto y respeta
           las ventanas; cargo check limpio 2026-07-30). UNA tarjeta agregada
