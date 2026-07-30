@@ -531,7 +531,31 @@ cuota — pero eso no sale de los logs.
       instante. Sin regex A PROPÓSITO: el lado Rust no puede usar el crate
       (invariante #4) y dos algoritmos distintos entre los lados es como
       nacen los desfases. Cargo check limpio 2026-07-30.
-- [ ] El aviso EN EL MOMENTO con texto (globito una vez al día, §7).
+- [~] EL GLOBO DEL DÍA (2026-07-30, implementado; SIN validar en vivo —
+      solo frontend, cero Rust): el aviso con texto, evolución del "aviso
+      en el momento" de §7. Un hallazgo NUEVO que duela en dólares merece
+      un empujón activo, no solo el post-it. Cómo funciona: al terminar la
+      pasada diaria (fndAutoScan, que ahora guarda kind/count/server para
+      poder armar el título), fndNudge() busca hallazgos no vistos, no
+      ignorados y no avisados antes cuyo costo alcance el UMBRAL EN
+      DÓLARES configurable en Preferencias (fndNudgeUsd, $1 por defecto,
+      propuesta de Oscar) y saca UN globo `notif` con kind "findings":
+      título de la tarjeta + "~$X", sublínea "clic para ver el detalle",
+      severidad ámbar/rojo (rojo desde $10, guardada en fndNudgeSev para
+      sobrevivir al ciclo hover→notif:ready). Clic en el globo = panel
+      DIRECTO en Hallazgos (notif.html emite panel:findings si el kind es
+      findings). REGLAS: máximo uno al día (hereda la cadencia del
+      escaneo); la CUOTA siempre gana (si hay ackPending o un infoBalloon
+      puesto, no sale y reintenta mañana); sin toast de Windows (no es
+      urgente; sin widget queda el contador de pestaña); cada hallazgo se
+      avisa UNA vez en la vida (fndNudged, tope 300) y se marcan TODOS los
+      candidatos al disparar — un globo al día, no una cola; comparte el
+      checkbox del widget (fndBadgeOff): un concepto, un apagador. Se
+      despacha con ✕ o al abrir el panel (regla única, vía infoBalloon); un
+      globo de alarma que lo tape lo devuelve el siguiente notif:ready.
+      PARA PROBARLO EN VIVO: borrar fndAutoLast, fndNudged y fndSeen del
+      localStorage del panel y recargar — a los 90 s corre el escaneo y si
+      hay un hallazgo de hoy ≥$1 sale el globo.
 - [ ] Fix personalizado por entrypoint (VS Code vs. terminal, respaldo
       genérico — mismo patrón que prettyModel/price_for).
 - [ ] El antes/después (necesita semanas de historial).

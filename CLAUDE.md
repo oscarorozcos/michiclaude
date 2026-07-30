@@ -1087,16 +1087,22 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       congelada. Cuesta ~7 s extra en --findings 7d+ (asumido y
       documentado); cargo check limpio 2026-07-30. Detalle completo en
       docs/analizador-fugas.md §11.
-      (LO SIGUIENTE A TRABAJAR, acordado con Oscar el 2026-07-30 tras
-      diseñar juntos el coach: (1) el GLOBO DEL DÍA — el aviso con texto,
-      1×/día, umbral en DÓLARES CONFIGURABLE en Preferencias con $1 por
-      defecto, propuesta de Oscar; comparte el checkbox del widget, la
-      cuota siempre gana la prioridad de globos, sin toast; (2) después la
-      sección CONSEJOS — el coach 100% estático: diseño completo y
-      decidido en docs/consejos-coach.md, LEERLO antes de codificarla.
-      El modelo local quedó DESCARTADO dentro de la app también en su
-      variante "modelo-lector" — fase 2 opcional aparte, compuertas en
-      ~/.michiclaude/notas-coach-local.md.)
+      EL GLOBO DEL DÍA — IMPLEMENTADO 2026-07-30, SIN validar en vivo
+      (solo frontend: index.html + notif.html, cero Rust). Un hallazgo
+      NUEVO con costo ≥ umbral configurable (fndNudgeUsd, $1 default,
+      campo en Preferencias) sale como globo notif kind "findings" al
+      terminar la pasada diaria: título de tarjeta + ~$X, clic = panel
+      directo en Hallazgos. Máx 1/día, la cuota gana (ackPending o
+      infoBalloon puesto → reintenta mañana), sin toast, cada hallazgo
+      avisa UNA vez (fndNudged), comparte el checkbox fndBadgeOff.
+      PROBAR: borrar fndAutoLast/fndNudged/fndSeen y recargar; a los 90 s
+      escanea y si hay hallazgo de hoy ≥$1 sale el globo. Detalle en
+      docs/analizador-fugas.md §11.
+      (LO SIGUIENTE A TRABAJAR: la sección CONSEJOS — el coach 100%
+      estático: diseño completo y decidido en docs/consejos-coach.md,
+      LEERLO antes de codificarla. El modelo local quedó DESCARTADO dentro
+      de la app también en su variante "modelo-lector" — fase 2 opcional
+      aparte, compuertas en ~/.michiclaude/notas-coach-local.md.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
           validado en el VPS: caza exactamente eliminar-proyecto y respeta
           las ventanas; cargo check limpio 2026-07-30). UNA tarjeta agregada

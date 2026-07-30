@@ -160,8 +160,12 @@ if(EVENT){
 }
 
 $("x").addEventListener("click",e=>{ e.stopPropagation(); EVENT?.emit("notif:ack",{kind}); });
-// clic en el globo abre el panel (enfocarlo también confirma la alarma)
-$("box").addEventListener("click",()=>invoke?.("show_panel"));
+// clic en el globo abre el panel (enfocarlo también confirma la alarma);
+// si el aviso es del globo del día, el panel abre directo en Hallazgos
+$("box").addEventListener("click",()=>{
+  if(kind==="findings") EVENT?.emit("panel:findings");
+  invoke?.("show_panel");
+});
 window.addEventListener("contextmenu",e=>e.preventDefault());
 </script>
 </body>
