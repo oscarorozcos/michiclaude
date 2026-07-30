@@ -1071,12 +1071,13 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       pareció rota porque el propio Oscar abrió la pestaña buscando la
       notificación y ese vistazo la despachó. Para re-armar el aviso al
       probar: borrar fndSeen y fndAutoLast del localStorage del panel.
-      LOS TRES DETECTORES DE "LO INSTALADO": HECHOS los tres el 2026-07-30
-      (LO SIGUIENTE A TRABAJAR: cargo check de los tres en el Windows de
-      Oscar, y de ahí el detector de líneas de CLAUDE.md sin respaldo):
+      LOS TRES DETECTORES DE "LO INSTALADO": HECHOS los tres el 2026-07-30,
+      con cargo check limpio ese mismo día en el Windows de Oscar (LO
+      SIGUIENTE A TRABAJAR: el detector de líneas de CLAUDE.md sin
+      respaldo):
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
           validado en el VPS: caza exactamente eliminar-proyecto y respeta
-          las ventanas; Rust SIN cargo check aún). UNA tarjeta agregada
+          las ventanas; cargo check limpio 2026-07-30). UNA tarjeta agregada
           (kind skills_unused, count + nombres en `file`), solo con ventana
           de 7+ días ("no usaste tu skill HOY" no dice nada). Fuentes de
           uso: <command-name> en los logs + tool_use Skill + el `skillUsage`
@@ -1099,7 +1100,7 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           chars/4 (tarjeta con "~") y costo piso a input del modelo
           dominante de la sesión. Validado al centavo con el fixture
           amplificado (20×2960 chars = 14 800 tok = $0.0148 Haiku) y
-          regresión limpia en 7d/30d; falta cargo check en Windows y un
+          regresión limpia en 7d/30d; cargo check limpio 2026-07-30, falta un
           hook real (Oscar no usa hooks — OJO: el VPS tampoco, y todas las
           menciones de "hook" en sus logs son conversaciones SOBRE hooks,
           no salida de hooks: el detector mira attachments, no texto);

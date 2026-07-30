@@ -455,7 +455,7 @@ cuota — pero eso no sale de los logs.
           plugins es el catálogo del marketplace cacheado: contarla
           fabricaría hallazgos falsos); uso = logs (<command-name> y tool
           Skill) + skillUsage de ~/.claude.json; solo ventanas de 7+ días;
-          una tarjeta agregada. Falta cargo check en Windows.
+          una tarjeta agregada. Cargo check limpio 2026-07-30.
       (2) [x] subagentes caros — 2026-07-30, validado con fixture sintético
           de números conocidos (3 turnos haiku = 186k tok = $0.2775, cuadre
           exacto; en los logs del VPS hay CERO sidechains, así que la
@@ -486,8 +486,8 @@ cuota — pero eso no sale de los logs.
           ignorado y el hook de 5 disparos correctamente callado; regresión
           limpia (hallazgos reales idénticos con y sin el detector, 7d y
           30d). No juzga si el hook sirve: mide lo que cuesta cargarlo,
-          como skills_unused y mcp_unused. Falta cargo check en Windows y
-          verlo con un hook real (Oscar no usa hooks todavía).
+          como skills_unused y mcp_unused. Cargo check limpio 2026-07-30;
+          falta verlo con un hook real (Oscar no usa hooks todavía).
 - [x] Evaluado y DESCARTADO (2026-07-30): coach con LLM local
       (Bonsai/Gemma) dentro de MichiClaude — contradice §5 (determinista,
       testeable, dice "no sé"), la batalla de RAM ganada (276 MB) y la
