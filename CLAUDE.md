@@ -1101,17 +1101,22 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       PROBAR: borrar fndAutoLast/fndNudged/fndSeen y recargar; a los 90 s
       escanea y si hay hallazgo de hoy ≥$1 sale el globo. Detalle en
       docs/analizador-fugas.md §11.
-      SECCIÓN CONSEJOS — PRIMERA ENTREGA HECHA 2026-07-30, SIN validar en
-      vivo (solo index.html): quinta pestaña "tips", molde de tarjeta
-      compartido con variante `.fnd.tip` (acordeón, sin costo ni
-      severidad), 6 fichas ×8 idiomas (tip_<id>_t/_b en I18N, ids en
-      TIPS), filtro cliente y repintado al cambiar idioma. Diseño completo
-      en docs/consejos-coach.md — LEERLO antes de tocar esta sección.
-      (LO SIGUIENTE A TRABAJAR: validación visual de la pestaña por Oscar;
-      luego el motor de reglas de sesión activa —nivel 2 del doc— y el
-      resumen por plantilla. El modelo local quedó DESCARTADO dentro de la
-      app también en su variante "modelo-lector" — fase 2 opcional aparte,
-      compuertas en ~/.michiclaude/notas-coach-local.md.)
+      SECCIÓN CONSEJOS — PRIMERA ENTREGA HECHA Y VALIDADA EN VIVO por
+      Oscar el 2026-07-30 (capturas: las 5 pestañas caben, el acordeón
+      abre/cierra, el filtro "clear" deja las 3 fichas correctas, y el
+      cambio de idioma ES↔EN repinta las fichas al momento): quinta
+      pestaña "tips", molde de tarjeta compartido con variante `.fnd.tip`
+      (acordeón, sin costo ni severidad), 6 fichas ×8 idiomas
+      (tip_<id>_t/_b en I18N, ids en TIPS), filtro cliente y repintado al
+      cambiar idioma. Único ajuste de la validación: el cuerpo de las
+      fichas a 12.5px/1.5 (el 11px del fix de Hallazgos es para una línea,
+      no para párrafos — lo notó Oscar). Diseño completo en
+      docs/consejos-coach.md — LEERLO antes de tocar esta sección.
+      (LO SIGUIENTE A TRABAJAR: el motor de reglas de sesión activa
+      —nivel 2 del doc— y el resumen por plantilla. El modelo local quedó
+      DESCARTADO dentro de la app también en su variante "modelo-lector"
+      — fase 2 opcional aparte, compuertas en
+      ~/.michiclaude/notas-coach-local.md.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
           validado en el VPS: caza exactamente eliminar-proyecto y respeta
           las ventanas; cargo check limpio 2026-07-30). UNA tarjeta agregada
