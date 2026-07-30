@@ -1081,10 +1081,11 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           ~/.claude/skills/ como "instalado"; la carpeta de plugins NO — es
           el catálogo ENTERO del marketplace cacheado (docenas de skills que
           nadie instaló) y contarla fabricaría hallazgos falsos;
-      (2) DETECTOR subagentes caros — los isSidechain traen usage PROPIO en
-          los logs: costo EXACTO por semana, sin estimar, hoy invisible
-          porque se mezcla con el total ("overhead de subagentes" del
-          catálogo del doc);
+      (2) DETECTOR subagentes caros — HECHO 2026-07-30 (kind subagents,
+          umbral SUB_MIN_TOKENS 50k, costo MEDIDO del usage propio de cada
+          turno isSidechain; validado con fixture sintético al centavo —
+          $0.2775 — porque los logs del VPS tienen CERO sidechains; falta
+          verlo con datos reales en Windows y el cargo check);
       (3) DETECTOR hooks ruidosos — salida de hooks que se repite cada
           turno, medible por tamaño × turnos (el más raro, al final);
       REGLA de los tres, ya acordada: señalan lo instalado que NO se usa y

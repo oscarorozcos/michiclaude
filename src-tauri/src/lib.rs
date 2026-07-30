@@ -1813,6 +1813,7 @@ const INFLATE_MIN_TURNS: u64 = 10;
 const MECH_MIN: u64 = 5;
 const CACHEBREAK_MIN_PREV: u64 = 20_000;
 const CACHEBREAK_MIN_TOKENS: u64 = 300_000;
+const SUB_MIN_TOKENS: u64 = 50_000;
 const MAX_FINDINGS: usize = 12;
 
 /// Comandos deterministas: turnos donde Claude no piensa, solo ejecuta.
@@ -1945,6 +1946,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     let mut skills_used: HashSet<String> = HashSet::new();
     let mut seen: HashSet<String> = HashSet::new();
     let (mut mech_count, mut mech_tokens, mut mech_cost) = (0u64, 0u64, 0f64);
+    let (mut sub_count, mut sub_tokens, mut sub_cost) = (0u64, 0u64, 0f64);
 
     let mut dirs_to_scan = vec![claude_dir().join("projects")];
     for (_distro, d) in wsl_claude_dirs() {
@@ -2091,6 +2093,12 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                         // fabricaría rupturas que no existieron
                         if !v["isSidechain"].as_bool().unwrap_or(false) {
                             st.cb.push((ts.timestamp(), model.clone(), cr, cw));
+                        } else {
+                            // subagentes: costo MEDIDO de su propio usage —
+                            // ya está dentro del total, pero ahí es invisible
+                            sub_count += 1;
+                            sub_tokens += inp + out_t + cw;
+                            sub_cost += cost_of(&model, inp, out_t, cw, cr);
                         }
                     }
                     let empty = Vec::new();
@@ -2230,6 +2238,18 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
             count: mech_count,
             tokens: mech_tokens,
             cost: mech_cost,
+            ..Default::default()
+        });
+    }
+    // subagentes: una tarjeta con el costo agregado de la ventana. No juzga
+    // si valieron la pena — solo hace VISIBLE un gasto que hoy se mezcla
+    // con el total de la conversación principal.
+    if sub_tokens >= SUB_MIN_TOKENS {
+        findings.push(Finding {
+            kind: "subagents".into(),
+            count: sub_count,
+            tokens: sub_tokens,
+            cost: sub_cost,
             ..Default::default()
         });
     }

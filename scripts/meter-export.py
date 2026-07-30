@@ -223,6 +223,7 @@ INFLATE_MIN_TURNS = 10
 MECH_MIN = 5            # peticiones mecánicas en la ventana para avisar
 CACHEBREAK_MIN_PREV = 20_000    # prefijo cacheado mínimo para evaluar un turno
 CACHEBREAK_MIN_TOKENS = 300_000  # reescritos por sesión para avisar (~$2-4)
+SUB_MIN_TOKENS = 50_000  # tokens de trabajo de subagentes para avisar
 MAX_FINDINGS = 12       # las tarjetas no son un log: lo más caro primero
 
 
@@ -282,6 +283,7 @@ def scan_findings(projects_dir, window_ago, days):
     sessions = {}   # sid -> estado por sesión
     pend_reads = {}  # tool_use_id -> (sid, ruta)  para casar con su resultado
     mech = [0, 0, 0.0]           # [peticiones, tokens, costo]
+    sub = [0, 0, 0.0]            # subagentes: [turnos, tokens, costo]
     mcp_used = set()
     skills_used = set()          # invocadas en la ventana (logs)
     seen = set()                 # misma dedup que la agregación
@@ -375,6 +377,13 @@ def scan_findings(projects_dir, window_ago, days):
                     # fabricaría rupturas que no existieron
                     if not v.get("isSidechain"):
                         S["cb"].append((ts, model, cr, cw))
+                    else:
+                        # subagentes: costo MEDIDO de su propio usage — ya
+                        # está dentro del total, pero ahí es invisible
+                        sub[0] += 1
+                        sub[1] += inp + out_t + cw
+                        sub[2] += (inp * pi + out_t * po
+                                   + cw * pcw + cr * pcr) / 1e6
                     uses = [b for b in blocks
                             if isinstance(b, dict) and b.get("type") == "tool_use"]
                     for b in uses:
@@ -454,6 +463,13 @@ def scan_findings(projects_dir, window_ago, days):
     if mech[0] >= MECH_MIN:
         findings.append({"kind": "mech", "count": mech[0],
                          "tokens": mech[1], "cost": mech[2],
+                         "estimated": False})
+    # subagentes: una tarjeta con el costo agregado de la ventana. No juzga
+    # si valieron la pena — solo hace VISIBLE un gasto que hoy se mezcla
+    # con el total de la conversación principal.
+    if sub[1] >= SUB_MIN_TOKENS:
+        findings.append({"kind": "subagents", "count": sub[0],
+                         "tokens": sub[1], "cost": sub[2],
                          "estimated": False})
     for server in sorted(mcp_servers_configured() - mcp_used):
         findings.append({"kind": "mcp_unused", "server": server,

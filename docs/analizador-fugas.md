@@ -456,8 +456,14 @@ cuota — pero eso no sale de los logs.
           fabricaría hallazgos falsos); uso = logs (<command-name> y tool
           Skill) + skillUsage de ~/.claude.json; solo ventanas de 7+ días;
           una tarjeta agregada. Falta cargo check en Windows.
-      (2) [ ] subagentes caros (los isSidechain traen usage propio: costo
-          exacto, hoy invisible).
+      (2) [x] subagentes caros — 2026-07-30, validado con fixture sintético
+          de números conocidos (3 turnos haiku = 186k tok = $0.2775, cuadre
+          exacto; en los logs del VPS hay CERO sidechains, así que la
+          validación con datos reales queda para el Windows de Oscar). Una
+          tarjeta agregada (kind subagents, umbral 50k tokens de trabajo);
+          costo MEDIDO del usage propio de cada turno isSidechain — ya está
+          dentro del total, la tarjeta solo lo hace visible. No juzga si
+          valieron la pena.
       (3) [ ] hooks ruidosos (salida repetida cada turno, tamaño × turnos).
 - [x] Evaluado y DESCARTADO (2026-07-30): coach con LLM local
       (Bonsai/Gemma) dentro de MichiClaude — contradice §5 (determinista,
