@@ -530,7 +530,7 @@ cuota — pero eso no sale de los logs.
       1 día y no lo paga, y la pestaña enseña el resultado guardado al
       instante. Sin regex A PROPÓSITO: el lado Rust no puede usar el crate
       (invariante #4) y dos algoritmos distintos entre los lados es como
-      nacen los desfases. Falta cargo check en Windows.
+      nacen los desfases. Cargo check limpio 2026-07-30.
 - [ ] El aviso EN EL MOMENTO con texto (globito una vez al día, §7).
 - [ ] Fix personalizado por entrypoint (VS Code vs. terminal, respaldo
       genérico — mismo patrón que prettyModel/price_for).

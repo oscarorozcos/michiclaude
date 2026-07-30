@@ -1085,7 +1085,7 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       número exacto y en el VPS (367 identificadores, 3 sin respaldo y los
       3 correctos: rutas de Windows); regresión byte-idéntica sobre copia
       congelada. Cuesta ~7 s extra en --findings 7d+ (asumido y
-      documentado); falta cargo check en Windows. Detalle completo en
+      documentado); cargo check limpio 2026-07-30. Detalle completo en
       docs/analizador-fugas.md §11.
       (LO SIGUIENTE A TRABAJAR: el aviso EN EL MOMENTO con texto — el
       globito 1×/día; Oscar pidió avisarle antes de empezarlo.)
