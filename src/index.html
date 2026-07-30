@@ -118,7 +118,10 @@
      tip — sin costo ni borde de severidad (una ficha con $0.00 devalúa el
      sistema); acordeón: el cuerpo se abre al tocar el título */
   .fnd.tip{border-left-color:var(--stroke-soft);cursor:pointer}
-  .fnd.tip .fnd-f{display:none;white-space:pre-line;margin-top:6px}
+  /* cuerpo más grande que el fix de Hallazgos (11px): aquí son párrafos de
+     lectura, no una línea de remate (lo notó Oscar el 2026-07-30) */
+  .fnd.tip .fnd-f{display:none;white-space:pre-line;margin-top:6px;
+    font-size:12.5px;line-height:1.5}
   .fnd.tip.open{border-left-color:var(--accent)}
   .fnd.tip.open .fnd-f{display:block}
   .fnd-x{float:right;background:transparent;border:0;color:var(--txt-dim);
