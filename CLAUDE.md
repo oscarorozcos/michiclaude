@@ -1087,8 +1087,16 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       congelada. Cuesta ~7 s extra en --findings 7d+ (asumido y
       documentado); cargo check limpio 2026-07-30. Detalle completo en
       docs/analizador-fugas.md §11.
-      (LO SIGUIENTE A TRABAJAR: el aviso EN EL MOMENTO con texto — el
-      globito 1×/día; Oscar pidió avisarle antes de empezarlo.)
+      (LO SIGUIENTE A TRABAJAR, acordado con Oscar el 2026-07-30 tras
+      diseñar juntos el coach: (1) el GLOBO DEL DÍA — el aviso con texto,
+      1×/día, umbral en DÓLARES CONFIGURABLE en Preferencias con $1 por
+      defecto, propuesta de Oscar; comparte el checkbox del widget, la
+      cuota siempre gana la prioridad de globos, sin toast; (2) después la
+      sección CONSEJOS — el coach 100% estático: diseño completo y
+      decidido en docs/consejos-coach.md, LEERLO antes de codificarla.
+      El modelo local quedó DESCARTADO dentro de la app también en su
+      variante "modelo-lector" — fase 2 opcional aparte, compuertas en
+      ~/.michiclaude/notas-coach-local.md.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
           validado en el VPS: caza exactamente eliminar-proyecto y respeta
           las ventanas; cargo check limpio 2026-07-30). UNA tarjeta agregada
