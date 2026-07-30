@@ -148,10 +148,19 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
 
 ## 10. Orden de implementación
 
-1. Paso 2 del analizador (el globo del día, umbral en $ configurable) —
-   Consejos lo necesita como salida para lo que duele en dinero.
-2. La sección Consejos: molde compartido + catálogo inicial de fichas
-   (empezando por el caso /clear vs /compact que originó todo).
-3. El motor de reglas de sesión activa (nivel 2 de sondeo).
-4. Resumen por plantilla al detectar sesión terminada.
-5. faqMisses + issue pre-llenado.
+1. [x] Paso 2 del analizador (el globo del día, umbral en $ configurable) —
+   HECHO y validado en vivo 2026-07-30.
+2. [~] La sección Consejos: HECHA la primera entrega 2026-07-30 (SIN
+   validar en vivo): quinta pestaña "tips" entre Hallazgos y Preferencias,
+   molde compartido (variante `.fnd.tip`: sin costo ni severidad, acordeón
+   al tocar el título), catálogo inicial de 6 fichas ×8 idiomas (clear,
+   compact, cache, attach, ask, model — ids en `TIPS`, contenido en I18N
+   como `tip_<id>_t/_b`, cuerpos con \n y `white-space:pre-line`), filtro
+   de texto del lado del cliente y repintado al cambiar de idioma desde
+   `applyI18n()`. Añadir una ficha = un id en `TIPS` + 2 claves ×8.
+   OJO: la ficha de /resume se escribió SIN el mito de /rename (un modelo
+   chico lo inventó en la demo que evaluamos — la ficha curada es
+   exactamente la defensa contra eso).
+3. [ ] El motor de reglas de sesión activa (nivel 2 de sondeo).
+4. [ ] Resumen por plantilla al detectar sesión terminada.
+5. [ ] faqMisses + issue pre-llenado.

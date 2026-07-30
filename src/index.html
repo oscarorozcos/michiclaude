@@ -114,6 +114,13 @@
   .fnd-m{font-size:11px;color:var(--txt-dim);margin-top:2px;overflow-wrap:anywhere}
   .fnd-c{font-family:var(--mono);font-size:11.5px;margin-top:4px}
   .fnd-f{font-size:11px;margin-top:4px}
+  /* ficha de Consejos: mismo molde que la tarjeta de Hallazgos, variante
+     tip — sin costo ni borde de severidad (una ficha con $0.00 devalúa el
+     sistema); acordeón: el cuerpo se abre al tocar el título */
+  .fnd.tip{border-left-color:var(--stroke-soft);cursor:pointer}
+  .fnd.tip .fnd-f{display:none;white-space:pre-line;margin-top:6px}
+  .fnd.tip.open{border-left-color:var(--accent)}
+  .fnd.tip.open .fnd-f{display:block}
   .fnd-x{float:right;background:transparent;border:0;color:var(--txt-dim);
     font-size:10.5px;cursor:pointer;padding:2px 4px}
   .fnd-x:hover{color:var(--txt)}
@@ -352,6 +359,7 @@
     <button class="tab on" data-tab="main" data-i18n="tab_main"></button>
     <button class="tab" data-tab="sources" data-i18n="sources_title"></button>
     <button class="tab" data-tab="findings"><span data-i18n="fnd_tab"></span><span class="tdot" id="fndTabDot" hidden></span></button>
+    <button class="tab" data-tab="tips" data-i18n="tips_tab"></button>
     <button class="tab" data-tab="prefs" data-i18n="prefs_title"></button>
   </div>
   </div><!-- /p-top -->
@@ -484,6 +492,19 @@
       <p style="font-size:11px;color:var(--txt-dim);margin:6px 0 2px" data-i18n="fnd_intro"></p>
       <div id="fndList"></div>
       <div id="fndFoot" style="font-size:10.5px;color:var(--txt-dim);margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- Consejos: el coach 100% estático (docs/consejos-coach.md). Fichas
+       curadas a mano que viajan en la app y se actualizan con el updater;
+       cero IA, cero red. La otra puerta del mismo saber que Hallazgos:
+       "¿cuánto me costó?" -> Hallazgos; "¿qué hago ahora?" -> Consejos. -->
+  <div id="tab-tips" hidden>
+    <div class="sect">
+      <div class="eyebrow" data-i18n="tips_title"></div>
+      <p style="font-size:11px;color:var(--txt-dim);margin:6px 0 2px" data-i18n="tips_intro"></p>
+      <input id="tipFilter" type="text" data-i18n-ph="tips_filter" style="width:100%;margin-top:6px;box-sizing:border-box">
+      <div id="tipList"></div>
     </div>
   </div>
 
@@ -756,6 +777,23 @@ en:{
   fnd_claudemd_f:"CLAUDE.md travels whole with every conversation. These lines mention paths or commands that never showed up in this window's logs — worth checking if they still earn their place. Deleting is free (only the next message rebuilds the cache once); if something is used only now and then, keep it.",
   fnd_nudge_lbl:"Balloon when a new finding exceeds ($)",
   fnd_nudge_sub:"Click to see the details",
+  tips_tab:"Tips",
+  tips_title:"Tips to stretch your quota",
+  tips_intro:"Short hand-written cards — no AI, no network. They update with each app release. Tap one to open it.",
+  tips_filter:"Filter…",
+  tips_none:"Nothing matches the filter.",
+  tip_clear_t:"Does /clear delete my work?",
+  tip_clear_b:"No. /clear wipes only the conversation. What you do NOT lose:\n• Your code — it lives in your files, not in the chat.\n• Your CLAUDE.md — it reloads by itself in the new session.\n• Past sessions — “claude --resume” lists them so you can pick one up.\nThe only thing gone is the chat thread — which is exactly what costs tokens every turn.",
+  tip_compact_t:"/clear or /compact?",
+  tip_compact_b:"/clear starts from zero: the cheapest. /compact summarizes the conversation keeping the essentials (tens of thousands of tokens down to a few thousand).\n• New, independent topic → /clear.\n• New topic overlaps the previous one → /compact.\nThe key question: does what comes next need what was already said?",
+  tip_cache_t:"The cache expires in minutes",
+  tip_cache_b:"Your conversation lives in a cache that expires after a few idle minutes. Coming back from a long pause rewrites the whole context at full price — reading it cached costs ~10x less. With a big conversation: finish the thought before stepping away, and if the topic changed while you were gone, /clear.",
+  tip_attach_t:"Mention the file, don’t paste it",
+  tip_attach_b:"Pasting the same code again and again stacks copies in the context, and every copy travels with every turn after that. Give the path instead (or @file): Claude reads exactly what it needs, from the current version, with no duplicates.",
+  tip_ask_t:"Ask quick questions in a separate session",
+  tip_ask_b:"A short question inside a big session drags the WHOLE accumulated context: you pay thousands of tokens for a two-line doubt. Open a fresh session and the same answer costs cents. Twice as true for general questions that don’t need your code.",
+  tip_model_t:"Small model for mechanical work",
+  tip_model_b:"Renaming, formatting, running tests, writing a commit message: a small model (Haiku) does it just as well for a fraction. Switch with /model for that task and go back to the big one for work that actually needs thinking.",
   fnd_ignore:"Ignore",
   fnd_hidden:n=>`${n} hidden`,
   fnd_restore:"show again",
@@ -943,6 +981,23 @@ es:{
   fnd_claudemd_f:"El CLAUDE.md viaja entero con cada conversación. Estas líneas mencionan rutas o comandos que no aparecieron en los logs de esta ventana — vale la pena revisar si siguen ganándose su lugar. Borrar es gratis (solo el siguiente mensaje reconstruye el caché una vez); si algo se usa solo de vez en cuando, se queda.",
   fnd_nudge_lbl:"Globo cuando un hallazgo nuevo supere ($)",
   fnd_nudge_sub:"Clic para ver el detalle",
+  tips_tab:"Consejos",
+  tips_title:"Consejos para cuidar tu cuota",
+  tips_intro:"Fichas cortas escritas a mano — sin IA, sin red. Se actualizan con cada versión de la app. Toca una para abrirla.",
+  tips_filter:"Filtrar…",
+  tips_none:"Nada coincide con el filtro.",
+  tip_clear_t:"¿/clear borra mi trabajo?",
+  tip_clear_b:"No. /clear borra solo la conversación. Lo que NO se pierde:\n• Tu código — vive en tus archivos, no en el chat.\n• Tu CLAUDE.md — se recarga solo en la sesión nueva.\n• Las sesiones anteriores — «claude --resume» las lista y puedes retomarlas.\nLo único que se va es el hilo de lo hablado — que es justo lo que cuesta tokens en cada turno.",
+  tip_compact_t:"¿/clear o /compact?",
+  tip_compact_b:"/clear arranca de cero: lo más barato. /compact resume la conversación conservando lo esencial (de decenas de miles de tokens a unos pocos miles).\n• Tema nuevo independiente → /clear.\n• El tema nuevo se cruza con el anterior → /compact.\nLa pregunta clave: ¿lo que sigue necesita lo ya hablado?",
+  tip_cache_t:"El caché caduca en minutos",
+  tip_cache_b:"Tu conversación vive en un caché que expira a los pocos minutos sin actividad. Al volver de una pausa larga, todo el contexto se reescribe a precio completo — releerlo cacheado cuesta ~10 veces menos. Con una conversación grande: cierra la idea antes de levantarte, y si al volver el tema ya es otro, /clear.",
+  tip_attach_t:"Menciona el archivo, no lo pegues",
+  tip_attach_b:"Pegar el mismo código una y otra vez apila copias en el contexto, y cada copia viaja en todos los turnos siguientes. Mejor da la ruta (o @archivo): Claude lee justo lo que necesita, de la versión actual, sin duplicados.",
+  tip_ask_t:"Las dudas, en una sesión aparte",
+  tip_ask_b:"Una pregunta corta dentro de una sesión grande arrastra TODO el contexto acumulado: pagas miles de tokens por una duda de dos líneas. Ábrela en una sesión nueva y la misma respuesta cuesta centavos. Vale doble para dudas generales que no necesitan tu código.",
+  tip_model_t:"Modelo chico para lo mecánico",
+  tip_model_b:"Renombrar, formatear, correr tests, redactar un commit: un modelo chico (Haiku) lo hace igual por una fracción. Cámbialo con /model para esa tarea y regresa al grande para lo que sí requiere pensar.",
   fnd_ignore:"Ignorar",
   fnd_hidden:n=>`${n} ocultos`,
   fnd_restore:"volver a mostrar",
@@ -1130,6 +1185,23 @@ pt:{
   fnd_claudemd_f:"O CLAUDE.md viaja inteiro com cada conversa. Estas linhas mencionam caminhos ou comandos que não apareceram nos logs desta janela — vale conferir se ainda merecem o lugar. Apagar é de graça (só a próxima mensagem reconstrói o cache uma vez); se algo se usa só de vez em quando, fica.",
   fnd_nudge_lbl:"Balão quando um novo achado passar de ($)",
   fnd_nudge_sub:"Clique para ver o detalhe",
+  tips_tab:"Dicas",
+  tips_title:"Dicas para render sua cota",
+  tips_intro:"Fichas curtas escritas à mão — sem IA, sem rede. Atualizam com cada versão do app. Toque em uma para abrir.",
+  tips_filter:"Filtrar…",
+  tips_none:"Nada corresponde ao filtro.",
+  tip_clear_t:"O /clear apaga meu trabalho?",
+  tip_clear_b:"Não. O /clear apaga só a conversa. O que você NÃO perde:\n• Seu código — vive nos seus arquivos, não no chat.\n• Seu CLAUDE.md — recarrega sozinho na sessão nova.\n• As sessões anteriores — “claude --resume” as lista para retomar.\nA única coisa que se vai é o fio da conversa — que é justamente o que custa tokens a cada turno.",
+  tip_compact_t:"/clear ou /compact?",
+  tip_compact_b:"/clear começa do zero: o mais barato. /compact resume a conversa mantendo o essencial (de dezenas de milhares de tokens para poucos milhares).\n• Assunto novo e independente → /clear.\n• O assunto novo se cruza com o anterior → /compact.\nA pergunta-chave: o que vem agora precisa do que já foi dito?",
+  tip_cache_t:"O cache expira em minutos",
+  tip_cache_b:"Sua conversa vive num cache que expira após poucos minutos de inatividade. Ao voltar de uma pausa longa, todo o contexto é reescrito a preço cheio — lê-lo do cache custa ~10x menos. Com uma conversa grande: feche a ideia antes de sair, e se ao voltar o assunto for outro, /clear.",
+  tip_attach_t:"Mencione o arquivo, não cole",
+  tip_attach_b:"Colar o mesmo código várias vezes empilha cópias no contexto, e cada cópia viaja em todos os turnos seguintes. Melhor dar o caminho (ou @arquivo): o Claude lê exatamente o que precisa, da versão atual, sem duplicatas.",
+  tip_ask_t:"Dúvidas, em uma sessão à parte",
+  tip_ask_b:"Uma pergunta curta dentro de uma sessão grande arrasta TODO o contexto acumulado: você paga milhares de tokens por uma dúvida de duas linhas. Abra numa sessão nova e a mesma resposta custa centavos. Vale em dobro para dúvidas gerais que não precisam do seu código.",
+  tip_model_t:"Modelo pequeno para o mecânico",
+  tip_model_b:"Renomear, formatar, rodar testes, escrever um commit: um modelo pequeno (Haiku) faz igual por uma fração. Troque com /model para essa tarefa e volte ao grande para o que exige pensar.",
   fnd_ignore:"Ignorar",
   fnd_hidden:n=>`${n} ocultos`,
   fnd_restore:"mostrar de novo",
@@ -1317,6 +1389,23 @@ fr:{
   fnd_claudemd_f:"Le CLAUDE.md voyage en entier avec chaque conversation. Ces lignes mentionnent des chemins ou des commandes absents des journaux de cette fenêtre — cela vaut la peine de vérifier s'ils méritent encore leur place. Supprimer est gratuit (seul le message suivant reconstruit le cache une fois) ; ce qui ne sert que de temps en temps peut rester.",
   fnd_nudge_lbl:"Bulle quand un nouveau constat dépasse ($)",
   fnd_nudge_sub:"Cliquez pour voir le détail",
+  tips_tab:"Conseils",
+  tips_title:"Conseils pour économiser votre quota",
+  tips_intro:"Fiches courtes écrites à la main — sans IA, sans réseau. Mises à jour à chaque version de l’app. Touchez-en une pour l’ouvrir.",
+  tips_filter:"Filtrer…",
+  tips_none:"Rien ne correspond au filtre.",
+  tip_clear_t:"/clear efface-t-il mon travail ?",
+  tip_clear_b:"Non. /clear n’efface que la conversation. Ce que vous ne perdez PAS :\n• Votre code — il vit dans vos fichiers, pas dans le chat.\n• Votre CLAUDE.md — il se recharge tout seul dans la nouvelle session.\n• Les sessions passées — « claude --resume » les liste pour les reprendre.\nSeul le fil de la discussion disparaît — précisément ce qui coûte des tokens à chaque tour.",
+  tip_compact_t:"/clear ou /compact ?",
+  tip_compact_b:"/clear repart de zéro : le moins cher. /compact résume la conversation en gardant l’essentiel (de dizaines de milliers de tokens à quelques milliers).\n• Sujet nouveau et indépendant → /clear.\n• Le nouveau sujet recoupe le précédent → /compact.\nLa question clé : la suite a-t-elle besoin de ce qui a déjà été dit ?",
+  tip_cache_t:"Le cache expire en quelques minutes",
+  tip_cache_b:"Votre conversation vit dans un cache qui expire après quelques minutes d’inactivité. Au retour d’une longue pause, tout le contexte est réécrit à plein tarif — le relire depuis le cache coûte ~10x moins. Avec une grosse conversation : terminez l’idée avant de partir, et si le sujet a changé au retour, /clear.",
+  tip_attach_t:"Mentionnez le fichier, ne le collez pas",
+  tip_attach_b:"Coller le même code encore et encore empile des copies dans le contexte, et chaque copie voyage à chaque tour suivant. Donnez plutôt le chemin (ou @fichier) : Claude lit exactement ce qu’il faut, dans la version actuelle, sans doublons.",
+  tip_ask_t:"Les questions rapides, dans une session à part",
+  tip_ask_b:"Une question courte dans une grosse session traîne TOUT le contexte accumulé : des milliers de tokens pour un doute de deux lignes. Posez-la dans une session neuve et la même réponse coûte des centimes. Doublement vrai pour les questions générales qui n’ont pas besoin de votre code.",
+  tip_model_t:"Petit modèle pour le mécanique",
+  tip_model_b:"Renommer, formater, lancer des tests, rédiger un commit : un petit modèle (Haiku) le fait aussi bien pour une fraction. Passez avec /model pour cette tâche, puis revenez au grand pour ce qui demande de réfléchir.",
   fnd_ignore:"Ignorer",
   fnd_hidden:n=>`${n} masqués`,
   fnd_restore:"réafficher",
@@ -1504,6 +1593,23 @@ de:{
   fnd_claudemd_f:"Die CLAUDE.md reist mit jeder Unterhaltung komplett mit. Diese Zeilen nennen Pfade oder Befehle, die in den Logs dieses Zeitraums nie auftauchten — es lohnt sich zu prüfen, ob sie ihren Platz noch verdienen. Löschen ist gratis (nur die nächste Nachricht baut den Cache einmal neu auf); was nur ab und zu gebraucht wird, bleibt.",
   fnd_nudge_lbl:"Sprechblase, wenn ein neuer Befund ($) übersteigt",
   fnd_nudge_sub:"Klicken für Details",
+  tips_tab:"Tipps",
+  tips_title:"Tipps, damit die Quota länger reicht",
+  tips_intro:"Kurze, handgeschriebene Karten — ohne KI, ohne Netz. Sie aktualisieren sich mit jeder App-Version. Zum Öffnen antippen.",
+  tips_filter:"Filtern…",
+  tips_none:"Nichts passt zum Filter.",
+  tip_clear_t:"Löscht /clear meine Arbeit?",
+  tip_clear_b:"Nein. /clear löscht nur die Unterhaltung. Was NICHT verloren geht:\n• Dein Code — er lebt in deinen Dateien, nicht im Chat.\n• Deine CLAUDE.md — sie lädt sich in der neuen Sitzung von selbst.\n• Frühere Sitzungen — „claude --resume“ listet sie zum Weitermachen.\nWeg ist nur der Gesprächsfaden — genau das, was in jedem Zug Tokens kostet.",
+  tip_compact_t:"/clear oder /compact?",
+  tip_compact_b:"/clear beginnt bei null: am günstigsten. /compact fasst die Unterhaltung zusammen und behält das Wesentliche (von Zehntausenden Tokens auf wenige Tausend).\n• Neues, unabhängiges Thema → /clear.\n• Das neue Thema überschneidet sich mit dem alten → /compact.\nDie Schlüsselfrage: Braucht das, was kommt, das bereits Gesagte?",
+  tip_cache_t:"Der Cache läuft nach Minuten ab",
+  tip_cache_b:"Deine Unterhaltung lebt in einem Cache, der nach wenigen Minuten Inaktivität abläuft. Nach einer langen Pause wird der ganze Kontext zum vollen Preis neu geschrieben — ihn aus dem Cache zu lesen kostet ~10x weniger. Bei großen Unterhaltungen: den Gedanken zu Ende bringen, bevor du aufstehst — und wenn das Thema danach ein anderes ist, /clear.",
+  tip_attach_t:"Datei nennen statt einfügen",
+  tip_attach_b:"Denselben Code immer wieder einzufügen stapelt Kopien im Kontext, und jede Kopie reist in jedem weiteren Zug mit. Gib stattdessen den Pfad an (oder @datei): Claude liest genau das Nötige, aus der aktuellen Version, ohne Duplikate.",
+  tip_ask_t:"Kurze Fragen in eine eigene Sitzung",
+  tip_ask_b:"Eine kurze Frage in einer großen Sitzung schleppt den GESAMTEN Kontext mit: Tausende Tokens für einen Zweizeiler. In einer frischen Sitzung kostet dieselbe Antwort Cents. Doppelt wahr für allgemeine Fragen, die deinen Code nicht brauchen.",
+  tip_model_t:"Kleines Modell für Mechanisches",
+  tip_model_b:"Umbenennen, Formatieren, Tests laufen lassen, Commit-Text schreiben: ein kleines Modell (Haiku) macht das genauso gut für einen Bruchteil. Mit /model für die Aufgabe wechseln und für echtes Denken zurück zum großen.",
   fnd_ignore:"Ignorieren",
   fnd_hidden:n=>`${n} ausgeblendet`,
   fnd_restore:"wieder anzeigen",
@@ -1691,6 +1797,23 @@ ja:{
   fnd_claudemd_f:"CLAUDE.mdは会話のたびに丸ごと送られます。これらの行は、この期間のログに一度も現れなかったパスやコマンドに言及しています — まだ必要か見直す価値があります。削除は無料です（次のメッセージで一度だけキャッシュが再構築されます）。たまにしか使わないものは残してください。",
   fnd_nudge_lbl:"新しい検出が ($) を超えたら吹き出しで知らせる",
   fnd_nudge_sub:"クリックで詳細を表示",
+  tips_tab:"ヒント",
+  tips_title:"クォータを長持ちさせるヒント",
+  tips_intro:"手書きの短いカードです — AIもネットも使いません。アプリの更新ごとに新しくなります。タップで開きます。",
+  tips_filter:"絞り込み…",
+  tips_none:"フィルタに一致するものがありません。",
+  tip_clear_t:"/clear で作業は消える？",
+  tip_clear_b:"いいえ。/clear が消すのは会話だけです。失われないもの:\n• コード — ファイルにあり、チャットにはありません。\n• CLAUDE.md — 新しいセッションで自動的に読み込まれます。\n• 過去のセッション — 「claude --resume」で一覧から再開できます。\n消えるのは会話の流れだけ — それこそが毎ターン、トークンを消費していたものです。",
+  tip_compact_t:"/clear と /compact のどちら？",
+  tip_compact_b:"/clear はゼロから: いちばん安い。/compact は要点を残して会話を要約します（数万トークンが数千に）。\n• 新しい独立した話題 → /clear。\n• 前の話題と関係する → /compact。\n鍵となる質問: この先の作業に、これまでの話は必要？",
+  tip_cache_t:"キャッシュは数分で切れる",
+  tip_cache_b:"会話は数分の無操作で切れるキャッシュに載っています。長い休憩から戻ると、コンテキスト全体が全額で書き直されます — キャッシュから読めば約10分の1です。大きな会話では: 席を立つ前に考えをまとめ、戻って話題が変わっていたら /clear。",
+  tip_attach_t:"貼り付けずにファイル名で",
+  tip_attach_b:"同じコードを何度も貼るとコンテキストにコピーが積み重なり、以降の毎ターンで送られ続けます。代わりにパス（または @ファイル）を渡せば、Claude は最新版から必要な分だけ読み、重複もありません。",
+  tip_ask_t:"ちょっとした質問は別セッションで",
+  tip_ask_b:"大きなセッション内の短い質問は、蓄積した全コンテキストを引きずります: 2行の疑問に数千トークン。新しいセッションで聞けば同じ答えが数セントです。コードが不要な一般的な質問なら、なおさらです。",
+  tip_model_t:"機械的な作業は小さいモデルで",
+  tip_model_b:"リネーム、フォーマット、テスト実行、コミット文: 小さいモデル（Haiku）でも同じようにでき、費用はごく一部です。その作業だけ /model で切り替え、考える仕事では大きいモデルに戻しましょう。",
   fnd_ignore:"無視",
   fnd_hidden:n=>`${n}件を非表示`,
   fnd_restore:"再表示",
@@ -1878,6 +2001,23 @@ ko:{
   fnd_claudemd_f:"CLAUDE.md는 대화마다 통째로 전송됩니다. 이 줄들은 이 기간의 로그에 한 번도 나타나지 않은 경로나 명령을 언급합니다 — 아직 자리를 차지할 가치가 있는지 확인해 볼 만합니다. 삭제는 무료입니다(다음 메시지에서 캐시가 한 번만 재구축됩니다). 가끔만 쓰는 것은 남겨 두세요.",
   fnd_nudge_lbl:"새 발견 항목이 ($) 를 넘으면 말풍선 알림",
   fnd_nudge_sub:"클릭하면 자세히 보기",
+  tips_tab:"팁",
+  tips_title:"쿼터를 아끼는 팁",
+  tips_intro:"손으로 쓴 짧은 카드입니다 — AI도 네트워크도 쓰지 않습니다. 앱 업데이트마다 갱신됩니다. 눌러서 여세요.",
+  tips_filter:"필터…",
+  tips_none:"필터와 일치하는 항목이 없습니다.",
+  tip_clear_t:"/clear 하면 작업이 지워지나요?",
+  tip_clear_b:"아니요. /clear 는 대화만 지웁니다. 잃지 않는 것:\n• 코드 — 파일에 있고 채팅에 있지 않습니다.\n• CLAUDE.md — 새 세션에서 자동으로 다시 불러옵니다.\n• 이전 세션들 — “claude --resume” 으로 목록에서 이어갈 수 있습니다.\n사라지는 건 대화의 흐름뿐 — 바로 그것이 매 턴 토큰을 쓰던 부분입니다.",
+  tip_compact_t:"/clear 와 /compact 중 무엇?",
+  tip_compact_b:"/clear 는 처음부터: 가장 저렴합니다. /compact 는 핵심을 남기고 대화를 요약합니다(수만 토큰이 수천으로).\n• 새롭고 독립적인 주제 → /clear.\n• 새 주제가 이전과 얽힘 → /compact.\n핵심 질문: 다음 작업에 지금까지의 이야기가 필요한가?",
+  tip_cache_t:"캐시는 몇 분이면 만료됩니다",
+  tip_cache_b:"대화는 몇 분만 쉬어도 만료되는 캐시에 올라가 있습니다. 긴 휴식 후 돌아오면 전체 컨텍스트가 정가로 다시 쓰입니다 — 캐시에서 읽으면 약 10분의 1입니다. 대화가 크다면: 자리를 뜨기 전에 생각을 마무리하고, 돌아왔을 때 주제가 바뀌었다면 /clear.",
+  tip_attach_t:"붙여넣지 말고 파일을 알려주세요",
+  tip_attach_b:"같은 코드를 반복해서 붙여넣으면 컨텍스트에 사본이 쌓이고, 그 사본은 이후 매 턴마다 전송됩니다. 대신 경로(또는 @파일)를 주세요: Claude 가 최신 버전에서 필요한 만큼만 읽고 중복도 없습니다.",
+  tip_ask_t:"짧은 질문은 별도 세션에서",
+  tip_ask_b:"큰 세션 안의 짧은 질문은 쌓인 컨텍스트 전체를 끌고 갑니다: 두 줄짜리 궁금증에 수천 토큰. 새 세션에서 물으면 같은 답이 몇 센트입니다. 코드가 필요 없는 일반 질문이라면 더욱 그렇습니다.",
+  tip_model_t:"기계적인 일은 작은 모델로",
+  tip_model_b:"이름 바꾸기, 포맷, 테스트 실행, 커밋 메시지: 작은 모델(Haiku)도 똑같이 해내며 비용은 극히 일부입니다. 그 작업만 /model 로 바꾸고, 생각이 필요한 일은 큰 모델로 돌아가세요.",
   fnd_ignore:"무시",
   fnd_hidden:n=>`${n}개 숨김`,
   fnd_restore:"다시 표시",
@@ -2065,6 +2205,23 @@ zh:{
   fnd_claudemd_f:"CLAUDE.md 每次对话都会完整传送。这些行提到的路径或命令在此时间窗的日志中从未出现——值得检查它们是否还配得上这个位置。删除是免费的（只有下一条消息会重建一次缓存）；偶尔才用的内容请保留。",
   fnd_nudge_lbl:"新发现超过 ($) 时弹出气泡",
   fnd_nudge_sub:"点击查看详情",
+  tips_tab:"技巧",
+  tips_title:"让额度更耐用的技巧",
+  tips_intro:"手写的简短卡片——不用 AI，不联网。随每个版本更新。点一下展开。",
+  tips_filter:"筛选…",
+  tips_none:"没有与筛选匹配的内容。",
+  tip_clear_t:"/clear 会删掉我的工作吗？",
+  tip_clear_b:"不会。/clear 只清除对话。你不会失去:\n• 你的代码——在你的文件里，不在聊天里。\n• 你的 CLAUDE.md——新会话会自动重新加载。\n• 以前的会话——“claude --resume”会列出它们供你继续。\n消失的只有聊天线索——而那正是每一轮都在消耗 token 的部分。",
+  tip_compact_t:"/clear 还是 /compact？",
+  tip_compact_b:"/clear 从零开始: 最省。/compact 把对话压缩成要点（几万 token 变几千）。\n• 新话题相互独立 → /clear。\n• 新话题与之前相关 → /compact。\n关键问题: 接下来的工作需要之前聊过的内容吗？",
+  tip_cache_t:"缓存几分钟就过期",
+  tip_cache_b:"你的对话放在一个几分钟不活动就过期的缓存里。长时间离开后回来，整个上下文会按全价重写——从缓存读取便宜约 10 倍。对话很大时: 起身前把想法收尾；回来后若话题已变，就 /clear。",
+  tip_attach_t:"提文件名，别粘贴",
+  tip_attach_b:"反复粘贴同一段代码会在上下文里堆起副本，而每个副本都会随之后的每一轮传送。改成给路径（或 @文件）: Claude 只读需要的部分，读的是最新版本，也没有重复。",
+  tip_ask_t:"小问题开个新会话问",
+  tip_ask_b:"在大会话里问一句短问题，会拖上全部累积的上下文: 两行的疑问要花几千 token。开个新会话问，同样的答案只要几分钱。与代码无关的一般问题更是如此。",
+  tip_model_t:"机械性工作用小模型",
+  tip_model_b:"重命名、格式化、跑测试、写提交信息: 小模型（Haiku）同样能做，费用只是零头。用 /model 切换去做这件事，需要思考的工作再换回大模型。",
   fnd_ignore:"忽略",
   fnd_hidden:n=>`已隐藏${n}项`,
   fnd_restore:"重新显示",
@@ -2138,6 +2295,9 @@ function applyI18n(){
   if(typeof invoke!=="undefined" && invoke)
     invoke("set_tray_menu",{open:t("tray_open"),widget:t("tray_widget"),quit:t("tray_quit")})
       .catch(()=>{});
+  // las fichas de Consejos se pintan desde t(): un cambio de idioma con la
+  // pestaña abierta debe repintarlas al momento
+  if(!$("tab-tips").hidden) renderTips();
 }
 
 // Traducción de códigos de error del backend (ERR_*)
@@ -3230,13 +3390,33 @@ function renderRemotes(){
     });
   });
 }
+// ---------- Consejos: el coach 100% estático ----------
+// Catálogo de fichas curadas (docs/consejos-coach.md). El contenido vive en
+// I18N como todo texto visible; aquí solo van los ids, en el orden en que
+// se muestran. Acordeón + filtro del lado del cliente — cero red, cero IA.
+const TIPS=["clear","compact","cache","attach","ask","model"];
+function renderTips(){
+  const q=($("tipFilter").value||"").toLowerCase();
+  const list=TIPS.filter(id=>!q ||
+    (t("tip_"+id+"_t")+" "+t("tip_"+id+"_b")).toLowerCase().includes(q));
+  $("tipList").innerHTML=list.map(id=>`<div class="fnd tip" data-tip="${id}">
+      <div class="fnd-t">${t("tip_"+id+"_t")}</div>
+      <div class="fnd-f">${t("tip_"+id+"_b")}</div>
+    </div>`).join("")
+    || `<div style="font-size:11.5px;margin-top:10px;color:var(--txt-dim)">${t("tips_none")}</div>`;
+  $("tipList").querySelectorAll(".tip").forEach(el=>
+    el.addEventListener("click",()=>el.classList.toggle("open")));
+}
+$("tipFilter").addEventListener("input",renderTips);
+
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
 function showTab(name){
-  for(const k of ["main","sources","findings","prefs"]) $("tab-"+k).hidden = (k!==name);
+  for(const k of ["main","sources","findings","tips","prefs"]) $("tab-"+k).hidden = (k!==name);
   $("expBox").hidden = true;                      // el aviso era de ese momento
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
   if(name==="sources") loadRemotes();             // refresca estado de servidores
   if(name==="findings") loadFindings(false);      // usa el resultado en memoria si lo hay
+  if(name==="tips") renderTips();                 // estático: repintar es gratis
   if(name==="prefs") renderPricesStatus();        // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
   document.querySelector(".panel").scrollTop=0;
