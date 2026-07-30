@@ -161,6 +161,24 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
    OJO: la ficha de /resume se escribió SIN el mito de /rename (un modelo
    chico lo inventó en la demo que evaluamos — la ficha curada es
    exactamente la defensa contra eso).
-3. [ ] El motor de reglas de sesión activa (nivel 2 de sondeo).
+3. [~] El motor de reglas de sesión activa — HECHO 2026-07-30 (SIN validar
+   en vivo; falta cargo check). Comando `get_coach` en Rust (async +
+   spawn_blocking): localiza los logs locales tocados en los últimos 30
+   min (COACH_ACTIVE_MIN) y lee SOLO los bytes añadidos desde la última
+   pasada (offset por archivo en COACH_STATE, cortando en la última \n;
+   truncado = reinicio). SOLO fuentes locales: el consejo es para la
+   sesión del teclado — divergencia con el exportador documentada, como
+   WSL en Python. Tres reglas v1, umbrales en constantes: contexto del
+   último turno principal ≥120k (COACH_CTX_HIGH) → ficha `compact`;
+   pausa ≥6 min con contexto ≥30k (COACH_GAP_MIN/_CTX) → ficha `cache`;
+   mismo archivo leído ≥3 veces (COACH_REREAD, dedup por id de tool_use)
+   → ficha `attach`. El backend solo reporta HECHOS ({rule, session,
+   value}); el anti-spam vive en el frontend: una vez por sesión por
+   regla (tipSeen, tope 300) + tope diario global de 5 (tipDay). La ficha
+   disparada sale PRIMERA, abierta y con la línea "Ahora: <dato medido>"
+   en acento (tip_now_* ×8); contador en la pestaña en ACENTO (tdot.acc —
+   rojo es identidad de Hallazgos); "visto" solo al pintarse con la
+   pestaña visible. Sondeo cada 3 min + primero a los 60 s. Nada va al
+   globo: el globo es del umbral en dólares.
 4. [ ] Resumen por plantilla al detectar sesión terminada.
 5. [ ] faqMisses + issue pre-llenado.

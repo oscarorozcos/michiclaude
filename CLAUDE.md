@@ -1112,11 +1112,21 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       fichas a 12.5px/1.5 (el 11px del fix de Hallazgos es para una línea,
       no para párrafos — lo notó Oscar). Diseño completo en
       docs/consejos-coach.md — LEERLO antes de tocar esta sección.
-      (LO SIGUIENTE A TRABAJAR: el motor de reglas de sesión activa
-      —nivel 2 del doc— y el resumen por plantilla. El modelo local quedó
-      DESCARTADO dentro de la app también en su variante "modelo-lector"
-      — fase 2 opcional aparte, compuertas en
-      ~/.michiclaude/notas-coach-local.md.)
+      MOTOR DE REGLAS DE SESIÓN ACTIVA — HECHO 2026-07-30, SIN validar en
+      vivo NI cargo check: comando `get_coach` (Rust, lectura incremental
+      por offset de los logs tocados en 30 min, SOLO locales) devuelve
+      hechos medidos y el panel les pone el anti-spam (tipSeen por
+      sesión+regla, tope diario 5) y los pinta: ficha primera, abierta,
+      línea "Ahora: <dato>" en acento y contador acento en la pestaña.
+      Tres reglas v1: ctx≥120k → compact; pausa≥6min con ctx≥30k → cache;
+      mismo archivo leído ≥3 veces → attach. Detalle en
+      docs/consejos-coach.md §10.3.
+      (LO SIGUIENTE A TRABAJAR: cargo check del coach en el Windows de
+      Oscar y validarlo en vivo — esta misma sesión de trabajo debería
+      disparar la regla de contexto alto; luego el resumen de sesión por
+      plantilla y faqMisses. El modelo local quedó DESCARTADO dentro de la
+      app también en su variante "modelo-lector" — fase 2 opcional aparte,
+      compuertas en ~/.michiclaude/notas-coach-local.md.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
           validado en el VPS: caza exactamente eliminar-proyecto y respeta
           las ventanas; cargo check limpio 2026-07-30). UNA tarjeta agregada

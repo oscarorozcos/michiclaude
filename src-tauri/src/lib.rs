@@ -2613,6 +2613,174 @@ async fn get_findings(days: Option<u32>) -> Result<Vec<Finding>, String> {
     .map_err(|e| e.to_string())?
 }
 
+// ---------------------------------------------------------------------------
+// Coach de sesión activa (docs/consejos-coach.md §3-§4, nivel 2 de frescura):
+// el panel sondea cada ciclo la COLA de los logs tocados hace poco y evalúa
+// un catálogo CORTO de reglas medibles. Sin hooks: MichiClaude sigue afuera
+// mirando archivos. SOLO fuentes locales de esta máquina — el consejo es
+// para la sesión que tienes en el teclado, no para un servidor remoto (y el
+// exportador no participa: divergencia documentada, como el WSL en Python).
+// La lectura es INCREMENTAL por offset: cada archivo se parsea entero una
+// sola vez y de ahí en adelante solo los bytes añadidos, así el sondeo de
+// 3 min cuesta casi nada aunque la sesión pese cientos de MB.
+// El anti-spam (una vez por sesión por regla + tope diario) vive en el
+// FRONTEND: aquí solo se reportan los hechos medidos actuales.
+// ---------------------------------------------------------------------------
+
+const COACH_ACTIVE_MIN: i64 = 30; // minutos sin tocar el log = sesión dormida
+const COACH_CTX_HIGH: u64 = 120_000; // tokens de contexto para sugerir /compact
+const COACH_GAP_MIN: i64 = 6; // minutos de pausa para avisar del caché vencido
+const COACH_GAP_CTX: u64 = 30_000; // ...solo si hay contexto que valga la pena
+const COACH_REREAD: u32 = 3; // lecturas del mismo archivo en la sesión
+
+#[derive(Default)]
+struct CoachSess {
+    offset: u64,
+    last_ctx: u64,      // cache_read+cache_write del último turno principal
+    last_turn: i64,     // epoch del último turno con usage
+    reads: HashMap<String, u32>,
+    read_ids: HashSet<String>, // dedup de tool_use (reanudaciones copian líneas)
+}
+
+#[derive(Serialize, Clone)]
+struct CoachHit {
+    rule: String,    // id de la ficha de Consejos que aplica
+    session: String, // sid corto, para el "una vez por sesión" del frontend
+    value: u64,      // el dato medido que rellena el hueco del texto
+}
+
+static COACH_STATE: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, CoachSess>>> =
+    std::sync::OnceLock::new();
+
+fn coach_scan() -> Vec<CoachHit> {
+    let mut hits: Vec<CoachHit> = Vec::new();
+    let now = Utc::now().timestamp();
+    let states = COACH_STATE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
+    let Ok(mut states) = states.lock() else { return hits };
+    let pdir = claude_dir().join("projects");
+    let Ok(projs) = fs::read_dir(&pdir) else { return hits };
+    for proj in projs.flatten() {
+        let ppath = proj.path();
+        if !ppath.is_dir() {
+            continue;
+        }
+        let Ok(files) = fs::read_dir(&ppath) else { continue };
+        for f in files.flatten() {
+            let fp = f.path();
+            if fp.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+                continue;
+            }
+            let Ok(md) = f.metadata() else { continue };
+            let mtime = md
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
+            // solo sesiones vivas; las dormidas ni se abren
+            if now - mtime > COACH_ACTIVE_MIN * 60 {
+                continue;
+            }
+            let size = md.len();
+            let st = states.entry(fp.clone()).or_default();
+            if size < st.offset {
+                *st = CoachSess::default(); // el archivo se truncó: de cero
+            }
+            if size > st.offset {
+                use std::io::{Read, Seek};
+                let Ok(mut fh) = fs::File::open(&fp) else { continue };
+                if fh.seek(std::io::SeekFrom::Start(st.offset)).is_err() {
+                    continue;
+                }
+                let mut buf = Vec::with_capacity((size - st.offset) as usize);
+                if fh.read_to_end(&mut buf).is_err() {
+                    continue;
+                }
+                // solo líneas COMPLETAS: lo que siga a la última \n se relee
+                // en el próximo ciclo, cuando ya esté cerrado
+                let cut = match buf.iter().rposition(|b| *b == b'\n') {
+                    Some(i) => i + 1,
+                    None => continue,
+                };
+                st.offset += cut as u64;
+                let text = String::from_utf8_lossy(&buf[..cut]);
+                for line in text.lines() {
+                    let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else {
+                        continue;
+                    };
+                    let ts = v["timestamp"]
+                        .as_str()
+                        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                        .map(|d| d.timestamp());
+                    let usage = &v["message"]["usage"];
+                    if usage.is_object() && !v["isSidechain"].as_bool().unwrap_or(false) {
+                        let ctx = usage["cache_read_input_tokens"].as_u64().unwrap_or(0)
+                            + usage["cache_creation_input_tokens"].as_u64().unwrap_or(0);
+                        if ctx > 0 {
+                            st.last_ctx = ctx;
+                        }
+                        if let Some(t2) = ts {
+                            st.last_turn = t2;
+                        }
+                    }
+                    if let Some(blocks) = v["message"]["content"].as_array() {
+                        for b in blocks {
+                            if b["type"].as_str() == Some("tool_use")
+                                && b["name"].as_str() == Some("Read")
+                            {
+                                let id = b["id"].as_str().unwrap_or("");
+                                if let Some(p) = b["input"]["file_path"].as_str() {
+                                    if !id.is_empty() && st.read_ids.insert(id.to_string()) {
+                                        *st.reads.entry(p.to_string()).or_insert(0) += 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // reglas sobre el estado acumulado; el sid corto sale del nombre
+            // del archivo, que en Claude Code es el uuid de la sesión
+            let sid: String = fp
+                .file_stem()
+                .map(|s| s.to_string_lossy().chars().take(8).collect())
+                .unwrap_or_default();
+            if st.last_ctx >= COACH_CTX_HIGH {
+                hits.push(CoachHit {
+                    rule: "compact".into(),
+                    session: sid.clone(),
+                    value: st.last_ctx / 1000, // se enseña en k
+                });
+            }
+            let gap_min = (now - st.last_turn) / 60;
+            if st.last_turn > 0 && gap_min >= COACH_GAP_MIN && st.last_ctx >= COACH_GAP_CTX {
+                hits.push(CoachHit {
+                    rule: "cache".into(),
+                    session: sid.clone(),
+                    value: gap_min.max(0) as u64,
+                });
+            }
+            if let Some((_, n)) = st
+                .reads
+                .iter()
+                .filter(|(_, n)| **n >= COACH_REREAD)
+                .max_by_key(|(_, n)| **n)
+            {
+                hits.push(CoachHit { rule: "attach".into(), session: sid, value: *n as u64 });
+            }
+        }
+    }
+    hits
+}
+
+/// Sondeo del coach: async + spawn_blocking (invariante 10ter — toca disco).
+#[tauri::command]
+async fn get_coach() -> Result<Vec<CoachHit>, String> {
+    tauri::async_runtime::spawn_blocking(coach_scan)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Escapa un campo de CSV: comillas alrededor y las internas duplicadas. Antes
 /// se sustituían las comas por espacios, que mutila el dato en vez de citarlo.
 fn csv_field(v: &str) -> String {
@@ -2832,6 +3000,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_quota,
             get_local_stats,
+            get_coach,
             update_tray,
             get_remotes,
             save_remotes,

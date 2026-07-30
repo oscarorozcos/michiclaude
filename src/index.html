@@ -122,6 +122,10 @@
      lectura, no una línea de remate (lo notó Oscar el 2026-07-30) */
   .fnd.tip .fnd-f{display:none;white-space:pre-line;margin-top:6px;
     font-size:12.5px;line-height:1.5}
+  /* ficha disparada por el motor de reglas: la línea "Ahora: ..." lleva el
+     dato MEDIDO de la sesión activa, en acento — consejo, no alarma */
+  .fnd.tip .fnd-m{color:var(--accent)}
+  .tab .tdot.acc{background:var(--accent)}
   .fnd.tip.open{border-left-color:var(--accent)}
   .fnd.tip.open .fnd-f{display:block}
   .fnd-x{float:right;background:transparent;border:0;color:var(--txt-dim);
@@ -362,7 +366,7 @@
     <button class="tab on" data-tab="main" data-i18n="tab_main"></button>
     <button class="tab" data-tab="sources" data-i18n="sources_title"></button>
     <button class="tab" data-tab="findings"><span data-i18n="fnd_tab"></span><span class="tdot" id="fndTabDot" hidden></span></button>
-    <button class="tab" data-tab="tips" data-i18n="tips_tab"></button>
+    <button class="tab" data-tab="tips"><span data-i18n="tips_tab"></span><span class="tdot acc" id="tipsTabDot" hidden></span></button>
     <button class="tab" data-tab="prefs" data-i18n="prefs_title"></button>
   </div>
   </div><!-- /p-top -->
@@ -797,6 +801,9 @@ en:{
   tip_ask_b:"A short question inside a big session drags the WHOLE accumulated context: you pay thousands of tokens for a two-line doubt. Open a fresh session and the same answer costs cents. Twice as true for general questions that don’t need your code.",
   tip_model_t:"Small model for mechanical work",
   tip_model_b:"Renaming, formatting, running tests, writing a commit message: a small model (Haiku) does it just as well for a fraction. Switch with /model for that task and go back to the big one for work that actually needs thinking.",
+  tip_now_compact:n=>`Now: this session carries ~${n}k tokens of context`,
+  tip_now_cache:n=>`Now: ${n} min pause with a big context — the cache has expired`,
+  tip_now_attach:n=>`Now: one file was read ${n} times in this session`,
   fnd_ignore:"Ignore",
   fnd_hidden:n=>`${n} hidden`,
   fnd_restore:"show again",
@@ -1001,6 +1008,9 @@ es:{
   tip_ask_b:"Una pregunta corta dentro de una sesión grande arrastra TODO el contexto acumulado: pagas miles de tokens por una duda de dos líneas. Ábrela en una sesión nueva y la misma respuesta cuesta centavos. Vale doble para dudas generales que no necesitan tu código.",
   tip_model_t:"Modelo chico para lo mecánico",
   tip_model_b:"Renombrar, formatear, correr tests, redactar un commit: un modelo chico (Haiku) lo hace igual por una fracción. Cámbialo con /model para esa tarea y regresa al grande para lo que sí requiere pensar.",
+  tip_now_compact:n=>`Ahora: esta sesión lleva ~${n}k tokens de contexto`,
+  tip_now_cache:n=>`Ahora: ${n} min de pausa con contexto grande — el caché ya venció`,
+  tip_now_attach:n=>`Ahora: un mismo archivo se leyó ${n} veces en esta sesión`,
   fnd_ignore:"Ignorar",
   fnd_hidden:n=>`${n} ocultos`,
   fnd_restore:"volver a mostrar",
@@ -1205,6 +1215,9 @@ pt:{
   tip_ask_b:"Uma pergunta curta dentro de uma sessão grande arrasta TODO o contexto acumulado: você paga milhares de tokens por uma dúvida de duas linhas. Abra numa sessão nova e a mesma resposta custa centavos. Vale em dobro para dúvidas gerais que não precisam do seu código.",
   tip_model_t:"Modelo pequeno para o mecânico",
   tip_model_b:"Renomear, formatar, rodar testes, escrever um commit: um modelo pequeno (Haiku) faz igual por uma fração. Troque com /model para essa tarefa e volte ao grande para o que exige pensar.",
+  tip_now_compact:n=>`Agora: esta sessão carrega ~${n}k tokens de contexto`,
+  tip_now_cache:n=>`Agora: ${n} min de pausa com contexto grande — o cache já venceu`,
+  tip_now_attach:n=>`Agora: um mesmo arquivo foi lido ${n} vezes nesta sessão`,
   fnd_ignore:"Ignorar",
   fnd_hidden:n=>`${n} ocultos`,
   fnd_restore:"mostrar de novo",
@@ -1409,6 +1422,9 @@ fr:{
   tip_ask_b:"Une question courte dans une grosse session traîne TOUT le contexte accumulé : des milliers de tokens pour un doute de deux lignes. Posez-la dans une session neuve et la même réponse coûte des centimes. Doublement vrai pour les questions générales qui n’ont pas besoin de votre code.",
   tip_model_t:"Petit modèle pour le mécanique",
   tip_model_b:"Renommer, formater, lancer des tests, rédiger un commit : un petit modèle (Haiku) le fait aussi bien pour une fraction. Passez avec /model pour cette tâche, puis revenez au grand pour ce qui demande de réfléchir.",
+  tip_now_compact:n=>`Maintenant : cette session porte ~${n}k tokens de contexte`,
+  tip_now_cache:n=>`Maintenant : ${n} min de pause avec un gros contexte — le cache a expiré`,
+  tip_now_attach:n=>`Maintenant : un même fichier a été lu ${n} fois dans cette session`,
   fnd_ignore:"Ignorer",
   fnd_hidden:n=>`${n} masqués`,
   fnd_restore:"réafficher",
@@ -1613,6 +1629,9 @@ de:{
   tip_ask_b:"Eine kurze Frage in einer großen Sitzung schleppt den GESAMTEN Kontext mit: Tausende Tokens für einen Zweizeiler. In einer frischen Sitzung kostet dieselbe Antwort Cents. Doppelt wahr für allgemeine Fragen, die deinen Code nicht brauchen.",
   tip_model_t:"Kleines Modell für Mechanisches",
   tip_model_b:"Umbenennen, Formatieren, Tests laufen lassen, Commit-Text schreiben: ein kleines Modell (Haiku) macht das genauso gut für einen Bruchteil. Mit /model für die Aufgabe wechseln und für echtes Denken zurück zum großen.",
+  tip_now_compact:n=>`Jetzt: diese Sitzung trägt ~${n}k Tokens Kontext`,
+  tip_now_cache:n=>`Jetzt: ${n} Min. Pause mit großem Kontext — der Cache ist abgelaufen`,
+  tip_now_attach:n=>`Jetzt: dieselbe Datei wurde in dieser Sitzung ${n}-mal gelesen`,
   fnd_ignore:"Ignorieren",
   fnd_hidden:n=>`${n} ausgeblendet`,
   fnd_restore:"wieder anzeigen",
@@ -1817,6 +1836,9 @@ ja:{
   tip_ask_b:"大きなセッション内の短い質問は、蓄積した全コンテキストを引きずります: 2行の疑問に数千トークン。新しいセッションで聞けば同じ答えが数セントです。コードが不要な一般的な質問なら、なおさらです。",
   tip_model_t:"機械的な作業は小さいモデルで",
   tip_model_b:"リネーム、フォーマット、テスト実行、コミット文: 小さいモデル（Haiku）でも同じようにでき、費用はごく一部です。その作業だけ /model で切り替え、考える仕事では大きいモデルに戻しましょう。",
+  tip_now_compact:n=>`いま: このセッションのコンテキストは約${n}kトークン`,
+  tip_now_cache:n=>`いま: 大きなコンテキストのまま${n}分の休止 — キャッシュは切れています`,
+  tip_now_attach:n=>`いま: 同じファイルがこのセッションで${n}回読まれました`,
   fnd_ignore:"無視",
   fnd_hidden:n=>`${n}件を非表示`,
   fnd_restore:"再表示",
@@ -2021,6 +2043,9 @@ ko:{
   tip_ask_b:"큰 세션 안의 짧은 질문은 쌓인 컨텍스트 전체를 끌고 갑니다: 두 줄짜리 궁금증에 수천 토큰. 새 세션에서 물으면 같은 답이 몇 센트입니다. 코드가 필요 없는 일반 질문이라면 더욱 그렇습니다.",
   tip_model_t:"기계적인 일은 작은 모델로",
   tip_model_b:"이름 바꾸기, 포맷, 테스트 실행, 커밋 메시지: 작은 모델(Haiku)도 똑같이 해내며 비용은 극히 일부입니다. 그 작업만 /model 로 바꾸고, 생각이 필요한 일은 큰 모델로 돌아가세요.",
+  tip_now_compact:n=>`지금: 이 세션의 컨텍스트는 약 ${n}k 토큰`,
+  tip_now_cache:n=>`지금: 큰 컨텍스트로 ${n}분 휴지 — 캐시가 만료되었습니다`,
+  tip_now_attach:n=>`지금: 같은 파일을 이 세션에서 ${n}번 읽었습니다`,
   fnd_ignore:"무시",
   fnd_hidden:n=>`${n}개 숨김`,
   fnd_restore:"다시 표시",
@@ -2225,6 +2250,9 @@ zh:{
   tip_ask_b:"在大会话里问一句短问题，会拖上全部累积的上下文: 两行的疑问要花几千 token。开个新会话问，同样的答案只要几分钱。与代码无关的一般问题更是如此。",
   tip_model_t:"机械性工作用小模型",
   tip_model_b:"重命名、格式化、跑测试、写提交信息: 小模型（Haiku）同样能做，费用只是零头。用 /model 切换去做这件事，需要思考的工作再换回大模型。",
+  tip_now_compact:n=>`现在: 这个会话已带着约 ${n}k token 的上下文`,
+  tip_now_cache:n=>`现在: 带着大上下文暂停了 ${n} 分钟——缓存已过期`,
+  tip_now_attach:n=>`现在: 同一个文件在这个会话里被读了 ${n} 次`,
   fnd_ignore:"忽略",
   fnd_hidden:n=>`已隐藏${n}项`,
   fnd_restore:"重新显示",
@@ -3400,17 +3428,73 @@ function renderRemotes(){
 const TIPS=["clear","compact","cache","attach","ask","model"];
 function renderTips(){
   const q=($("tipFilter").value||"").toLowerCase();
-  const list=TIPS.filter(id=>!q ||
+  // fichas disparadas por el motor de reglas: primero, abiertas y con su
+  // línea "Ahora: <dato medido>" — el consejo en el momento en que sirve
+  const hot={}; coachHits.forEach(h=>{ if(!(h.rule in hot)) hot[h.rule]=h; });
+  const ids=[...TIPS].sort((a,b)=>((b in hot)?1:0)-((a in hot)?1:0));
+  const list=ids.filter(id=>!q ||
     (t("tip_"+id+"_t")+" "+t("tip_"+id+"_b")).toLowerCase().includes(q));
-  $("tipList").innerHTML=list.map(id=>`<div class="fnd tip" data-tip="${id}">
+  $("tipList").innerHTML=list.map(id=>{
+    const h=hot[id];
+    return `<div class="fnd tip${h?" open":""}" data-tip="${id}">
       <div class="fnd-t">${t("tip_"+id+"_t")}</div>
+      ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value)}</div>`:""}
       <div class="fnd-f">${t("tip_"+id+"_b")}</div>
-    </div>`).join("")
+    </div>`;}).join("")
     || `<div style="font-size:11.5px;margin-top:10px;color:var(--txt-dim)">${t("tips_none")}</div>`;
   $("tipList").querySelectorAll(".tip").forEach(el=>
     el.addEventListener("click",()=>el.classList.toggle("open")));
+  // lo que llegó a pintarse con la pestaña VISIBLE queda despachado: el
+  // punto se apaga y esa regla no vuelve a sonar en esta sesión. Las fichas
+  // siguen resaltadas hasta el próximo sondeo (ahí el filtro las limpia).
+  if(!$("tab-tips").hidden && coachHits.length){
+    const seen=tipSeenSet();
+    coachHits.forEach(h=>seen.add(h.rule+"|"+h.session));
+    localStorage.setItem("tipSeen",JSON.stringify([...seen].slice(-300)));
+    renderTipsDot(0);
+  }
 }
 $("tipFilter").addEventListener("input",renderTips);
+
+// ---------- motor de reglas de sesión activa (nivel 2 del doc) ----------
+// El backend sondea la COLA de los logs vivos (lectura incremental) y
+// devuelve hechos medidos; aquí vive el anti-spam: una vez por sesión por
+// regla (tipSeen) y tope diario global (tipDay). Nada de esto va al globo:
+// el globo es del umbral en dólares. Consejo = pestaña + punto en acento.
+let coachHits=[];
+function tipSeenSet(){ try{ return new Set(JSON.parse(localStorage.getItem("tipSeen")||"[]")); }catch(_){ return new Set(); } }
+function renderTipsDot(n){
+  const d=$("tipsTabDot");
+  const v=(n!=null?n:coachHits.length);
+  d.hidden=!v;
+  if(v) d.textContent=v>9?"9+":String(v);
+}
+async function coachPoll(){
+  if(!invoke) return;
+  try{
+    const hits=await invoke("get_coach")||[];
+    const seen=tipSeenSet();
+    let day={}; try{ day=JSON.parse(localStorage.getItem("tipDay")||"{}"); }catch(_){ day={}; }
+    const hoy=new Date().toISOString().slice(0,10);
+    if(day.d!==hoy||!Array.isArray(day.keys)) day={d:hoy,keys:[]};
+    const out=[];
+    for(const h of hits){
+      const k=h.rule+"|"+h.session;
+      if(seen.has(k)) continue;
+      if(!day.keys.includes(k)){
+        if(day.keys.length>=5) continue;   // tope diario: el coach no ametralla
+        day.keys.push(k);
+      }
+      out.push(h);
+    }
+    localStorage.setItem("tipDay",JSON.stringify(day));
+    coachHits=out;
+    renderTipsDot();
+    if(!$("tab-tips").hidden) renderTips();
+  }catch(_){/* sin backend o sin logs: el siguiente ciclo reintenta */}
+}
+setTimeout(coachPoll,60*1000);       // el primer sondeo, tras la carga inicial
+setInterval(coachPoll,3*60*1000);    // mismo compás que el ciclo del panel
 
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
 function showTab(name){
