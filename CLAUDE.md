@@ -1070,9 +1070,17 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       FALTA para el diseño completo, EN ESTE ORDEN (acordado con Oscar el
       2026-07-29 al cierre — LO SIGUIENTE A TRABAJAR son los tres detectores
       nuevos de "lo instalado"):
-      (1) DETECTOR skills instaladas sin uso — calca el de MCP: skills en
-          disco (~/.claude/skills/, plugins, y las de proyecto) contra
-          invocaciones en los logs (las <command-name> de los .jsonl);
+      (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
+          validado en el VPS: caza exactamente eliminar-proyecto y respeta
+          las ventanas; Rust SIN cargo check aún). UNA tarjeta agregada
+          (kind skills_unused, count + nombres en `file`), solo con ventana
+          de 7+ días ("no usaste tu skill HOY" no dice nada). Fuentes de
+          uso: <command-name> en los logs + tool_use Skill + el `skillUsage`
+          de ~/.claude.json (Claude Code YA registra cada uso con fecha —
+          descubierto en esta sesión). DECISIÓN CLAVE: solo cuenta
+          ~/.claude/skills/ como "instalado"; la carpeta de plugins NO — es
+          el catálogo ENTERO del marketplace cacheado (docenas de skills que
+          nadie instaló) y contarla fabricaría hallazgos falsos;
       (2) DETECTOR subagentes caros — los isSidechain traen usage PROPIO en
           los logs: costo EXACTO por semana, sin estimar, hoy invisible
           porque se mezcla con el total ("overhead de subagentes" del

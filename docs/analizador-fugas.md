@@ -447,13 +447,26 @@ cuota — pero eso no sale de los logs.
       la pestaña; pasada diaria ligera; "visto" al abrir la pestaña; primera
       apertura instantánea con el último resultado guardado. Es la versión
       PASIVA del aviso en el momento.
-- [ ] SIGUIENTE (acordado 2026-07-29, en este orden): los tres detectores de
-      "lo instalado" — (1) skills instaladas sin uso (calca el de MCP:
-      disco vs. <command-name> en los logs), (2) subagentes caros (los
-      isSidechain traen usage propio: costo exacto, hoy invisible), y
-      (3) hooks ruidosos (salida repetida cada turno, tamaño × turnos).
-      Regla: señalan lo que NO se usa y lo que cuesta cargarlo — nunca
-      califican lo que sí se usa.
+- [~] Los tres detectores de "lo instalado" (acordados 2026-07-29; regla:
+      señalan lo que NO se usa y lo que cuesta cargarlo — nunca califican
+      lo que sí se usa):
+      (1) [x] skills instaladas sin uso — 2026-07-30, Python validado en el
+          VPS. Solo ~/.claude/skills cuenta como instalado (la carpeta de
+          plugins es el catálogo del marketplace cacheado: contarla
+          fabricaría hallazgos falsos); uso = logs (<command-name> y tool
+          Skill) + skillUsage de ~/.claude.json; solo ventanas de 7+ días;
+          una tarjeta agregada. Falta cargo check en Windows.
+      (2) [ ] subagentes caros (los isSidechain traen usage propio: costo
+          exacto, hoy invisible).
+      (3) [ ] hooks ruidosos (salida repetida cada turno, tamaño × turnos).
+- [x] Evaluado y DESCARTADO (2026-07-30): coach con LLM local
+      (Bonsai/Gemma) dentro de MichiClaude — contradice §5 (determinista,
+      testeable, dice "no sé"), la batalla de RAM ganada (276 MB) y la
+      promesa "la app no gasta tokens". Lo rescatable sin modelo: la
+      chuleta /clear-vs-/compact va entrando en los textos de fix, y los
+      hooks de Claude Code quedan anotados como opción futura (opt-in) para
+      el aviso en el momento. Análisis completo en
+      ~/.michiclaude/notas-coach-local.md (fuera del repo a propósito).
 - [ ] Detector: líneas de CLAUDE.md sin respaldo (§5, las tres cubetas).
 - [ ] El aviso EN EL MOMENTO con texto (globito una vez al día, §7).
 - [ ] Fix personalizado por entrypoint (VS Code vs. terminal, respaldo

@@ -226,6 +226,40 @@ CACHEBREAK_MIN_TOKENS = 300_000  # reescritos por sesión para avisar (~$2-4)
 MAX_FINDINGS = 12       # las tarjetas no son un log: lo más caro primero
 
 
+def skills_installed():
+    """Skills propias del usuario (~/.claude/skills). Los plugins NO se
+    cuentan: la carpeta de marketplaces es el catálogo ENTERO cacheado
+    (docenas de skills que nadie instaló) y contarla fabricaría hallazgos
+    falsos — la credibilidad del detector vale más que su alcance."""
+    out = set()
+    d = Path.home() / ".claude" / "skills"
+    try:
+        for p in d.iterdir():
+            if (p / "SKILL.md").is_file():
+                out.add(p.name.lower())
+    except OSError:
+        pass
+    return out
+
+
+def skills_used_at(window_ago):
+    """Skills con uso registrado por el PROPIO Claude Code (skillUsage de
+    ~/.claude.json) dentro de la ventana. Complementa a los logs: cubre las
+    invocadas por la herramienta Skill aunque el log ya se haya borrado."""
+    out = set()
+    try:
+        cfg = json.loads((Path.home() / ".claude.json").read_text(encoding="utf-8"))
+        for name, u in (cfg.get("skillUsage") or {}).items():
+            if isinstance(u, dict) and (u.get("lastUsedAt") or 0) / 1000 >= window_ago.timestamp():
+                out.add(str(name).split(":")[-1].lower())
+    except (OSError, ValueError):
+        pass
+    return out
+
+
+SKILL_CMD_RE = re.compile(r"<command-name>/?([^<\s]+)</command-name>")
+
+
 def mcp_servers_configured():
     """Servidores MCP dados de alta en ~/.claude.json (global y por proyecto)."""
     out = set()
@@ -249,6 +283,7 @@ def scan_findings(projects_dir, window_ago, days):
     pend_reads = {}  # tool_use_id -> (sid, ruta)  para casar con su resultado
     mech = [0, 0, 0.0]           # [peticiones, tokens, costo]
     mcp_used = set()
+    skills_used = set()          # invocadas en la ventana (logs)
     seen = set()                 # misma dedup que la agregación
     skip_before = (window_ago - timedelta(days=2)).timestamp()
 
@@ -285,6 +320,18 @@ def scan_findings(projects_dir, window_ago, days):
                         cts = parse_ts(v.get("timestamp"))
                         if cts:
                             S["compacts"].append(cts)
+                    # /comandos del usuario: quedan como <command-name> en el
+                    # mensaje (estas líneas no traen usage, va antes del filtro)
+                    if "<command-name>" in line:
+                        cts = parse_ts(v.get("timestamp"))
+                        if cts and cts >= window_ago:
+                            texts = ([content] if isinstance(content, str) else
+                                     [b.get("text") or "" for b in blocks
+                                      if isinstance(b, dict)])
+                            for tx in texts:
+                                for m in SKILL_CMD_RE.finditer(tx):
+                                    skills_used.add(
+                                        m.group(1).split(":")[-1].lower())
                     # resultados de lecturas: se MIDE lo que viajó de verdad
                     for b in blocks:
                         if not isinstance(b, dict):
@@ -335,6 +382,10 @@ def scan_findings(projects_dir, window_ago, days):
                         if name.startswith("mcp__"):
                             mcp_used.add(name.split("__")[1] if "__" in name[5:]
                                          else name[5:])
+                        if name == "Skill":
+                            sk = (b.get("input") or {}).get("skill") or ""
+                            if sk:
+                                skills_used.add(str(sk).split(":")[-1].lower())
                         if name == "Read":
                             p = (b.get("input") or {}).get("file_path")
                             if p:
@@ -407,6 +458,18 @@ def scan_findings(projects_dir, window_ago, days):
     for server in sorted(mcp_servers_configured() - mcp_used):
         findings.append({"kind": "mcp_unused", "server": server,
                          "tokens": 0, "cost": 0.0, "estimated": False})
+    # skills instaladas y sin usar en la ventana: UNA tarjeta agregada (una
+    # por skill inundaría el reporte, y las tarjetas no son un log). Solo
+    # con ventana de 7+ días: "no usaste tu skill HOY" no dice nada y
+    # devalúa a las demás tarjetas.
+    unused = sorted(skills_installed() - skills_used - skills_used_at(window_ago))
+    if days < 7:
+        unused = []
+    if unused:
+        shown = ", ".join(unused[:8]) + (" …" if len(unused) > 8 else "")
+        findings.append({"kind": "skills_unused", "count": len(unused),
+                         "file": shown, "tokens": 0, "cost": 0.0,
+                         "estimated": False})
     findings.sort(key=lambda x: -x["cost"])
     return findings[:MAX_FINDINGS]
 

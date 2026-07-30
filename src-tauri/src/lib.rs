@@ -1840,6 +1840,61 @@ fn is_mech_cmd(cmd: &str) -> bool {
         || s.starts_with("npm install")
 }
 
+/// Skills propias del usuario (~/.claude/skills). Los plugins NO se cuentan:
+/// la carpeta de marketplaces es el catálogo ENTERO cacheado (docenas de
+/// skills que nadie instaló) y contarla fabricaría hallazgos falsos.
+fn skills_installed() -> HashSet<String> {
+    let mut out = HashSet::new();
+    let Some(home) = dirs::home_dir() else { return out };
+    let Ok(entries) = fs::read_dir(home.join(".claude").join("skills")) else {
+        return out;
+    };
+    for e in entries.flatten() {
+        if e.path().join("SKILL.md").is_file() {
+            out.insert(e.file_name().to_string_lossy().to_lowercase());
+        }
+    }
+    out
+}
+
+/// Skills con uso registrado por el PROPIO Claude Code (skillUsage de
+/// ~/.claude.json) dentro de la ventana. Complementa a los logs: cubre las
+/// invocadas por la herramienta Skill aunque el log ya se haya borrado.
+fn skills_used_at(window_ago: &DateTime<Utc>) -> HashSet<String> {
+    let mut out = HashSet::new();
+    let Some(home) = dirs::home_dir() else { return out };
+    let Ok(raw) = fs::read_to_string(home.join(".claude.json")) else { return out };
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else { return out };
+    if let Some(m) = v["skillUsage"].as_object() {
+        for (name, u) in m {
+            if u["lastUsedAt"].as_f64().unwrap_or(0.0) / 1000.0
+                >= window_ago.timestamp() as f64
+            {
+                out.insert(name.split(':').last().unwrap_or(name).to_lowercase());
+            }
+        }
+    }
+    out
+}
+
+/// Nombres de skill dentro de <command-name>…</command-name> — pareja del
+/// SKILL_CMD_RE del exportador, sin crate regex (invariante #4).
+fn command_names(text: &str, out: &mut HashSet<String>) {
+    let mut rest = text;
+    while let Some(i) = rest.find("<command-name>") {
+        rest = &rest[i + 14..];
+        let Some(j) = rest.find("</command-name>") else { break };
+        let name = rest[..j].trim().trim_start_matches('/');
+        if let Some(first) = name.split_whitespace().next() {
+            let n = first.split(':').last().unwrap_or(first).to_lowercase();
+            if !n.is_empty() {
+                out.insert(n);
+            }
+        }
+        rest = &rest[j..];
+    }
+}
+
 /// Servidores MCP dados de alta en ~/.claude.json (global y por proyecto).
 fn mcp_servers_configured() -> HashSet<String> {
     let mut out = HashSet::new();
@@ -1887,6 +1942,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     let mut sessions: HashMap<String, SessFindings> = HashMap::new();
     let mut pend: HashMap<String, (String, String)> = HashMap::new();
     let mut mcp_used: HashSet<String> = HashSet::new();
+    let mut skills_used: HashSet<String> = HashSet::new();
     let mut seen: HashSet<String> = HashSet::new();
     let (mut mech_count, mut mech_tokens, mut mech_cost) = (0u64, 0u64, 0f64);
 
@@ -1942,6 +1998,26 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                                 .or_default()
                                 .compacts
                                 .push(cts.timestamp());
+                        }
+                    }
+                    // /comandos del usuario: quedan como <command-name> en el
+                    // mensaje (estas líneas tampoco traen usage)
+                    if line.contains("<command-name>") {
+                        let in_window = v["timestamp"]
+                            .as_str()
+                            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                            .map(|d| d.with_timezone(&Utc) >= window_ago)
+                            .unwrap_or(false);
+                        if in_window {
+                            if let Some(s) = v["message"]["content"].as_str() {
+                                command_names(s, &mut skills_used);
+                            } else if let Some(arr) = v["message"]["content"].as_array() {
+                                for b in arr {
+                                    if let Some(t2) = b["text"].as_str() {
+                                        command_names(t2, &mut skills_used);
+                                    }
+                                }
+                            }
                         }
                     }
                     // resultados de lecturas: se MIDE lo que viajó de verdad
@@ -2030,6 +2106,13 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                         if let Some(rest) = name.strip_prefix("mcp__") {
                             mcp_used
                                 .insert(rest.split("__").next().unwrap_or(rest).to_string());
+                        }
+                        if name == "Skill" {
+                            if let Some(sk) = b["input"]["skill"].as_str() {
+                                skills_used.insert(
+                                    sk.split(':').last().unwrap_or(sk).to_lowercase(),
+                                );
+                            }
                         }
                         if name == "Read" {
                             if let Some(p) = b["input"]["file_path"].as_str() {
@@ -2157,6 +2240,30 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     unused.sort();
     for server in unused {
         findings.push(Finding { kind: "mcp_unused".into(), server, ..Default::default() });
+    }
+    // skills instaladas y sin usar en la ventana: UNA tarjeta agregada (una
+    // por skill inundaría el reporte). Solo con ventana de 7+ días: "no
+    // usaste tu skill HOY" no dice nada y devalúa a las demás tarjetas.
+    if window_days >= 7 {
+        let used_cfg = skills_used_at(&window_ago);
+        let mut sk_unused: Vec<String> = skills_installed()
+            .into_iter()
+            .filter(|s| !skills_used.contains(s) && !used_cfg.contains(s))
+            .collect();
+        sk_unused.sort();
+        if !sk_unused.is_empty() {
+            let shown = if sk_unused.len() > 8 {
+                format!("{} …", sk_unused[..8].join(", "))
+            } else {
+                sk_unused.join(", ")
+            };
+            findings.push(Finding {
+                kind: "skills_unused".into(),
+                count: sk_unused.len() as u64,
+                file: shown,
+                ..Default::default()
+            });
+        }
     }
     findings.sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
     findings.truncate(MAX_FINDINGS);
