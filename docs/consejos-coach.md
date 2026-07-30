@@ -161,8 +161,10 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
    OJO: la ficha de /resume se escribió SIN el mito de /rename (un modelo
    chico lo inventó en la demo que evaluamos — la ficha curada es
    exactamente la defensa contra eso).
-3. [~] El motor de reglas de sesión activa — HECHO 2026-07-30 (SIN validar
-   en vivo; falta cargo check). Comando `get_coach` en Rust (async +
+3. [~] El motor de reglas de sesión activa — HECHO 2026-07-30, cargo
+   check limpio ese mismo día; SIN validar en vivo (necesita una sesión
+   de Claude Code activa EN WINDOWS: el coach mira la máquina donde corre
+   la app, no el VPS). Comando `get_coach` en Rust (async +
    spawn_blocking): localiza los logs locales tocados en los últimos 30
    min (COACH_ACTIVE_MIN) y lee SOLO los bytes añadidos desde la última
    pasada (offset por archivo en COACH_STATE, cortando en la última \n;
