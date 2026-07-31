@@ -66,9 +66,13 @@
      enciende cuando hay un consejo nuevo. Ámbar más oscuro en claro para
      que resalte. Clic → panel directo en Consejos. SVG inline: la fuente
      de iconos de la maqueta se descarga de fuera y la CSP no lo permite. */
-  .tbulb{flex:0 0 auto;display:inline-flex;cursor:pointer;color:#fbbf24}
-  body.light .tbulb{color:#e0930b}
-  .tbulb svg{width:15px;height:15px;display:block}
+  .tbulb{flex:0 0 auto;display:inline-flex;cursor:pointer;color:#fbbf24;
+    filter:drop-shadow(0 0 3px rgba(251,191,36,.65))}
+  body.light .tbulb{color:#e0930b;
+    filter:drop-shadow(0 0 3px rgba(224,147,11,.4))}
+  /* el resplandor es lo que lo hace verse PRENDIDO (validación de Oscar
+     2026-07-31: solo contorno parecía apagado y perdía junto a la campana) */
+  .tbulb svg{width:16px;height:16px;display:block}
   .tbulb[hidden]{display:none}
   body.loading .pct,body.stale .pct{color:var(--dim)}
 </style>
