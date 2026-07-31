@@ -1205,8 +1205,21 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       [ ] alta de servidor SIN Python → ERR_NO_PYTHON traducido
       [ ] alarmas reales: cruzar umbral, 100%, y ventana nueva
           reconocida (trackResets/windowChanged con datos de verdad)
-      (Después de cerrar esto: faqMisses + issue pre-llenado, la última
-      pieza del doc de Consejos. El modelo local quedó DESCARTADO dentro de la
+      FAQMISSES + ISSUE PRE-LLENADO — HECHO 2026-07-31 (SIN validar en
+      vivo ni cargo check; tocó Rust: comando open_faq_issue con base
+      constante ISSUES_URL y lanzado por rundll32, no cmd/start — el &
+      de la query rompería cmd). Búsqueda 4+ letras sin ficha → se
+      apunta local (faqMisses, dedup, tope 50, 1.5 s de pausa); pie de
+      Consejos con "N búsquedas sin ficha este mes" + botón que abre el
+      issue pre-llenado con la lista. CAVEAT: repo privado = issues 404
+      para no-colaboradores; útil para todos al hacerlo público. CON
+      ESTO EL DOC DE CONSEJOS QUEDA COMPLETO (§10: 5/5). PROBAR: en
+      Consejos buscar algo inexistente ("docker" p. ej.), esperar 2 s,
+      borrar el filtro → pie con el contador; clic en "Proponerlas en
+      GitHub" → navegador con el issue redactado.
+      (Después de cerrar esto: la propuesta de TELEGRAM opt-in
+      (restablecimientos/100% al teléfono, diseño ya platicado) y las
+      pruebas pendientes de la lista. El modelo local quedó DESCARTADO dentro de la
       app también en su variante "modelo-lector" — fase 2 opcional aparte,
       compuertas en ~/.michiclaude/notas-coach-local.md.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python

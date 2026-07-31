@@ -3082,6 +3082,7 @@ pub fn run() {
             set_pill_style,
             toggle_pill_card,
             drag_pill_from_card,
+            open_faq_issue,
             save_hub_config,
             load_hub_config,
             check_update,
@@ -3589,6 +3590,37 @@ fn toggle_pill_card(app: tauri::AppHandle, open: bool) {
     let _ = pill.hide();   // la cabecera del detalle la sustituye
 }
 
+/// Abre un issue de GitHub PRE-LLENADO con las búsquedas sin ficha de la
+/// pestaña Consejos (faqMisses, docs/consejos-coach.md §9). La BASE de la
+/// URL es una constante; título y cuerpo llegan del panel YA
+/// percent-encodados (encodeURIComponent) y aquí solo se valida que lo
+/// estén — cualquier otro carácter descarta la apertura entera. En
+/// Windows se lanza con rundll32 (NO con `cmd /C start`: cmd re-parsea la
+/// línea y el `&` de la query la partiría en dos comandos).
+#[tauri::command]
+fn open_faq_issue(title: String, body: String) {
+    let enc_ok = |s: &str| {
+        s.chars()
+            .all(|c| c.is_ascii_alphanumeric() || "%-_.!~*'()".contains(c))
+    };
+    if !enc_ok(&title) || !enc_ok(&body) {
+        return;
+    }
+    let url = format!("{}?title={}&body={}", ISSUES_URL, title, body);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let _ = std::process::Command::new("rundll32")
+            .args(["url.dll,FileProtocolHandler", &url])
+            .creation_flags(0x0800_0000)
+            .spawn();
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
+    }
+}
+
 /// Guarda los ajustes del panel en el hub, para que otra PC los herede.
 /// Se escribe en TODOS los servidores configurados: si mañana uno no está,
 /// los ajustes siguen en el otro.
@@ -3693,6 +3725,9 @@ fn ssh_write_file(host: &str, path: &str, content: &str) -> Result<(), String> {
 /// archivo descargado: un aviso manipulado podría cambiar el texto, pero
 /// jamás a dónde lleva el botón.
 const RELEASES_URL: &str = "https://github.com/oscarorozcos/michiclaude/releases/latest";
+/// Base del issue pre-llenado de faqMisses. CONSTANTE, como RELEASES_URL:
+/// el destino de un botón jamás sale de datos externos.
+const ISSUES_URL: &str = "https://github.com/oscarorozcos/michiclaude/issues/new";
 
 /// ¿Hay versión nueva? Devuelve su número, o nada. Un fallo de red no es un
 /// error que merezca molestar: se devuelve `None` y se reintenta otro día.

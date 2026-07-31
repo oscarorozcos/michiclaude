@@ -227,4 +227,21 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
    memoria — si MichiClaude no estuvo abierto durante la sesión, no hay
    resumen (y si la app se reinicia a media sesión, el resumen sale
    solo con lo visto desde el reinicio).
-5. [ ] faqMisses + issue pre-llenado.
+5. [~] faqMisses + issue pre-llenado — HECHO 2026-07-31 (SIN validar en
+   vivo ni cargo check). Una búsqueda de 4+ letras en el filtro de
+   Consejos que no enciende NINGUNA ficha se apunta en localStorage
+   `faqMisses` tras 1.5 s de pausa (teclear no es preguntar), con dedup
+   case-insensitive y tope 50. El pie de la pestaña dice "N búsquedas
+   sin ficha este mes" (tips_miss ×8) y el botón (tips_propose) abre un
+   issue de GitHub PRE-LLENADO con la lista del mes — el usuario lo
+   revisa y lo envía él mismo: cero telemetría, la compuerta de las
+   20-30 preguntas del modelo-lector se junta a la vista. Rust:
+   `open_faq_issue(title, body)` — base CONSTANTE (ISSUES_URL, misma
+   regla que RELEASES_URL), valida que título y cuerpo vengan
+   percent-encodados (si no, descarta todo), y en Windows lanza con
+   rundll32 url.dll,FileProtocolHandler — NUNCA con `cmd /C start`: cmd
+   re-parsea la línea y el & de la query la partiría en dos comandos.
+   CAVEAT conocido: con el repo PRIVADO la página de issues da 404 a
+   quien no sea colaborador — hoy solo Oscar puede usar el botón; se
+   vuelve útil para todos cuando el repo sea público (decisión ya
+   pendiente por el auto-updater).
