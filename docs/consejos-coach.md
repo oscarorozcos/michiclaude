@@ -227,8 +227,14 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
    memoria — si MichiClaude no estuvo abierto durante la sesión, no hay
    resumen (y si la app se reinicia a media sesión, el resumen sale
    solo con lo visto desde el reinicio).
-5. [~] faqMisses + issue pre-llenado — HECHO 2026-07-31 (SIN validar en
-   vivo ni cargo check). Una búsqueda de 4+ letras en el filtro de
+5. [x] faqMisses + issue pre-llenado — HECHO Y VALIDADO EN VIVO
+   2026-07-31 (capturas de Oscar: contador con Proponerlas/Descartar, el
+   issue abrió pre-llenado con los ACENTOS correctos — la cadena
+   encodeURIComponent → validación Rust → rundll32 sobrevivió al & — y
+   Descartar limpió la línea). De la validación salió el arreglo del
+   singular ("1 búsqueda", no "1 búsquedas") en los 5 idiomas que
+   declinan. El botón Descartar fue propuesta de Oscar: quien conoce
+   GitHub propone, quien no, descarta y en paz — sin canales extra. Una búsqueda de 4+ letras en el filtro de
    Consejos que no enciende NINGUNA ficha se apunta en localStorage
    `faqMisses` tras 1.5 s de pausa (teclear no es preguntar), con dedup
    case-insensitive y tope 50. El pie de la pestaña dice "N búsquedas
