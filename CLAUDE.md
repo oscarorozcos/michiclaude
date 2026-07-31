@@ -1123,10 +1123,21 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       Tres reglas v1: ctx≥120k → compact; pausa≥6min con ctx≥30k → cache;
       mismo archivo leído ≥3 veces → attach. Detalle en
       docs/consejos-coach.md §10.3.
-      (LO SIGUIENTE A TRABAJAR: validar el coach en vivo cuando haya una
-      sesión de Claude Code en Windows — la regla más fácil de provocar
-      es la de pausa: 6+ min quietos con 30k+ de contexto; luego el
-      resumen de sesión por plantilla y faqMisses. El modelo local quedó DESCARTADO dentro de la
+      VALIDADO PARCIALMENTE en vivo el 2026-07-31 (la regla de contexto
+      alto disparó con ~372k reales y el contador acento salió); del
+      feedback de Oscar salieron tres ajustes YA implementados:
+      la ficha dice a qué sesión aplicar ("· proyecto · local", campo
+      project en CoachHit — FALTA cargo check), el coach avisa en el
+      widget (post-it ACENTO junto a la pilita del gatito, punto acento
+      junto a la campana de la pastilla, clic = panel en Consejos vía
+      panel:tips, campo coach en quota:update, mismo interruptor
+      fndBadgeOff) y el "sin datos" del widget dice el MOTIVO (reason =
+      errText en quota:update, #why en card.html, tooltip del tray) —
+      decisión: sin animación especial de sin-datos, el dibujo del gatito
+      refleja solo el estado real de la cuota.
+      (LO SIGUIENTE A TRABAJAR: cargo check + validar en vivo los tres
+      ajustes (post-it acento, punto de la pastilla, motivo del
+      sin-datos); luego el resumen de sesión por plantilla y faqMisses. El modelo local quedó DESCARTADO dentro de la
       app también en su variante "modelo-lector" — fase 2 opcional aparte,
       compuertas en ~/.michiclaude/notas-coach-local.md.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python

@@ -15,6 +15,7 @@
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
     --ink:#111; --paper:#FDFCF9; --brand:#d97757;
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
+    --acc:#2ea3b4;   /* turquesa del post-it de consejos (blanco legible) */
     /* zona de clic sobre la CABEZA del gato (abre el panel). Rectángulo
        invisible; el resto de la ventana —laptop y márgenes— solo arrastra.
        Para calibrarla: pinta .head con background:rgba(255,0,0,.25) */
@@ -99,12 +100,28 @@
     width:11px;height:5px;transform:translateX(-50%) rotate(3deg);
     background:rgba(255,255,255,.6);border:1px solid var(--ink);
     border-radius:1px}
+  /* post-it ACENTO de consejos, asomado junto a la pilita roja: consejo,
+     no alarma (rojo = hallazgos). Solo con aviso del coach (hastip);
+     clic = panel directo en Consejos. */
+  .tstack{position:absolute;left:calc(var(--bx) + var(--bs)*1.35);
+    top:calc(var(--by) + var(--bs)*0.55);width:calc(var(--bs)*.82);
+    height:calc(var(--bs)*.82);display:none;opacity:.78;
+    transition:opacity .15s;cursor:pointer;z-index:4}
+  .tstack:hover{opacity:1}
+  body.hastip .tstack{display:block}
+  .tbadge{position:absolute;inset:0;border:1.6px solid var(--ink);
+    border-radius:2px;background:var(--acc);color:#fff;
+    font-family:var(--mono);font-weight:800;font-size:9.5px;
+    display:flex;align-items:center;justify-content:center;padding:0;
+    transform:rotate(9deg);cursor:pointer;
+    box-shadow:0 2px 3px rgba(0,0,0,.3)}
 </style>
 </head>
 <body class="nodata">
 <img class="cat" id="cat" src="cat-black.gif" alt="" draggable="false">
 <button class="head" id="head" aria-label="MichiClaude"></button>
 <div class="fstack" id="fstack"><i class="fn2"></i><i class="fn1"></i><button class="fbadge" id="fbadge">!</button></div>
+<div class="tstack" id="tstack"><button class="tbadge" id="tbadge">!</button></div>
 <div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b></div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
@@ -160,6 +177,13 @@ function apply(d){
     $("fbadge").textContent = f.n>9 ? "9+" : String(f.n);
     $("fbadge").title = f.tip||"";
   }
+  // post-it acento del coach: mismo trato que el de hallazgos
+  const tc=d.coach;
+  document.body.classList.toggle("hastip", !!tc);
+  if(tc){
+    $("tbadge").textContent = tc.n>9 ? "9+" : String(tc.n);
+    $("tbadge").title = tc.tip||"";
+  }
   if(d.ok===false) return;                 // conserva el último % bueno
   const s=d.session;
   if(!s) return;                           // aún sin cuota: cápsula oculta
@@ -212,6 +236,12 @@ $("fstack").addEventListener("mousedown",e=>e.stopPropagation());
 $("fstack").addEventListener("click",e=>{
   e.stopPropagation(); foldBubble();
   EVENT?.emit("panel:findings"); invoke?.("show_panel");
+});
+// clic en el post-it acento = abrir el panel directo en Consejos
+$("tstack").addEventListener("mousedown",e=>e.stopPropagation());
+$("tstack").addEventListener("click",e=>{
+  e.stopPropagation(); foldBubble();
+  EVENT?.emit("panel:tips"); invoke?.("show_panel");
 });
 // clic derecho oculta el widget (se reactiva desde Preferencias o el tray)
 window.addEventListener("contextmenu",e=>{

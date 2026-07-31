@@ -162,9 +162,27 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
    chico lo inventó en la demo que evaluamos — la ficha curada es
    exactamente la defensa contra eso).
 3. [~] El motor de reglas de sesión activa — HECHO 2026-07-30, cargo
-   check limpio ese mismo día; SIN validar en vivo (necesita una sesión
-   de Claude Code activa EN WINDOWS: el coach mira la máquina donde corre
-   la app, no el VPS). Comando `get_coach` en Rust (async +
+   check limpio; VALIDADO EN VIVO PARCIALMENTE el 2026-07-31: la regla de
+   contexto alto disparó con dato real (~372k) y el contador acento salió
+   en la pestaña. La validación dejó DOS ajustes pedidos por Oscar, ya
+   implementados: (1) la ficha disparada dice A QUÉ sesión aplicar el
+   consejo — CoachHit ganó `project` y la línea "Ahora:" termina en
+   "· proyecto · local" (con VPS y Windows abiertos a la vez la duda era
+   real; recordar: el coach SOLO ve esta máquina); (2) el coach AVISA EN
+   EL WIDGET sin abrir el panel — post-it ACENTO junto a la pilita roja
+   del gatito (tstack/tbadge, turquesa #2ea3b4, --acc nuevo en cat.html)
+   y punto acento junto a la campana de la pastilla (tdotc); clic = panel
+   directo en Consejos (evento panel:tips); viaja como campo `coach` en
+   quota:update, comparte el interruptor fndBadgeOff y se apaga al
+   pintarse la pestaña. Falta cargo check del campo `project` y ver los
+   indicadores del widget en vivo.
+   DEL MISMO REDONDEO: el estado "sin datos" del widget ya dice POR QUÉ
+   — el globo del gatito enseña el motivo (campo `reason` = errText del
+   panel, elemento #why en card.html) y el tooltip del tray lo añade
+   tras "sin datos de cuota". Sin claves i18n nuevas: reusa los ERR_* ×8.
+   Decisión de fondo: NINGUNA animación especial de "sin datos" — los
+   dibujos del gatito reflejan el estado real de la cuota y un arte de
+   sin-datos mentiría esa gramática. Comando `get_coach` en Rust (async +
    spawn_blocking): localiza los logs locales tocados en los últimos 30
    min (COACH_ACTIVE_MIN) y lee SOLO los bytes añadidos desde la última
    pasada (offset por archivo en COACH_STATE, cortando en la última \n;

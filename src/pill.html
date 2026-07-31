@@ -62,6 +62,11 @@
   body.light .fbell{color:#ef4444}
   .fbell svg{width:16px;height:16px;display:block}
   .fbell[hidden]{display:none}
+  /* punto ACENTO de consejos del coach: consejo, no alarma (la campana
+     roja es de hallazgos); clic → panel directo en Consejos */
+  .tdotc{flex:0 0 auto;width:8px;height:8px;border-radius:50%;
+    background:var(--acc);cursor:pointer}
+  .tdotc[hidden]{display:none}
   body.loading .pct,body.stale .pct{color:var(--dim)}
 </style>
 </head>
@@ -90,6 +95,7 @@
       <path d="M9 17v1a3 3 0 0 0 6 0v-1"/>
     </svg>
   </span>
+  <span class="tdotc" id="tdotc" hidden role="button"></span>
   <svg class="chev" id="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M6 9l6 6 6-6"/>
@@ -131,6 +137,10 @@ function render(d){
   const f=d?.fnd;
   $("fdot").hidden=!f;
   if(f) $("fdot").title=f.tip||"";
+  // punto acento del coach: mismo trato que la campana
+  const tc=d?.coach;
+  $("tdotc").hidden=!tc;
+  if(tc) $("tdotc").title=tc.tip||"";
   if(!d || d.ok===false){
     document.body.classList.add("stale");
     $("sPct").textContent="—"; $("wBox").hidden=true; $("xBox").hidden=true; return;
@@ -172,6 +182,8 @@ $("cap").addEventListener("click",e=>{
       {transform:"rotate(12deg)"},{transform:"rotate(-6deg)"},{transform:"rotate(0)"}],
       {duration:420});
     EVENT?.emit("panel:findings"); invoke?.("show_panel"); return; }
+  if(e.target.closest("#tdotc")){ // el punto acento abre el panel en Consejos
+    EVENT?.emit("panel:tips"); invoke?.("show_panel"); return; }
   open=!open; syncChev();
   invoke?.("toggle_pill_card",{open});
 });

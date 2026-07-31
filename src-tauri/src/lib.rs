@@ -2647,6 +2647,9 @@ struct CoachHit {
     rule: String,    // id de la ficha de Consejos que aplica
     session: String, // sid corto, para el "una vez por sesión" del frontend
     value: u64,      // el dato medido que rellena el hueco del texto
+    project: String, // carpeta de logs: con varias sesiones abiertas (VPS +
+                     // local) el usuario necesita saber a CUÁL aplicar el
+                     // consejo (lo pidió Oscar al validar, 2026-07-31)
 }
 
 static COACH_STATE: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, CoachSess>>> =
@@ -2664,6 +2667,7 @@ fn coach_scan() -> Vec<CoachHit> {
         if !ppath.is_dir() {
             continue;
         }
+        let proj_name = proj.file_name().to_string_lossy().to_string();
         let Ok(files) = fs::read_dir(&ppath) else { continue };
         for f in files.flatten() {
             let fp = f.path();
@@ -2750,6 +2754,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     rule: "compact".into(),
                     session: sid.clone(),
                     value: st.last_ctx / 1000, // se enseña en k
+                    project: proj_name.clone(),
                 });
             }
             let gap_min = (now - st.last_turn) / 60;
@@ -2758,6 +2763,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     rule: "cache".into(),
                     session: sid.clone(),
                     value: gap_min.max(0) as u64,
+                    project: proj_name.clone(),
                 });
             }
             if let Some((_, n)) = st
@@ -2766,7 +2772,12 @@ fn coach_scan() -> Vec<CoachHit> {
                 .filter(|(_, n)| **n >= COACH_REREAD)
                 .max_by_key(|(_, n)| **n)
             {
-                hits.push(CoachHit { rule: "attach".into(), session: sid, value: *n as u64 });
+                hits.push(CoachHit {
+                    rule: "attach".into(),
+                    session: sid,
+                    value: *n as u64,
+                    project: proj_name.clone(),
+                });
             }
         }
     }

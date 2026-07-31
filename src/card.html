@@ -47,6 +47,8 @@
     background:var(--accent);transition:width .4s}
   .fill.wk{background:var(--wk)}
   .rst{font-family:var(--mono);font-size:10px;color:var(--accent)}
+  /* motivo del "sin datos": qué pasa y qué hacer, en vez de un — mudo */
+  #why{font-size:10.5px;color:var(--mut);margin-top:6px;line-height:1.35}
   #extras{display:flex;flex-direction:column;gap:9px}
   #extras:empty{display:none}
   /* cola: vértice en var(--tailx), apuntando al gato (abajo por defecto) */
@@ -80,6 +82,7 @@
     <div class="rst" id="wRst"></div>
   </div>
   <div id="extras"></div>
+  <div id="why" hidden></div>
 </div>
 <div class="tail-b"></div><div class="tail-w"></div>
 
@@ -114,7 +117,12 @@ function render(d){
   // seguir al panel aunque conserve el último dato bueno
   const skin=d.skinTheme||d.theme;   // el usuario puede soltarlo del panel
   if(skin) document.body.classList.toggle("dark", skin!=="light");
-  if(d.ok===false) return;                 // conserva el último dato bueno
+  if(d.ok===false){
+    // conserva el último dato bueno, pero DICE por qué no hay uno fresco
+    if(d.reason){ $("why").textContent=d.reason; $("why").hidden=false; }
+    return;
+  }
+  $("why").hidden=true;
   if(d.labels){ $("sLab").textContent=d.labels.cardSes||"Session";
     $("wLab").textContent=d.labels.cardWeek||"Weekly"; }
   const s=d.session, w=d.weekly;
