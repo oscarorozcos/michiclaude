@@ -112,18 +112,22 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   icono — semanal (calendario) y el bucket semanal POR MODELO (destellos),
   que es un hueco VARIABLE: el icono se queda, el modelo cambia (Fable hoy,
   lo que salga mañana) y si el endpoint no reporta ninguno no se pinta.
-  SIMPLIFICADA el 2026-07-31 (decisión de Oscar): los huecos semanal y
-  por-modelo SALIERON de la cápsula y de la cabecera del detalle —
-  repetían lo que las filas del detalle ya desglosan, y con la campana
-  (hallazgos) y el foco ámbar (consejos) la cápsula saturaba. La cápsula
-  dice solo "Sesión X%" + indicadores; el CSS .m/.spk queda sin uso por
-  si un rediseño lo retoma. OJO: cápsula y cabecera del pcard deben ser
-  IDÉNTICAS o el despliegue "salta" en vez de crecer. Con eso las
-  ventanas pill/pcard bajaron de 280 a 250 de ancho (en
-  ensure_widget_windows, NO en el json) — el tamaño sigue FIJO
-  (adaptarlo en vivo es el bug de las transparentes); el hueco flexible
-  entre el % y la flecha ES el espacio donde nacen campana y foco, así
-  que la cápsula no cambia al aparecer ellos.
+  IDA Y VUELTA del 2026-07-31 (dejarlo escrito evita repetirla): los
+  huecos semanal/por-modelo SALIERON de la cápsula ("repetitivo con el
+  detalle") y VOLVIERON a las horas — Oscar los extrañó como vistazo
+  rápido. Quedaron: los huecos de vuelta, ancho de vuelta a 280 (las
+  ventanas se definen en ensure_widget_windows, NO en el json), el grupo
+  de contenido CENTRADO entre asa y flecha (márgenes auto en .mkbtn y
+  .chev), y el gatito+Sesión sin truncarse. Lo que SÍ quedó de esa ronda:
+  (1) SIN tooltips nativos en la cápsula (ni title del cap ni del bucket
+  por modelo: se veían encima del detalle); (2) el detalle se abre por
+  HOVER, no por clic — 250 ms de pausa para no abrir al pasar de largo,
+  se pliega 350 ms después de salir el mouse, pcard emite pcard:hover
+  para no plegarse mientras lo lees, y pcard:closed pone 1 s de respiro
+  (noHov) porque la pastilla reaparece BAJO el cursor y el hover lo
+  reabriría al instante. El clic queda para marca/campana/foco/asa y el
+  clic derecho oculta. OJO: cápsula y cabecera del pcard deben ser
+  IDÉNTICAS o el despliegue "salta" en vez de crecer.
   Iconos SVG en el propio archivo: la fuente Tabler de la maqueta se
   descarga de fuera y la CSP no lo permite. Color de los porcentajes: el
   VERDE de "todo bien" se cambió por el acento de la app (`--acc`: #56c7d6

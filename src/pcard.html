@@ -84,10 +84,21 @@
     <span class="grip">⠿</span>
     <span class="mk"><img src="icon-mini-panel.png" alt="" draggable="false"></span>
     <span class="lab" id="sesLab"></span><b class="pct" id="sPct">—</b>
-    <!-- Los huecos de semanal y por modelo se quitaron el 2026-07-31 con
-         los de la cápsula: la cabecera debe ser IDÉNTICA a la pastilla o
-         el despliegue "salta" en vez de crecer. Las filas de abajo ya
-         desglosan todo. -->
+    <!-- cabecera IDÉNTICA a la cápsula (o el despliegue salta): los
+         huecos se quitaron y VOLVIERON el mismo 2026-07-31 -->
+    <span class="m" id="wBox" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/>
+      </svg><span id="wPct"></span>
+    </span>
+    <span class="m" id="xBox" hidden>
+      <svg class="spk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M10 3.5 11.8 8.2 16.5 10 11.8 11.8 10 16.5 8.2 11.8 3.5 10 8.2 8.2Z"/>
+        <path d="M18 4v3M19.5 5.5h-3M18 15v3M19.5 16.5h-3"/>
+      </svg><span id="xPct"></span>
+    </span>
     <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
       stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M6 9l6 6 6-6"/>
@@ -149,6 +160,12 @@ function render(d){
   const s=d.session, w=d.weekly, ex=d.extras||[];
   $("sPct").textContent = s ? Math.round(s.pct)+"%" : "—";
   $("sPct").style.color = s ? col(Math.round(s.pct), s.pace) : "";
+  $("wBox").hidden=!w;
+  if(w){ $("wPct").textContent=Math.round(w.pct)+"%";
+    $("wBox").style.color=col(Math.round(w.pct),null); }
+  $("xBox").hidden=!ex[0];
+  if(ex[0]){ $("xPct").textContent=Math.round(ex[0].pct)+"%";
+    $("xBox").style.color=col(Math.round(ex[0].pct),null); }
 
   const wkLab=d.labels?.cardWeek||"Weekly";
   const list=$("list"); list.innerHTML="";
@@ -180,6 +197,10 @@ window.addEventListener("click",()=>{
   invoke?.("toggle_pill_card",{open:false});
   EVENT?.emit("notif:ready");   // si había un aviso esperando, vuelve a salir
 });
+// el detalle se abre por HOVER desde la cápsula (2026-07-31): avisar a la
+// pastilla cuando el mouse está aquí para que no lo pliegue a media lectura
+document.body.addEventListener("mouseenter",()=>EVENT?.emit("pcard:hover",{into:true}));
+document.body.addEventListener("mouseleave",()=>EVENT?.emit("pcard:hover",{into:false}));
 window.addEventListener("contextmenu",e=>e.preventDefault());
 </script>
 </body>

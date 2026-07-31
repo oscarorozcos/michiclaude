@@ -3822,13 +3822,11 @@ fn ensure_widget_windows(app: &tauri::AppHandle, style: &str) {
         ]
     } else {
         [
-            // 280→250 el 2026-07-31: al salir los huecos semanal/por-modelo
-            // la cápsula quedaba grande (lo notó Oscar). El tamaño sigue
-            // FIJO — adaptarlo en vivo es el bug de redimensionar ventanas
-            // transparentes — pero ajustado al contenido nuevo, con hueco
-            // reservado para campana + foco y los idiomas largos (ja/ko).
-            ("pill", "pill.html", "MichiClaude — widget", 250.0, 56.0),
-            ("pcard", "pcard.html", "MichiClaude — detalle", 250.0, 300.0),
+            // 280→250→280 el mismo 2026-07-31: los huecos semanal/por-modelo
+            // salieron de la cápsula y VOLVIERON a las horas (Oscar los
+            // extrañó), así que el ancho original volvió con ellos.
+            ("pill", "pill.html", "MichiClaude — widget", 280.0, 56.0),
+            ("pcard", "pcard.html", "MichiClaude — detalle", 280.0, 300.0),
         ]
     };
     for (label, url, title, w, h) in wins {
