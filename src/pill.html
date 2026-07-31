@@ -48,6 +48,9 @@
   .lab{font-size:13px;font-weight:500;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap}
   .pct{font-size:13.5px;font-weight:700;color:var(--txt-strong);white-space:nowrap}
+  /* .m/.spk quedaron sin uso el 2026-07-31 (los huecos semanal y por
+     modelo salieron de la cápsula); se conservan por si el detalle o un
+     rediseño los retoma — son 6 líneas */
   .m{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;
     font-size:12.5px;font-weight:600;white-space:nowrap}
   .m svg{width:15px;height:15px;flex:0 0 auto}
@@ -82,19 +85,10 @@
   <span class="grip" id="grip" title="⠿">⠿</span>
   <button class="mkbtn" id="mkbtn"><img id="mkImg" src="sticker-black.png" alt="" draggable="false"></button>
   <span class="lab" id="sesLab"></span><b class="pct" id="sPct">—</b>
-  <span class="m" id="wBox" hidden>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/>
-    </svg><span id="wPct"></span>
-  </span>
-  <span class="m" id="xBox" hidden>
-    <svg class="spk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M10 3.5 11.8 8.2 16.5 10 11.8 11.8 10 16.5 8.2 11.8 3.5 10 8.2 8.2Z"/>
-      <path d="M18 4v3M19.5 5.5h-3M18 15v3M19.5 16.5h-3"/>
-    </svg><span id="xPct"></span>
-  </span>
+  <!-- Los huecos de semanal y bucket por modelo se QUITARON el 2026-07-31
+       (decisión de Oscar): repetían lo que el detalle desplegable ya
+       enseña, y con la campana y el foco entrando la cápsula saturaba.
+       La cápsula dice solo "Sesión X%"; lo demás vive en el detalle. -->
   <span class="fbell" id="fdot" hidden role="button">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -157,21 +151,14 @@ function render(d){
   if(tc) $("tdotc").title=tc.tip||"";
   if(!d || d.ok===false){
     document.body.classList.add("stale");
-    $("sPct").textContent="—"; $("wBox").hidden=true; $("xBox").hidden=true; return;
+    $("sPct").textContent="—"; return;
   }
   document.body.classList.remove("stale");
-  const s=d.session, w=d.weekly, x=(d.extras||[])[0];
+  const s=d.session;
   $("sPct").textContent = s ? Math.round(s.pct)+"%" : "—";
   $("sPct").style.color = s ? col(Math.round(s.pct), s.pace) : "";
-  $("wBox").hidden = !w;
-  if(w){ $("wPct").textContent=Math.round(w.pct)+"%";
-    $("wBox").style.color=col(Math.round(w.pct),null); }
-  // tercer hueco: el bucket semanal por MODELO, que es variable — el icono se
-  // queda y el modelo cambia. Si el endpoint no reporta ninguno, no se pinta.
-  $("xBox").hidden = !x;
-  if(x){ $("xPct").textContent=Math.round(x.pct)+"%";
-    $("xBox").style.color=col(Math.round(x.pct),null);
-    $("xBox").title=x.label||""; }
+  // semanal y bucket por modelo viven en el DETALLE desplegable desde el
+  // 2026-07-31; el tooltip de la cápsula los sigue resumiendo
   if(d.tip) $("cap").title=d.tip;
 }
 

@@ -28,7 +28,12 @@
     padding:11px 34px 10px 14px;display:flex;align-items:center;cursor:pointer}
   body.down .box{top:32px;bottom:0}
   .msg{font-size:12px;font-weight:700;line-height:1.35}
-  .pico,.psub,.arrow{display:none}   /* solo existen en modo cápsula */
+  .pico,.arrow{display:none}   /* solo existen en modo cápsula */
+  /* la sublínea ("clic para ver el detalle") también en el globo cómic:
+     los avisos de hallazgos la traen y en el gatito no se veía mientras
+     la pastilla sí la enseñaba (lo notó Oscar 2026-07-31) */
+  .psub{display:block;font-size:10.5px;margin-top:4px;opacity:.7}
+  .psub:empty{display:none}
   .ptext{min-width:0}
   .x{position:absolute;right:6px;top:6px;width:20px;height:20px;border-radius:50%;
     border:2px solid var(--ink);background:var(--paper);color:var(--ink);
