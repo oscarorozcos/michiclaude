@@ -1144,9 +1144,26 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       como Hallazgos?" quedó respondida y documentada en
       docs/consejos-coach.md §10.3: a propósito, el globo es solo para lo
       que duele en dólares.
-      (LO SIGUIENTE A TRABAJAR: ver en vivo el punto acento de la
-      PASTILLA y el motivo del sin-datos (el post-it del gatito ya está
-      validado); luego el resumen de sesión por plantilla y faqMisses. El modelo local quedó DESCARTADO dentro de la
+      RESUMEN DE SESIÓN — IMPLEMENTADO 2026-07-31 (SIN cargo check ni
+      validación en vivo): sesión quieta 10+ min con 5+ turnos → tarjeta
+      «ai-title» + minutos/comandos/archivos editados, arriba de
+      Consejos, una vez por sesión. Detalle en docs/consejos-coach.md
+      §10.4. PROBAR: sesión de Claude Code en Windows con trabajo real
+      (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
+      abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
+      LISTA DE PRUEBAS PENDIENTES (Oscar pidió mantenerla; se van
+      cerrando conforme mande capturas — actualizar aquí):
+      [ ] cargo check del resumen de sesión (tocó Rust)
+      [ ] resumen de sesión en vivo (receta arriba)
+      [ ] punto turquesa del coach en la PASTILLA (cambiar de widget)
+      [ ] motivo del "sin datos" en el globo del gatito y tooltip
+      [ ] tarjeta de subagentes con datos reales (isSidechain en Windows)
+      [ ] detector de hooks con un hook real
+      [ ] alta de servidor SIN Python → ERR_NO_PYTHON traducido
+      [ ] alarmas reales: cruzar umbral, 100%, y ventana nueva
+          reconocida (trackResets/windowChanged con datos de verdad)
+      (Después de cerrar esto: faqMisses + issue pre-llenado, la última
+      pieza del doc de Consejos. El modelo local quedó DESCARTADO dentro de la
       app también en su variante "modelo-lector" — fase 2 opcional aparte,
       compuertas en ~/.michiclaude/notas-coach-local.md.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python

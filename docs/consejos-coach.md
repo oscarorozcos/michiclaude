@@ -211,5 +211,20 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
    rojo es identidad de Hallazgos); "visto" solo al pintarse con la
    pestaña visible. Sondeo cada 3 min + primero a los 60 s. Nada va al
    globo: el globo es del umbral en dólares.
-4. [ ] Resumen por plantilla al detectar sesión terminada.
+4. [~] Resumen por plantilla — HECHO 2026-07-31 (SIN validar en vivo ni
+   cargo check). La sesión que ESTUVO viva y se queda quieta 10+ min
+   (COACH_SUM_QUIET) con 5+ turnos (COACH_SUM_MIN_TURNS) emite UNA vez
+   (flag done) un CoachHit rule:"sum" con título (ai-title del log, SOLO
+   display, respaldo = nombre del proyecto), minutos (last-first turn),
+   comandos (tool_use Bash, dedup por id) y archivos editados
+   (Edit/Write/NotebookEdit, set de rutas). El panel la pinta ARRIBA de
+   Consejos como tarjeta-espejo abierta: «título» / "Resumen de la
+   sesión — proyecto · local" / "N min · N comandos · N archivos"
+   (tip_sum_t / tip_sum_line ×8); el título pasa por esc() antes del
+   innerHTML (es texto generado). Cuenta en el contador y en el aviso
+   del widget como cualquier consejo; visto = despachado; con filtro
+   activo no se enseña. LIMITACIÓN v1 asumida: el estado vive en
+   memoria — si MichiClaude no estuvo abierto durante la sesión, no hay
+   resumen (y si la app se reinicia a media sesión, el resumen sale
+   solo con lo visto desde el reinicio).
 5. [ ] faqMisses + issue pre-llenado.

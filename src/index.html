@@ -804,6 +804,8 @@ en:{
   tip_now_compact:n=>`Now: this session carries ~${n}k tokens of context`,
   tip_now_cache:n=>`Now: ${n} min pause with a big context — the cache has expired`,
   tip_now_attach:n=>`Now: one file was read ${n} times in this session`,
+  tip_sum_t:"Session recap",
+  tip_sum_line:(m,c,e)=>`${m} min · ${c} commands · ${e} files edited`,
   fnd_ignore:"Ignore",
   fnd_hidden:n=>`${n} hidden`,
   fnd_restore:"show again",
@@ -1011,6 +1013,8 @@ es:{
   tip_now_compact:n=>`Ahora: esta sesión lleva ~${n}k tokens de contexto`,
   tip_now_cache:n=>`Ahora: ${n} min de pausa con contexto grande — el caché ya venció`,
   tip_now_attach:n=>`Ahora: un mismo archivo se leyó ${n} veces en esta sesión`,
+  tip_sum_t:"Resumen de la sesión",
+  tip_sum_line:(m,c,e)=>`${m} min · ${c} comandos · ${e} archivos editados`,
   fnd_ignore:"Ignorar",
   fnd_hidden:n=>`${n} ocultos`,
   fnd_restore:"volver a mostrar",
@@ -1218,6 +1222,8 @@ pt:{
   tip_now_compact:n=>`Agora: esta sessão carrega ~${n}k tokens de contexto`,
   tip_now_cache:n=>`Agora: ${n} min de pausa com contexto grande — o cache já venceu`,
   tip_now_attach:n=>`Agora: um mesmo arquivo foi lido ${n} vezes nesta sessão`,
+  tip_sum_t:"Resumo da sessão",
+  tip_sum_line:(m,c,e)=>`${m} min · ${c} comandos · ${e} arquivos editados`,
   fnd_ignore:"Ignorar",
   fnd_hidden:n=>`${n} ocultos`,
   fnd_restore:"mostrar de novo",
@@ -1425,6 +1431,8 @@ fr:{
   tip_now_compact:n=>`Maintenant : cette session porte ~${n}k tokens de contexte`,
   tip_now_cache:n=>`Maintenant : ${n} min de pause avec un gros contexte — le cache a expiré`,
   tip_now_attach:n=>`Maintenant : un même fichier a été lu ${n} fois dans cette session`,
+  tip_sum_t:"Résumé de la session",
+  tip_sum_line:(m,c,e)=>`${m} min · ${c} commandes · ${e} fichiers modifiés`,
   fnd_ignore:"Ignorer",
   fnd_hidden:n=>`${n} masqués`,
   fnd_restore:"réafficher",
@@ -1632,6 +1640,8 @@ de:{
   tip_now_compact:n=>`Jetzt: diese Sitzung trägt ~${n}k Tokens Kontext`,
   tip_now_cache:n=>`Jetzt: ${n} Min. Pause mit großem Kontext — der Cache ist abgelaufen`,
   tip_now_attach:n=>`Jetzt: dieselbe Datei wurde in dieser Sitzung ${n}-mal gelesen`,
+  tip_sum_t:"Sitzungsüberblick",
+  tip_sum_line:(m,c,e)=>`${m} Min. · ${c} Befehle · ${e} Dateien bearbeitet`,
   fnd_ignore:"Ignorieren",
   fnd_hidden:n=>`${n} ausgeblendet`,
   fnd_restore:"wieder anzeigen",
@@ -1839,6 +1849,8 @@ ja:{
   tip_now_compact:n=>`いま: このセッションのコンテキストは約${n}kトークン`,
   tip_now_cache:n=>`いま: 大きなコンテキストのまま${n}分の休止 — キャッシュは切れています`,
   tip_now_attach:n=>`いま: 同じファイルがこのセッションで${n}回読まれました`,
+  tip_sum_t:"セッションのまとめ",
+  tip_sum_line:(m,c,e)=>`${m}分 · コマンド${c}回 · 編集ファイル${e}件`,
   fnd_ignore:"無視",
   fnd_hidden:n=>`${n}件を非表示`,
   fnd_restore:"再表示",
@@ -2046,6 +2058,8 @@ ko:{
   tip_now_compact:n=>`지금: 이 세션의 컨텍스트는 약 ${n}k 토큰`,
   tip_now_cache:n=>`지금: 큰 컨텍스트로 ${n}분 휴지 — 캐시가 만료되었습니다`,
   tip_now_attach:n=>`지금: 같은 파일을 이 세션에서 ${n}번 읽었습니다`,
+  tip_sum_t:"세션 요약",
+  tip_sum_line:(m,c,e)=>`${m}분 · 명령 ${c}회 · 편집한 파일 ${e}개`,
   fnd_ignore:"무시",
   fnd_hidden:n=>`${n}개 숨김`,
   fnd_restore:"다시 표시",
@@ -2253,6 +2267,8 @@ zh:{
   tip_now_compact:n=>`现在: 这个会话已带着约 ${n}k token 的上下文`,
   tip_now_cache:n=>`现在: 带着大上下文暂停了 ${n} 分钟——缓存已过期`,
   tip_now_attach:n=>`现在: 同一个文件在这个会话里被读了 ${n} 次`,
+  tip_sum_t:"会话小结",
+  tip_sum_line:(m,c,e)=>`${m} 分钟 · ${c} 条命令 · 编辑了 ${e} 个文件`,
   fnd_ignore:"忽略",
   fnd_hidden:n=>`已隐藏${n}项`,
   fnd_restore:"重新显示",
@@ -3434,13 +3450,23 @@ function renderRemotes(){
 const TIPS=["clear","compact","cache","attach","ask","model"];
 function renderTips(){
   const q=($("tipFilter").value||"").toLowerCase();
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  // resúmenes de sesión terminada (regla "sum"): tarjeta-espejo con el
+  // ai-title del log (solo display; respaldo = nombre del proyecto) y los
+  // contadores medidos. Se enseñan arriba y solo sin filtro activo.
+  const sums=q?[]:coachHits.filter(h=>h.rule==="sum");
+  const sumHtml=sums.map(h=>`<div class="fnd tip open">
+      <div class="fnd-t">«${esc(h.title||fndProj(h.project))}»</div>
+      <div class="fnd-m">${t("tip_sum_t")} — ${fndProj(h.project)} · ${t("src_local")}</div>
+      <div class="fnd-f">${t("tip_sum_line",h.value,h.cmds,h.edits)}</div>
+    </div>`).join("");
   // fichas disparadas por el motor de reglas: primero, abiertas y con su
   // línea "Ahora: <dato medido>" — el consejo en el momento en que sirve
-  const hot={}; coachHits.forEach(h=>{ if(!(h.rule in hot)) hot[h.rule]=h; });
+  const hot={}; coachHits.forEach(h=>{ if(h.rule!=="sum"&&!(h.rule in hot)) hot[h.rule]=h; });
   const ids=[...TIPS].sort((a,b)=>((b in hot)?1:0)-((a in hot)?1:0));
   const list=ids.filter(id=>!q ||
     (t("tip_"+id+"_t")+" "+t("tip_"+id+"_b")).toLowerCase().includes(q));
-  $("tipList").innerHTML=list.map(id=>{
+  $("tipList").innerHTML=(sumHtml + list.map(id=>{
     const h=hot[id];
     // la ficha disparada dice A QUÉ sesión aplicar el consejo: proyecto +
     // "local" — el coach solo mira esta máquina, y con el VPS abierto al
@@ -3451,7 +3477,7 @@ function renderTips(){
       <div class="fnd-t">${t("tip_"+id+"_t")}</div>
       ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value)} — ${donde}</div>`:""}
       <div class="fnd-f">${t("tip_"+id+"_b")}</div>
-    </div>`;}).join("")
+    </div>`;}).join(""))
     || `<div style="font-size:11.5px;margin-top:10px;color:var(--txt-dim)">${t("tips_none")}</div>`;
   $("tipList").querySelectorAll(".tip").forEach(el=>
     el.addEventListener("click",()=>el.classList.toggle("open")));

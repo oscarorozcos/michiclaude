@@ -2632,24 +2632,35 @@ const COACH_CTX_HIGH: u64 = 120_000; // tokens de contexto para sugerir /compact
 const COACH_GAP_MIN: i64 = 6; // minutos de pausa para avisar del caché vencido
 const COACH_GAP_CTX: u64 = 30_000; // ...solo si hay contexto que valga la pena
 const COACH_REREAD: u32 = 3; // lecturas del mismo archivo en la sesión
+const COACH_SUM_QUIET: i64 = 10; // minutos quieta = sesión terminada: resumen
+const COACH_SUM_MIN_TURNS: u64 = 5; // por debajo no hay nada que resumir
 
 #[derive(Default)]
 struct CoachSess {
     offset: u64,
     last_ctx: u64,      // cache_read+cache_write del último turno principal
+    first_turn: i64,    // epoch del primer turno con usage (para la duración)
     last_turn: i64,     // epoch del último turno con usage
+    turns: u64,
+    cmds: u64,          // tool_use Bash (comandos ejecutados)
     reads: HashMap<String, u32>,
-    read_ids: HashSet<String>, // dedup de tool_use (reanudaciones copian líneas)
+    edits: HashSet<String>, // archivos tocados con Edit/Write/NotebookEdit
+    tool_ids: HashSet<String>, // dedup de tool_use (reanudaciones copian líneas)
+    title: String,      // ai-title del log — SOLO display, campo interno
+    done: bool,         // el resumen ya se emitió: una vez por sesión
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Default)]
 struct CoachHit {
-    rule: String,    // id de la ficha de Consejos que aplica
+    rule: String,    // id de la ficha de Consejos — o "sum" para el resumen
     session: String, // sid corto, para el "una vez por sesión" del frontend
-    value: u64,      // el dato medido que rellena el hueco del texto
+    value: u64,      // el dato medido (en "sum": minutos de duración)
     project: String, // carpeta de logs: con varias sesiones abiertas (VPS +
                      // local) el usuario necesita saber a CUÁL aplicar el
                      // consejo (lo pidió Oscar al validar, 2026-07-31)
+    title: String,   // solo "sum": el ai-title (vacío = respaldo al proyecto)
+    cmds: u64,       // solo "sum": comandos ejecutados
+    edits: u64,      // solo "sum": archivos editados distintos
 }
 
 static COACH_STATE: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, CoachSess>>> =
@@ -2716,6 +2727,15 @@ fn coach_scan() -> Vec<CoachHit> {
                         .as_str()
                         .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                         .map(|d| d.timestamp());
+                    // título de la sesión: Claude Code lo escribe él mismo en
+                    // el log (campo interno — SOLO display, nunca lógica)
+                    if v["type"].as_str() == Some("ai-title") {
+                        if let Some(t2) = v["aiTitle"].as_str() {
+                            if !t2.trim().is_empty() {
+                                st.title = t2.trim().to_string();
+                            }
+                        }
+                    }
                     let usage = &v["message"]["usage"];
                     if usage.is_object() && !v["isSidechain"].as_bool().unwrap_or(false) {
                         let ctx = usage["cache_read_input_tokens"].as_u64().unwrap_or(0)
@@ -2723,21 +2743,36 @@ fn coach_scan() -> Vec<CoachHit> {
                         if ctx > 0 {
                             st.last_ctx = ctx;
                         }
+                        st.turns += 1;
                         if let Some(t2) = ts {
+                            if st.first_turn == 0 {
+                                st.first_turn = t2;
+                            }
                             st.last_turn = t2;
                         }
                     }
                     if let Some(blocks) = v["message"]["content"].as_array() {
                         for b in blocks {
-                            if b["type"].as_str() == Some("tool_use")
-                                && b["name"].as_str() == Some("Read")
-                            {
-                                let id = b["id"].as_str().unwrap_or("");
-                                if let Some(p) = b["input"]["file_path"].as_str() {
-                                    if !id.is_empty() && st.read_ids.insert(id.to_string()) {
+                            if b["type"].as_str() != Some("tool_use") {
+                                continue;
+                            }
+                            let id = b["id"].as_str().unwrap_or("");
+                            if id.is_empty() || !st.tool_ids.insert(id.to_string()) {
+                                continue; // repetido: reanudaciones copian líneas
+                            }
+                            match b["name"].as_str().unwrap_or("") {
+                                "Read" => {
+                                    if let Some(p) = b["input"]["file_path"].as_str() {
                                         *st.reads.entry(p.to_string()).or_insert(0) += 1;
                                     }
                                 }
+                                "Bash" => st.cmds += 1,
+                                "Edit" | "Write" | "NotebookEdit" => {
+                                    if let Some(p) = b["input"]["file_path"].as_str() {
+                                        st.edits.insert(p.to_string());
+                                    }
+                                }
+                                _ => {}
                             }
                         }
                     }
@@ -2755,6 +2790,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     session: sid.clone(),
                     value: st.last_ctx / 1000, // se enseña en k
                     project: proj_name.clone(),
+                    ..Default::default()
                 });
             }
             let gap_min = (now - st.last_turn) / 60;
@@ -2764,6 +2800,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     session: sid.clone(),
                     value: gap_min.max(0) as u64,
                     project: proj_name.clone(),
+                    ..Default::default()
                 });
             }
             if let Some((_, n)) = st
@@ -2774,9 +2811,29 @@ fn coach_scan() -> Vec<CoachHit> {
             {
                 hits.push(CoachHit {
                     rule: "attach".into(),
-                    session: sid,
+                    session: sid.clone(),
                     value: *n as u64,
                     project: proj_name.clone(),
+                    ..Default::default()
+                });
+            }
+            // resumen de sesión (docs/consejos-coach.md §8): la sesión que
+            // ESTUVO viva se quedó quieta — una tarjeta-espejo con lo medido.
+            // Solo si hubo trabajo de verdad; una vez por sesión (done). Si
+            // MichiClaude no estuvo abierto durante la sesión no hay estado
+            // acumulado y no hay resumen — limitación asumida de la v1.
+            let quiet_min = now.saturating_sub(mtime) / 60;
+            if !st.done && quiet_min >= COACH_SUM_QUIET && st.turns >= COACH_SUM_MIN_TURNS {
+                st.done = true;
+                let mins = ((st.last_turn - st.first_turn) / 60).max(1) as u64;
+                hits.push(CoachHit {
+                    rule: "sum".into(),
+                    session: sid,
+                    value: mins,
+                    project: proj_name.clone(),
+                    title: st.title.clone(),
+                    cmds: st.cmds,
+                    edits: st.edits.len() as u64,
                 });
             }
         }
