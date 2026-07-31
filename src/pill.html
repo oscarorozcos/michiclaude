@@ -41,8 +41,12 @@
   .grip{flex:0 0 auto;width:13px;color:var(--dim);cursor:grab;
     font-size:11px;letter-spacing:-1px;text-align:center}
   .grip:active{cursor:grabbing}
+  /* margin-left:auto aquí + el auto de .chev centran el grupo (marca +
+     Sesión % + campana/foco) entre el asa y la flecha: sin avisos queda
+     centrado, y cuando nacen los iconos se suman al grupo y todo se
+     reacomoda parejo sin brincar (pedido de Oscar 2026-07-31) */
   .mkbtn{flex:0 0 auto;width:26px;height:26px;padding:0;border:0;background:none;
-    cursor:pointer;display:grid;place-items:center}
+    cursor:pointer;display:grid;place-items:center;margin-left:auto}
   .mkbtn img{width:26px;height:26px;object-fit:contain;display:block;
     -webkit-user-drag:none}
   .lab{font-size:13px;font-weight:500;min-width:0;overflow:hidden;
