@@ -517,6 +517,7 @@
            pre-llenado que el usuario revisa y envía él mismo. -->
       <div id="tipFoot" hidden style="font-size:10.5px;color:var(--txt-dim);margin-top:8px">
         <span id="tipMissTxt"></span> · <a href="#" id="tipPropose" data-i18n="tips_propose" style="color:var(--accent)"></a>
+        · <a href="#" id="tipDismiss" data-i18n="tips_dismiss" style="color:var(--txt-dim)"></a>
       </div>
     </div>
   </div>
@@ -798,6 +799,7 @@ en:{
   tips_none:"Nothing matches the filter.",
   tips_miss:n=>`${n} searches with no card this month`,
   tips_propose:"Suggest them on GitHub",
+  tips_dismiss:"Dismiss",
   tips_issue_title:"Tips: searches with no card",
   tips_issue_intro:"These searches in the Tips tab matched no card. Ideas for new cards:",
   tip_clear_t:"Does /clear delete my work?",
@@ -1011,6 +1013,7 @@ es:{
   tips_none:"Nada coincide con el filtro.",
   tips_miss:n=>`${n} búsquedas sin ficha este mes`,
   tips_propose:"Proponerlas en GitHub",
+  tips_dismiss:"Descartar",
   tips_issue_title:"Consejos: búsquedas sin ficha",
   tips_issue_intro:"Estas búsquedas en la pestaña Consejos no encontraron ninguna ficha. Ideas para fichas nuevas:",
   tip_clear_t:"¿/clear borra mi trabajo?",
@@ -1224,6 +1227,7 @@ pt:{
   tips_none:"Nada corresponde ao filtro.",
   tips_miss:n=>`${n} buscas sem ficha neste mês`,
   tips_propose:"Sugerir no GitHub",
+  tips_dismiss:"Descartar",
   tips_issue_title:"Dicas: buscas sem ficha",
   tips_issue_intro:"Estas buscas na aba Dicas não encontraram nenhuma ficha. Ideias para fichas novas:",
   tip_clear_t:"O /clear apaga meu trabalho?",
@@ -1437,6 +1441,7 @@ fr:{
   tips_none:"Rien ne correspond au filtre.",
   tips_miss:n=>`${n} recherches sans fiche ce mois-ci`,
   tips_propose:"Les proposer sur GitHub",
+  tips_dismiss:"Ignorer",
   tips_issue_title:"Conseils : recherches sans fiche",
   tips_issue_intro:"Ces recherches dans l’onglet Conseils n’ont trouvé aucune fiche. Idées de nouvelles fiches :",
   tip_clear_t:"/clear efface-t-il mon travail ?",
@@ -1650,6 +1655,7 @@ de:{
   tips_none:"Nichts passt zum Filter.",
   tips_miss:n=>`${n} Suchen ohne Karte in diesem Monat`,
   tips_propose:"Auf GitHub vorschlagen",
+  tips_dismiss:"Verwerfen",
   tips_issue_title:"Tipps: Suchen ohne Karte",
   tips_issue_intro:"Diese Suchen im Tipps-Tab fanden keine Karte. Ideen für neue Karten:",
   tip_clear_t:"Löscht /clear meine Arbeit?",
@@ -1863,6 +1869,7 @@ ja:{
   tips_none:"フィルタに一致するものがありません。",
   tips_miss:n=>`今月、カードが見つからなかった検索: ${n}件`,
   tips_propose:"GitHubで提案する",
+  tips_dismiss:"破棄",
   tips_issue_title:"ヒント: カードのない検索",
   tips_issue_intro:"ヒントタブでの以下の検索には該当するカードがありませんでした。新しいカードの案:",
   tip_clear_t:"/clear で作業は消える？",
@@ -2076,6 +2083,7 @@ ko:{
   tips_none:"필터와 일치하는 항목이 없습니다.",
   tips_miss:n=>`이번 달 카드 없는 검색 ${n}건`,
   tips_propose:"GitHub에 제안하기",
+  tips_dismiss:"지우기",
   tips_issue_title:"팁: 카드 없는 검색",
   tips_issue_intro:"팁 탭에서 아래 검색에 해당하는 카드가 없었습니다. 새 카드 아이디어:",
   tip_clear_t:"/clear 하면 작업이 지워지나요?",
@@ -2289,6 +2297,7 @@ zh:{
   tips_none:"没有与筛选匹配的内容。",
   tips_miss:n=>`本月有 ${n} 次搜索没有对应卡片`,
   tips_propose:"在 GitHub 上提议",
+  tips_dismiss:"忽略",
   tips_issue_title:"技巧: 无卡片的搜索",
   tips_issue_intro:"以下在技巧页的搜索没有找到对应卡片。新卡片的想法:",
   tip_clear_t:"/clear 会删掉我的工作吗？",
@@ -3570,6 +3579,14 @@ $("tipPropose").addEventListener("click",e=>{
   invoke?.("open_faq_issue",{
     title:encodeURIComponent(t("tips_issue_title")),
     body:encodeURIComponent(t("tips_issue_intro")+"\n\n"+list)});
+});
+// descartar (propuesta de Oscar 2026-07-31): quien no use GitHub cierra la
+// línea y en paz — se limpia lo del mes en curso y el pie se esconde
+$("tipDismiss").addEventListener("click",e=>{
+  e.preventDefault();
+  localStorage.setItem("faqMisses",
+    JSON.stringify(tipMisses().filter(x=>x.m!==tipMes())));
+  renderTipFoot();
 });
 
 // ---------- motor de reglas de sesión activa (nivel 2 del doc) ----------
