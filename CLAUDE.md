@@ -118,7 +118,12 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   (hallazgos) y el foco ámbar (consejos) la cápsula saturaba. La cápsula
   dice solo "Sesión X%" + indicadores; el CSS .m/.spk queda sin uso por
   si un rediseño lo retoma. OJO: cápsula y cabecera del pcard deben ser
-  IDÉNTICAS o el despliegue "salta" en vez de crecer.
+  IDÉNTICAS o el despliegue "salta" en vez de crecer. Con eso las
+  ventanas pill/pcard bajaron de 280 a 250 de ancho (en
+  ensure_widget_windows, NO en el json) — el tamaño sigue FIJO
+  (adaptarlo en vivo es el bug de las transparentes); el hueco flexible
+  entre el % y la flecha ES el espacio donde nacen campana y foco, así
+  que la cápsula no cambia al aparecer ellos.
   Iconos SVG en el propio archivo: la fuente Tabler de la maqueta se
   descarga de fuera y la CSP no lo permite. Color de los porcentajes: el
   VERDE de "todo bien" se cambió por el acento de la app (`--acc`: #56c7d6
