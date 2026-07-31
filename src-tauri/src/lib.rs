@@ -3081,6 +3081,7 @@ pub fn run() {
             get_pill_style,
             set_pill_style,
             toggle_pill_card,
+            drag_pill_from_card,
             save_hub_config,
             load_hub_config,
             check_update,
@@ -3983,6 +3984,38 @@ fn pill_moved(app: tauri::AppHandle) {
             save_pill_config(&cfg);
         }
     }
+}
+
+/// El asa de la cabecera del detalle arrastra DE VERDAD (2026-07-31: la
+/// cabecera gemela parecía rota — su gatito no abría el panel y su asa no
+/// movía nada). El truco: plegar, mostrar la pastilla — que quedó
+/// EXACTAMENTE bajo la cabecera, porque el despliegue no la mueve — y
+/// pasarle el arrastre del sistema en el mismo gesto, con el botón aún
+/// apretado. La posición se persiste unos instantes después, como hace
+/// pill_moved con su temporizador. Comando SÍNCRONO a propósito: toca
+/// ventanas y debe correr en el hilo principal (invariante 10ter).
+#[tauri::command]
+fn drag_pill_from_card(app: tauri::AppHandle) {
+    use tauri::{Emitter, Manager};
+    let Some(card) = app.get_webview_window("pcard") else { return };
+    let Some(pill) = app.get_webview_window("pill") else { return };
+    let _ = card.hide();
+    let _ = app.emit_to("pill", "pcard:closed", ());
+    let _ = pill.show();
+    let _ = pill.start_dragging();
+    std::thread::spawn(move || {
+        // el arrastre sigue vivo al volver este comando; se guarda la
+        // posición varias veces para cubrir gestos de hasta ~2.5 s
+        for _ in 0..5 {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            if let Ok(p) = pill.outer_position() {
+                let mut cfg = load_pill_config();
+                cfg.x = Some(p.x);
+                cfg.y = Some(p.y);
+                save_pill_config(&cfg);
+            }
+        }
+    });
 }
 
 /// Abre el panel (clic en el widget flotante).

@@ -197,10 +197,18 @@ window.addEventListener("click",()=>{
   invoke?.("toggle_pill_card",{open:false});
   EVENT?.emit("notif:ready");   // si había un aviso esperando, vuelve a salir
 });
-// el detalle se abre por HOVER desde la cápsula (2026-07-31): avisar a la
-// pastilla cuando el mouse está aquí para que no lo pliegue a media lectura
-document.body.addEventListener("mouseenter",()=>EVENT?.emit("pcard:hover",{into:true}));
-document.body.addEventListener("mouseleave",()=>EVENT?.emit("pcard:hover",{into:false}));
+// La cabecera gemela ya no es puro dibujo (Oscar 2026-07-31: con el
+// detalle abierto "el gatito y el asa no funcionaban" — parecía roto):
+// el gatito abre el panel, y el asa arrastra DE VERDAD — el backend
+// pliega, enseña la pastilla (que quedó exactamente bajo la cabecera) y
+// le pasa el arrastre del sistema en el mismo gesto.
+document.querySelector(".mk").addEventListener("click",e=>{
+  e.stopPropagation(); invoke?.("show_panel");
+});
+document.querySelector(".grip").addEventListener("mousedown",e=>{
+  e.stopPropagation();
+  if(e.button===0) invoke?.("drag_pill_from_card");
+});
 window.addEventListener("contextmenu",e=>e.preventDefault());
 </script>
 </body>

@@ -120,14 +120,17 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   de contenido CENTRADO entre asa y flecha (márgenes auto en .mkbtn y
   .chev), y el gatito+Sesión sin truncarse. Lo que SÍ quedó de esa ronda:
   (1) SIN tooltips nativos en la cápsula (ni title del cap ni del bucket
-  por modelo: se veían encima del detalle); (2) el detalle se abre por
-  HOVER, no por clic — 250 ms de pausa para no abrir al pasar de largo,
-  se pliega 350 ms después de salir el mouse, pcard emite pcard:hover
-  para no plegarse mientras lo lees, y pcard:closed pone 1 s de respiro
-  (noHov) porque la pastilla reaparece BAJO el cursor y el hover lo
-  reabriría al instante. El clic queda para marca/campana/foco/asa y el
-  clic derecho oculta. OJO: cápsula y cabecera del pcard deben ser
-  IDÉNTICAS o el despliegue "salta" en vez de crecer.
+  por modelo: se veían encima del detalle); (2) el hover para desplegar
+  se probó y Oscar lo DEVOLVIÓ a clic el mismo día — no reintroducirlo;
+  (3) la CABECERA GEMELA del detalle ya no es puro dibujo (parecía rota:
+  su gatito no abría el panel y su asa no movía): el gatito abre el
+  panel y el asa arrastra de verdad vía `drag_pill_from_card` — Rust
+  pliega, muestra la pastilla (que quedó exactamente bajo la cabecera,
+  el despliegue no la mueve) y le pasa el arrastre del sistema en el
+  mismo gesto; la posición se persiste con salvados repetidos ~2.5 s
+  (SIN validar en vivo aún). El clic derecho oculta. OJO: cápsula y
+  cabecera del pcard deben ser IDÉNTICAS o el despliegue "salta" en vez
+  de crecer.
   Iconos SVG en el propio archivo: la fuente Tabler de la maqueta se
   descarga de fuera y la CSP no lo permite. Color de los porcentajes: el
   VERDE de "todo bien" se cambió por el acento de la app (`--acc`: #56c7d6
