@@ -1167,7 +1167,15 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       [ ] resumen de sesión en vivo (receta arriba; el simulador nuevo
           enseña la tarjeta al instante, pero la detección real sigue
           pendiente)
-      [ ] simulador de hallazgos: los 3 pasos se ven bien (dev)
+      [x] simulador de hallazgos: VALIDADO 2026-07-31 con capturas de
+          Oscar — tarjetas, contadores 4/3, globo del día, post-it rojo
+          del gatito y los indicadores de la pastilla, todo a la primera.
+          De esa validación salió el rediseño del indicador de consejos
+          de la PASTILLA: FOCO ÁMBAR encendido (maqueta de Oscar, SVG
+          inline tipo Tabler, #fbbf24 oscuro / #e0930b claro, pulso al
+          clic) en vez del punto acento; en el GATITO sigue el post-it
+          turquesa. La campana roja queda para hallazgos.
+      [ ] ver el foco ámbar en la pastilla (recién cambiado)
       [ ] punto turquesa del coach en la PASTILLA (cambiar de widget)
       [ ] motivo del "sin datos" en el globo del gatito y tooltip
       [ ] tarjeta de subagentes con datos reales (isSidechain en Windows)

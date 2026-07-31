@@ -62,11 +62,14 @@
   body.light .fbell{color:#ef4444}
   .fbell svg{width:16px;height:16px;display:block}
   .fbell[hidden]{display:none}
-  /* punto ACENTO de consejos del coach: consejo, no alarma (la campana
-     roja es de hallazgos); clic → panel directo en Consejos */
-  .tdotc{flex:0 0 auto;width:8px;height:8px;border-radius:50%;
-    background:var(--acc);cursor:pointer}
-  .tdotc[hidden]{display:none}
+  /* FOCO ÁMBAR de consejos del coach (maqueta de Oscar 2026-07-31): se
+     enciende cuando hay un consejo nuevo. Ámbar más oscuro en claro para
+     que resalte. Clic → panel directo en Consejos. SVG inline: la fuente
+     de iconos de la maqueta se descarga de fuera y la CSP no lo permite. */
+  .tbulb{flex:0 0 auto;display:inline-flex;cursor:pointer;color:#fbbf24}
+  body.light .tbulb{color:#e0930b}
+  .tbulb svg{width:15px;height:15px;display:block}
+  .tbulb[hidden]{display:none}
   body.loading .pct,body.stale .pct{color:var(--dim)}
 </style>
 </head>
@@ -95,7 +98,14 @@
       <path d="M9 17v1a3 3 0 0 0 6 0v-1"/>
     </svg>
   </span>
-  <span class="tdotc" id="tdotc" hidden role="button"></span>
+  <span class="tbulb" id="tdotc" hidden role="button" aria-label="Consejo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 12h1M12 3v1M21 12h-1M5.6 5.6l.7 .7M18.4 5.6l-.7 .7"/>
+      <path d="M9 16a5 5 0 1 1 6 0a3.5 3.5 0 0 0-1 3a2 2 0 0 1-4 0a3.5 3.5 0 0 0-1-3"/>
+      <path d="M9.7 17h4.6"/>
+    </svg>
+  </span>
   <svg class="chev" id="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M6 9l6 6 6-6"/>
@@ -182,7 +192,9 @@ $("cap").addEventListener("click",e=>{
       {transform:"rotate(12deg)"},{transform:"rotate(-6deg)"},{transform:"rotate(0)"}],
       {duration:420});
     EVENT?.emit("panel:findings"); invoke?.("show_panel"); return; }
-  if(e.target.closest("#tdotc")){ // el punto acento abre el panel en Consejos
+  if(e.target.closest("#tdotc")){ // el foco abre el panel directo en Consejos
+    $("tdotc").animate([{transform:"scale(1)"},{transform:"scale(1.25)"},
+      {transform:"scale(1)"}],{duration:320});
     EVENT?.emit("panel:tips"); invoke?.("show_panel"); return; }
   open=!open; syncChev();
   invoke?.("toggle_pill_card",{open});
