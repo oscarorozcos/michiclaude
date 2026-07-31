@@ -1151,10 +1151,23 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       §10.4. PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
+      SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo
+      dev, botón "🧪 Simular hallazgos" junto al del gatito): tres pasos
+      con la pausa de simMin — tarjetas falsas + contador + post-it rojo,
+      el globo del día en rojo, y fichas calientes + resumen + post-it
+      turquesa. MISMAS REGLAS que el simulador del gatito: nada toca
+      localStorage (guards !simFnd en los render para no pisar
+      fndSeen/tipSeen; fndAutoScan y coachPoll se inhiben), simRunning se
+      enciende para heredar la inhibición de acks, y al parar se restaura
+      el estado real. Los dos botones se paran entre sí. Sirve para
+      testear lo VISUAL en segundos; la detección real se valida con uso.
       LISTA DE PRUEBAS PENDIENTES (Oscar pidió mantenerla; se van
       cerrando conforme mande capturas — actualizar aquí):
-      [ ] cargo check del resumen de sesión (tocó Rust)
-      [ ] resumen de sesión en vivo (receta arriba)
+      [x] cargo check del resumen de sesión — limpio 2026-07-31 (4.54s)
+      [ ] resumen de sesión en vivo (receta arriba; el simulador nuevo
+          enseña la tarjeta al instante, pero la detección real sigue
+          pendiente)
+      [ ] simulador de hallazgos: los 3 pasos se ven bien (dev)
       [ ] punto turquesa del coach en la PASTILLA (cambiar de widget)
       [ ] motivo del "sin datos" en el globo del gatito y tooltip
       [ ] tarjeta de subagentes con datos reales (isSidechain en Windows)

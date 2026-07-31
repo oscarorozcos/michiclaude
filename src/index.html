@@ -583,6 +583,7 @@
            control cuyos textos no pasan por t(). -->
       <div class="btnrow" id="devSimRow" hidden style="margin-top:6px">
         <button id="simBtn">🐱 Simular estados</button>
+        <button id="sfBtn">🧪 Simular hallazgos</button>
         <input id="simMin" type="number" min="0.1" max="60" step="0.5" style="max-width:62px">
         <span style="font-size:10.5px;color:var(--txt-dim)">min c/u</span>
         <span id="simMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
@@ -2692,6 +2693,7 @@ if(invoke) invoke("is_dev").then(d=>{ if(d) $("devSimRow").hidden=false; }).catc
 $("simMin").value=localStorage.getItem("simMin")||"1";
 $("simMin").addEventListener("change",()=>localStorage.setItem("simMin",$("simMin").value));
 $("simBtn").addEventListener("click",()=>{
+  if(simFnd){ sfStop("detenido"); return; }  // corría el de hallazgos: pararlo
   if(simRunning){ simStop("detenido"); return; }
   // sin widget en pantalla no hay dónde pintar nada de esto
   if(!pillOn){ $("simMsg").textContent="activa el widget primero"; return; }
@@ -3484,7 +3486,7 @@ function renderTips(){
   // lo que llegó a pintarse con la pestaña VISIBLE queda despachado: el
   // punto se apaga y esa regla no vuelve a sonar en esta sesión. Las fichas
   // siguen resaltadas hasta el próximo sondeo (ahí el filtro las limpia).
-  if(!$("tab-tips").hidden && coachHits.length){
+  if(!$("tab-tips").hidden && coachHits.length && !simFnd){
     const seen=tipSeenSet();
     coachHits.forEach(h=>seen.add(h.rule+"|"+h.session));
     localStorage.setItem("tipSeen",JSON.stringify([...seen].slice(-300)));
@@ -3510,6 +3512,7 @@ function renderTipsDot(n){
 }
 async function coachPoll(){
   if(!invoke) return;
+  if(simFnd) return;               // simulación en curso: no la pises
   try{
     const hits=await invoke("get_coach")||[];
     const seen=tipSeenSet();
@@ -3535,6 +3538,82 @@ async function coachPoll(){
 }
 setTimeout(coachPoll,60*1000);       // el primer sondeo, tras la carga inicial
 setInterval(coachPoll,3*60*1000);    // mismo compás que el ciclo del panel
+
+// ---------- simulador de HALLAZGOS y CONSEJOS (solo dev, como el 🐱) ----------
+// Idea de Oscar (2026-07-31): recorrer las superficies del analizador y el
+// coach con datos FALSOS para testear lo visual en segundos; la detección
+// real se valida con el uso. Mismas reglas que el simulador del gatito:
+// solo builds de dev (is_dev), textos sin t(), y NADA toca localStorage —
+// fndSeen/tipSeen quedan intactos (los guards !simFnd en los render) y al
+// terminar se restaura el estado real. simRunning se enciende también para
+// heredar la inhibición de acks y de notif:ready del otro simulador.
+let simFnd=false, sfTimer=null, sfSavedFnd=null;
+function sfFakeFindings(){
+  return [
+    {kind:"cachebreak", project:"-sim-demo", session:"sim00001", count:15,
+     tokens:278000, cost:63.37, estimated:false},
+    {kind:"reread", file:"src/index.html", project:"-sim-demo",
+     session:"sim00001", count:6, tokens:41000, cost:3.21, estimated:true},
+    {kind:"mech", count:12, tokens:9000, cost:0.42, estimated:false},
+    {kind:"mcp_unused", server:"demo-server", tokens:0, cost:0, estimated:false},
+  ];
+}
+function sfFakeCoach(){
+  return [
+    {rule:"compact", session:"sim00001", value:372, project:"-sim-demo"},
+    {rule:"cache",   session:"sim00002", value:26,  project:"-sim-demo"},
+    {rule:"sum",     session:"sim00003", value:47, cmds:23, edits:6,
+     project:"-sim-demo", title:"Puesta a punto del panel"},
+  ];
+}
+function sfStop(msg){
+  clearTimeout(sfTimer); sfTimer=null;
+  simFnd=false; simRunning=false; simB=null;
+  fndCache=sfSavedFnd; sfSavedFnd=null;
+  invoke?.("set_notif_visible",{visible:false});
+  fndBadgeCalc();                       // contador y post-it rojos REALES
+  coachHits=[]; renderTipsDot(); coachPoll();   // el sondeo real refresca
+  if(!$("tab-findings").hidden){ if(fndCache) renderFindings(); else loadFindings(false); }
+  if(!$("tab-tips").hidden) renderTips();
+  if(lastPillArgs) emitPill(...lastPillArgs);
+  processAcks();                        // si había un aviso real, vuelve
+  $("sfBtn").textContent="🧪 Simular hallazgos";
+  $("simMsg").textContent=msg||"";
+}
+const SF_STEPS=[
+  function(){   // 1: tarjetas de Hallazgos + contador + post-it rojo
+    showTab("findings");
+    sfSavedFnd=fndCache; fndCache=sfFakeFindings(); renderFindings();
+    fndBadge={n:4,sev:"bad"}; renderFndDot();
+    if(lastPillArgs) emitPill(...lastPillArgs);
+    return "hallazgos: tarjetas + post-it rojo";
+  },
+  function(){   // 2: el globo del día, en rojo (pasa de $10)
+    simB={kind:"findings", sev:"danger",
+      body:`${t("fnd_cachebreak_t",15)} · ~$63.37`};
+    simBalloon(simB);
+    return "globo del día";
+  },
+  function(){   // 3: fichas calientes + resumen + post-it turquesa
+    simB=null; invoke?.("set_notif_visible",{visible:false});
+    showTab("tips");
+    coachHits=sfFakeCoach(); renderTipsDot(); renderTips();
+    if(lastPillArgs) emitPill(...lastPillArgs);
+    return "consejos: fichas + resumen + post-it turquesa";
+  },
+];
+function sfStep(i){
+  if(i>=SF_STEPS.length){ sfStop("listo · de vuelta al estado real"); return; }
+  const lbl=SF_STEPS[i]();
+  $("simMsg").textContent=`${i+1}/${SF_STEPS.length} · ${lbl}`;
+  sfTimer=setTimeout(()=>sfStep(i+1), simMs());
+}
+$("sfBtn").addEventListener("click",()=>{
+  if(simFnd){ sfStop("detenido"); return; }
+  if(simRunning) return;               // el simulador del gatito va primero
+  simFnd=true; simRunning=true;
+  $("sfBtn").textContent="■ Detener"; sfStep(0);
+});
 
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
 function showTab(name){
@@ -3613,6 +3692,7 @@ function renderFndDot(){
 }
 async function fndAutoScan(){
   if(!invoke) return;
+  if(simFnd) return;               // simulación en curso: no la pises
   if(Date.now()-(+localStorage.getItem("fndAutoLast")||0)<FND_SCAN_MS) return;
   try{
     const list=await invoke("get_findings",{days:1});
@@ -3759,7 +3839,9 @@ function renderFindings(){
   // apagan y estas tarjetas no los vuelven a encender (las de mañana sí).
   // SOLO si la pestaña está de verdad en pantalla: la precarga de fondo
   // también pinta, y marcar visto lo que nadie vio mataría el aviso.
-  if(!$("tab-findings").hidden){
+  // (Y NUNCA durante el simulador: sus tarjetas falsas no deben pisar
+  // fndSeen — misma regla que los globos simulados y localStorage.)
+  if(!$("tab-findings").hidden && !simFnd){
     const seen=fndSeen(); list.forEach(f=>seen.add(fndKey(f)));
     localStorage.setItem("fndSeen",JSON.stringify([...seen].slice(-300)));
     fndBadgeCalc();
