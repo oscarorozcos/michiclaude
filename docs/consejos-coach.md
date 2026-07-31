@@ -174,8 +174,19 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
    y punto acento junto a la campana de la pastilla (tdotc); clic = panel
    directo en Consejos (evento panel:tips); viaja como campo `coach` en
    quota:update, comparte el interruptor fndBadgeOff y se apaga al
-   pintarse la pestaña. Falta cargo check del campo `project` y ver los
-   indicadores del widget en vivo.
+   pintarse la pestaña. VALIDADO TODO EN VIVO el 2026-07-31 (captura de
+   Oscar): la regla del caché disparó con dato real ("26 min de pausa"),
+   la ficha dijo "test · local" y el post-it turquesa salió en la laptop
+   del gatito; cargo check limpio (compilación desde cero, 1m41s). Ajuste
+   de la validación: el post-it turquesa gana su cinta adhesiva
+   (::after), sin ella parecía un cuadrito. PREGUNTA RESPONDIDA de Oscar
+   ("¿por qué Consejos no manda globo como Hallazgos?"): a propósito —
+   hallazgo = dinero ya perdido, 1 globo/día; consejo = hábito, hasta 5
+   al día, y un globo por consejo entrenaría a ignorar TODOS los globos.
+   Convivencias: post-it rojo y turquesa tienen posiciones separadas
+   (pueden verse a la vez); en globos manda "uno a la vez y la cuota
+   gana" — el de hallazgos vuelve solo al despachar la alarma; Consejos
+   nunca usa globos.
    DEL MISMO REDONDEO: el estado "sin datos" del widget ya dice POR QUÉ
    — el globo del gatito enseña el motivo (campo `reason` = errText del
    panel, elemento #why en card.html) y el tooltip del tray lo añade

@@ -1136,9 +1136,17 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       errText en quota:update, #why en card.html, tooltip del tray) —
       decisión: sin animación especial de sin-datos, el dibujo del gatito
       refleja solo el estado real de la cuota.
-      (LO SIGUIENTE A TRABAJAR: validar en vivo los tres ajustes
-      (post-it acento del gatito, punto de la pastilla, motivo del
-      sin-datos); luego el resumen de sesión por plantilla y faqMisses. El modelo local quedó DESCARTADO dentro de la
+      COACH VALIDADO EN VIVO COMPLETO el 2026-07-31 (captura de Oscar):
+      regla del caché con dato real ("26 min de pausa"), ficha con
+      "test · local" y post-it turquesa en la laptop del gatito. El
+      post-it ganó su cinta adhesiva tras la validación (sin ella parecía
+      un cuadrito — Oscar). Su pregunta "¿por qué Consejos no manda globo
+      como Hallazgos?" quedó respondida y documentada en
+      docs/consejos-coach.md §10.3: a propósito, el globo es solo para lo
+      que duele en dólares.
+      (LO SIGUIENTE A TRABAJAR: ver en vivo el punto acento de la
+      PASTILLA y el motivo del sin-datos (el post-it del gatito ya está
+      validado); luego el resumen de sesión por plantilla y faqMisses. El modelo local quedó DESCARTADO dentro de la
       app también en su variante "modelo-lector" — fase 2 opcional aparte,
       compuertas en ~/.michiclaude/notas-coach-local.md.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python

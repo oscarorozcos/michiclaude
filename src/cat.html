@@ -115,6 +115,12 @@
     display:flex;align-items:center;justify-content:center;padding:0;
     transform:rotate(9deg);cursor:pointer;
     box-shadow:0 2px 3px rgba(0,0,0,.3)}
+  /* su cinta adhesiva, como la del post-it rojo (pedida por Oscar
+     2026-07-31: sin ella parecía un cuadrito, no una nota) */
+  .tbadge::after{content:"";position:absolute;top:-3.5px;left:50%;
+    width:9px;height:4.5px;transform:translateX(-50%) rotate(-4deg);
+    background:rgba(255,255,255,.6);border:1px solid var(--ink);
+    border-radius:1px}
 </style>
 </head>
 <body class="nodata">
