@@ -127,10 +127,13 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
   panel y el asa arrastra de verdad vía `drag_pill_from_card` — Rust
   pliega, muestra la pastilla (que quedó exactamente bajo la cabecera,
   el despliegue no la mueve) y le pasa el arrastre del sistema en el
-  mismo gesto; la posición se persiste con salvados repetidos ~2.5 s
-  (SIN validar en vivo aún). El clic derecho oculta. OJO: cápsula y
-  cabecera del pcard deben ser IDÉNTICAS o el despliegue "salta" en vez
-  de crecer.
+  mismo gesto; la posición se persiste con salvados repetidos ~2.5 s.
+  VALIDADO en vivo por Oscar el 2026-07-31 ("funciona bien"). El clic
+  derecho oculta. Y el remate del mismo día: con el detalle ABIERTO la
+  cabecera ya no repite los números (se veían duplicados con las filas)
+  — CSS del pcard esconde .lab/.pct/.m del hdr; quedan asa, gatito y
+  flecha. La regla de geometría IDÉNTICA entre cápsula y cabecera sigue
+  (tamaños y posiciones); lo que cambia es solo el contenido visible.
   Iconos SVG en el propio archivo: la fuente Tabler de la maqueta se
   descarga de fuera y la CSP no lo permite. Color de los porcentajes: el
   VERDE de "todo bien" se cambió por el acento de la app (`--acc`: #56c7d6

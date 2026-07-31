@@ -43,6 +43,11 @@
   body.up .box{display:flex;flex-direction:column-reverse}
 
   .hdr{display:flex;align-items:center;gap:7px;height:44px;padding:0 10px 0 5px}
+  /* con el detalle abierto la cabecera NO repite los números — las filas
+     de abajo ya los desglosan y se veía duplicado (Oscar 2026-07-31).
+     Quedan asa, gatito y flecha; la geometría no cambia, solo se vacía
+     el centro. Los elementos siguen en el DOM para no tocar el JS. */
+  .hdr .lab,.hdr .pct,.hdr .m{display:none}
   .grip{flex:0 0 auto;width:13px;color:var(--dim);font-size:11px;
     letter-spacing:-1px;text-align:center}
   .mk{flex:0 0 auto;width:24px;height:24px;display:grid;place-items:center}
