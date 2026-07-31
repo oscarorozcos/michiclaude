@@ -1127,7 +1127,8 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       alto disparó con ~372k reales y el contador acento salió); del
       feedback de Oscar salieron tres ajustes YA implementados:
       la ficha dice a qué sesión aplicar ("· proyecto · local", campo
-      project en CoachHit — FALTA cargo check), el coach avisa en el
+      project en CoachHit — cargo check limpio 2026-07-31, compilación
+      desde cero en 1m41s tras la mudanza del repo), el coach avisa en el
       widget (post-it ACENTO junto a la pilita del gatito, punto acento
       junto a la campana de la pastilla, clic = panel en Consejos vía
       panel:tips, campo coach en quota:update, mismo interruptor
@@ -1135,8 +1136,8 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       errText en quota:update, #why en card.html, tooltip del tray) —
       decisión: sin animación especial de sin-datos, el dibujo del gatito
       refleja solo el estado real de la cuota.
-      (LO SIGUIENTE A TRABAJAR: cargo check + validar en vivo los tres
-      ajustes (post-it acento, punto de la pastilla, motivo del
+      (LO SIGUIENTE A TRABAJAR: validar en vivo los tres ajustes
+      (post-it acento del gatito, punto de la pastilla, motivo del
       sin-datos); luego el resumen de sesión por plantilla y faqMisses. El modelo local quedó DESCARTADO dentro de la
       app también en su variante "modelo-lector" — fase 2 opcional aparte,
       compuertas en ~/.michiclaude/notas-coach-local.md.)
@@ -1332,7 +1333,13 @@ de desarrollo (comando `is_dev` = `cfg!(debug_assertions)`), por eso es el
   una release privada NO se pueden descargar sin autenticación, así que el
   endpoint configurado devolvería 404 a todo el mundo. El updater no puede
   funcionar hasta que el repo (o al menos sus releases) sea público.
-- El desarrollo y las pruebas ocurren en el PC Windows de Oscar; en el VPS vive
+- El desarrollo y las pruebas ocurren en el PC Windows de Oscar
+  (`C:\Users\oscar\Claude\MichiClaude` — mudado ahí el 2026-07-31 desde
+  Downloads; C:\Users\oscar\Claude es su carpeta madre para todos los
+  proyectos. OJO al mover un clon en Windows: target/ guarda rutas
+  ABSOLUTAS y el build script de Tauri falla con "failed to read plugin
+  permissions" apuntando a la ruta vieja — se arregla con `cargo clean`,
+  que además liberó 20 GB); en el VPS vive
   un clon espejo (`/opt/projects/michiclaude`) para revisión de código.
 - Antes de empezar a trabajar en cualquiera de los dos lados: `git pull`.
   Al terminar y verificar: commit (Conventional Commits en español) y push.
