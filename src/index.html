@@ -45,7 +45,11 @@
   body{font-family:var(--font);color:var(--txt);padding:8px;overflow:hidden;color-scheme:dark}
   body.light{color-scheme:light}
   /* si el contenido crece (ajustes abiertos), el panel hace scroll interno */
-  .panel{max-height:calc(100vh - 16px);overflow-y:auto;scrollbar-width:thin}
+  /* overflow-x HIDDEN a propósito: con solo overflow-y:auto el navegador
+     pone el eje X en "auto" también, y cualquier cosa un pelo más ancha
+     —la fila de pestañas en un idioma largo— sacaba una barra horizontal
+     al pie del panel (visto 2026-08-01). Nada del panel se lee de lado. */
+  .panel{max-height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
 
   .panel{
     background:var(--mica);border-radius:14px;
@@ -85,10 +89,13 @@
   .p-head .xbtn{margin-left:4px}
 
   /* pestañas (subrayado activo, estilo navegación) */
-  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--stroke-soft)}
+  /* Con 5 pestañas y 8 idiomas la fila no cabe siempre en 400 px: que PASE
+     A DOS LÍNEAS en vez de cortarse. Recortar la última (le pasó a
+     "Preferencias") deja una pestaña que no se ve ni se puede pulsar. */
+  .tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--stroke-soft)}
   .tab{background:transparent;border:0;border-bottom:2px solid transparent;
     color:var(--txt-mut);font-family:var(--font);font-size:12px;font-weight:600;
-    padding:7px 10px;cursor:pointer;letter-spacing:.2px}
+    padding:7px 8px;cursor:pointer;letter-spacing:.2px}
   .tab:hover{color:var(--txt)}
   .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
   /* contador de hallazgos NUEVOS sin ver: lo enciende la pasada diaria y lo
@@ -624,6 +631,11 @@
                una captura basta), aquí se cambia. Dos clics a propósito:
                mata el canal viejo y hay que re-escanear en el teléfono. -->
           <button id="ntfyRegen" data-i18n="ntfy_regen"></button>
+          <span id="ntfyRegenAsk" hidden style="display:none;align-items:center;gap:6px">
+            <span style="font-size:10.5px;color:var(--txt-mut)" data-i18n="ntfy_regen_sure"></span>
+            <button id="ntfyRegenYes" data-i18n="btn_yes"></button>
+            <button id="ntfyRegenNo" data-i18n="btn_no"></button>
+          </span>
         </div>
         <div class="btnrow">
           <button id="ntfyTest" data-i18n="ntfy_test"></button>
@@ -668,7 +680,13 @@
   </div>
   </div><!-- /tab-prefs -->
 
-  <div class="p-foot">
+  <!-- El pie del gasto vive SOLO en Principal (decisión de Oscar
+       2026-08-01): en Hallazgos/Consejos/Preferencias no acompaña a nada de
+       lo que se está leyendo y se lee como si fuera de esa pestaña.
+       showTab() lo esconde; el `hidden` funciona porque existe la regla
+       [hidden]{display:none !important} (invariante 10bis: .p-foot es flex
+       y sin esa regla el hidden no haría nada). -->
+  <div class="p-foot" id="pFoot">
     <div class="totals">
       <div class="t"><span data-i18n="today"></span><b id="costToday">–</b></div>
       <div class="t" id="winTot"><span id="winLbl"></span><b id="costWeek">–</b></div>
@@ -893,6 +911,8 @@ en:{
   ntfy_regen:"New channel",
   ntfy_regen_sure:"Replace it?",
   ntfy_regen_done:"New channel \u2014 scan the QR again",
+  btn_yes:"Yes",
+  btn_no:"No",
   notif_reset_session:"Your 5 h session limit is available again. Open the meter panel to stop these reminders.",
   notif_reset_week:"Your weekly limit is available again. Open the meter panel to stop these reminders.",
   btn_ack:"Got it",
@@ -1121,6 +1141,8 @@ es:{
   ntfy_regen:"Canal nuevo",
   ntfy_regen_sure:"¿Reemplazarlo?",
   ntfy_regen_done:"Canal nuevo — vuelve a escanear el QR",
+  btn_yes:"Sí",
+  btn_no:"No",
   notif_reset_session:"Tu límite de sesión (5 h) ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   notif_reset_week:"Tu límite semanal ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   btn_ack:"Enterado",
@@ -1349,6 +1371,8 @@ pt:{
   ntfy_regen:"Canal novo",
   ntfy_regen_sure:"Substituir?",
   ntfy_regen_done:"Canal novo — escaneie o QR de novo",
+  btn_yes:"Sim",
+  btn_no:"Não",
   notif_reset_session:"Seu limite de sessão (5 h) já está disponível. Abra o painel do meter para parar estes lembretes.",
   notif_reset_week:"Seu limite semanal já está disponível. Abra o painel do meter para parar estes lembretes.",
   btn_ack:"Entendi",
@@ -1577,6 +1601,8 @@ fr:{
   ntfy_regen:"Nouveau canal",
   ntfy_regen_sure:"Le remplacer ?",
   ntfy_regen_done:"Nouveau canal — rescannez le QR",
+  btn_yes:"Oui",
+  btn_no:"Non",
   notif_reset_session:"Votre limite de session (5 h) est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   notif_reset_week:"Votre limite hebdo est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   btn_ack:"Compris",
@@ -1805,6 +1831,8 @@ de:{
   ntfy_regen:"Neuer Kanal",
   ntfy_regen_sure:"Ersetzen?",
   ntfy_regen_done:"Neuer Kanal — QR neu scannen",
+  btn_yes:"Ja",
+  btn_no:"Nein",
   notif_reset_session:"Dein Sitzungslimit (5 Std) ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   notif_reset_week:"Dein Wochenlimit ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   btn_ack:"Verstanden",
@@ -2033,6 +2061,8 @@ ja:{
   ntfy_regen:"チャンネル再生成",
   ntfy_regen_sure:"置き換えますか？",
   ntfy_regen_done:"新しいチャンネル — QRを再スキャン",
+  btn_yes:"はい",
+  btn_no:"いいえ",
   notif_reset_session:"セッション上限（5時間）が再び利用可能になりました。パネルを開くと通知が止まります。",
   notif_reset_week:"週間上限が再び利用可能になりました。パネルを開くと通知が止まります。",
   btn_ack:"確認",
@@ -2261,6 +2291,8 @@ ko:{
   ntfy_regen:"새 채널",
   ntfy_regen_sure:"교체할까요?",
   ntfy_regen_done:"새 채널 — QR을 다시 스캔하세요",
+  btn_yes:"예",
+  btn_no:"아니요",
   notif_reset_session:"세션 한도(5시간)를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   notif_reset_week:"주간 한도를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   btn_ack:"확인",
@@ -2489,6 +2521,8 @@ zh:{
   ntfy_regen:"新频道",
   ntfy_regen_sure:"确定更换？",
   ntfy_regen_done:"新频道 — 请重新扫描二维码",
+  btn_yes:"是",
+  btn_no:"否",
   notif_reset_session:"你的会话额度（5小时）已恢复可用。打开面板即可停止提醒。",
   notif_reset_week:"你的每周额度已恢复可用。打开面板即可停止提醒。",
   btn_ack:"知道了",
@@ -3869,6 +3903,7 @@ $("sfBtn").addEventListener("click",()=>{
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
 function showTab(name){
   for(const k of ["main","sources","findings","tips","prefs"]) $("tab-"+k).hidden = (k!==name);
+  $("pFoot").hidden = (name!=="main");            // el gasto acompaña a Principal
   $("expBox").hidden = true;                      // el aviso era de ese momento
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
   if(name==="sources") loadRemotes();             // refresca estado de servidores
@@ -4095,21 +4130,24 @@ $("ntfyTest").addEventListener("click", async ()=>{
     $("ntfyMsg").textContent=t("ntfy_test_ok");
   }catch(e){ $("ntfyMsg").textContent=t("ntfy_err")+" ("+e+")"; }
 });
-// Canal nuevo en DOS PASOS (patrón del bote de borrar servidor): el primer
-// clic arma y el segundo ejecuta; a los 8 s se desarma solo. Un clic
-// accidental aquí dejaría al teléfono sordo sin que el usuario lo sepa.
-let ntfyRegenArm=0;
-$("ntfyRegen").addEventListener("click", async ()=>{
+// Canal nuevo con pregunta EXPLÍCITA de sí/no (Oscar 2026-08-01: un botón
+// que cambia de texto y hay que volver a pulsar no se entiende como una
+// pregunta). El "no" tiene que estar a la vista: cambiar el canal deja al
+// teléfono sordo hasta que se re-escanee, y eso no puede pasar por un clic
+// de más. Además se desarma solo a los 12 s.
+let ntfyRegenT=null;
+function ntfyRegenAsk(on){
+  $("ntfyRegen").hidden=on;
+  const a=$("ntfyRegenAsk");
+  a.hidden=!on; a.style.display=on?"inline-flex":"none";
+  clearTimeout(ntfyRegenT);
+  if(on) ntfyRegenT=setTimeout(()=>ntfyRegenAsk(false), 12000);
+}
+$("ntfyRegen").addEventListener("click", ()=>ntfyRegenAsk(true));
+$("ntfyRegenNo").addEventListener("click", ()=>ntfyRegenAsk(false));
+$("ntfyRegenYes").addEventListener("click", async ()=>{
+  ntfyRegenAsk(false);
   if(!invoke) return;
-  if(Date.now()-ntfyRegenArm>8000){
-    ntfyRegenArm=Date.now();
-    $("ntfyRegen").textContent=t("ntfy_regen_sure");
-    setTimeout(()=>{ if(Date.now()-ntfyRegenArm>=8000)
-      $("ntfyRegen").textContent=t("ntfy_regen"); }, 8200);
-    return;
-  }
-  ntfyRegenArm=0;
-  $("ntfyRegen").textContent=t("ntfy_regen");
   try{
     ntfyCfg=await invoke("ntfy_regen");
     ntfyUi();

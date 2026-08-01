@@ -145,6 +145,21 @@ por sus dos canales; es el comportamiento esperado, no un bug.
 Si algún día se pidiera compartirlo, lo compartible serían los booleanos
 (`enabled`/`alarms`), nunca el topic. Hoy: nada.
 
+## Límites del servidor público (verificado 2026-08-01)
+
+- **No hay cupo diario de mensajes** por defecto: `visitor-message-daily-limit`
+  no viene configurado y el gasto lo gobierna el límite de PETICIONES.
+- Límite de peticiones: ráfaga de **60** y luego **1 cada 5 s** por IP
+  (`visitor-request-limit-burst` / `-replenish`).
+- Adjuntos 15 MB (100 MB por visitante), caducan a las 3 h — no los usamos.
+- Programados: mínimo 10 s, máximo **3 días**; se guardan hasta 12 h después
+  de entregados.
+
+MichiClaude manda como mucho un puñado de mensajes al día (dos por límite
+alcanzado + las alarmas de % si se activan): no se acerca ni de lejos. La
+única forma de chocar sería un bucle, y los banderines `notifS`/`notifW` lo
+impiden por diseño.
+
 ## Lo que NO se hizo, a propósito
 
 - **Autohostear un ntfy "oficial de MichiClaude"**: nos volveríamos

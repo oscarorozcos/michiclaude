@@ -1246,9 +1246,20 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       del hub — esa pantalla promete "no guarda llaves ni contraseñas" y
       el topic ES la contraseña del canal; además cada máquina con su
       canal se silencia por separado en la app ntfy (ver
-      docs/avisos-ntfy.md). PENDIENTE: nota
-      honesta de red en el README (invariante #9 — la tiene que aprobar
-      Oscar) y la prueba en vivo de la lista.
+      docs/avisos-ntfy.md). README ACTUALIZADO el 2026-08-01 a petición
+      expresa de Oscar (única excepción al invariante #9 en esta ronda):
+      sección "Avisos en el celular" con el alta paso a paso, la tabla de
+      qué llega, el caso de DOS O TRES PCs (cada una su canal, los ajustes
+      compartidos NO lo copian, y la doble notificación con dos equipos
+      encendidos como comportamiento esperado), el QR tratado como
+      contraseña y los límites del servidor gratuito; más el punto 5 de
+      Privacidad y "Los avisos al celular, en claro". De paso se borró de
+      la tabla de Preferencias la fila "Diseño de la pastilla" (el diseño
+      coral se eliminó el 2026-07-25 y el README seguía anunciándolo).
+      Confirmación del "Canal nuevo" cambiada a SÍ/NO explícito (Oscar:
+      un botón que cambia de texto no se lee como pregunta) con claves
+      btn_yes/btn_no ×8 — reutilizables. PENDIENTE: la prueba en vivo de
+      la lista.
       FAQMISSES + ISSUE PRE-LLENADO — HECHO 2026-07-31 (SIN validar en
       vivo ni cargo check; tocó Rust: comando open_faq_issue con base
       constante ISSUES_URL y lanzado por rundll32, no cmd/start — el &

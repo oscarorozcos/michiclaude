@@ -298,10 +298,76 @@ servidor, así que lo eliges tú).
 | **Idioma** | 8 idiomas; se autodetecta la primera vez. |
 | **Widget flotante** | Muestra la pastilla (o el gatito) siempre visible sobre la barra de tareas. También se activa desde el menú del icono de bandeja. |
 | **Estilo del widget** | *Pastilla* (marca + % + barras S/W) o *Gatito con laptop* 🐱. |
-| **Diseño de la pastilla** | *Clásico* o *Tarjeta coral* (otro esquema de color). |
 | **Alarmas de sesión** | Los % a los que quieres aviso (por defecto 80 y 95). Al cruzar uno, la notificación se repite cada 5 min **hasta que abras el panel** ("enterado"). |
 | **Presupuesto semanal en $** | Si el costo estimado de 7 días lo supera, recibes un aviso (uno por semana). 0 = sin aviso. |
+| **Avisos en el celular** | Manda los avisos de cuota a tu teléfono con la app [ntfy](https://ntfy.sh). Apagado por defecto; ver abajo. |
 | **Exportar datos** | Guarda CSV o JSON del desglose en la carpeta que elijas (vacía = Descargas). |
+
+### Avisos en el celular 📱 (opcional)
+
+Sirve para lo mismo que un temporizador de cocina: te vas y él te avisa. Es
+especialmente útil si dejas a Claude trabajando solo y te levantas de la
+computadora, o si te agotaste la cuota y **apagaste el equipo**.
+
+**Cómo se activa** (unos 30 segundos):
+
+1. Instala la app gratuita **ntfy** en tu teléfono (Android / iPhone).
+2. En MichiClaude: *Preferencias → Avisos en el celular* → enciende la casilla.
+3. Escanea el QR con la **cámara normal** de tu teléfono (la app ntfy no trae
+   escáner propio) y acepta abrirlo en ntfy. En iPhone, o si el QR no abre la
+   app, pulsa **Copiar** y agrega ese canal a mano en ntfy.
+4. Pulsa **Enviar prueba**. Si el teléfono suena, ya está.
+
+**Qué te llega:**
+
+| Cuándo | Mensaje |
+|---|---|
+| Se agota tu sesión o tu semana | "Sin cuota de sesión. Vuelvo en 45 min. **Puedes apagar la compu: yo te aviso cuando vuelva** 🐱" |
+| A la hora del reset | "Cuota de sesión restablecida" — **este llega aunque tengas la computadora apagada** |
+| Al cruzar una alarma de % | Solo si activas la segunda casilla ("También mis alarmas de %"). |
+
+Lo del reset con la máquina apagada no es magia: al detectar el límite, la app
+deja el segundo mensaje **encargado en el servidor de ntfy** con la hora exacta
+de entrega, y ese servidor lo manda a tu teléfono llegado el momento. (Tiene un
+tope de 3 días; si tu reset semanal cae más lejos, no se promete nada — el
+primer mensaje simplemente te dice el día.)
+
+#### Si usas MichiClaude en dos o tres computadoras
+
+Cada instalación **crea su propio canal**, y eso es a propósito:
+
+- En tu segunda PC repites los mismos pasos: enciendes la casilla y escaneas
+  **el QR nuevo** con el mismo teléfono. Tu app ntfy acaba con dos canales.
+- Los ajustes compartidos (*Fuentes de datos → Guardar en el servidor*) **no
+  copian este canal**: esa pantalla promete no guardar contraseñas, y el canal
+  **es** la contraseña. Se activa a mano en cada equipo, y son 30 segundos.
+- **Ventaja**: en la app ntfy puedes silenciar un canal sin tocar el otro — que
+  la PC de casa te avise siempre y la del trabajo se calle el fin de semana.
+- **Ojo**: la cuota es de tu *cuenta*, no de la máquina. Si dos PCs están
+  encendidas al agotarse, **cada una te avisa por su canal** (dos notificaciones
+  del mismo hecho). Es lo esperado; se arregla silenciando un canal.
+
+#### Trata el QR como una contraseña
+
+En ntfy no hay cuentas: **el canal es el secreto**. Quien lo conozca recibe tus
+avisos (y puede mandarte notificaciones falsas). Por eso el canal se genera
+aleatorio en tu equipo, y por eso **no publiques capturas donde se vea tu QR o
+tu canal**. Si se te escapó uno, el botón **Canal nuevo** genera otro y deja el
+viejo muerto (tendrás que volver a escanear en tu teléfono).
+
+Como salvaguarda, por ese canal viajan **solo porcentajes y horas de reset**:
+nunca nombres de proyectos, ni rutas, ni cuánto gastas. Lo peor que vería un
+intruso es "alguien va al 80% de su sesión".
+
+#### ¿Cuánto cuesta? ¿Hay límite?
+
+Es **gratis y sin cuenta**. El servidor público no impone un cupo diario de
+mensajes: limita el *ritmo* de peticiones (unas 60 seguidas, luego una cada 5
+segundos). MichiClaude manda un puñado de mensajes al día en el peor caso —
+un par por límite alcanzado y, si las activas, tus alarmas de %. Ni te
+acercas. Si prefieres no depender del servidor público, ntfy es open source y
+puedes montar el tuyo: pon su dirección en `"server"` dentro de
+`%APPDATA%\com.oscarorozco.michiclaude\ntfy_config.json`.
 
 ### El widget gatito 🐱
 
@@ -420,6 +486,25 @@ versión del lector; en ese caso no se escribe nada en tu servidor.
    eso sale de tu equipo.
 4. Una vez al día **descarga la lista pública de precios** de los modelos
    (ver abajo). Es una descarga, no un envío.
+5. **Solo si activas los avisos al celular**, envía el texto de esos avisos
+   (porcentajes y horas de reset, nada más) al servidor ntfy que tengas
+   configurado — por defecto `ntfy.sh`. Con la opción apagada —que es como
+   viene— no se envía nada. Ver abajo.
+
+### Los avisos al celular, en claro
+
+Es la única función que **envía** algo, y por eso es opcional y viene apagada.
+
+- Lo que sale: el mismo texto que verías en pantalla — "Sin cuota de sesión.
+  Vuelvo en 45 min", "Sesión al 80%" — más la hora del reset. **Nunca** el
+  token, ni nombres de proyecto, ni rutas, ni cifras de gasto.
+- A dónde: al servidor ntfy configurado (`ntfy.sh` por defecto). Ese servidor
+  ve tu IP, como cualquier petición HTTP, y **los canales de ntfy son públicos
+  por diseño**: el nombre aleatorio del canal es lo que hace de contraseña.
+  Por eso lo que se manda está limitado a propósito.
+- Cómo apagarlo: la misma casilla de *Preferencias*. Y si quieres tu propio
+  servidor ntfy (es open source), cambia `"server"` en
+  `%APPDATA%\com.oscarorozco.michiclaude\ntfy_config.json`.
 
 ### La descarga de precios, en claro
 
