@@ -603,6 +603,32 @@
       </div>
       <div class="cfg-lbl" data-i18n="budget_label"></div>
       <input id="budgetIn" type="number" min="0" step="1" style="max-width:120px">
+      <!-- Avisos al celular vía ntfy (2026-08-01): opcional y APAGADO por
+           defecto. Por este canal viajan SOLO porcentajes y horas de reset —
+           nunca proyectos, rutas ni dólares (regla en CLAUDE.md). El topic es
+           la contraseña del canal; el servidor se cambia a mano en
+           ntfy_config.json, como las URLs de precios. El QR va SIEMPRE sobre
+           blanco: un QR invertido no lo leen todas las cámaras. -->
+      <div class="cfg-lbl" data-i18n="ntfy_label"></div>
+      <label class="cfg-row" style="cursor:pointer">
+        <input type="checkbox" id="ntfyChk"> <span data-i18n="ntfy_on"></span>
+      </label>
+      <div id="ntfyBox" hidden>
+        <div class="cfg-note" data-i18n-html="ntfy_steps"></div>
+        <canvas id="ntfyQr" width="180" height="180"
+                style="border-radius:8px;margin:6px 0;background:#fff"></canvas>
+        <div class="btnrow">
+          <input id="ntfyTopic" readonly style="max-width:190px;font-size:11px">
+          <button id="ntfyCopy" data-i18n="ntfy_copy"></button>
+        </div>
+        <div class="btnrow">
+          <button id="ntfyTest" data-i18n="ntfy_test"></button>
+          <span id="ntfyMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+        </div>
+        <label class="cfg-row" style="cursor:pointer">
+          <input type="checkbox" id="ntfyAlarmChk"> <span data-i18n="ntfy_alarms"></span>
+        </label>
+      </div>
       <div class="cfg-lbl" data-i18n="prices_label"></div>
       <div class="btnrow">
         <span id="pricesMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
@@ -849,6 +875,17 @@ en:{
   notif_zzz_soon:(h,m)=>h?`Weekly quota is out. Back in ${h} h ${m} min.`:`Weekly quota is out. Back in ${m} min.`,
   notif_back_session:"Session quota is back. Let\u2019s get to work.",
   notif_back_week:"Weekly quota is back. Let\u2019s get to work.",
+  ntfy_label:"Phone alerts",
+  ntfy_on:"Send alerts to my phone (ntfy app)",
+  ntfy_steps:"1. Install the free <b>ntfy</b> app on your phone.<br>2. Scan the QR with your camera \u2014 or copy the channel and add it in the app.<br>3. Send a test.",
+  ntfy_copy:"Copy",
+  ntfy_copied:"Copied \u2713",
+  ntfy_test:"Send test",
+  ntfy_test_body:"Hi! This is how your MichiClaude alerts will look \ud83d\udc31",
+  ntfy_test_ok:"Sent \u2014 check your phone",
+  ntfy_err:"Could not send",
+  ntfy_alarms:"Also send my % alarms",
+  ntfy_promise:"You can turn the PC off \u2014 I\u2019ll ping you when it\u2019s back \ud83d\udc31",
   notif_reset_session:"Your 5 h session limit is available again. Open the meter panel to stop these reminders.",
   notif_reset_week:"Your weekly limit is available again. Open the meter panel to stop these reminders.",
   btn_ack:"Got it",
@@ -1063,6 +1100,17 @@ es:{
   notif_zzz_soon:(h,m)=>h?`Semana agotada. Vuelvo en ${h} h ${m} min.`:`Semana agotada. Vuelvo en ${m} min.`,
   notif_back_session:"Cuota de sesión restablecida. A trabajar.",
   notif_back_week:"Cuota semanal restablecida. A trabajar.",
+  ntfy_label:"Avisos en el celular",
+  ntfy_on:"Enviar avisos a mi celular (app ntfy)",
+  ntfy_steps:"1. Instala la app gratuita <b>ntfy</b> en tu teléfono.<br>2. Escanea el QR con la cámara — o copia el canal y agrégalo en la app.<br>3. Envía una prueba.",
+  ntfy_copy:"Copiar",
+  ntfy_copied:"Copiado ✓",
+  ntfy_test:"Enviar prueba",
+  ntfy_test_body:"¡Hola! Así se verán tus avisos de MichiClaude 🐱",
+  ntfy_test_ok:"Enviado — revisa tu teléfono",
+  ntfy_err:"No se pudo enviar",
+  ntfy_alarms:"También mis alarmas de %",
+  ntfy_promise:"Puedes apagar la compu: yo te aviso cuando vuelva 🐱",
   notif_reset_session:"Tu límite de sesión (5 h) ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   notif_reset_week:"Tu límite semanal ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   btn_ack:"Enterado",
@@ -1277,6 +1325,17 @@ pt:{
   notif_zzz_soon:(h,m)=>h?`Semana esgotada. Volto em ${h} h ${m} min.`:`Semana esgotada. Volto em ${m} min.`,
   notif_back_session:"Cota de sessão restabelecida. Ao trabalho.",
   notif_back_week:"Cota semanal restabelecida. Ao trabalho.",
+  ntfy_label:"Avisos no celular",
+  ntfy_on:"Enviar avisos para meu celular (app ntfy)",
+  ntfy_steps:"1. Instale o app gratuito <b>ntfy</b> no seu telefone.<br>2. Escaneie o QR com a câmera — ou copie o canal e adicione no app.<br>3. Envie um teste.",
+  ntfy_copy:"Copiar",
+  ntfy_copied:"Copiado ✓",
+  ntfy_test:"Enviar teste",
+  ntfy_test_body:"Olá! Assim vão aparecer seus avisos do MichiClaude 🐱",
+  ntfy_test_ok:"Enviado — veja seu telefone",
+  ntfy_err:"Não foi possível enviar",
+  ntfy_alarms:"Também meus alarmes de %",
+  ntfy_promise:"Pode desligar o PC: eu te aviso quando voltar 🐱",
   notif_reset_session:"Seu limite de sessão (5 h) já está disponível. Abra o painel do meter para parar estes lembretes.",
   notif_reset_week:"Seu limite semanal já está disponível. Abra o painel do meter para parar estes lembretes.",
   btn_ack:"Entendi",
@@ -1491,6 +1550,17 @@ fr:{
   notif_zzz_soon:(h,m)=>h?`Quota hebdo épuisé. Je reviens dans ${h} h ${m} min.`:`Quota hebdo épuisé. Je reviens dans ${m} min.`,
   notif_back_session:"Quota de session rétabli. Au travail.",
   notif_back_week:"Quota hebdo rétabli. Au travail.",
+  ntfy_label:"Alertes sur le téléphone",
+  ntfy_on:"Envoyer les alertes sur mon téléphone (app ntfy)",
+  ntfy_steps:"1. Installez l’app gratuite <b>ntfy</b> sur votre téléphone.<br>2. Scannez le QR avec l’appareil photo — ou copiez le canal et ajoutez-le dans l’app.<br>3. Envoyez un test.",
+  ntfy_copy:"Copier",
+  ntfy_copied:"Copié ✓",
+  ntfy_test:"Envoyer un test",
+  ntfy_test_body:"Bonjour ! Voici à quoi ressembleront vos alertes MichiClaude 🐱",
+  ntfy_test_ok:"Envoyé — regardez votre téléphone",
+  ntfy_err:"Envoi impossible",
+  ntfy_alarms:"Aussi mes alarmes de %",
+  ntfy_promise:"Vous pouvez éteindre le PC : je vous préviens au retour 🐱",
   notif_reset_session:"Votre limite de session (5 h) est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   notif_reset_week:"Votre limite hebdo est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   btn_ack:"Compris",
@@ -1705,6 +1775,17 @@ de:{
   notif_zzz_soon:(h,m)=>h?`Wochenkontingent aufgebraucht. Bin in ${h} Std ${m} Min zurück.`:`Wochenkontingent aufgebraucht. Bin in ${m} Min zurück.`,
   notif_back_session:"Sitzungskontingent ist zurück. An die Arbeit.",
   notif_back_week:"Wochenkontingent ist zurück. An die Arbeit.",
+  ntfy_label:"Hinweise aufs Handy",
+  ntfy_on:"Hinweise an mein Handy senden (ntfy-App)",
+  ntfy_steps:"1. Installiere die kostenlose <b>ntfy</b>-App auf dem Handy.<br>2. Scanne den QR mit der Kamera — oder kopiere den Kanal und füge ihn in der App hinzu.<br>3. Sende einen Test.",
+  ntfy_copy:"Kopieren",
+  ntfy_copied:"Kopiert ✓",
+  ntfy_test:"Test senden",
+  ntfy_test_body:"Hallo! So sehen deine MichiClaude-Hinweise aus 🐱",
+  ntfy_test_ok:"Gesendet — schau aufs Handy",
+  ntfy_err:"Senden fehlgeschlagen",
+  ntfy_alarms:"Auch meine %-Alarme",
+  ntfy_promise:"Du kannst den PC ausschalten: ich melde mich, wenn es weitergeht 🐱",
   notif_reset_session:"Dein Sitzungslimit (5 Std) ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   notif_reset_week:"Dein Wochenlimit ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   btn_ack:"Verstanden",
@@ -1919,6 +2000,17 @@ ja:{
   notif_zzz_soon:(h,m)=>h?`週の上限に達しました。${h}時間${m}分後に戻ります。`:`週の上限に達しました。${m}分後に戻ります。`,
   notif_back_session:"セッションの上限がリセットされました。作業を再開しましょう。",
   notif_back_week:"週の上限がリセットされました。作業を再開しましょう。",
+  ntfy_label:"スマホ通知",
+  ntfy_on:"スマホに通知を送る（ntfyアプリ）",
+  ntfy_steps:"1. スマホに無料アプリ <b>ntfy</b> をインストール。<br>2. カメラでQRを読み取る — またはチャンネルをコピーしてアプリに追加。<br>3. テストを送信。",
+  ntfy_copy:"コピー",
+  ntfy_copied:"コピーしました ✓",
+  ntfy_test:"テスト送信",
+  ntfy_test_body:"こんにちは！MichiClaudeの通知はこんな感じです 🐱",
+  ntfy_test_ok:"送信しました — スマホを確認してください",
+  ntfy_err:"送信できませんでした",
+  ntfy_alarms:"％アラームも送る",
+  ntfy_promise:"PCを消して大丈夫。回復したらお知らせします 🐱",
   notif_reset_session:"セッション上限（5時間）が再び利用可能になりました。パネルを開くと通知が止まります。",
   notif_reset_week:"週間上限が再び利用可能になりました。パネルを開くと通知が止まります。",
   btn_ack:"確認",
@@ -2133,6 +2225,17 @@ ko:{
   notif_zzz_soon:(h,m)=>h?`주간 한도를 다 썼어요. ${h}시간 ${m}분 후에 돌아올게요.`:`주간 한도를 다 썼어요. ${m}분 후에 돌아올게요.`,
   notif_back_session:"세션 한도가 초기화됐어요. 다시 시작해요.",
   notif_back_week:"주간 한도가 초기화됐어요. 다시 시작해요.",
+  ntfy_label:"휴대폰 알림",
+  ntfy_on:"휴대폰으로 알림 보내기 (ntfy 앱)",
+  ntfy_steps:"1. 휴대폰에 무료 앱 <b>ntfy</b> 를 설치하세요.<br>2. 카메라로 QR을 스캔 — 또는 채널을 복사해 앱에 추가하세요.<br>3. 테스트를 보내세요.",
+  ntfy_copy:"복사",
+  ntfy_copied:"복사됨 ✓",
+  ntfy_test:"테스트 보내기",
+  ntfy_test_body:"안녕하세요! MichiClaude 알림은 이렇게 도착해요 🐱",
+  ntfy_test_ok:"보냈어요 — 휴대폰을 확인하세요",
+  ntfy_err:"보내지 못했어요",
+  ntfy_alarms:"% 알람도 보내기",
+  ntfy_promise:"PC를 꺼도 돼요. 복구되면 알려드릴게요 🐱",
   notif_reset_session:"세션 한도(5시간)를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   notif_reset_week:"주간 한도를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   btn_ack:"확인",
@@ -2347,6 +2450,17 @@ zh:{
   notif_zzz_soon:(h,m)=>h?`本周额度已用完。${h}小时${m}分钟后回来。`:`本周额度已用完。${m}分钟后回来。`,
   notif_back_session:"会话额度已恢复。开始干活吧。",
   notif_back_week:"每周额度已恢复。开始干活吧。",
+  ntfy_label:"手机提醒",
+  ntfy_on:"发送提醒到我的手机（ntfy 应用）",
+  ntfy_steps:"1. 在手机上安装免费应用 <b>ntfy</b>。<br>2. 用相机扫描二维码 — 或复制频道并在应用中添加。<br>3. 发送一条测试。",
+  ntfy_copy:"复制",
+  ntfy_copied:"已复制 ✓",
+  ntfy_test:"发送测试",
+  ntfy_test_body:"你好！MichiClaude 的提醒就是这个样子 🐱",
+  ntfy_test_ok:"已发送 — 请查看手机",
+  ntfy_err:"发送失败",
+  ntfy_alarms:"也发送我的 % 警报",
+  ntfy_promise:"可以关电脑了：恢复时我会通知你 🐱",
   notif_reset_session:"你的会话额度（5小时）已恢复可用。打开面板即可停止提醒。",
   notif_reset_week:"你的每周额度已恢复可用。打开面板即可停止提醒。",
   btn_ack:"知道了",
@@ -2971,6 +3085,11 @@ function maybeNotify(pct,resets){
         localStorage.setItem("ackSev:alarm", thr>=95 ? "danger" : "warn");
         localStorage.setItem("ackPending:alarm","1");
         localStorage.removeItem("ackLastToast:alarm"); // dispara ya, no en 5 min
+        // al celular solo con su casilla propia: frente a la PC ya tienes el
+        // globo; esto es para cuando no estás
+        if(ntfyCfg&&ntfyCfg.alarms)
+          ntfyPush(thr>=95?t("notif_hi",Math.round(pct)):t("notif_lo",Math.round(pct)),
+                   thr>=95?4:3, null);
       }
       break;
     }
@@ -2996,6 +3115,9 @@ function trackResets(ses, wk){
       if(!localStorage.getItem("notifS")){
         localStorage.setItem("notifS","1");
         showBalloon(breakBody(ses.resets), "break");
+        // al celular: mismo texto + promesa, y el "ya volvió" programado
+        // que llega con la PC apagada (banderín notifS = un push por ventana)
+        ntfyLimit(breakBody(ses.resets), ses.resets, "session");
       }
     }
   }
@@ -3015,6 +3137,9 @@ function trackResets(ses, wk){
         // Un aviso, un canal: el globo SUSTITUYE al toast de Windows, con
         // gatito y con pastilla.
         showBalloon(weekBody(wk.resets), "zzz");
+        // al celular: si el reset semanal no cabe en los 3 días de ntfy.sh,
+        // ntfyLimit no programa nada y el inmediato ya dice el día
+        ntfyLimit(weekBody(wk.resets), wk.resets, "week");
       }
     }
   }
@@ -3855,6 +3980,89 @@ $("fndNudgeIn").value=localStorage.getItem("fndNudgeUsd")||"1";
 $("fndNudgeIn").addEventListener("change",()=>{
   localStorage.setItem("fndNudgeUsd", $("fndNudgeIn").value||"1");
 });
+
+// ---------- avisos al celular (ntfy) ----------
+// La config vive en ntfy_config.json (backend); aquí solo una copia en
+// memoria. Rust no redacta nada: todos los textos salen de t() ya en el
+// idioma activo, la misma regla del menú del tray.
+let ntfyCfg=null;
+async function ntfyLoad(){
+  if(!invoke) return;
+  try{ ntfyCfg=await invoke("get_ntfy"); }catch(_){ ntfyCfg=null; }
+  ntfyUi();
+}
+function ntfyOn(){ return !!(ntfyCfg&&ntfyCfg.enabled&&ntfyCfg.topic); }
+// Fire-and-forget: un fallo de red JAMÁS bloquea nada local (queda en
+// ntfy_debug.json). simRunning: el simulador nunca manda pushes de verdad.
+function ntfyPush(body, priority, at){
+  if(!ntfyOn()||simRunning||!invoke) return;
+  invoke("ntfy_push",{title:"MichiClaude", body, priority:priority||3, at:at??null})
+    .catch(()=>{});
+}
+// Límite al 100%: aviso INMEDIATO + el PROGRAMADO de "ya volvió", que ntfy
+// retiene y entrega a la hora del reset AUNQUE la PC esté apagada — por eso
+// el inmediato puede prometer "puedes apagar, yo te aviso". El programado
+// solo si cabe en el límite de 3 días de ntfy.sh (el semanal puede no caber:
+// entonces el inmediato ya dice el día y no se promete nada). +2 min de
+// colchón por el jitter del resets_at.
+function ntfyLimit(body, resets, kind){
+  if(!ntfyOn()) return;
+  const ms=resets ? new Date(resets)-Date.now() : 0;
+  const fits=ms>6e4 && ms<(3*86400-3600)*1000;
+  ntfyPush(body+(fits?" "+t("ntfy_promise"):""), 4, null);
+  if(fits)
+    ntfyPush(t(kind==="session"?"notif_back_session":"notif_back_week"), 3,
+             Math.floor(new Date(resets).getTime()/1000)+120);
+}
+function ntfyUi(){
+  const on=!!(ntfyCfg&&ntfyCfg.enabled);
+  $("ntfyChk").checked=on;
+  $("ntfyBox").hidden=!on;
+  $("ntfyAlarmChk").checked=!!(ntfyCfg&&ntfyCfg.alarms);
+  if(!on||!ntfyCfg.topic) return;
+  $("ntfyTopic").value=(ntfyCfg.server||"https://ntfy.sh").replace(/\/+$/,"")+"/"+ntfyCfg.topic;
+  invoke&&invoke("ntfy_qr").then(ntfyPaintQr).catch(()=>{});
+}
+// El QR llega como matriz de módulos y se pinta aquí: sin PNG, sin librerías.
+// Siempre negro sobre blanco, en los dos temas: un QR invertido no lo leen
+// todas las cámaras.
+function ntfyPaintQr(q){
+  const cv=$("ntfyQr"), n=q.size, ctx=cv.getContext("2d");
+  const px=Math.max(1, Math.floor(cv.width/(n+8)));   // 4 módulos de zona quieta
+  const off=Math.floor((cv.width-px*n)/2);
+  ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle="#000000";
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++)
+    if(q.cells[y*n+x]==="1") ctx.fillRect(off+x*px, off+y*px, px, px);
+}
+$("ntfyChk").addEventListener("change", async ()=>{
+  if(!invoke) return;
+  try{ ntfyCfg=await invoke("save_ntfy",{cfg:{...(ntfyCfg||{}), enabled:$("ntfyChk").checked}}); }
+  catch(_){}
+  ntfyUi();
+});
+$("ntfyAlarmChk").addEventListener("change", async ()=>{
+  if(!invoke) return;
+  try{ ntfyCfg=await invoke("save_ntfy",{cfg:{...(ntfyCfg||{}), alarms:$("ntfyAlarmChk").checked}}); }
+  catch(_){}
+});
+$("ntfyCopy").addEventListener("click", async ()=>{
+  const v=$("ntfyTopic").value;
+  try{ await navigator.clipboard.writeText(v); }
+  catch(_){ $("ntfyTopic").select(); document.execCommand("copy"); }
+  $("ntfyMsg").textContent=t("ntfy_copied");
+  setTimeout(()=>{ if($("ntfyMsg").textContent===t("ntfy_copied")) $("ntfyMsg").textContent=""; }, 2500);
+});
+$("ntfyTest").addEventListener("click", async ()=>{
+  if(!invoke) return;
+  $("ntfyMsg").textContent="…";
+  try{
+    await invoke("ntfy_push",{title:"MichiClaude", body:t("ntfy_test_body"), priority:3, at:null});
+    $("ntfyMsg").textContent=t("ntfy_test_ok");
+  }catch(e){ $("ntfyMsg").textContent=t("ntfy_err")+" ("+e+")"; }
+});
+ntfyLoad();
+
 async function loadFindings(force){
   if(!invoke) return;
   if(fndBusy) return;

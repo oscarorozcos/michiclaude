@@ -3099,7 +3099,11 @@ pub fn run() {
             set_notif_visible,
             set_tray_menu,
             get_findings,
-            pill_moved
+            pill_moved,
+            get_ntfy,
+            save_ntfy,
+            ntfy_push,
+            ntfy_qr
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),
@@ -3619,6 +3623,171 @@ fn open_faq_issue(title: String, body: String) {
     {
         let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
     }
+}
+
+// ---------- Avisos al celular (ntfy) ----------
+// Push opcional al teléfono vía ntfy (por defecto el servidor público
+// ntfy.sh; cambiable a mano en ntfy_config.json, como las URLs de precios —
+// el self-host sale gratis). Reglas fijas: APAGADO por defecto; el topic es
+// la contraseña del canal (aleatorio criptográfico, jamás se loggea fuera de
+// su config); los TEXTOS llegan del panel ya traducidos — Rust no redacta
+// avisos (la regla del menú del tray, invariante #10) —; y por este canal
+// viajan SOLO porcentajes y horas de reset: nunca nombres de proyecto,
+// rutas ni dólares. Se publica en JSON (POST a la raíz del servidor) a
+// propósito: los headers HTTP no aguantan UTF-8 y los avisos van en 8
+// idiomas.
+
+#[derive(Serialize, Deserialize, Clone)]
+struct NtfyConfig {
+    #[serde(default)]
+    enabled: bool,
+    #[serde(default)]
+    topic: String,
+    #[serde(default = "ntfy_default_server")]
+    server: String,
+    #[serde(default)]
+    alarms: bool,
+}
+
+fn ntfy_default_server() -> String {
+    "https://ntfy.sh".into()
+}
+
+impl Default for NtfyConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            topic: String::new(),
+            server: ntfy_default_server(),
+            alarms: false,
+        }
+    }
+}
+
+fn ntfy_config_path() -> PathBuf {
+    app_data_dir().join("ntfy_config.json")
+}
+
+fn load_ntfy_config() -> NtfyConfig {
+    fs::read_to_string(ntfy_config_path())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+/// Topic nuevo: "michi-" + 12 símbolos [a-z0-9] del CSPRNG (~62 bits). En
+/// ntfy el topic ES la contraseña — con SystemTime sería adivinable.
+fn ntfy_new_topic() -> Result<String, String> {
+    let mut buf = [0u8; 12];
+    getrandom::getrandom(&mut buf).map_err(|e| e.to_string())?;
+    const CS: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789";
+    let tail: String = buf
+        .iter()
+        .map(|b| CS[(*b as usize) % CS.len()] as char)
+        .collect();
+    Ok(format!("michi-{tail}"))
+}
+
+#[tauri::command]
+fn get_ntfy() -> NtfyConfig {
+    load_ntfy_config()
+}
+
+/// Guarda la config; al activar por primera vez inventa el topic. Devuelve
+/// la config final para que el panel pinte topic y QR sin releer.
+#[tauri::command]
+fn save_ntfy(mut cfg: NtfyConfig) -> Result<NtfyConfig, String> {
+    if cfg.enabled && cfg.topic.is_empty() {
+        cfg.topic = ntfy_new_topic()?;
+    }
+    if cfg.server.trim().is_empty() {
+        cfg.server = ntfy_default_server();
+    }
+    let s = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;
+    let dir = app_data_dir();
+    let _ = fs::create_dir_all(&dir);
+    fs::write(ntfy_config_path(), s).map_err(|e| e.to_string())?;
+    Ok(cfg)
+}
+
+/// Deja el último fallo en ntfy_debug.json (código y hora — el topic jamás
+/// se escribe ahí) y devuelve el mismo código para que el panel lo traduzca.
+fn ntfy_fail(code: String) -> String {
+    let dir = app_data_dir();
+    let _ = fs::create_dir_all(&dir);
+    let _ = fs::write(
+        dir.join("ntfy_debug.json"),
+        format!(
+            "{{\"last_error\":\"{}\",\"at\":\"{}\"}}",
+            code,
+            chrono::Utc::now().to_rfc3339()
+        ),
+    );
+    code
+}
+
+/// El POST genérico. `at` = timestamp Unix (segundos) para entrega
+/// PROGRAMADA: ntfy retiene el mensaje y lo entrega a esa hora aunque la PC
+/// esté APAGADA — es lo que convierte "límite alcanzado" en "puedes apagar,
+/// yo te aviso". Máximo 3 días en ntfy.sh; ese guard vive en el panel.
+/// Async por la regla 10ter: es red, no puede congelar la interfaz.
+#[tauri::command]
+async fn ntfy_push(
+    title: String,
+    body: String,
+    priority: u8,
+    at: Option<i64>,
+) -> Result<(), String> {
+    let cfg = load_ntfy_config();
+    if !cfg.enabled || cfg.topic.is_empty() {
+        return Err("ERR_NTFY_OFF".into());
+    }
+    let mut payload = serde_json::json!({
+        "topic": cfg.topic,
+        "title": title,
+        "message": body,
+        "priority": priority.clamp(1, 5),
+    });
+    if let Some(ts) = at {
+        payload["delay"] = serde_json::Value::String(ts.to_string());
+    }
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(cfg.server.trim_end_matches('/'))
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|_| ntfy_fail("ERR_NET".into()))?;
+    if !resp.status().is_success() {
+        return Err(ntfy_fail(format!("ERR_NTFY:{}", resp.status().as_u16())));
+    }
+    Ok(())
+}
+
+/// Matriz del QR con el enlace de suscripción (ntfy://host/topic — el enlace
+/// profundo que la app ntfy abre ya suscrita; la app NO trae escáner, se usa
+/// la cámara normal). El panel la pinta en un canvas: ni PNG ni dependencia
+/// de imagen. Siempre sobre fondo claro al pintarlo: un QR invertido no lo
+/// leen todas las cámaras.
+#[tauri::command]
+fn ntfy_qr() -> Result<serde_json::Value, String> {
+    let cfg = load_ntfy_config();
+    if cfg.topic.is_empty() {
+        return Err("ERR_NTFY_OFF".into());
+    }
+    let host = cfg
+        .server
+        .trim_end_matches('/')
+        .trim_start_matches("https://")
+        .trim_start_matches("http://");
+    let link = format!("ntfy://{}/{}", host, cfg.topic);
+    let code = qrcode::QrCode::new(link.as_bytes()).map_err(|e| e.to_string())?;
+    let cells: String = code
+        .to_colors()
+        .iter()
+        .map(|c| if *c == qrcode::Color::Dark { '1' } else { '0' })
+        .collect();
+    Ok(serde_json::json!({ "size": code.width(), "cells": cells }))
 }
 
 /// Guarda los ajustes del panel en el hub, para que otra PC los herede.

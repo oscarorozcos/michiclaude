@@ -1205,6 +1205,35 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       [ ] alta de servidor SIN Python → ERR_NO_PYTHON traducido
       [ ] alarmas reales: cruzar umbral, 100%, y ventana nueva
           reconocida (trackResets/windowChanged con datos de verdad)
+      [ ] ntfy: activar en Preferencias, escanear QR, "Enviar prueba" al
+          teléfono; el camino completo (100% real + push programado
+          llegando con la PC APAGADA) va junto con las alarmas reales
+      AVISOS AL CELULAR (ntfy) — IMPLEMENTADO 2026-08-01 (SIN cargo check
+      ni validación en vivo). SUSTITUYE a la propuesta de Telegram
+      (descartada por decisión de Oscar 2026-08-01: fricción de BotFather,
+      chat_id personal y, lo decisivo, no puede avisar con la PC apagada).
+      Diseño completo en docs/avisos-ntfy.md — LEERLO antes de tocar esto.
+      Lo esencial: opt-in APAGADO por defecto; ntfy_config.json (enabled/
+      topic/server/alarms; topic = contraseña del canal, CSPRNG getrandom,
+      "michi-"+12 [a-z0-9]; server editable solo a mano, self-host gratis);
+      comandos get_ntfy/save_ntfy/ntfy_push (async, publicación JSON a la
+      raíz — los headers HTTP no aguantan UTF-8 y hay 8 idiomas)/ntfy_qr
+      (matriz al canvas, sin dependencia de imagen; enlace ntfy://host/topic
+      porque la app ntfy NO trae escáner — se usa la cámara del sistema).
+      La estrella: al 100% va el aviso inmediato + el "ya volvió" PROGRAMADO
+      (header delay, +120 s de colchón por el jitter) que ntfy entrega con
+      la PC APAGADA; si el reset semanal no cabe en los 3 días del servidor
+      público, no se programa NI se promete ("puedes apagar" solo cuando es
+      verdad). REGLA NUEVA de privacidad: por ntfy viajan SOLO porcentajes,
+      horas de reset y frases del diccionario — nunca proyectos, rutas ni
+      dólares (los topics son públicos por diseño). Rust no redacta avisos
+      (invariante #10); textos reutilizan breakBody/weekBody/notif_back_*;
+      un push por ventana gracias a los banderines notifS/notifW; el
+      simulador nunca manda pushes (guard simRunning en ntfyPush);
+      fallos a ntfy_debug.json sin bloquear nada local. Dependencias
+      nuevas mínimas: getrandom, qrcode (sin features). PENDIENTE: nota
+      honesta de red en el README (invariante #9 — la tiene que aprobar
+      Oscar) y la prueba en vivo de la lista.
       FAQMISSES + ISSUE PRE-LLENADO — HECHO 2026-07-31 (SIN validar en
       vivo ni cargo check; tocó Rust: comando open_faq_issue con base
       constante ISSUES_URL y lanzado por rundll32, no cmd/start — el &
@@ -1217,11 +1246,15 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       Consejos buscar algo inexistente ("docker" p. ej.), esperar 2 s,
       borrar el filtro → pie con el contador; clic en "Proponerlas en
       GitHub" → navegador con el issue redactado.
-      (Después de cerrar esto: la propuesta de TELEGRAM opt-in
-      (restablecimientos/100% al teléfono, diseño ya platicado) y las
-      pruebas pendientes de la lista. El modelo local quedó DESCARTADO dentro de la
+      (Después de cerrar esto: las pruebas pendientes de la lista. La
+      propuesta de TELEGRAM quedó DESCARTADA 2026-08-01 — la sustituyó
+      ntfy, ver arriba. El modelo local quedó DESCARTADO dentro de la
       app también en su variante "modelo-lector" — fase 2 opcional aparte,
-      compuertas en ~/.michiclaude/notas-coach-local.md.)
+      compuertas en ~/.michiclaude/notas-coach-local.md. Las ideas del doc
+      de estrategia de Oscar 2026-08-01 —dashboard móvil QR con servidor
+      HTTP local, edición VPS headless— quedaron ANALIZADAS y en fila,
+      sin fecha: la primera toca invariantes (dependencia axum + promesa
+      de red) y la segunda espera señal de demanda real.)
       (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
           validado en el VPS: caza exactamente eliminar-proyecto y respeta
           las ventanas; cargo check limpio 2026-07-30). UNA tarjeta agregada

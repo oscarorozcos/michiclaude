@@ -24,6 +24,11 @@ serde_json = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 chrono = "0.4"
 dirs = "5"
+# Avisos al celular (ntfy): el topic es una contraseña → CSPRNG del sistema,
+# y el QR se genera como matriz (sin features = sin dependencia de imagen;
+# el panel lo pinta en un canvas).
+getrandom = "0.2"
+qrcode = { version = "0.14", default-features = false }
 
 # Solo Windows: rectángulo real de la barra de tareas + estilo no-activable de la franja.
 [target.'cfg(windows)'.dependencies]
