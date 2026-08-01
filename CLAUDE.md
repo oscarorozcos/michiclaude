@@ -1199,6 +1199,12 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           turquesa. La campana roja queda para hallazgos.
       [ ] ver el foco ámbar en la pastilla (recién cambiado)
       [ ] punto turquesa del coach en la PASTILLA (cambiar de widget)
+      [x] VALIDADO 2026-08-01 con capturas de Oscar: pie del gasto SOLO en
+          Principal, pestañas en dos líneas sin barra horizontal, Sí/No del
+          "Canal nuevo", y la cabecera del detalle limpia (asa, gatito y
+          flecha; los números solo en las filas). Falta ver el motivo del
+          sin-datos EN LA PASTILLA: con el token vigente no hay error que
+          enseñar, así que sale la próxima vez que caduque.
       [x] motivo del "sin datos" VALIDADO EN VIVO 2026-08-01 (capturas de
           Oscar tras hibernar el PC): el globo del gatito lo explica bien.
           De ahí salieron DOS arreglos del mismo día: (1) Windows CORTA el
