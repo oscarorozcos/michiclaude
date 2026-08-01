@@ -3103,7 +3103,8 @@ pub fn run() {
             get_ntfy,
             save_ntfy,
             ntfy_push,
-            ntfy_qr
+            ntfy_qr,
+            ntfy_regen
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),
@@ -3703,6 +3704,21 @@ fn save_ntfy(mut cfg: NtfyConfig) -> Result<NtfyConfig, String> {
     if cfg.server.trim().is_empty() {
         cfg.server = ntfy_default_server();
     }
+    let s = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;
+    let dir = app_data_dir();
+    let _ = fs::create_dir_all(&dir);
+    fs::write(ntfy_config_path(), s).map_err(|e| e.to_string())?;
+    Ok(cfg)
+}
+
+/// Canal NUEVO, para cuando el actual se filtró — en ntfy el topic es la
+/// contraseña, y un QR visible en una captura de pantalla basta para
+/// regalarla. Se genera otro topic y el viejo queda muerto: quien lo
+/// tuviera deja de recibir, y el teléfono propio debe re-escanear.
+#[tauri::command]
+fn ntfy_regen() -> Result<NtfyConfig, String> {
+    let mut cfg = load_ntfy_config();
+    cfg.topic = ntfy_new_topic()?;
     let s = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;
     let dir = app_data_dir();
     let _ = fs::create_dir_all(&dir);

@@ -1237,7 +1237,16 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       un push por ventana gracias a los banderines notifS/notifW; el
       simulador nunca manda pushes (guard simRunning en ntfyPush);
       fallos a ntfy_debug.json sin bloquear nada local. Dependencias
-      nuevas mínimas: getrandom, qrcode (sin features). PENDIENTE: nota
+      nuevas mínimas: getrandom, qrcode (sin features). Botón CANAL NUEVO
+      (2026-08-01, pregunta de Oscar que destapó el hueco): regenera el
+      topic en dos pasos —patrón del bote de borrar servidor— para cuando
+      el canal se filtre (un QR en una captura regala la contraseña);
+      comando ntfy_regen, el canal viejo muere y hay que re-escanear.
+      Y DECISIÓN del mismo día: ntfy NO viaja en los ajustes compartidos
+      del hub — esa pantalla promete "no guarda llaves ni contraseñas" y
+      el topic ES la contraseña del canal; además cada máquina con su
+      canal se silencia por separado en la app ntfy (ver
+      docs/avisos-ntfy.md). PENDIENTE: nota
       honesta de red en el README (invariante #9 — la tiene que aprobar
       Oscar) y la prueba en vivo de la lista.
       FAQMISSES + ISSUE PRE-LLENADO — HECHO 2026-07-31 (SIN validar en

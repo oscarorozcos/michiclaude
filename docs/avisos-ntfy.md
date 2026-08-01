@@ -121,6 +121,30 @@ todas las cámaras.
 Curl de diagnóstico (sustituir el topic por el del `ntfy_config.json`):
 `curl -d "hola" ntfy.sh/michi-xxxxxxxxxxxx`
 
+## Canal nuevo (botón, 2026-08-01)
+
+Junto a Copiar. Para cuando el canal se filtró — un QR visible en una
+captura de pantalla basta para regalar la contraseña. En DOS PASOS (patrón
+del bote de borrar servidor: primer clic arma, 8 s y se desarma): un clic
+accidental dejaría al teléfono sordo sin aviso. Al regenerar, el canal
+viejo queda muerto (quien lo tuviera deja de recibir) y hay que re-escanear
+el QR en el teléfono propio. Comando `ntfy_regen`.
+
+## ntfy y los ajustes compartidos del hub — NO viaja, a propósito
+
+La pantalla de "Ajustes compartidos" promete: **"No guarda llaves ni
+contraseñas."** El topic de ntfy ES una contraseña (es lo único que protege
+el canal), así que meterlo en el `config.json` del servidor rompería esa
+promesa literal. Además no hace falta: activar ntfy en otra PC son 30
+segundos con su propio QR, y que cada máquina tenga su canal es una
+VENTAJA — en la app ntfy se puede silenciar un canal sin tocar el otro
+("la PC de la oficina no me avise en fin de semana"). Nota: la cuota es de
+la CUENTA, así que dos PCs prendidas con ntfy activo pueden avisar lo mismo
+por sus dos canales; es el comportamiento esperado, no un bug.
+
+Si algún día se pidiera compartirlo, lo compartible serían los booleanos
+(`enabled`/`alarms`), nunca el topic. Hoy: nada.
+
 ## Lo que NO se hizo, a propósito
 
 - **Autohostear un ntfy "oficial de MichiClaude"**: nos volveríamos

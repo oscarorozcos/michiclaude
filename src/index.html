@@ -620,6 +620,10 @@
         <div class="btnrow">
           <input id="ntfyTopic" readonly style="max-width:190px;font-size:11px">
           <button id="ntfyCopy" data-i18n="ntfy_copy"></button>
+          <!-- El topic es la contraseña del canal: si se filtra (un QR en
+               una captura basta), aquí se cambia. Dos clics a propósito:
+               mata el canal viejo y hay que re-escanear en el teléfono. -->
+          <button id="ntfyRegen" data-i18n="ntfy_regen"></button>
         </div>
         <div class="btnrow">
           <button id="ntfyTest" data-i18n="ntfy_test"></button>
@@ -886,6 +890,9 @@ en:{
   ntfy_err:"Could not send",
   ntfy_alarms:"Also send my % alarms",
   ntfy_promise:"You can turn the PC off \u2014 I\u2019ll ping you when it\u2019s back \ud83d\udc31",
+  ntfy_regen:"New channel",
+  ntfy_regen_sure:"Replace it?",
+  ntfy_regen_done:"New channel \u2014 scan the QR again",
   notif_reset_session:"Your 5 h session limit is available again. Open the meter panel to stop these reminders.",
   notif_reset_week:"Your weekly limit is available again. Open the meter panel to stop these reminders.",
   btn_ack:"Got it",
@@ -1111,6 +1118,9 @@ es:{
   ntfy_err:"No se pudo enviar",
   ntfy_alarms:"También mis alarmas de %",
   ntfy_promise:"Puedes apagar la compu: yo te aviso cuando vuelva 🐱",
+  ntfy_regen:"Canal nuevo",
+  ntfy_regen_sure:"¿Reemplazarlo?",
+  ntfy_regen_done:"Canal nuevo — vuelve a escanear el QR",
   notif_reset_session:"Tu límite de sesión (5 h) ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   notif_reset_week:"Tu límite semanal ya está disponible. Abre el panel del meter para dejar de recibir este aviso.",
   btn_ack:"Enterado",
@@ -1336,6 +1346,9 @@ pt:{
   ntfy_err:"Não foi possível enviar",
   ntfy_alarms:"Também meus alarmes de %",
   ntfy_promise:"Pode desligar o PC: eu te aviso quando voltar 🐱",
+  ntfy_regen:"Canal novo",
+  ntfy_regen_sure:"Substituir?",
+  ntfy_regen_done:"Canal novo — escaneie o QR de novo",
   notif_reset_session:"Seu limite de sessão (5 h) já está disponível. Abra o painel do meter para parar estes lembretes.",
   notif_reset_week:"Seu limite semanal já está disponível. Abra o painel do meter para parar estes lembretes.",
   btn_ack:"Entendi",
@@ -1561,6 +1574,9 @@ fr:{
   ntfy_err:"Envoi impossible",
   ntfy_alarms:"Aussi mes alarmes de %",
   ntfy_promise:"Vous pouvez éteindre le PC : je vous préviens au retour 🐱",
+  ntfy_regen:"Nouveau canal",
+  ntfy_regen_sure:"Le remplacer ?",
+  ntfy_regen_done:"Nouveau canal — rescannez le QR",
   notif_reset_session:"Votre limite de session (5 h) est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   notif_reset_week:"Votre limite hebdo est de nouveau disponible. Ouvrez le panneau pour arrêter ces rappels.",
   btn_ack:"Compris",
@@ -1786,6 +1802,9 @@ de:{
   ntfy_err:"Senden fehlgeschlagen",
   ntfy_alarms:"Auch meine %-Alarme",
   ntfy_promise:"Du kannst den PC ausschalten: ich melde mich, wenn es weitergeht 🐱",
+  ntfy_regen:"Neuer Kanal",
+  ntfy_regen_sure:"Ersetzen?",
+  ntfy_regen_done:"Neuer Kanal — QR neu scannen",
   notif_reset_session:"Dein Sitzungslimit (5 Std) ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   notif_reset_week:"Dein Wochenlimit ist wieder verfügbar. Öffne das Panel, um diese Erinnerungen zu stoppen.",
   btn_ack:"Verstanden",
@@ -2011,6 +2030,9 @@ ja:{
   ntfy_err:"送信できませんでした",
   ntfy_alarms:"％アラームも送る",
   ntfy_promise:"PCを消して大丈夫。回復したらお知らせします 🐱",
+  ntfy_regen:"チャンネル再生成",
+  ntfy_regen_sure:"置き換えますか？",
+  ntfy_regen_done:"新しいチャンネル — QRを再スキャン",
   notif_reset_session:"セッション上限（5時間）が再び利用可能になりました。パネルを開くと通知が止まります。",
   notif_reset_week:"週間上限が再び利用可能になりました。パネルを開くと通知が止まります。",
   btn_ack:"確認",
@@ -2236,6 +2258,9 @@ ko:{
   ntfy_err:"보내지 못했어요",
   ntfy_alarms:"% 알람도 보내기",
   ntfy_promise:"PC를 꺼도 돼요. 복구되면 알려드릴게요 🐱",
+  ntfy_regen:"새 채널",
+  ntfy_regen_sure:"교체할까요?",
+  ntfy_regen_done:"새 채널 — QR을 다시 스캔하세요",
   notif_reset_session:"세션 한도(5시간)를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   notif_reset_week:"주간 한도를 다시 사용할 수 있습니다. 패널을 열면 알림이 중지됩니다.",
   btn_ack:"확인",
@@ -2461,6 +2486,9 @@ zh:{
   ntfy_err:"发送失败",
   ntfy_alarms:"也发送我的 % 警报",
   ntfy_promise:"可以关电脑了：恢复时我会通知你 🐱",
+  ntfy_regen:"新频道",
+  ntfy_regen_sure:"确定更换？",
+  ntfy_regen_done:"新频道 — 请重新扫描二维码",
   notif_reset_session:"你的会话额度（5小时）已恢复可用。打开面板即可停止提醒。",
   notif_reset_week:"你的每周额度已恢复可用。打开面板即可停止提醒。",
   btn_ack:"知道了",
@@ -2746,6 +2774,12 @@ function hubCfgSnapshot(srv){
     // rellena al abrir Fuentes de datos, así que guardar sin haber pasado por
     // esa pestaña dejaba la lista vacía sin decir nada (visto 2026-07-28).
     remotes: srv,
+    // ntfy NO viaja, a propósito (2026-08-01, duda de Oscar): el topic ES
+    // la contraseña del canal y esta pantalla promete "no guarda llaves ni
+    // contraseñas". Tampoco hace falta —activarlo en otra PC son 30 s con
+    // su propio QR— y tener un canal por máquina permite silenciar una sin
+    // la otra desde la app ntfy. Si algún día se compartiera, serían los
+    // booleanos (enabled/alarms), jamás el topic.
   };
 }
 // Se aplica sobre el almacén y luego se recarga el panel: hay ajustes que se
@@ -4059,6 +4093,27 @@ $("ntfyTest").addEventListener("click", async ()=>{
   try{
     await invoke("ntfy_push",{title:"MichiClaude", body:t("ntfy_test_body"), priority:3, at:null});
     $("ntfyMsg").textContent=t("ntfy_test_ok");
+  }catch(e){ $("ntfyMsg").textContent=t("ntfy_err")+" ("+e+")"; }
+});
+// Canal nuevo en DOS PASOS (patrón del bote de borrar servidor): el primer
+// clic arma y el segundo ejecuta; a los 8 s se desarma solo. Un clic
+// accidental aquí dejaría al teléfono sordo sin que el usuario lo sepa.
+let ntfyRegenArm=0;
+$("ntfyRegen").addEventListener("click", async ()=>{
+  if(!invoke) return;
+  if(Date.now()-ntfyRegenArm>8000){
+    ntfyRegenArm=Date.now();
+    $("ntfyRegen").textContent=t("ntfy_regen_sure");
+    setTimeout(()=>{ if(Date.now()-ntfyRegenArm>=8000)
+      $("ntfyRegen").textContent=t("ntfy_regen"); }, 8200);
+    return;
+  }
+  ntfyRegenArm=0;
+  $("ntfyRegen").textContent=t("ntfy_regen");
+  try{
+    ntfyCfg=await invoke("ntfy_regen");
+    ntfyUi();
+    $("ntfyMsg").textContent=t("ntfy_regen_done");
   }catch(e){ $("ntfyMsg").textContent=t("ntfy_err")+" ("+e+")"; }
 });
 ntfyLoad();
