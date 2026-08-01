@@ -1228,6 +1228,9 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       [ ] ntfy camino completo: push de alarma de % real, 100% real y el
           programado llegando con la PC APAGADA — va junto con las
           alarmas reales de abajo
+      [ ] "tu agente terminó": sesión de 5+ turnos en Windows, dejarla
+          quieta 5 min con la app abierta → push al celular (probar
+          también con la casilla del nombre del proyecto)
       AVISOS AL CELULAR (ntfy) — IMPLEMENTADO 2026-08-01; cargo check
       limpio y lo BÁSICO VALIDADO EN VIVO por Oscar ese mismo día (QR +
       suscripción + prueba en su teléfono). Falta el camino de eventos
@@ -1258,6 +1261,19 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       topic en dos pasos —patrón del bote de borrar servidor— para cuando
       el canal se filtre (un QR en una captura regala la contraseña);
       comando ntfy_regen, el canal viejo muere y hay que re-escanear.
+      "TU AGENTE TERMINÓ" (2026-08-01, lo pidió Oscar tras ver que el valor
+      real está en dejar a Claude trabajando e irse): regla `done` en
+      coach_scan — sesión quieta 5 min (COACH_DONE_QUIET) con 5+ turnos
+      (COACH_DONE_TURNS), banderín `notified` propio. NO es una ficha:
+      coachPoll la aparta antes del filtro de Consejos (ni gasta el tope
+      diario ni sale en el panel) y la manda al celular. Dedup por partida
+      doble —el estado del coach vive en memoria y al reiniciar la app una
+      sesión recién callada volvería a reportarse—: localStorage `ntfyDone`,
+      tope 100, y máximo 3 pushes por sondeo. El NOMBRE del proyecto es una
+      casilla aparte (`names`, apagada): la regla general prohíbe nombres
+      por ntfy, y la casilla advierte que el canal es público. Hereda las
+      limitaciones del coach: solo ESTA máquina y solo si la app estuvo
+      abierta durante la sesión. Detalle en docs/avisos-ntfy.md.
       Y DECISIÓN del mismo día: ntfy NO viaja en los ajustes compartidos
       del hub — esa pantalla promete "no guarda llaves ni contraseñas" y
       el topic ES la contraseña del canal; además cada máquina con su

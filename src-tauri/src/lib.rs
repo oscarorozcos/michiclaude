@@ -2634,6 +2634,12 @@ const COACH_GAP_CTX: u64 = 30_000; // ...solo si hay contexto que valga la pena
 const COACH_REREAD: u32 = 3; // lecturas del mismo archivo en la sesión
 const COACH_SUM_QUIET: i64 = 10; // minutos quieta = sesión terminada: resumen
 const COACH_SUM_MIN_TURNS: u64 = 5; // por debajo no hay nada que resumir
+// Aviso al celular de "tu agente terminó": antes que el resumen (que es una
+// tarjeta para cuando vuelvas) porque este es para cuando NO estás — cinco
+// minutos de silencio ya significan que la tarea acabó, y esperar diez es
+// tenerte esperando de más.
+const COACH_DONE_QUIET: i64 = 5;
+const COACH_DONE_TURNS: u64 = 5; // un chat corto no vale una notificación
 
 #[derive(Default)]
 struct CoachSess {
@@ -2648,6 +2654,7 @@ struct CoachSess {
     tool_ids: HashSet<String>, // dedup de tool_use (reanudaciones copian líneas)
     title: String,      // ai-title del log — SOLO display, campo interno
     done: bool,         // el resumen ya se emitió: una vez por sesión
+    notified: bool,     // el aviso de "terminó" ya salió: una vez por sesión
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -2661,6 +2668,7 @@ struct CoachHit {
     title: String,   // solo "sum": el ai-title (vacío = respaldo al proyecto)
     cmds: u64,       // solo "sum": comandos ejecutados
     edits: u64,      // solo "sum": archivos editados distintos
+    turns: u64,      // "sum"/"done": turnos de la sesión
 }
 
 static COACH_STATE: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, CoachSess>>> =
@@ -2823,6 +2831,24 @@ fn coach_scan() -> Vec<CoachHit> {
             // MichiClaude no estuvo abierto durante la sesión no hay estado
             // acumulado y no hay resumen — limitación asumida de la v1.
             let quiet_min = now.saturating_sub(mtime) / 60;
+            // "tu agente terminó": va ANTES que el resumen y por otro canal
+            // (el celular). El frontend decide si empujarlo y vuelve a
+            // deduplicar: este estado vive en memoria, así que al reiniciar
+            // la app una sesión recién callada podría reaparecer aquí.
+            if !st.notified && quiet_min >= COACH_DONE_QUIET && st.turns >= COACH_DONE_TURNS {
+                st.notified = true;
+                let mins = ((st.last_turn - st.first_turn) / 60).max(1) as u64;
+                hits.push(CoachHit {
+                    rule: "done".into(),
+                    session: sid.clone(),
+                    value: mins,
+                    project: proj_name.clone(),
+                    title: st.title.clone(),
+                    cmds: st.cmds,
+                    edits: st.edits.len() as u64,
+                    turns: st.turns,
+                });
+            }
             if !st.done && quiet_min >= COACH_SUM_QUIET && st.turns >= COACH_SUM_MIN_TURNS {
                 st.done = true;
                 let mins = ((st.last_turn - st.first_turn) / 60).max(1) as u64;
@@ -2834,6 +2860,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     title: st.title.clone(),
                     cmds: st.cmds,
                     edits: st.edits.len() as u64,
+                    turns: st.turns,
                 });
             }
         }
@@ -3648,6 +3675,15 @@ struct NtfyConfig {
     server: String,
     #[serde(default)]
     alarms: bool,
+    /// Avisar cuando una sesión larga de Claude Code termina (queda quieta).
+    #[serde(default)]
+    done: bool,
+    /// Incluir el NOMBRE del proyecto en ese aviso. Apagado por defecto y a
+    /// propósito: los canales de ntfy son públicos, y la regla general es que
+    /// por ahí no viajan nombres. Quien tenga su canal solo para él puede
+    /// asumirlo; la casilla lo advierte.
+    #[serde(default)]
+    names: bool,
 }
 
 fn ntfy_default_server() -> String {
@@ -3661,6 +3697,8 @@ impl Default for NtfyConfig {
             topic: String::new(),
             server: ntfy_default_server(),
             alarms: false,
+            done: false,
+            names: false,
         }
     }
 }

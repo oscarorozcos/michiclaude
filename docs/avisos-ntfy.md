@@ -72,7 +72,32 @@ MichiClaude (PC del usuario) ──POST──► ntfy.sh ──► app ntfy (cel
 | Sesión al 100% | `breakBody(resets)` + `ntfy_promise` | 4 | `notif_back_session` con `delay` = resets+120 s |
 | Semana al 100% | `weekBody(resets)` (+ promesa solo si cabe) | 4 | `notif_back_week`, solo si cabe |
 | Alarma de % (opt-in) | `notif_lo`/`notif_hi` | 3 / 4 (≥95) | — |
+| **Sesión terminada** (opt-in) | `ntfy_done_body` (+ proyecto si se activa) | 3 | — |
 | Prueba | `ntfy_test_body` | 3 | — |
+
+### "Tu agente terminó" (2026-08-01)
+
+El caso que lo pidió: dejas a Claude Code con una tarea larga y te vas. La
+señal es la misma que ya usa el resumen de sesión —el log deja de crecer—
+pero **a los 5 minutos en vez de 10** (`COACH_DONE_QUIET`): el resumen es una
+tarjeta para cuando vuelvas, esto es para cuando NO estás. Mínimo 5 turnos
+(`COACH_DONE_TURNS`): un chat corto no vale una notificación.
+
+- Regla nueva `done` en `coach_scan()`, con su propio banderín `notified`
+  (una vez por sesión). **No es una ficha**: `coachPoll` la aparta antes del
+  filtro de Consejos, así que ni gasta el tope diario ni sale en el panel.
+- **Dedup por partida doble**: el estado del coach vive en memoria, así que
+  al reiniciar la app una sesión recién callada volvería a reportarse. El
+  frontend guarda los `session` ya avisados en `ntfyDone` (tope 100).
+- Tope de 3 pushes por sondeo: si varias sesiones callan a la vez, avisa sin
+  ametrallar (las demás quedan marcadas como avisadas).
+- **El nombre del proyecto es opt-in aparte** (`names`, apagado). La regla
+  general dice que por ntfy no viajan nombres; quien tenga su canal solo
+  para él puede asumirlo, y la casilla lo advierte ("el canal es público").
+  Sin ella: *"Terminó una sesión de Claude Code · 12 min, 18 turnos"*.
+- Limitación heredada del coach: **solo sesiones de ESTA máquina** (las del
+  VPS no se ven) y MichiClaude tiene que haber estado abierto durante la
+  sesión, porque el estado se acumula al vuelo.
 
 - **Límite de 3 días** del servidor público (verificado 2026-08-01 en
   docs.ntfy.sh; mínimo 10 s): el reset de sesión (≤5 h) siempre cabe; el

@@ -644,6 +644,15 @@
         <label class="cfg-row" style="cursor:pointer">
           <input type="checkbox" id="ntfyAlarmChk"> <span data-i18n="ntfy_alarms"></span>
         </label>
+        <!-- "tu agente terminó": el caso de dejar a Claude trabajando e irse.
+             La segunda casilla añade el NOMBRE del proyecto y avisa de lo que
+             implica: el canal es público. Solo se ve con la primera activada. -->
+        <label class="cfg-row" style="cursor:pointer">
+          <input type="checkbox" id="ntfyDoneChk"> <span data-i18n="ntfy_done"></span>
+        </label>
+        <label class="cfg-row" id="ntfyNamesRow" hidden style="cursor:pointer;margin-left:18px">
+          <input type="checkbox" id="ntfyNamesChk"> <span data-i18n="ntfy_names"></span>
+        </label>
       </div>
       <div class="cfg-lbl" data-i18n="prices_label"></div>
       <div class="btnrow">
@@ -907,6 +916,10 @@ en:{
   ntfy_test_ok:"Sent \u2014 check your phone",
   ntfy_err:"Could not send",
   ntfy_alarms:"Also send my % alarms",
+  ntfy_done:"Tell me when a long session finishes",
+  ntfy_names:"Include the project name (the channel is public)",
+  ntfy_done_body:(m,t)=>`A Claude Code session finished · ${m} min, ${t} turns`,
+  ntfy_done_body_p:(p,m,t)=>`Your session in ${p} finished · ${m} min, ${t} turns`,
   ntfy_promise:"You can turn the PC off \u2014 I\u2019ll ping you when it\u2019s back \ud83d\udc31",
   ntfy_regen:"New channel",
   ntfy_regen_sure:"Replace it?",
@@ -1137,6 +1150,10 @@ es:{
   ntfy_test_ok:"Enviado — revisa tu teléfono",
   ntfy_err:"No se pudo enviar",
   ntfy_alarms:"También mis alarmas de %",
+  ntfy_done:"Avisarme cuando termine una sesión larga",
+  ntfy_names:"Incluir el nombre del proyecto (el canal es público)",
+  ntfy_done_body:(m,t)=>`Terminó una sesión de Claude Code · ${m} min, ${t} turnos`,
+  ntfy_done_body_p:(p,m,t)=>`Terminó tu sesión en ${p} · ${m} min, ${t} turnos`,
   ntfy_promise:"Puedes apagar la compu: yo te aviso cuando vuelva 🐱",
   ntfy_regen:"Canal nuevo",
   ntfy_regen_sure:"¿Reemplazarlo?",
@@ -1367,6 +1384,10 @@ pt:{
   ntfy_test_ok:"Enviado — veja seu telefone",
   ntfy_err:"Não foi possível enviar",
   ntfy_alarms:"Também meus alarmes de %",
+  ntfy_done:"Avisar quando uma sessão longa terminar",
+  ntfy_names:"Incluir o nome do projeto (o canal é público)",
+  ntfy_done_body:(m,t)=>`Uma sessão do Claude Code terminou · ${m} min, ${t} turnos`,
+  ntfy_done_body_p:(p,m,t)=>`Sua sessão em ${p} terminou · ${m} min, ${t} turnos`,
   ntfy_promise:"Pode desligar o PC: eu te aviso quando voltar 🐱",
   ntfy_regen:"Canal novo",
   ntfy_regen_sure:"Substituir?",
@@ -1597,6 +1618,10 @@ fr:{
   ntfy_test_ok:"Envoyé — regardez votre téléphone",
   ntfy_err:"Envoi impossible",
   ntfy_alarms:"Aussi mes alarmes de %",
+  ntfy_done:"Me prévenir quand une longue session se termine",
+  ntfy_names:"Inclure le nom du projet (le canal est public)",
+  ntfy_done_body:(m,t)=>`Une session Claude Code s'est terminée · ${m} min, ${t} tours`,
+  ntfy_done_body_p:(p,m,t)=>`Votre session dans ${p} s'est terminée · ${m} min, ${t} tours`,
   ntfy_promise:"Vous pouvez éteindre le PC : je vous préviens au retour 🐱",
   ntfy_regen:"Nouveau canal",
   ntfy_regen_sure:"Le remplacer ?",
@@ -1827,6 +1852,10 @@ de:{
   ntfy_test_ok:"Gesendet — schau aufs Handy",
   ntfy_err:"Senden fehlgeschlagen",
   ntfy_alarms:"Auch meine %-Alarme",
+  ntfy_done:"Bescheid geben, wenn eine lange Sitzung endet",
+  ntfy_names:"Projektnamen mitschicken (der Kanal ist öffentlich)",
+  ntfy_done_body:(m,t)=>`Eine Claude-Code-Sitzung ist zu Ende · ${m} Min, ${t} Runden`,
+  ntfy_done_body_p:(p,m,t)=>`Deine Sitzung in ${p} ist zu Ende · ${m} Min, ${t} Runden`,
   ntfy_promise:"Du kannst den PC ausschalten: ich melde mich, wenn es weitergeht 🐱",
   ntfy_regen:"Neuer Kanal",
   ntfy_regen_sure:"Ersetzen?",
@@ -2057,6 +2086,10 @@ ja:{
   ntfy_test_ok:"送信しました — スマホを確認してください",
   ntfy_err:"送信できませんでした",
   ntfy_alarms:"％アラームも送る",
+  ntfy_done:"長いセッションが終わったら知らせる",
+  ntfy_names:"プロジェクト名も送る（チャンネルは公開です）",
+  ntfy_done_body:(m,t)=>`Claude Code のセッションが終了 · ${m}分、${t}ターン`,
+  ntfy_done_body_p:(p,m,t)=>`${p} のセッションが終了 · ${m}分、${t}ターン`,
   ntfy_promise:"PCを消して大丈夫。回復したらお知らせします 🐱",
   ntfy_regen:"チャンネル再生成",
   ntfy_regen_sure:"置き換えますか？",
@@ -2287,6 +2320,10 @@ ko:{
   ntfy_test_ok:"보냈어요 — 휴대폰을 확인하세요",
   ntfy_err:"보내지 못했어요",
   ntfy_alarms:"% 알람도 보내기",
+  ntfy_done:"긴 세션이 끝나면 알리기",
+  ntfy_names:"프로젝트 이름도 보내기 (채널은 공개입니다)",
+  ntfy_done_body:(m,t)=>`Claude Code 세션이 끝났어요 · ${m}분, ${t}턴`,
+  ntfy_done_body_p:(p,m,t)=>`${p} 세션이 끝났어요 · ${m}분, ${t}턴`,
   ntfy_promise:"PC를 꺼도 돼요. 복구되면 알려드릴게요 🐱",
   ntfy_regen:"새 채널",
   ntfy_regen_sure:"교체할까요?",
@@ -2517,6 +2554,10 @@ zh:{
   ntfy_test_ok:"已发送 — 请查看手机",
   ntfy_err:"发送失败",
   ntfy_alarms:"也发送我的 % 警报",
+  ntfy_done:"长会话结束时通知我",
+  ntfy_names:"包含项目名称（频道是公开的）",
+  ntfy_done_body:(m,t)=>`一个 Claude Code 会话已结束 · ${m} 分钟，${t} 轮`,
+  ntfy_done_body_p:(p,m,t)=>`你在 ${p} 的会话已结束 · ${m} 分钟，${t} 轮`,
   ntfy_promise:"可以关电脑了：恢复时我会通知你 🐱",
   ntfy_regen:"新频道",
   ntfy_regen_sure:"确定更换？",
@@ -3815,11 +3856,38 @@ function renderTipsDot(n){
   d.hidden=!v;
   if(v) d.textContent=v>9?"9+":String(v);
 }
+// "Tu agente terminó": la sesión que estuvo trabajando lleva 5 min callada.
+// Es el caso de dejar a Claude con una tarea larga e irse — por eso va al
+// celular y no a una ficha del panel.
+// Dedup PROPIO además del de Rust: el estado del coach vive en memoria, así
+// que al reiniciar la app una sesión recién callada volvería a reportarse.
+// El nombre del proyecto solo viaja si el usuario activó la casilla: los
+// canales de ntfy son públicos y la regla general es no mandar nombres.
+function ntfyDone(list){
+  if(!list.length||!ntfyOn()||!ntfyCfg.done) return;
+  let sent=[]; try{ sent=JSON.parse(localStorage.getItem("ntfyDone")||"[]"); }catch(_){}
+  let n=0;
+  for(const h of list){
+    if(sent.includes(h.session)) continue;
+    sent.push(h.session);
+    if(n++>=3) continue;               // varias a la vez: avisa, no ametralla
+    const mins=h.value||1, turns=h.turns||0;
+    ntfyPush(ntfyCfg.names
+      ? t("ntfy_done_body_p", fndProj(h.project), mins, turns)
+      : t("ntfy_done_body", mins, turns), 3, null);
+  }
+  localStorage.setItem("ntfyDone", JSON.stringify(sent.slice(-100)));
+}
 async function coachPoll(){
   if(!invoke) return;
   if(simFnd) return;               // simulación en curso: no la pises
   try{
-    const hits=await invoke("get_coach")||[];
+    const all=await invoke("get_coach")||[];
+    // "tu agente terminó" NO es una ficha: es un aviso al celular. Se aparta
+    // antes del filtro de fichas para que no gaste el tope diario del coach
+    // ni aparezca como consejo en el panel.
+    const hits=all.filter(h=>h.rule!=="done");
+    ntfyDone(all.filter(h=>h.rule==="done"));
     const seen=tipSeenSet();
     let day={}; try{ day=JSON.parse(localStorage.getItem("tipDay")||"{}"); }catch(_){ day={}; }
     const hoy=new Date().toISOString().slice(0,10);
@@ -4108,6 +4176,9 @@ function ntfyUi(){
   $("ntfyChk").checked=on;
   $("ntfyBox").hidden=!on;
   $("ntfyAlarmChk").checked=!!(ntfyCfg&&ntfyCfg.alarms);
+  $("ntfyDoneChk").checked=!!(ntfyCfg&&ntfyCfg.done);
+  $("ntfyNamesChk").checked=!!(ntfyCfg&&ntfyCfg.names);
+  $("ntfyNamesRow").hidden=!(ntfyCfg&&ntfyCfg.done);
   if(!on||!ntfyCfg.topic) return;
   $("ntfyTopic").value=(ntfyCfg.server||"https://ntfy.sh").replace(/\/+$/,"")+"/"+ntfyCfg.topic;
   invoke&&invoke("ntfy_qr").then(ntfyPaintQr).catch(()=>{});
@@ -4133,6 +4204,17 @@ $("ntfyChk").addEventListener("change", async ()=>{
 $("ntfyAlarmChk").addEventListener("change", async ()=>{
   if(!invoke) return;
   try{ ntfyCfg=await invoke("save_ntfy",{cfg:{...(ntfyCfg||{}), alarms:$("ntfyAlarmChk").checked}}); }
+  catch(_){}
+});
+$("ntfyDoneChk").addEventListener("change", async ()=>{
+  if(!invoke) return;
+  try{ ntfyCfg=await invoke("save_ntfy",{cfg:{...(ntfyCfg||{}), done:$("ntfyDoneChk").checked}}); }
+  catch(_){}
+  ntfyUi();
+});
+$("ntfyNamesChk").addEventListener("change", async ()=>{
+  if(!invoke) return;
+  try{ ntfyCfg=await invoke("save_ntfy",{cfg:{...(ntfyCfg||{}), names:$("ntfyNamesChk").checked}}); }
   catch(_){}
 });
 $("ntfyCopy").addEventListener("click", async ()=>{
