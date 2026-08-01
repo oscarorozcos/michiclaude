@@ -1199,7 +1199,17 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           turquesa. La campana roja queda para hallazgos.
       [ ] ver el foco ámbar en la pastilla (recién cambiado)
       [ ] punto turquesa del coach en la PASTILLA (cambiar de widget)
-      [ ] motivo del "sin datos" en el globo del gatito y tooltip
+      [x] motivo del "sin datos" VALIDADO EN VIVO 2026-08-01 (capturas de
+          Oscar tras hibernar el PC): el globo del gatito lo explica bien.
+          De ahí salieron DOS arreglos del mismo día: (1) Windows CORTA el
+          tooltip de la bandeja a 128 caracteres y el motivo largo se
+          quedaba en "…Usa Claude" —parecía un error de la app—, así que
+          si no cabe entero se deja solo la primera frase (firstSentence,
+          corta en . y en 。; FR y DE caben enteros y la conservan);
+          (2) la PASTILLA no decía nada, solo un "—" mudo: el detalle
+          (pcard) ahora pinta el motivo con la misma regla que el gatito
+          (antes del early-return de ok:false). La cápsula se queda sin
+          texto a propósito: mide 54 px.
       [ ] tarjeta de subagentes con datos reales (isSidechain en Windows)
       [ ] detector de hooks con un hook real
       [ ] alta de servidor SIN Python → ERR_NO_PYTHON traducido

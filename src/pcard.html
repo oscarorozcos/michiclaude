@@ -69,6 +69,8 @@
   .rows{padding:0 13px 13px}
   body.up .rows{padding:13px 13px 0}
   .sep{height:1px;background:var(--sep);margin:0 0 11px}
+  #why{font-size:10.5px;color:var(--dim);line-height:1.35}
+  #list:not(:empty)+#why{margin-top:9px}
   body.up .sep{margin:11px 0 0}
   .row{margin-bottom:11px}
   .row:last-child{margin-bottom:0}
@@ -112,6 +114,10 @@
   <div class="rows">
     <div class="sep"></div>
     <div id="list"></div>
+    <!-- motivo del "sin datos": el gatito ya lo decía en su globo y la
+         pastilla se quedaba con un "—" mudo (Oscar 2026-08-01, al volver de
+         hibernar). Aquí es donde cabe: la cápsula mide 54 px. -->
+    <div id="why" hidden></div>
   </div>
 </div>
 
@@ -161,6 +167,10 @@ function render(d){
   if(!d) return;
   document.body.classList.toggle("light", d.theme==="light");
   if(d.labels) $("sesLab").textContent=d.labels.cardSes||d.labels.ses||"Session";
+  // el motivo se pinta ANTES del early-return: sin datos es justo cuando hay
+  // que explicarse (misma regla que el globo del gatito)
+  $("why").textContent=d.reason||"";
+  $("why").hidden=!d.reason;
   if(d.ok===false) return;                 // conserva el último dato bueno
   const s=d.session, w=d.weekly, ex=d.extras||[];
   $("sPct").textContent = s ? Math.round(s.pct)+"%" : "—";
