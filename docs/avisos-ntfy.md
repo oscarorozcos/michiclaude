@@ -1,6 +1,9 @@
 # Avisos en el celular (ntfy) — diseño y decisiones
 
-> Leer antes de tocar código de esta función. Implementada el 2026-08-01.
+> Leer antes de tocar código de esta función. Implementada el 2026-08-01 y
+> VALIDADA EN VIVO ese mismo día en lo básico (QR escaneado, suscripción en
+> la app y prueba llegando al teléfono de Oscar). Pendiente: alarma de %
+> real, 100% real y el programado con la PC apagada.
 > Sustituye a la propuesta de Telegram (descartada: fricción de BotFather,
 > chat_id como dato personal, y sobre todo la imposibilidad de avisar con la
 > PC apagada).

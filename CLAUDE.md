@@ -1205,11 +1205,17 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       [ ] alta de servidor SIN Python → ERR_NO_PYTHON traducido
       [ ] alarmas reales: cruzar umbral, 100%, y ventana nueva
           reconocida (trackResets/windowChanged con datos de verdad)
-      [ ] ntfy: activar en Preferencias, escanear QR, "Enviar prueba" al
-          teléfono; el camino completo (100% real + push programado
-          llegando con la PC APAGADA) va junto con las alarmas reales
-      AVISOS AL CELULAR (ntfy) — IMPLEMENTADO 2026-08-01 (SIN cargo check
-      ni validación en vivo). SUSTITUYE a la propuesta de Telegram
+      [x] ntfy básico VALIDADO EN VIVO 2026-08-01 (capturas de Oscar):
+          bloque en Preferencias, QR escaneado con la cámara, suscripción
+          en la app y "Enviar prueba" llegando al teléfono. Dejó activada
+          la casilla de alarmas de %.
+      [ ] ntfy camino completo: push de alarma de % real, 100% real y el
+          programado llegando con la PC APAGADA — va junto con las
+          alarmas reales de abajo
+      AVISOS AL CELULAR (ntfy) — IMPLEMENTADO 2026-08-01; cargo check
+      limpio y lo BÁSICO VALIDADO EN VIVO por Oscar ese mismo día (QR +
+      suscripción + prueba en su teléfono). Falta el camino de eventos
+      reales (ver lista). SUSTITUYE a la propuesta de Telegram
       (descartada por decisión de Oscar 2026-08-01: fricción de BotFather,
       chat_id personal y, lo decisivo, no puede avisar con la PC apagada).
       Diseño completo en docs/avisos-ntfy.md — LEERLO antes de tocar esto.
