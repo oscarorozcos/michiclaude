@@ -3818,17 +3818,22 @@ function renderTips(){
   // si la pestaña no estaba abierta justo entonces, moría sin ser vista
   // (pasó 2026-08-02 con la auditoría de los "3 avisos de ahorro"). En el
   // simulador se lee coachHits directo: el sim no toca localStorage.
-  const sums=q?[]:(simFnd?coachHits.filter(h=>h.rule==="sum"):coachSumsStore());
+  let sums=q?[]:(simFnd?coachHits.filter(h=>h.rule==="sum"):coachSumsStore());
   // mini-auditoría del cierre: el costo medido de la sesión y, si algún
   // detector disparó sobre ELLA, la fuga con su hecho medido. El dinero y el
   // detalle viven AQUÍ — por ntfy solo viajó el conteo.
-  const sumHtml=sums.map(h=>`<div class="fnd tip open">
+  // BLINDADO: un recibo con datos inesperados no puede dejar la pestaña en
+  // blanco — las 6 fichas estáticas se pintan pase lo que pase.
+  let sumHtml="";
+  try{
+    sumHtml=sums.map(h=>`<div class="fnd tip open">
       <div class="fnd-t">«${esc(h.title||h.project)}»</div>
       <div class="fnd-m">${t("tip_sum_t")} — ${esc(h.project)} · ${t("src_local")}</div>
       <div class="fnd-f">${t("tip_sum_line",h.value,h.cmds,h.edits)}${
-        h.cost>0.005?` · ~$${h.cost.toFixed(2)}`:""}</div>
+        h.cost>0.005?` · ~$${(+h.cost).toFixed(2)}`:""}</div>
       ${(h.leaks||[]).map(l=>`<div class="fnd-f">⚠ ${tipLeak(l)}</div>`).join("")}
     </div>`).join("");
+  }catch(_){ sums=[]; sumHtml=""; }
   // fichas disparadas por el motor de reglas: primero, abiertas y con su
   // línea "Ahora: <dato medido>" — el consejo en el momento en que sirve
   const hot={}; coachHits.forEach(h=>{ if(h.rule!=="sum"&&!(h.rule in hot)) hot[h.rule]=h; });
@@ -3948,7 +3953,9 @@ function renderTipsDot(n){
 // El remedio no se repite aquí — su ficha del catálogo está en la misma
 // pestaña (reread→attach, ctx→compact, gap→cache).
 function tipLeak(l){
-  if(l.kind==="reread") return t("tip_leak_reread", esc(l.file), l.n);
+  // escapeHtml (global), NO el esc local de renderTips: usarlo aquí era un
+  // ReferenceError que tumbaba la pestaña entera al pintar una relectura
+  if(l.kind==="reread") return t("tip_leak_reread", escapeHtml(l.file), l.n);
   if(l.kind==="ctx")    return t("tip_leak_ctx", l.n);
   if(l.kind==="cache")  return t("tip_leak_cache", l.n);
   if(l.kind==="gap")    return t("tip_leak_gap", l.n);
