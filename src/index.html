@@ -4032,9 +4032,19 @@ function fndIgnored(){ try{ return new Set(JSON.parse(localStorage.getItem("fndI
 function fmtTok(n){ return n>=1e6 ? (n/1e6).toFixed(1)+"M" : n>=1e3 ? Math.round(n/1e3)+"k" : String(n); }
 // nombre legible del proyecto: la carpeta cruda viene tipo
 // "-opt-projects-michiclaude" o "C--Users-oscar-mi-proyecto"
+// Nombre de proyecto para enseñar. Desde 2026-08-01 el backend lo manda YA
+// RESUELTO (del `cwd` de la sesión), así que aquí solo se limpia lo que
+// venga codificado —un exportador viejo, o un log sin cwd—: la carpeta de
+// logs es la ruta entera con los separadores cambiados por guiones
+// ("-opt-projects-michiclaude", "C--Users-oscar-Claude-test-agente").
+// Un nombre ya resuelto se devuelve TAL CUAL: recortarlo por el último
+// guion partía los nombres compuestos ("test-agente" -> "agente").
 function fndProj(raw){
-  const m=String(raw).match(/projects-(.+)$/);
-  return m ? m[1] : String(raw).replace(/^-+/,"").split("-").pop() || raw;
+  const s=String(raw);
+  const m=s.match(/projects-(.+)$/);
+  if(m) return m[1];
+  if(!s.startsWith("-") && !s.includes("--")) return s;   // ya viene limpio
+  return s.replace(/^-+/,"").split("-").pop() || s;
 }
 // ---------- aviso de hallazgos nuevos (contador + sticker del widget) ----------
 // El panel es el ÚNICO que escanea: una pasada ligera de 1 día, como mucho una

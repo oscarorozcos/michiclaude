@@ -2058,7 +2058,11 @@ struct SessFindings {
     reads: HashMap<String, u64>,
     read_chars: HashMap<String, u64>,
     models: HashMap<String, u64>,
+    /// nombre de la CARPETA de logs — se usa para CASAR con el detector de
+    /// CLAUDE.md, así que no se toca
     proj: String,
+    /// nombre real del proyecto (del `cwd`), solo para enseñar
+    disp: String,
     /// hilo principal en orden (epoch, modelo, cache_read, cache_write)
     /// para el detector de rupturas de caché
     cb: Vec<(i64, String, u64, u64)>,
@@ -2291,6 +2295,17 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                         if st.proj.is_empty() {
                             st.proj = proj_name.clone();
                         }
+                        if st.disp.is_empty() {
+                            // Para ENSEÑAR, el `cwd` real de la sesión: el
+                            // nombre de la carpeta de logs codifica la ruta
+                            // entera con guiones y al recortarla se parten
+                            // los nombres compuestos ("test-agente" ->
+                            // "agente"). OJO: `proj` NO se toca, que es lo
+                            // que casa con el detector de CLAUDE.md.
+                            if let Some(b) = cwd_name(&v) {
+                                st.disp = b;
+                            }
+                        }
                         st.turns += 1;
                         *st.models.entry(model.clone()).or_insert(0) += 1;
                         if st.first_cr.is_none() {
@@ -2401,7 +2416,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
             findings.push(Finding {
                 kind: "reread".into(),
                 file: path.clone(),
-                project: s.proj.clone(),
+                project: sdisp(s),
                 count: *n,
                 tokens: stacked,
                 cost: stacked as f64 * pi / 1_000_000.0,
@@ -2414,7 +2429,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
         if growth >= INFLATE_MIN_GROWTH && s.turns >= INFLATE_MIN_TURNS {
             findings.push(Finding {
                 kind: "inflate".into(),
-                project: s.proj.clone(),
+                project: sdisp(s),
                 session: sid8.clone(),
                 turns: s.turns,
                 tokens: growth,
@@ -2448,7 +2463,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
         if rew_tok >= CACHEBREAK_MIN_TOKENS {
             findings.push(Finding {
                 kind: "cachebreak".into(),
-                project: s.proj.clone(),
+                project: sdisp(s),
                 session: sid8,
                 count: breaks,
                 tokens: rew_tok,
@@ -2675,6 +2690,28 @@ struct CoachHit {
 static COACH_STATE: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, CoachSess>>> =
     std::sync::OnceLock::new();
 
+/// Nombre a ENSEÑAR de una sesión de hallazgos: el real del `cwd` y, si el
+/// log no lo trajo, el de la carpeta de logs (que puede venir recortado).
+fn sdisp(s: &SessFindings) -> String {
+    if s.disp.is_empty() {
+        s.proj.clone()
+    } else {
+        s.disp.clone()
+    }
+}
+
+/// Última carpeta del `cwd` de una línea del log (el nombre real del
+/// proyecto). None si la línea no lo trae.
+fn cwd_name(v: &serde_json::Value) -> Option<String> {
+    let c = v["cwd"].as_str()?;
+    let s = c.replace('\\', "/");
+    s.trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .filter(|x| !x.is_empty())
+        .map(String::from)
+}
+
 /// Nombre del proyecto LISTO PARA ENSEÑAR: el real del `cwd` y, mientras el
 /// log no lo haya traído, el de la carpeta de logs recortado como último
 /// recurso. Sale de aquí ya resuelto para que el panel no tenga que
@@ -2760,16 +2797,8 @@ fn coach_scan() -> Vec<CoachHit> {
                     // recortarlo salía "agente" (visto por Oscar 2026-08-01
                     // en el aviso al celular y en la ficha del coach).
                     if st.proj.is_empty() {
-                        if let Some(c) = v["cwd"].as_str() {
-                            let s = c.replace('\\', "/");
-                            if let Some(base) = s
-                                .trim_end_matches('/')
-                                .rsplit('/')
-                                .next()
-                                .filter(|x| !x.is_empty())
-                            {
-                                st.proj = base.to_string();
-                            }
+                        if let Some(base) = cwd_name(&v) {
+                            st.proj = base;
                         }
                     }
                     // título de la sesión: Claude Code lo escribe él mismo en

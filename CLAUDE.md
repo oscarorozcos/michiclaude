@@ -1239,11 +1239,18 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           sesión (lo mismo que ya hacía la agregación) y mandando el
           nombre YA RESUELTO desde Rust (`pname`), así que el panel no
           adivina: se quitó fndProj de los usos del coach.
-          OJO, MISMO BUG SIN ARREGLAR EN HALLAZGOS: scan_findings también
-          usa el nombre de la carpeta. No se nota en el VPS (sus rutas
-          llevan "projects-" y el regex lo salva) pero sí en proyectos de
-          Windows. Arreglarlo pide la misma lectura de cwd en Rust Y en
-          meter-export.py (invariante #1).
+          HALLAZGOS ARREGLADO IGUAL el mismo día, en Rust Y en
+          meter-export.py (invariante #1). TRAMPA que casi muerde: en los
+          hallazgos ese nombre NO es solo display — `proj` casa las
+          sesiones con el detector de CLAUDE.md (sess_pi vs pj), así que
+          cambiarlo habría dejado ese hallazgo en costo 0 y lo habría
+          tirado EN SILENCIO. Por eso son dos campos: `proj` (carpeta de
+          logs, para casar, intacto) y `disp` (cwd real, para enseñar).
+          `fndProj` del panel ya no recorta un nombre que venga limpio —
+          solo los codificados de exportadores viejos o logs sin cwd.
+          Regresión verificada en el VPS contra la versión anterior:
+          mismos 10 hallazgos, mismo orden y mismos costos, solo cambian
+          los nombres ("-opt-projects-michiclaude" -> "michiclaude").
       AVISOS AL CELULAR (ntfy) — IMPLEMENTADO 2026-08-01; cargo check
       limpio y lo BÁSICO VALIDADO EN VIVO por Oscar ese mismo día (QR +
       suscripción + prueba en su teléfono). Falta el camino de eventos
