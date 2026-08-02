@@ -2653,6 +2653,7 @@ struct CoachSess {
     edits: HashSet<String>, // archivos tocados con Edit/Write/NotebookEdit
     tool_ids: HashSet<String>, // dedup de tool_use (reanudaciones copian líneas)
     title: String,      // ai-title del log — SOLO display, campo interno
+    proj: String,       // nombre real del proyecto, del `cwd` de la sesión
     done: bool,         // el resumen ya se emitió: una vez por sesión
     notified: bool,     // el aviso de "terminó" ya salió: una vez por sesión
 }
@@ -2673,6 +2674,21 @@ struct CoachHit {
 
 static COACH_STATE: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, CoachSess>>> =
     std::sync::OnceLock::new();
+
+/// Nombre del proyecto LISTO PARA ENSEÑAR: el real del `cwd` y, mientras el
+/// log no lo haya traído, el de la carpeta de logs recortado como último
+/// recurso. Sale de aquí ya resuelto para que el panel no tenga que
+/// adivinarlo: ese recorte es el que convertía "test-agente" en "agente".
+fn pname(st: &CoachSess, dir: &str) -> String {
+    if !st.proj.is_empty() {
+        return st.proj.clone();
+    }
+    if let Some(i) = dir.find("projects-") {
+        return dir[i + 9..].to_string();
+    }
+    let t = dir.trim_start_matches('-');
+    t.rsplit('-').next().filter(|s| !s.is_empty()).unwrap_or(t).to_string()
+}
 
 fn coach_scan() -> Vec<CoachHit> {
     let mut hits: Vec<CoachHit> = Vec::new();
@@ -2735,6 +2751,27 @@ fn coach_scan() -> Vec<CoachHit> {
                         .as_str()
                         .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                         .map(|d| d.timestamp());
+                    // Nombre REAL del proyecto, del `cwd` de la propia sesión.
+                    // El nombre de la CARPETA de logs no sirve: codifica la
+                    // ruta entera cambiando cada separador por "-", así que
+                    // "…\Claude\test-agente" queda como
+                    // "C--Users-oscar-Claude-test-agente" y no hay forma de
+                    // saber dónde acaba la ruta y empieza el nombre — al
+                    // recortarlo salía "agente" (visto por Oscar 2026-08-01
+                    // en el aviso al celular y en la ficha del coach).
+                    if st.proj.is_empty() {
+                        if let Some(c) = v["cwd"].as_str() {
+                            let s = c.replace('\\', "/");
+                            if let Some(base) = s
+                                .trim_end_matches('/')
+                                .rsplit('/')
+                                .next()
+                                .filter(|x| !x.is_empty())
+                            {
+                                st.proj = base.to_string();
+                            }
+                        }
+                    }
                     // título de la sesión: Claude Code lo escribe él mismo en
                     // el log (campo interno — SOLO display, nunca lógica)
                     if v["type"].as_str() == Some("ai-title") {
@@ -2797,7 +2834,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     rule: "compact".into(),
                     session: sid.clone(),
                     value: st.last_ctx / 1000, // se enseña en k
-                    project: proj_name.clone(),
+                    project: pname(st, &proj_name),
                     ..Default::default()
                 });
             }
@@ -2807,7 +2844,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     rule: "cache".into(),
                     session: sid.clone(),
                     value: gap_min.max(0) as u64,
-                    project: proj_name.clone(),
+                    project: pname(st, &proj_name),
                     ..Default::default()
                 });
             }
@@ -2821,7 +2858,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     rule: "attach".into(),
                     session: sid.clone(),
                     value: *n as u64,
-                    project: proj_name.clone(),
+                    project: pname(st, &proj_name),
                     ..Default::default()
                 });
             }
@@ -2842,7 +2879,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     rule: "done".into(),
                     session: sid.clone(),
                     value: mins,
-                    project: proj_name.clone(),
+                    project: pname(st, &proj_name),
                     title: st.title.clone(),
                     cmds: st.cmds,
                     edits: st.edits.len() as u64,
@@ -2856,7 +2893,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     rule: "sum".into(),
                     session: sid,
                     value: mins,
-                    project: proj_name.clone(),
+                    project: pname(st, &proj_name),
                     title: st.title.clone(),
                     cmds: st.cmds,
                     edits: st.edits.len() as u64,

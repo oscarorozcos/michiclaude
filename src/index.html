@@ -3759,8 +3759,8 @@ function renderTips(){
   // contadores medidos. Se enseñan arriba y solo sin filtro activo.
   const sums=q?[]:coachHits.filter(h=>h.rule==="sum");
   const sumHtml=sums.map(h=>`<div class="fnd tip open">
-      <div class="fnd-t">«${esc(h.title||fndProj(h.project))}»</div>
-      <div class="fnd-m">${t("tip_sum_t")} — ${fndProj(h.project)} · ${t("src_local")}</div>
+      <div class="fnd-t">«${esc(h.title||h.project)}»</div>
+      <div class="fnd-m">${t("tip_sum_t")} — ${esc(h.project)} · ${t("src_local")}</div>
       <div class="fnd-f">${t("tip_sum_line",h.value,h.cmds,h.edits)}</div>
     </div>`).join("");
   // fichas disparadas por el motor de reglas: primero, abiertas y con su
@@ -3774,7 +3774,7 @@ function renderTips(){
     // la ficha disparada dice A QUÉ sesión aplicar el consejo: proyecto +
     // "local" — el coach solo mira esta máquina, y con el VPS abierto al
     // lado la duda era real (Oscar, 2026-07-31)
-    const donde=h?[h.project?fndProj(h.project):"", t("src_local")]
+    const donde=h?[h.project||"", t("src_local")]
       .filter(Boolean).join(" · "):"";
     return `<div class="fnd tip${h?" open":""}" data-tip="${id}">
       <div class="fnd-t">${t("tip_"+id+"_t")}</div>
@@ -3873,7 +3873,7 @@ function ntfyDone(list){
     if(n++>=3) continue;               // varias a la vez: avisa, no ametralla
     const mins=h.value||1, turns=h.turns||0;
     ntfyPush(ntfyCfg.names
-      ? t("ntfy_done_body_p", fndProj(h.project), mins, turns)
+      ? t("ntfy_done_body_p", h.project||"?", mins, turns)
       : t("ntfy_done_body", mins, turns), 3, null);
   }
   localStorage.setItem("ntfyDone", JSON.stringify(sent.slice(-100)));

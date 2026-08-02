@@ -1228,9 +1228,22 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       [ ] ntfy camino completo: push de alarma de % real, 100% real y el
           programado llegando con la PC APAGADA — va junto con las
           alarmas reales de abajo
-      [ ] "tu agente terminó": sesión de 5+ turnos en Windows, dejarla
-          quieta 5 min con la app abierta → push al celular (probar
-          también con la casilla del nombre del proyecto)
+      [x] "tu agente terminó" VALIDADO EN VIVO 2026-08-01 a la primera
+          (captura del teléfono de Oscar: "Terminó tu sesión en agente ·
+          8 min, 20 turnos"), con la casilla del nombre activada. De ahí
+          salió UN BUG: decía "agente" y la carpeta era "test-agente".
+          Causa: el coach usaba el nombre de la CARPETA DE LOGS, que
+          codifica la ruta entera cambiando cada separador por "-"
+          ("C--Users-oscar-Claude-test-agente"), y el recorte se quedaba
+          con el último trozo. Arreglado leyendo el `cwd` real de la
+          sesión (lo mismo que ya hacía la agregación) y mandando el
+          nombre YA RESUELTO desde Rust (`pname`), así que el panel no
+          adivina: se quitó fndProj de los usos del coach.
+          OJO, MISMO BUG SIN ARREGLAR EN HALLAZGOS: scan_findings también
+          usa el nombre de la carpeta. No se nota en el VPS (sus rutas
+          llevan "projects-" y el regex lo salva) pero sí en proyectos de
+          Windows. Arreglarlo pide la misma lectura de cwd en Rust Y en
+          meter-export.py (invariante #1).
       AVISOS AL CELULAR (ntfy) — IMPLEMENTADO 2026-08-01; cargo check
       limpio y lo BÁSICO VALIDADO EN VIVO por Oscar ese mismo día (QR +
       suscripción + prueba en su teléfono). Falta el camino de eventos
