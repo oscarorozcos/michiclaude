@@ -1185,9 +1185,17 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       SOLO el conteo ("· 1 aviso de ahorro", clave ntfy_done_save ×8 con
       singular en los 5 idiomas que declinan) — ni dólares ni archivos ni
       reglas por el canal público (regla de privacidad intacta). Claves
-      nuevas tip_leak_reread/ctx/gap ×8. PROBAR: tanda en test-agente que
-      relea un archivo 3+ veces, quieta 5 min → push con sufijo; la
-      tarjeta con ~$ y ⚠ a los 10 min. PROBAR: sesión de Claude Code en Windows con trabajo real
+      nuevas tip_leak_reread/ctx/cache/gap ×8. AJUSTE del 2026-08-02 tras
+      la segunda prueba real de Oscar (push sin sufijo y un minuto después
+      el consejo del caché en el panel): el push sale a los 5 min de
+      silencio pero la regla viva del caché pide 6 — historias distintas
+      por 60 segundos. Ahora cerrar con contexto ≥30k (sin llegar a los
+      120k del ctx) ES fuga al cierre (kind "cache"): el usuario está
+      lejos y el TTL se vence antes de que lea el push. ctx y cache son
+      excluyentes (else if) para no contar el mismo contexto dos veces.
+      PROBAR: tanda en test-agente que relea un archivo 3+ veces o cierre
+      con 30k+ de contexto, quieta 5 min → push con "· N avisos de
+      ahorro"; la tarjeta con ~$ y ⚠ a los 10 min. PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo

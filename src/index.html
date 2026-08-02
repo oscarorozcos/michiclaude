@@ -923,6 +923,7 @@ en:{
   ntfy_done_save:n=>n===1?"1 savings note":`${n} savings notes`,
   tip_leak_reread:(f,n)=>`${f} was re-read ${n} times`,
   tip_leak_ctx:k=>`context ended at ${k}k tokens without /clear`,
+  tip_leak_cache:k=>`closed with ${k}k tokens in context — the cache expired during the pause`,
   tip_leak_gap:n=>n===1?"1 long pause re-wrote the cache":`${n} long pauses re-wrote the cache`,
   ntfy_promise:"You can turn the PC off \u2014 I\u2019ll ping you when it\u2019s back \ud83d\udc31",
   ntfy_regen:"New channel",
@@ -1161,6 +1162,7 @@ es:{
   ntfy_done_save:n=>n===1?"1 aviso de ahorro":`${n} avisos de ahorro`,
   tip_leak_reread:(f,n)=>`${f} se releyó ${n} veces`,
   tip_leak_ctx:k=>`el contexto terminó en ${k}k tokens sin /clear`,
+  tip_leak_cache:k=>`cerró con ${k}k tokens de contexto — el caché venció en la pausa`,
   tip_leak_gap:n=>n===1?"1 pausa larga reescribió el caché":`${n} pausas largas reescribieron el caché`,
   ntfy_promise:"Puedes apagar la compu: yo te aviso cuando vuelva 🐱",
   ntfy_regen:"Canal nuevo",
@@ -1399,6 +1401,7 @@ pt:{
   ntfy_done_save:n=>n===1?"1 aviso de economia":`${n} avisos de economia`,
   tip_leak_reread:(f,n)=>`${f} foi relido ${n} vezes`,
   tip_leak_ctx:k=>`o contexto terminou em ${k}k tokens sem /clear`,
+  tip_leak_cache:k=>`fechou com ${k}k tokens de contexto — o cache venceu na pausa`,
   tip_leak_gap:n=>n===1?"1 pausa longa reescreveu o cache":`${n} pausas longas reescreveram o cache`,
   ntfy_promise:"Pode desligar o PC: eu te aviso quando voltar 🐱",
   ntfy_regen:"Canal novo",
@@ -1637,6 +1640,7 @@ fr:{
   ntfy_done_save:n=>n===1?"1 piste d'économie":`${n} pistes d'économie`,
   tip_leak_reread:(f,n)=>`${f} a été relu ${n} fois`,
   tip_leak_ctx:k=>`le contexte a fini à ${k}k tokens sans /clear`,
+  tip_leak_cache:k=>`fermée avec ${k}k tokens de contexte — le cache a expiré pendant la pause`,
   tip_leak_gap:n=>n===1?"1 longue pause a réécrit le cache":`${n} longues pauses ont réécrit le cache`,
   ntfy_promise:"Vous pouvez éteindre le PC : je vous préviens au retour 🐱",
   ntfy_regen:"Nouveau canal",
@@ -1875,6 +1879,7 @@ de:{
   ntfy_done_save:n=>n===1?"1 Sparhinweis":`${n} Sparhinweise`,
   tip_leak_reread:(f,n)=>`${f} wurde ${n}-mal neu gelesen`,
   tip_leak_ctx:k=>`Kontext endete bei ${k}k Tokens ohne /clear`,
+  tip_leak_cache:k=>`endete mit ${k}k Tokens Kontext — der Cache ist in der Pause abgelaufen`,
   tip_leak_gap:n=>n===1?"1 lange Pause hat den Cache neu geschrieben":`${n} lange Pausen haben den Cache neu geschrieben`,
   ntfy_promise:"Du kannst den PC ausschalten: ich melde mich, wenn es weitergeht 🐱",
   ntfy_regen:"Neuer Kanal",
@@ -2113,6 +2118,7 @@ ja:{
   ntfy_done_save:n=>`節約ヒント${n}件`,
   tip_leak_reread:(f,n)=>`${f} を${n}回再読み込み`,
   tip_leak_ctx:k=>`/clear なしでコンテキストが${k}kトークンに`,
+  tip_leak_cache:k=>`${k}kトークンのコンテキストのまま終了 — 休止中にキャッシュが失効`,
   tip_leak_gap:n=>`長い休止${n}回でキャッシュを書き直し`,
   ntfy_promise:"PCを消して大丈夫。回復したらお知らせします 🐱",
   ntfy_regen:"チャンネル再生成",
@@ -2351,6 +2357,7 @@ ko:{
   ntfy_done_save:n=>`절약 힌트 ${n}건`,
   tip_leak_reread:(f,n)=>`${f} 을(를) ${n}번 다시 읽음`,
   tip_leak_ctx:k=>`/clear 없이 컨텍스트가 ${k}k 토큰까지 커짐`,
+  tip_leak_cache:k=>`${k}k 토큰의 컨텍스트로 종료 — 휴식 중 캐시가 만료됨`,
   tip_leak_gap:n=>`긴 휴식 ${n}번으로 캐시를 다시 씀`,
   ntfy_promise:"PC를 꺼도 돼요. 복구되면 알려드릴게요 🐱",
   ntfy_regen:"새 채널",
@@ -2589,6 +2596,7 @@ zh:{
   ntfy_done_save:n=>`${n} 条省钱提示`,
   tip_leak_reread:(f,n)=>`${f} 被重读 ${n} 次`,
   tip_leak_ctx:k=>`上下文在没有 /clear 的情况下达到 ${k}k tokens`,
+  tip_leak_cache:k=>`以 ${k}k tokens 的上下文结束 — 缓存已在暂停中过期`,
   tip_leak_gap:n=>`${n} 次长暂停导致缓存重写`,
   ntfy_promise:"可以关电脑了：恢复时我会通知你 🐱",
   ntfy_regen:"新频道",
@@ -3906,6 +3914,7 @@ function renderTipsDot(n){
 function tipLeak(l){
   if(l.kind==="reread") return t("tip_leak_reread", esc(l.file), l.n);
   if(l.kind==="ctx")    return t("tip_leak_ctx", l.n);
+  if(l.kind==="cache")  return t("tip_leak_cache", l.n);
   if(l.kind==="gap")    return t("tip_leak_gap", l.n);
   return "";
 }

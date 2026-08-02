@@ -2702,6 +2702,15 @@ fn coach_leaks(st: &CoachSess) -> Vec<CoachLeak> {
     }
     if st.last_ctx >= COACH_CTX_HIGH {
         out.push(CoachLeak { kind: "ctx".into(), file: String::new(), n: st.last_ctx / 1000 });
+    } else if st.last_ctx >= COACH_GAP_CTX {
+        // Cerró con contexto grande (sin llegar a los 120k del /compact):
+        // el usuario está lejos —por eso hay push— y el TTL del caché es de
+        // minutos, así que para cuando lo lea ya venció. SIN esta rama el
+        // push decía "terminó" a los 5 min y el panel sacaba el consejo del
+        // caché al minuto siguiente (la regla viva pide 6 min de pausa):
+        // dos historias distintas por 60 segundos (lo cazó Oscar 2026-08-02
+        // en su segunda prueba real).
+        out.push(CoachLeak { kind: "cache".into(), file: String::new(), n: st.last_ctx / 1000 });
     }
     if st.gaps > 0 {
         out.push(CoachLeak { kind: "gap".into(), file: String::new(), n: st.gaps });
