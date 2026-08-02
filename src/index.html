@@ -920,6 +920,8 @@ en:{
   ntfy_names:"Include the project name (the channel is public)",
   ntfy_done_body:(m,t)=>`A Claude Code session finished · ${m} min, ${t} turns`,
   ntfy_done_body_p:(p,m,t)=>`Your session in ${p} finished · ${m} min, ${t} turns`,
+  ntfy_ask_body:m=>`Claude Code is waiting for your approval · stalled ${m} min`,
+  ntfy_ask_body_p:(p,m)=>`Claude is waiting for your approval in ${p} · stalled ${m} min`,
   ntfy_done_save:n=>n===1?"1 savings note":`${n} savings notes`,
   tip_leak_reread:(f,n)=>`${f} was re-read ${n} times`,
   tip_leak_ctx:k=>`context ended at ${k}k tokens without /clear`,
@@ -1159,6 +1161,8 @@ es:{
   ntfy_names:"Incluir el nombre del proyecto (el canal es público)",
   ntfy_done_body:(m,t)=>`Terminó una sesión de Claude Code · ${m} min, ${t} turnos`,
   ntfy_done_body_p:(p,m,t)=>`Terminó tu sesión en ${p} · ${m} min, ${t} turnos`,
+  ntfy_ask_body:m=>`Claude Code está esperando tu aprobación · ${m} min detenido`,
+  ntfy_ask_body_p:(p,m)=>`Claude espera tu aprobación en ${p} · ${m} min detenido`,
   ntfy_done_save:n=>n===1?"1 aviso de ahorro":`${n} avisos de ahorro`,
   tip_leak_reread:(f,n)=>`${f} se releyó ${n} veces`,
   tip_leak_ctx:k=>`el contexto terminó en ${k}k tokens sin /clear`,
@@ -1398,6 +1402,8 @@ pt:{
   ntfy_names:"Incluir o nome do projeto (o canal é público)",
   ntfy_done_body:(m,t)=>`Uma sessão do Claude Code terminou · ${m} min, ${t} turnos`,
   ntfy_done_body_p:(p,m,t)=>`Sua sessão em ${p} terminou · ${m} min, ${t} turnos`,
+  ntfy_ask_body:m=>`O Claude Code está esperando sua aprovação · ${m} min parado`,
+  ntfy_ask_body_p:(p,m)=>`O Claude espera sua aprovação em ${p} · ${m} min parado`,
   ntfy_done_save:n=>n===1?"1 aviso de economia":`${n} avisos de economia`,
   tip_leak_reread:(f,n)=>`${f} foi relido ${n} vezes`,
   tip_leak_ctx:k=>`o contexto terminou em ${k}k tokens sem /clear`,
@@ -1637,6 +1643,8 @@ fr:{
   ntfy_names:"Inclure le nom du projet (le canal est public)",
   ntfy_done_body:(m,t)=>`Une session Claude Code s'est terminée · ${m} min, ${t} tours`,
   ntfy_done_body_p:(p,m,t)=>`Votre session dans ${p} s'est terminée · ${m} min, ${t} tours`,
+  ntfy_ask_body:m=>`Claude Code attend votre approbation · à l'arrêt depuis ${m} min`,
+  ntfy_ask_body_p:(p,m)=>`Claude attend votre approbation dans ${p} · ${m} min à l'arrêt`,
   ntfy_done_save:n=>n===1?"1 piste d'économie":`${n} pistes d'économie`,
   tip_leak_reread:(f,n)=>`${f} a été relu ${n} fois`,
   tip_leak_ctx:k=>`le contexte a fini à ${k}k tokens sans /clear`,
@@ -1876,6 +1884,8 @@ de:{
   ntfy_names:"Projektnamen mitschicken (der Kanal ist öffentlich)",
   ntfy_done_body:(m,t)=>`Eine Claude-Code-Sitzung ist zu Ende · ${m} Min, ${t} Runden`,
   ntfy_done_body_p:(p,m,t)=>`Deine Sitzung in ${p} ist zu Ende · ${m} Min, ${t} Runden`,
+  ntfy_ask_body:m=>`Claude Code wartet auf deine Freigabe · seit ${m} Min. angehalten`,
+  ntfy_ask_body_p:(p,m)=>`Claude wartet in ${p} auf deine Freigabe · ${m} Min. angehalten`,
   ntfy_done_save:n=>n===1?"1 Sparhinweis":`${n} Sparhinweise`,
   tip_leak_reread:(f,n)=>`${f} wurde ${n}-mal neu gelesen`,
   tip_leak_ctx:k=>`Kontext endete bei ${k}k Tokens ohne /clear`,
@@ -2115,6 +2125,8 @@ ja:{
   ntfy_names:"プロジェクト名も送る（チャンネルは公開です）",
   ntfy_done_body:(m,t)=>`Claude Code のセッションが終了 · ${m}分、${t}ターン`,
   ntfy_done_body_p:(p,m,t)=>`${p} のセッションが終了 · ${m}分、${t}ターン`,
+  ntfy_ask_body:m=>`Claude Code が承認待ちです · ${m}分停止中`,
+  ntfy_ask_body_p:(p,m)=>`${p} で Claude が承認待ちです · ${m}分停止中`,
   ntfy_done_save:n=>`節約ヒント${n}件`,
   tip_leak_reread:(f,n)=>`${f} を${n}回再読み込み`,
   tip_leak_ctx:k=>`/clear なしでコンテキストが${k}kトークンに`,
@@ -2354,6 +2366,8 @@ ko:{
   ntfy_names:"프로젝트 이름도 보내기 (채널은 공개입니다)",
   ntfy_done_body:(m,t)=>`Claude Code 세션이 끝났어요 · ${m}분, ${t}턴`,
   ntfy_done_body_p:(p,m,t)=>`${p} 세션이 끝났어요 · ${m}분, ${t}턴`,
+  ntfy_ask_body:m=>`Claude Code 가 승인을 기다리고 있어요 · ${m}분 정지`,
+  ntfy_ask_body_p:(p,m)=>`${p} 에서 Claude 가 승인을 기다려요 · ${m}분 정지`,
   ntfy_done_save:n=>`절약 힌트 ${n}건`,
   tip_leak_reread:(f,n)=>`${f} 을(를) ${n}번 다시 읽음`,
   tip_leak_ctx:k=>`/clear 없이 컨텍스트가 ${k}k 토큰까지 커짐`,
@@ -2593,6 +2607,8 @@ zh:{
   ntfy_names:"包含项目名称（频道是公开的）",
   ntfy_done_body:(m,t)=>`一个 Claude Code 会话已结束 · ${m} 分钟，${t} 轮`,
   ntfy_done_body_p:(p,m,t)=>`你在 ${p} 的会话已结束 · ${m} 分钟，${t} 轮`,
+  ntfy_ask_body:m=>`Claude Code 正在等待你的批准 · 已停 ${m} 分钟`,
+  ntfy_ask_body_p:(p,m)=>`Claude 在 ${p} 等待你的批准 · 已停 ${m} 分钟`,
   ntfy_done_save:n=>`${n} 条省钱提示`,
   tip_leak_reread:(f,n)=>`${f} 被重读 ${n} 次`,
   tip_leak_ctx:k=>`上下文在没有 /clear 的情况下达到 ${k}k tokens`,
@@ -3937,16 +3953,36 @@ function ntfyDone(list){
   }
   localStorage.setItem("ntfyDone", JSON.stringify(sent.slice(-100)));
 }
+// "Claude está esperando tu aprobación": el atasco que la prueba de Oscar
+// confundía con un final. Comparte la casilla de "sesión larga" (es el mismo
+// caso de uso: dejar a Claude solo y llevarse el celular). Prioridad alta:
+// a diferencia del "terminó", aquí cada minuto que pasa es tiempo perdido.
+// Dedup por sesión+turno del atasco: el mismo atasco no se repite tras un
+// reinicio, pero un atasco NUEVO de la misma sesión sí avisa.
+function ntfyAsk(list){
+  if(!list.length||!ntfyOn()||!ntfyCfg.done) return;
+  let sent=[]; try{ sent=JSON.parse(localStorage.getItem("ntfyAsked")||"[]"); }catch(_){}
+  for(const h of list){
+    const k=h.session+"|"+(h.turns||0);
+    if(sent.includes(k)) continue;
+    sent.push(k);
+    ntfyPush(ntfyCfg.names
+      ? t("ntfy_ask_body_p", h.project||"?", h.value||1)
+      : t("ntfy_ask_body", h.value||1), 4, null);
+  }
+  localStorage.setItem("ntfyAsked", JSON.stringify(sent.slice(-100)));
+}
 async function coachPoll(){
   if(!invoke) return;
   if(simFnd) return;               // simulación en curso: no la pises
   try{
     const all=await invoke("get_coach")||[];
-    // "tu agente terminó" NO es una ficha: es un aviso al celular. Se aparta
-    // antes del filtro de fichas para que no gaste el tope diario del coach
-    // ni aparezca como consejo en el panel.
-    const hits=all.filter(h=>h.rule!=="done");
+    // "tu agente terminó" y "te está esperando" NO son fichas: son avisos al
+    // celular. Se apartan antes del filtro para que no gasten el tope diario
+    // del coach ni aparezcan como consejo en el panel.
+    const hits=all.filter(h=>h.rule!=="done"&&h.rule!=="ask");
     ntfyDone(all.filter(h=>h.rule==="done"));
+    ntfyAsk(all.filter(h=>h.rule==="ask"));
     const seen=tipSeenSet();
     let day={}; try{ day=JSON.parse(localStorage.getItem("tipDay")||"{}"); }catch(_){ day={}; }
     const hoy=new Date().toISOString().slice(0,10);
@@ -3956,7 +3992,10 @@ async function coachPoll(){
       const k=h.rule+"|"+h.session;
       if(seen.has(k)) continue;
       if(!day.keys.includes(k)){
-        if(day.keys.length>=5) continue;   // tope diario: el coach no ametralla
+        // tope diario: el coach no ametralla. El RESUMEN queda exento — es
+        // el recibo de la sesión, una vez por sesión, y el día de la prueba
+        // del agente el tope se lo comió sin dejar rastro (2026-08-02)
+        if(h.rule!=="sum" && day.keys.length>=5) continue;
         day.keys.push(k);
       }
       out.push(h);

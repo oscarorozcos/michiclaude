@@ -107,6 +107,32 @@ tarjeta para cuando vuelvas, esto es para cuando NO estás. Mínimo 5 turnos
   VPS no se ven) y MichiClaude tiene que haber estado abierto durante la
   sesión, porque el estado se acumula al vuelo.
 
+### "Claude está esperando tu aprobación" (2026-08-02)
+
+La prueba real de Oscar destapó el falso positivo inevitable del "terminó":
+dejó la tarea, Claude se detuvo en un permiso, y a los 5 minutos de silencio
+el push anunció el final — con el permiso en pantalla. Y de rebote: como el
+"terminó" es una vez por sesión, el final DE VERDAD quedó mudo.
+
+- La señal que los distingue está en el log: cada `tool_use` deja la sesión
+  "esperando" y su `tool_result` la libera. Si lo último que se escribió fue
+  un tool_use suelto, Claude está detenido en una aprobación
+  (`pending_tool`).
+- Regla `ask`: quieta ≥3 min (`COACH_ASK_QUIET`) con herramienta pendiente →
+  push de **prioridad alta** ("Claude espera tu aprobación en X · N min
+  detenido"). A diferencia del "terminó", aquí cada minuto es tiempo
+  perdido.
+- Mientras `pending_tool` esté puesto, **ni "terminó" ni el resumen
+  disparan**: una sesión detenida no ha terminado.
+- `asked` se rearma cuando el log vuelve a crecer: el mismo atasco no se
+  repite, un atasco nuevo sí avisa. El frontend deduplica además por
+  sesión+turno (`ntfyAsked`), que sobrevive reinicios.
+- Comparte la casilla de "sesión larga": es el mismo caso de uso.
+
+Del mismo día: el RESUMEN quedó exento del tope diario de 5 fichas del coach
+(es el recibo de la sesión, una vez por sesión — el tope se lo comía sin
+dejar rastro).
+
 - **Límite de 3 días** del servidor público (verificado 2026-08-01 en
   docs.ntfy.sh; mínimo 10 s): el reset de sesión (≤5 h) siempre cabe; el
   semanal puede no caber. Si no cabe: no se programa nada Y no se promete

@@ -1195,7 +1195,23 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       excluyentes (else if) para no contar el mismo contexto dos veces.
       PROBAR: tanda en test-agente que relea un archivo 3+ veces o cierre
       con 30k+ de contexto, quieta 5 min → push con "· N avisos de
-      ahorro"; la tarjeta con ~$ y ⚠ a los 10 min. PROBAR: sesión de Claude Code en Windows con trabajo real
+      ahorro"; la tarjeta con ~$ y ⚠ a los 10 min.
+      "CLAUDE ESTÁ ESPERANDO TU APROBACIÓN" — IMPLEMENTADO 2026-08-02 (SIN
+      cargo check ni prueba en vivo) tras el falso positivo que cazó la
+      prueba real de Oscar: dejó la tarea, Claude se detuvo en un permiso,
+      y a los 5 min el push dijo "terminó · 6 min, 42 turnos" con el
+      permiso en pantalla; el final real quedó mudo (notified ya gastado)
+      y el resumen se lo comió el tope diario. TRES arreglos: (1) señal
+      `pending_tool` (tool_use sin tool_result = sesión detenida) → regla
+      `ask` a los 3 min (COACH_ASK_QUIET), push prioridad 4 con minutos
+      detenido, rearmable al crecer el log (`asked`) y dedup frontend por
+      sesión+turno (ntfyAsked); (2) con pending_tool puesto NI "terminó"
+      NI el resumen disparan — así el "terminó" queda armado para el final
+      real; (3) el resumen (`sum`) exento del tope diario de 5 del coach.
+      Claves ntfy_ask_body(_p) ×8; misma casilla `done` de Preferencias.
+      PROBAR: tanda en test-agente SIN aprobar el primer permiso → a los
+      ~3-6 min push "Claude espera tu aprobación… · N min detenido";
+      aprobar → al final real sí llega el "terminó" con su auditoría. PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo

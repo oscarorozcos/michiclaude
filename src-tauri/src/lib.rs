@@ -2655,6 +2655,13 @@ const COACH_SUM_MIN_TURNS: u64 = 5; // por debajo no hay nada que resumir
 // tenerte esperando de más.
 const COACH_DONE_QUIET: i64 = 5;
 const COACH_DONE_TURNS: u64 = 5; // un chat corto no vale una notificación
+// "Claude está esperando tu aprobación": la sesión quieta con una
+// herramienta lanzada y SIN resultado no terminó — está detenida
+// esperando un clic. Confundirla con "terminó" fue el falso positivo de
+// la prueba de Oscar del 2026-08-02 (push de 'terminó · 6 min' con el
+// permiso en pantalla). Tres minutos bastan: quien sigue frente a la
+// terminal aprueba en segundos.
+const COACH_ASK_QUIET: i64 = 3;
 
 #[derive(Default)]
 struct CoachSess {
@@ -2673,6 +2680,9 @@ struct CoachSess {
     gaps: u64,          // pausas ≥6 min con contexto grande (caché reescrito)
     done: bool,         // el resumen ya se emitió: una vez por sesión
     notified: bool,     // el aviso de "terminó" ya salió: una vez por sesión
+    pending_tool: bool, // hay tool_use sin tool_result: espera una aprobación
+    asked: bool,        // el aviso de "te está esperando" ya salió (se rearma
+                        // cuando el log vuelve a crecer)
 }
 
 /// Una fuga detectada al CIERRE de la sesión (mini-auditoría del coach):
@@ -2896,6 +2906,16 @@ fn coach_scan() -> Vec<CoachHit> {
                     }
                     if let Some(blocks) = v["message"]["content"].as_array() {
                         for b in blocks {
+                            // ¿la sesión quedó esperando una aprobación? El
+                            // orden del archivo da el estado final: cada
+                            // tool_use la deja "esperando" y su tool_result
+                            // la libera. Si lo último fue un tool_use suelto,
+                            // Claude está detenido esperando un clic.
+                            match b["type"].as_str() {
+                                Some("tool_use") => st.pending_tool = true,
+                                Some("tool_result") => st.pending_tool = false,
+                                _ => {}
+                            }
                             if b["type"].as_str() != Some("tool_use") {
                                 continue;
                             }
@@ -2920,6 +2940,9 @@ fn coach_scan() -> Vec<CoachHit> {
                         }
                     }
                 }
+                // el log creció (aprobaron, o siguió solo): el aviso de
+                // espera se rearma para el próximo atasco
+                st.asked = false;
             }
             // reglas sobre el estado acumulado; el sid corto sale del nombre
             // del archivo, que en Claude Code es el uuid de la sesión
@@ -2966,11 +2989,36 @@ fn coach_scan() -> Vec<CoachHit> {
             // MichiClaude no estuvo abierto durante la sesión no hay estado
             // acumulado y no hay resumen — limitación asumida de la v1.
             let quiet_min = now.saturating_sub(mtime) / 60;
+            // "Claude está esperando tu aprobación": quieta con una
+            // herramienta sin resultado NO es terminada — es la sesión
+            // detenida en un permiso. Va al celular (regla `ask`, no es
+            // ficha) y BLOQUEA el "terminó" y el resumen: anunciar el final
+            // con el permiso en pantalla fue el falso positivo de la prueba
+            // de Oscar (2026-08-02). `asked` se rearma si el log crece.
+            if st.pending_tool
+                && !st.asked
+                && quiet_min >= COACH_ASK_QUIET
+                && st.turns >= 1
+            {
+                st.asked = true;
+                hits.push(CoachHit {
+                    rule: "ask".into(),
+                    session: sid.clone(),
+                    value: quiet_min as u64,
+                    project: pname(st, &proj_name),
+                    turns: st.turns,
+                    ..Default::default()
+                });
+            }
             // "tu agente terminó": va ANTES que el resumen y por otro canal
             // (el celular). El frontend decide si empujarlo y vuelve a
             // deduplicar: este estado vive en memoria, así que al reiniciar
             // la app una sesión recién callada podría reaparecer aquí.
-            if !st.notified && quiet_min >= COACH_DONE_QUIET && st.turns >= COACH_DONE_TURNS {
+            if !st.notified
+                && !st.pending_tool
+                && quiet_min >= COACH_DONE_QUIET
+                && st.turns >= COACH_DONE_TURNS
+            {
                 st.notified = true;
                 let mins = ((st.last_turn - st.first_turn) / 60).max(1) as u64;
                 hits.push(CoachHit {
@@ -2986,7 +3034,11 @@ fn coach_scan() -> Vec<CoachHit> {
                     leaks: coach_leaks(st),
                 });
             }
-            if !st.done && quiet_min >= COACH_SUM_QUIET && st.turns >= COACH_SUM_MIN_TURNS {
+            if !st.done
+                && !st.pending_tool
+                && quiet_min >= COACH_SUM_QUIET
+                && st.turns >= COACH_SUM_MIN_TURNS
+            {
                 st.done = true;
                 let mins = ((st.last_turn - st.first_turn) / 60).max(1) as u64;
                 hits.push(CoachHit {
