@@ -332,6 +332,33 @@ de entrega, y ese servidor lo manda a tu teléfono llegado el momento. (Tiene un
 tope de 3 días; si tu reset semanal cae más lejos, no se promete nada — el
 primer mensaje simplemente te dice el día.)
 
+#### ⏱️ ¿Te llega tarde? Actívale la entrega instantánea
+
+Si el aviso llega minutos después (o mucho después), **no es MichiClaude ni el
+servidor: es Firebase**, el sistema de notificaciones de Google que usa la
+versión de Play Store para los canales de `ntfy.sh`. Su propia documentación
+lo advierte: sin entrega instantánea los mensajes "pueden llegar con un
+retraso significativo — a veces muchos minutos, o incluso horas".
+
+Se arregla con un interruptor, en el teléfono:
+
+1. Abre **ntfy** → menú **⋮** → **Settings** → activa **Instant delivery**.
+2. Aparecerá una notificación permanente de ntfy ("Subscription service").
+   **Es normal y es la que hace el trabajo**: mantiene una conexión abierta en
+   vez de depender de Firebase.
+3. Además, en Android: **Ajustes → Aplicaciones → ntfy → Batería → Sin
+   restricciones**. Si queda en "Optimizada", el sistema la duerme igual.
+
+Con eso los avisos llegan en segundos, incluso con la pantalla apagada. El
+costo es algo de batería (una conexión en reposo, poca cosa).
+
+Dos atajos que también la evitan: instalar ntfy desde **F-Droid** (esa versión
+no lleva Firebase y siempre es instantánea) o **usar tu propio servidor ntfy**,
+porque la app solo pasa por Firebase cuando el canal es de `ntfy.sh`.
+
+Esto **no afecta** al aviso programado de "tu cuota volvió": ese lo entrega el
+servidor a su hora y funciona igual con la computadora apagada.
+
 #### Si usas MichiClaude en dos o tres computadoras
 
 Cada instalación **crea su propio canal**, y eso es a propósito:
