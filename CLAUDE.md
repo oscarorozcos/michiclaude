@@ -1166,11 +1166,28 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       como Hallazgos?" quedó respondida y documentada en
       docs/consejos-coach.md §10.3: a propósito, el globo es solo para lo
       que duele en dólares.
-      RESUMEN DE SESIÓN — IMPLEMENTADO 2026-07-31 (SIN cargo check ni
-      validación en vivo): sesión quieta 10+ min con 5+ turnos → tarjeta
-      «ai-title» + minutos/comandos/archivos editados, arriba de
-      Consejos, una vez por sesión. Detalle en docs/consejos-coach.md
-      §10.4. PROBAR: sesión de Claude Code en Windows con trabajo real
+      RESUMEN DE SESIÓN — IMPLEMENTADO 2026-07-31 y VALIDADO EN VIVO el
+      2026-08-01 (captura de Oscar: «Crear calculadora web completa con
+      pruebas» — 4 min · 0 comandos · 7 archivos): sesión quieta 10+ min
+      con 5+ turnos → tarjeta «ai-title» + minutos/comandos/archivos
+      editados, arriba de Consejos, una vez por sesión. Detalle en
+      docs/consejos-coach.md §8.
+      MINI-AUDITORÍA AL CIERRE — IMPLEMENTADA 2026-08-02 (SIN cargo check
+      ni validación en vivo; idea de Oscar: "si ya vigilamos esa sesión
+      larga que gasta, lo que interesa es el AHORRO, no solo que acabó").
+      CoachSess acumula `cost` (usage × tarifa por turno, cost_of) y
+      `gaps` (pausas ≥6 min con contexto ≥30k, contadas turno a turno);
+      al disparar done/sum, `coach_leaks()` arma la lista con lo que ya
+      está EN MEMORIA (cero re-escaneo): reread ≥3 del archivo más releído,
+      ctx final ≥120k, gaps>0 — kinds que casan con las fichas del catálogo
+      (attach/compact/cache). La tarjeta del resumen gana `· ~$X` (oculto
+      bajo medio centavo) y líneas ⚠ vía `tipLeak()`; el push de ntfy gana
+      SOLO el conteo ("· 1 aviso de ahorro", clave ntfy_done_save ×8 con
+      singular en los 5 idiomas que declinan) — ni dólares ni archivos ni
+      reglas por el canal público (regla de privacidad intacta). Claves
+      nuevas tip_leak_reread/ctx/gap ×8. PROBAR: tanda en test-agente que
+      relea un archivo 3+ veces, quieta 5 min → push con sufijo; la
+      tarjeta con ~$ y ⚠ a los 10 min. PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo

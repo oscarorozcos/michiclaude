@@ -95,6 +95,14 @@ tarjeta para cuando vuelvas, esto es para cuando NO estás. Mínimo 5 turnos
   general dice que por ntfy no viajan nombres; quien tenga su canal solo
   para él puede asumirlo, y la casilla lo advierte ("el canal es público").
   Sin ella: *"Terminó una sesión de Claude Code · 12 min, 18 turnos"*.
+- **Mini-auditoría al cierre (2026-08-02)**: al detectar el "terminó", el
+  coach cierra la cuenta de ESA sesión con lo acumulado en memoria — costo
+  medido (usage × tarifa por turno) y tres fugas del catálogo: archivo
+  releído ≥3 veces, contexto final ≥120k, pausas ≥6 min con contexto grande
+  (caché reescrito). El push solo gana el CONTEO ("· 1 aviso de ahorro") —
+  ni dólares, ni archivos, ni reglas: los topics son públicos. El desglose
+  ($, fuga y hecho medido) vive en la tarjeta del resumen en Consejos.
+  Sin fugas, el mensaje queda como estaba: no se inventa nada que anunciar.
 - Limitación heredada del coach: **solo sesiones de ESTA máquina** (las del
   VPS no se ven) y MichiClaude tiene que haber estado abierto durante la
   sesión, porque el estado se acumula al vuelo.

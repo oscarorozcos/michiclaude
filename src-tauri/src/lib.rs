@@ -2669,8 +2669,44 @@ struct CoachSess {
     tool_ids: HashSet<String>, // dedup de tool_use (reanudaciones copian líneas)
     title: String,      // ai-title del log — SOLO display, campo interno
     proj: String,       // nombre real del proyecto, del `cwd` de la sesión
+    cost: f64,          // costo MEDIDO de la sesión (usage × tarifa por turno)
+    gaps: u64,          // pausas ≥6 min con contexto grande (caché reescrito)
     done: bool,         // el resumen ya se emitió: una vez por sesión
     notified: bool,     // el aviso de "terminó" ya salió: una vez por sesión
+}
+
+/// Una fuga detectada al CIERRE de la sesión (mini-auditoría del coach):
+/// hechos medidos en memoria, nunca re-escaneo de disco. `kind` casa con
+/// las fichas del catálogo (reread→attach, ctx→compact, gap→cache).
+#[derive(Serialize, Clone)]
+struct CoachLeak {
+    kind: String,
+    file: String,
+    n: u64,
+}
+
+/// Mini-auditoría de la sesión que acaba de cerrar: solo reglas que ya
+/// sabemos medir al vuelo. Subagentes/hooks siguen siendo de la pasada
+/// diaria de Hallazgos, que mira ventanas de días.
+fn coach_leaks(st: &CoachSess) -> Vec<CoachLeak> {
+    let mut out = Vec::new();
+    if let Some((f, n)) = st
+        .reads
+        .iter()
+        .filter(|(_, n)| **n >= COACH_REREAD)
+        .max_by_key(|(_, n)| **n)
+    {
+        let base = f.replace('\\', "/");
+        let base = base.rsplit('/').next().unwrap_or(f).to_string();
+        out.push(CoachLeak { kind: "reread".into(), file: base, n: *n as u64 });
+    }
+    if st.last_ctx >= COACH_CTX_HIGH {
+        out.push(CoachLeak { kind: "ctx".into(), file: String::new(), n: st.last_ctx / 1000 });
+    }
+    if st.gaps > 0 {
+        out.push(CoachLeak { kind: "gap".into(), file: String::new(), n: st.gaps });
+    }
+    out
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -2685,6 +2721,8 @@ struct CoachHit {
     cmds: u64,       // solo "sum": comandos ejecutados
     edits: u64,      // solo "sum": archivos editados distintos
     turns: u64,      // "sum"/"done": turnos de la sesión
+    cost: f64,       // "sum"/"done": costo medido de la sesión (equiv. API)
+    leaks: Vec<CoachLeak>, // "sum"/"done": mini-auditoría al cierre
 }
 
 static COACH_STATE: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, CoachSess>>> =
@@ -2812,12 +2850,34 @@ fn coach_scan() -> Vec<CoachHit> {
                     }
                     let usage = &v["message"]["usage"];
                     if usage.is_object() && !v["isSidechain"].as_bool().unwrap_or(false) {
-                        let ctx = usage["cache_read_input_tokens"].as_u64().unwrap_or(0)
-                            + usage["cache_creation_input_tokens"].as_u64().unwrap_or(0);
+                        let cr = usage["cache_read_input_tokens"].as_u64().unwrap_or(0);
+                        let cw = usage["cache_creation_input_tokens"].as_u64().unwrap_or(0);
+                        let ctx = cr + cw;
+                        // pausa larga con contexto grande ANTES de este turno:
+                        // el caché venció y la conversación se reescribió — se
+                        // cuenta aquí para la mini-auditoría del cierre
+                        if let Some(t2) = ts {
+                            if st.last_turn > 0
+                                && t2 - st.last_turn >= COACH_GAP_MIN * 60
+                                && st.last_ctx >= COACH_GAP_CTX
+                            {
+                                st.gaps += 1;
+                            }
+                        }
                         if ctx > 0 {
                             st.last_ctx = ctx;
                         }
                         st.turns += 1;
+                        // costo MEDIDO del turno, con la misma tarifa que el
+                        // resto del panel (tabla descargada → embebida)
+                        let model = v["message"]["model"].as_str().unwrap_or("unknown");
+                        st.cost += cost_of(
+                            model,
+                            usage["input_tokens"].as_u64().unwrap_or(0),
+                            usage["output_tokens"].as_u64().unwrap_or(0),
+                            cw,
+                            cr,
+                        );
                         if let Some(t2) = ts {
                             if st.first_turn == 0 {
                                 st.first_turn = t2;
@@ -2913,6 +2973,8 @@ fn coach_scan() -> Vec<CoachHit> {
                     cmds: st.cmds,
                     edits: st.edits.len() as u64,
                     turns: st.turns,
+                    cost: st.cost,
+                    leaks: coach_leaks(st),
                 });
             }
             if !st.done && quiet_min >= COACH_SUM_QUIET && st.turns >= COACH_SUM_MIN_TURNS {
@@ -2927,6 +2989,8 @@ fn coach_scan() -> Vec<CoachHit> {
                     cmds: st.cmds,
                     edits: st.edits.len() as u64,
                     turns: st.turns,
+                    cost: st.cost,
+                    leaks: coach_leaks(st),
                 });
             }
         }

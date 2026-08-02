@@ -133,6 +133,16 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
   proyecto → primer comando. Si Anthropic lo quita, se pierde el título
   bonito y nada más.
 - Todo lo demás son contadores propios, medidos.
+- **Mini-auditoría al cierre (2026-08-02, idea de Oscar: "si ya vigilamos
+  la sesión larga, lo que interesa es el ahorro, no solo que acabó")**: la
+  tarjeta gana el **costo medido** de la sesión (usage × tarifa por turno,
+  `~$X`, oculto bajo medio centavo) y líneas ⚠ por cada fuga detectada con
+  lo acumulado EN MEMORIA — nada de re-escaneo al cierre. Tres detectores
+  v1, todos con ficha en el mismo catálogo: archivo releído ≥`COACH_REREAD`
+  veces (→ attach), contexto final ≥120k (→ compact) y pausas ≥6 min con
+  contexto ≥30k contadas turno a turno (`gaps`, → cache). El push de ntfy
+  solo lleva el conteo ("· 1 aviso de ahorro"); dólares y detalle, aquí.
+  Subagentes y hooks siguen siendo de la pasada diaria de Hallazgos.
 
 ## 9. Preguntas sin ficha (la cola larga, sin telemetría)
 
