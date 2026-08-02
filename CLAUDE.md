@@ -1209,9 +1209,23 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       NI el resumen disparan — así el "terminó" queda armado para el final
       real; (3) el resumen (`sum`) exento del tope diario de 5 del coach.
       Claves ntfy_ask_body(_p) ×8; misma casilla `done` de Preferencias.
-      PROBAR: tanda en test-agente SIN aprobar el primer permiso → a los
-      ~3-6 min push "Claude espera tu aprobación… · N min detenido";
-      aprobar → al final real sí llega el "terminó" con su auditoría. PROBAR: sesión de Claude Code en Windows con trabajo real
+      VALIDADO EN VIVO 2026-08-02 (capturas del teléfono de Oscar): DOS
+      atascos avisados con prioridad alta ("Claude espera tu aprobación en
+      test-agente · 4 min detenido" a las 4:27 y 4:33), CERO "terminó"
+      falsos en medio, y el final real a las 5:00 con "· 28 min, 117
+      turnos · 3 avisos de ahorro". El circuito ask→done→auditoría entero.
+      Y de esa misma prueba salió OTRO bug, arreglado el mismo día: la
+      TARJETA del recibo con la auditoría no aparecía en Consejos. Causa:
+      Rust emite el `sum` UNA vez (banderín done) y coachHits se REEMPLAZA
+      en cada sondeo de 3 min — si la pestaña no estaba abierta justo en
+      esa ventana, la tarjeta moría sin ser vista. Arreglo: almacén
+      `coachSums` en localStorage (tope 5) — el sondeo guarda los recibos
+      nuevos, renderTips los lee de ahí (en simulador sigue leyendo
+      coachHits: el sim no toca localStorage), y solo se borran cuando
+      llegaron a PINTARSE con la pestaña visible y sin filtro activo.
+      `coachCount()` (fichas + recibos pendientes, sin doble conteo)
+      alimenta el contador de la pestaña y el aviso del widget — así el
+      post-it sobrevive a reinicios igual que el de hallazgos. PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo

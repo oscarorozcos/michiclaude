@@ -2777,7 +2777,7 @@ function emitPill(ses, wk, extras){
     fnd: fndBadgeOn()&&fndBadge ? {...fndBadge, tip:t("fnd_badge_tip",fndBadge.n)} : null,
     // consejos del coach sin ver (post-it acento / punto de la pastilla);
     // comparte el interruptor de hallazgos: un concepto, un apagador
-    coach: fndBadgeOn()&&coachHits.length ? {n:coachHits.length, tip:t("tips_tab")} : null,
+    coach: fndBadgeOn()&&coachCount() ? {n:coachCount(), tip:t("tips_tab")} : null,
     tip: ses?t("tray_tip",Math.round(ses.pct),fmtReset(ses.resets),weekPct!=null?Math.round(weekPct):null):t("tray_no_data")};
   EVENT?.emit("quota:update", lastPill);
 }
@@ -3813,7 +3813,12 @@ function renderTips(){
   // resúmenes de sesión terminada (regla "sum"): tarjeta-espejo con el
   // ai-title del log (solo display; respaldo = nombre del proyecto) y los
   // contadores medidos. Se enseñan arriba y solo sin filtro activo.
-  const sums=q?[]:coachHits.filter(h=>h.rule==="sum");
+  // Salen del ALMACÉN coachSums, no de coachHits: Rust emite el recibo UNA
+  // vez y coachHits se reemplaza en cada sondeo — la tarjeta vivía 3 min y
+  // si la pestaña no estaba abierta justo entonces, moría sin ser vista
+  // (pasó 2026-08-02 con la auditoría de los "3 avisos de ahorro"). En el
+  // simulador se lee coachHits directo: el sim no toca localStorage.
+  const sums=q?[]:(simFnd?coachHits.filter(h=>h.rule==="sum"):coachSumsStore());
   // mini-auditoría del cierre: el costo medido de la sesión y, si algún
   // detector disparó sobre ELLA, la fuga con su hecho medido. El dinero y el
   // detalle viven AQUÍ — por ntfy solo viajó el conteo.
@@ -3848,11 +3853,15 @@ function renderTips(){
   // lo que llegó a pintarse con la pestaña VISIBLE queda despachado: el
   // punto se apaga y esa regla no vuelve a sonar en esta sesión. Las fichas
   // siguen resaltadas hasta el próximo sondeo (ahí el filtro las limpia).
-  if(!$("tab-tips").hidden && coachHits.length && !simFnd){
+  if(!$("tab-tips").hidden && (coachHits.length||sums.length) && !simFnd){
     const seen=tipSeenSet();
     coachHits.forEach(h=>seen.add(h.rule+"|"+h.session));
+    sums.forEach(h=>seen.add(h.rule+"|"+h.session));
     localStorage.setItem("tipSeen",JSON.stringify([...seen].slice(-300)));
     coachHits=[];                                 // despachados
+    // los recibos solo se dan por entregados si llegaron a pintarse (con
+    // filtro activo no se enseñan y deben esperar)
+    if(sums.length) localStorage.removeItem("coachSums");
     renderTipsDot();
     if(lastPillArgs) emitPill(...lastPillArgs);   // apaga el aviso del widget
   }
@@ -3911,9 +3920,20 @@ $("tipDismiss").addEventListener("click",e=>{
 // el globo es del umbral en dólares. Consejo = pestaña + punto en acento.
 let coachHits=[];
 function tipSeenSet(){ try{ return new Set(JSON.parse(localStorage.getItem("tipSeen")||"[]")); }catch(_){ return new Set(); } }
+// Recibos de sesión pendientes de VER: sobreviven a los sondeos (que
+// reemplazan coachHits) y a los reinicios (Rust no re-emite un resumen).
+function coachSumsStore(){ try{ return JSON.parse(localStorage.getItem("coachSums")||"[]"); }catch(_){ return []; } }
+// Cuántos avisos del coach esperan al usuario: fichas del sondeo actual +
+// recibos guardados (sin contar dos veces el que esté en ambos lados).
+function coachCount(){
+  if(simFnd) return coachHits.length;
+  const extra=coachSumsStore().filter(s=>
+    !coachHits.some(h=>h.rule==="sum"&&h.session===s.session)).length;
+  return coachHits.length+extra;
+}
 function renderTipsDot(n){
   const d=$("tipsTabDot");
-  const v=(n!=null?n:coachHits.length);
+  const v=(n!=null?n:coachCount());
   d.hidden=!v;
   if(v) d.textContent=v>9?"9+":String(v);
 }
@@ -4001,6 +4021,13 @@ async function coachPoll(){
       out.push(h);
     }
     localStorage.setItem("tipDay",JSON.stringify(day));
+    // los RECIBOS (sum) se guardan hasta que el usuario los vea: Rust los
+    // emite una sola vez y este arreglo se reemplaza en cada sondeo
+    const pend=coachSumsStore();
+    for(const h of out.filter(x=>x.rule==="sum")){
+      if(!pend.some(s=>s.session===h.session)) pend.push(h);
+    }
+    if(pend.length) localStorage.setItem("coachSums", JSON.stringify(pend.slice(-5)));
     coachHits=out;
     renderTipsDot();
     if(lastPillArgs) emitPill(...lastPillArgs);   // el widget lo ve al instante
