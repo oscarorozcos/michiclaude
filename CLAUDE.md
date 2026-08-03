@@ -1237,7 +1237,22 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       ENTRAR al almacén, no al verse. coachHits queda SOLO para el
       simulador. Ciclo completo probado con arnés en el VPS (nacer →
       reemplazo → visto → contraído → ✕ → caducar). Detalle en
-      docs/consejos-coach.md §8bis. SIN validar en vivo. PROBAR: sesión de Claude Code en Windows con trabajo real
+      docs/consejos-coach.md §8bis. Las FICHAS con ✕ ya se vieron en vivo
+      (capturas de Oscar 2026-08-03); falta el recibo.
+      Y DE ESA MISMA PRUEBA, UN BUG GORDO (2026-08-03, a0d02bc): con tres
+      fichas calientes encendidas (162k ctx, 10 relecturas) NO salieron ni
+      el push de "terminó" ni el recibo — un PENDIENTE FANTASMA:
+      pending_tool quedaba atorado en true (un tool_use cuyo tool_result
+      no se vio con la forma esperada) y bloqueaba done y sum para
+      siempre. Blindaje doble: (1) un turno nuevo del hilo principal
+      LIMPIA pending_tool (una sesión que avanza no está esperando
+      permiso; si ese mismo mensaje trae tool_use, el bucle de bloques lo
+      repone) y (2) los tool_use de SUBAGENTES ya no tocan el pendiente.
+      Además OBSERVABILIDAD: coach_debug.json en la carpeta de datos, se
+      escribe en cada sondeo con las compuertas de cada sesión viva (sid,
+      turnos, quiet_min, ctx, pending, asked, notified, sum_done, gaps,
+      cost) y los hits emitidos — al depurar "no llegó el push", LEER ESE
+      ARCHIVO PRIMERO. SIN cargo check (Rust nuevo). PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo
