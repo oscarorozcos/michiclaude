@@ -1252,7 +1252,11 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       escribe en cada sondeo con las compuertas de cada sesión viva (sid,
       turnos, quiet_min, ctx, pending, asked, notified, sum_done, gaps,
       cost) y los hits emitidos — al depurar "no llegó el push", LEER ESE
-      ARCHIVO PRIMERO. SIN cargo check (Rust nuevo). PROBAR: sesión de Claude Code en Windows con trabajo real
+      ARCHIVO PRIMERO. VALIDADO EN VIVO 2026-08-02 tras el blindaje
+      (línea de tiempo de Oscar: sesión termina 7:20 → post-it turquesa
+      SOLO, sin abrir el panel, 7:27 → push "1 min, 19 turnos · 1 aviso
+      de ahorro" 7:29; y en sus capturas la ficha con ✕ y el contraer
+      recordado). Falta solo ver el RECIBO (~$ y ⚠, nace a los 10 min). PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo
