@@ -2786,6 +2786,10 @@ fn pname(st: &CoachSess, dir: &str) -> String {
 
 fn coach_scan() -> Vec<CoachHit> {
     let mut hits: Vec<CoachHit> = Vec::new();
+    // Ventana de cristal: el estado de cada sesión viva y sus compuertas se
+    // vuelca a coach_debug.json en cada sondeo. Sin esto, "no me llegó el
+    // push" es imposible de diagnosticar a distancia (2026-08-03).
+    let mut dbg: Vec<serde_json::Value> = Vec::new();
     let now = Utc::now().timestamp();
     let states = COACH_STATE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
     let Ok(mut states) = states.lock() else { return hits };
@@ -2869,6 +2873,15 @@ fn coach_scan() -> Vec<CoachHit> {
                     }
                     let usage = &v["message"]["usage"];
                     if usage.is_object() && !v["isSidechain"].as_bool().unwrap_or(false) {
+                        // Un turno NUEVO del hilo principal demuestra que la
+                        // sesión no está detenida esperando un permiso:
+                        // limpia el pendiente aunque algún tool_result
+                        // anterior viniera con una forma rara y no se haya
+                        // visto (si ESTE mismo mensaje trae tool_use, el
+                        // bucle de bloques lo vuelve a poner). Sin esta
+                        // línea, un pendiente fantasma bloqueaba "terminó"
+                        // y el recibo para siempre (2026-08-03).
+                        st.pending_tool = false;
                         let cr = usage["cache_read_input_tokens"].as_u64().unwrap_or(0);
                         let cw = usage["cache_creation_input_tokens"].as_u64().unwrap_or(0);
                         let ctx = cr + cw;
@@ -2905,6 +2918,10 @@ fn coach_scan() -> Vec<CoachHit> {
                         }
                     }
                     if let Some(blocks) = v["message"]["content"].as_array() {
+                        // los SUBAGENTES llevan sus propias herramientas: sus
+                        // tool_use no significan que el hilo principal esté
+                        // esperando un permiso — se excluyen del pendiente
+                        let side = v["isSidechain"].as_bool().unwrap_or(false);
                         for b in blocks {
                             // ¿la sesión quedó esperando una aprobación? El
                             // orden del archivo da el estado final: cada
@@ -2912,8 +2929,8 @@ fn coach_scan() -> Vec<CoachHit> {
                             // la libera. Si lo último fue un tool_use suelto,
                             // Claude está detenido esperando un clic.
                             match b["type"].as_str() {
-                                Some("tool_use") => st.pending_tool = true,
-                                Some("tool_result") => st.pending_tool = false,
+                                Some("tool_use") if !side => st.pending_tool = true,
+                                Some("tool_result") if !side => st.pending_tool = false,
                                 _ => {}
                             }
                             if b["type"].as_str() != Some("tool_use") {
@@ -3043,7 +3060,7 @@ fn coach_scan() -> Vec<CoachHit> {
                 let mins = ((st.last_turn - st.first_turn) / 60).max(1) as u64;
                 hits.push(CoachHit {
                     rule: "sum".into(),
-                    session: sid,
+                    session: sid.clone(),
                     value: mins,
                     project: pname(st, &proj_name),
                     title: st.title.clone(),
@@ -3054,8 +3071,33 @@ fn coach_scan() -> Vec<CoachHit> {
                     leaks: coach_leaks(st),
                 });
             }
+            dbg.push(serde_json::json!({
+                "sid": sid,
+                "proj": pname(st, &proj_name),
+                "turns": st.turns,
+                "quiet_min": quiet_min,
+                "ctx": st.last_ctx,
+                "pending": st.pending_tool,
+                "asked": st.asked,
+                "notified": st.notified,
+                "sum_done": st.done,
+                "gaps": st.gaps,
+                "cost": (st.cost * 100.0).round() / 100.0,
+            }));
         }
     }
+    let _ = fs::write(
+        app_data_dir().join("coach_debug.json"),
+        serde_json::to_string_pretty(&serde_json::json!({
+            "at": Utc::now().to_rfc3339(),
+            "sessions": dbg,
+            "hits": hits
+                .iter()
+                .map(|h| format!("{}|{}", h.rule, h.session))
+                .collect::<Vec<_>>(),
+        }))
+        .unwrap_or_default(),
+    );
     hits
 }
 
