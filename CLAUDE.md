@@ -1266,7 +1266,28 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       VERSE. Arreglo: el marcado exige document.hasFocus() además de la
       pestaña visible (variante nueva de la trampa ya documentada en
       Hallazgos). El recibo NO manda push propio A PROPÓSITO: su push fue
-      el "terminó · N avisos de ahorro"; el recibo es el detalle. PROBAR: sesión de Claude Code en Windows con trabajo real
+      el "terminó · N avisos de ahorro"; el recibo es el detalle.
+      FLUJO COMPLETO CRONOMETRADO por Oscar el 2026-08-02 en proyecto
+      virgen (test-local), TODO dentro de especificación: atasco 7:55 →
+      push aprobación 8:00 (compuerta 3 min + sondeo); terminó 8:04 →
+      post-it 8:12 (ficha caché, 6 min + sondeo) → push 8:14 ("2 avisos
+      de ahorro" = las DOS ⚠ del recibo, no dos fichas — confusión
+      esperable) → recibo 8:18 re-encendiendo el post-it (el fix
+      hasFocus probado en vivo). El aviso de APROBACIÓN es solo-celular
+      a propósito (frente a la PC ya ves la pregunta en la terminal).
+      DE ESA PRUEBA, DOS CAMBIOS (2026-08-02): (1) BUG REAL — Hallazgos
+      solo escaneaba la PRIMERA vez por arranque y las sesiones
+      posteriores no aparecían hasta reiniciar; ahora el reporte en
+      memoria se refresca al abrir la pestaña si tiene >5 min (lo viejo
+      queda a la vista con "Analizando…" mientras corre el fresco).
+      (2) BITÁCORA DEL FLUJO (pedido de Oscar: "necesitamos logs para no
+      adivinar con capturas"): flog() apunta con hora cada activación —
+      pushes ok/error, tarjetas del coach al nacer, vistas/✕, globos,
+      escaneos de hallazgos y pasada diaria — en localStorage flowLog
+      (tope 300); botón 📜 junto a los simuladores (solo dev) la copia
+      al portapapeles, Mayús+clic la vacía. Complementa a
+      coach_debug.json (compuertas Rust): entre los dos se reconstruye
+      cualquier "no me llegó X" sin especular. PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo

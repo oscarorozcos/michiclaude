@@ -605,6 +605,7 @@
       <div class="btnrow" id="devSimRow" hidden style="margin-top:6px">
         <button id="simBtn">🐱 Simular estados</button>
         <button id="sfBtn">🧪 Simular hallazgos</button>
+        <button id="flowBtn" title="Copiar la bitácora del flujo (Mayús+clic la vacía)">📜</button>
         <input id="simMin" type="number" min="0.1" max="60" step="0.5" style="max-width:62px">
         <span style="font-size:10.5px;color:var(--txt-dim)">min c/u</span>
         <span id="simMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
@@ -714,6 +715,18 @@
 <script>
 // ---------- helpers ----------
 const $=id=>document.getElementById(id);
+// ---------- bitácora del flujo (diagnóstico, pedido de Oscar 2026-08-02) ----------
+// Registro local con hora de cada activación (pushes, tarjetas del coach,
+// escaneos, globos): reconstruir "qué se disparó y cuándo" con datos en vez
+// de capturas y memoria. Tope 300 renglones; el botón 📜 (solo dev) la
+// copia al portapapeles. No viaja a ningún lado.
+function flog(ev){
+  try{
+    const a=JSON.parse(localStorage.getItem("flowLog")||"[]");
+    a.push(new Date().toISOString().slice(5,19).replace("T"," ")+" · "+ev);
+    localStorage.setItem("flowLog", JSON.stringify(a.slice(-300)));
+  }catch(_){}
+}
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>(
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
@@ -3365,6 +3378,7 @@ function balloonMeta(kind){
   return {sev:"ok", icon:"ok", sub:""};      // sesión/semana restablecidas
 }
 function showBalloon(body, kind){
+  flog("globo "+kind+": "+String(body).slice(0,50));
   // Sin widget en pantalla no hay dónde colgar el globo: ahí sí toca el toast
   // de Windows, con su repetición cada 5 min (que es lo que lo salva de ser
   // efímero). Es el ÚNICO caso en que se sigue usando.
@@ -3879,6 +3893,7 @@ function renderTips(){
     x.addEventListener("click",e=>{
       e.stopPropagation();
       const k=x.parentElement.dataset.ck;
+      flog("tips: ✕ despacha "+k);
       if(simFnd) coachHits=coachHits.filter(h=>h.rule+"|"+h.session!==k);
       else saveCoachCards(coachCardsStore().filter(c=>c.h.rule+"|"+c.h.session!==k));
       renderTips(); renderTipsDot();
@@ -3896,6 +3911,7 @@ function renderTips(){
     a.forEach(c=>{ if(!c.v){ c.v=true; ch=true; } });
     if(ch){
       saveCoachCards(a);
+      flog("tips: vistas con foco ("+a.length+" tarjetas) — aviso apagado");
       renderTipsDot();
       if(lastPillArgs) emitPill(...lastPillArgs);
     }
@@ -4064,6 +4080,7 @@ async function coachPoll(){
         day.keys.push(k);
       }
       seen.add(k);                      // se marca al ENTRAR, no al verse
+      flog("coach: nace tarjeta "+k+(h.project?" ("+h.project+")":""));
       if(h.rule==="sum"){
         if(!cards.some(c=>c.h.rule==="sum"&&c.h.session===h.session)){
           cards.push({h, born:Date.now()}); dirty=true;
@@ -4163,6 +4180,20 @@ $("sfBtn").addEventListener("click",()=>{
   simFnd=true; simRunning=true;
   $("sfBtn").textContent="■ Detener"; sfStep(0);
 });
+// 📜 bitácora del flujo: copia los últimos eventos con hora al portapapeles
+// (Mayús+clic la vacía). Solo dev, como los simuladores.
+$("flowBtn").addEventListener("click", async e=>{
+  if(e.shiftKey){
+    localStorage.removeItem("flowLog");
+    $("simMsg").textContent="bitácora vaciada";
+    return;
+  }
+  let a=[]; try{ a=JSON.parse(localStorage.getItem("flowLog")||"[]"); }catch(_){}
+  const txt=a.join("\n")||"(bitácora vacía)";
+  try{ await navigator.clipboard.writeText(txt); }
+  catch(_){ console.log(txt); }
+  $("simMsg").textContent="bitácora copiada ("+a.length+" renglones)";
+});
 
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
 function showTab(name){
@@ -4171,7 +4202,11 @@ function showTab(name){
   $("expBox").hidden = true;                      // el aviso era de ese momento
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
   if(name==="sources") loadRemotes();             // refresca estado de servidores
-  if(name==="findings") loadFindings(false);      // usa el resultado en memoria si lo hay
+  // el reporte en memoria se refresca si tiene más de 5 min: antes solo se
+  // escaneaba la PRIMERA vez por arranque, y una sesión terminada DESPUÉS
+  // de ese escaneo nunca aparecía hasta reiniciar la app (Oscar 2026-08-02:
+  // "no veo hallazgos" de la sesión recién hecha — y era cierto)
+  if(name==="findings") loadFindings(Date.now()-fndCacheAt>5*60*1000);
   if(name==="tips"){ renderTips(); renderTipFoot(); }  // estático: gratis
   if(name==="prefs") renderPricesStatus();        // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
@@ -4186,7 +4221,7 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>show
 let fndDays=+(localStorage.getItem("fndDays")||7);
 if(![1,7,15,30].includes(fndDays)) fndDays=7;
 $("fndDays").value=String(fndDays);
-let fndCache=null, fndBusy=false;
+let fndCache=null, fndBusy=false, fndCacheAt=0;
 $("fndDays").addEventListener("change",()=>{
   fndDays=+$("fndDays").value; localStorage.setItem("fndDays",String(fndDays));
   loadFindings(true);
@@ -4256,6 +4291,7 @@ async function fndAutoScan(){
   if(Date.now()-(+localStorage.getItem("fndAutoLast")||0)<FND_SCAN_MS) return;
   try{
     const list=await invoke("get_findings",{days:1});
+    flog("fnd: pasada diaria ok, "+(list||[]).length+" tarjetas (1d)");
     localStorage.setItem("fndAutoLast",String(Date.now()));
     // se guarda lo justo para el badge Y para el título del globo del día
     localStorage.setItem("fndAuto",JSON.stringify(
@@ -4340,7 +4376,8 @@ function ntfyOn(){ return !!(ntfyCfg&&ntfyCfg.enabled&&ntfyCfg.topic); }
 function ntfyPush(body, priority, at){
   if(!ntfyOn()||simRunning||!invoke) return;
   invoke("ntfy_push",{title:"MichiClaude", body, priority:priority||3, at:at??null})
-    .catch(()=>{});
+    .then(()=>flog("push ok"+(at?" (programado)":"")+": "+body.slice(0,60)))
+    .catch(e=>flog("push ERROR "+e+": "+body.slice(0,40)));
 }
 // Límite al 100%: aviso INMEDIATO + el PROGRAMADO de "ya volvió", que ntfy
 // retiene y entrega a la hora del reset AUNQUE la PC esté apagada — por eso
@@ -4449,11 +4486,18 @@ async function loadFindings(force){
   if(fndBusy) return;
   if(fndCache && !force){ renderFindings(); return; }
   fndBusy=true;
+  flog("fnd: escaneo "+fndDays+"d…");
   // el primer escaneo de la sesión tarda segundos (SSH incluido): mientras
-  // llega, se enseña el ÚLTIMO resultado guardado de la misma ventana, con
-  // el "Analizando…" en el pie para no vender lo viejo como fresco
+  // llega, se enseña el ÚLTIMO resultado disponible, con el "Analizando…"
+  // en el pie para no vender lo viejo como fresco
   let warm=false;
-  if(!fndCache){
+  if(fndCache){
+    // refresco de un reporte que ya está en pantalla (envejeció): lo viejo
+    // se queda a la vista mientras el escaneo fresco corre detrás
+    renderFindings();
+    $("fndFoot").textContent=t("fnd_scanning");
+    warm=true;
+  }else{
     try{
       const s=JSON.parse(localStorage.getItem("fndCacheSaved")||"null");
       if(s && s.days===fndDays && Array.isArray(s.list)){
@@ -4468,6 +4512,8 @@ async function loadFindings(force){
   }
   try{
     fndCache=await invoke("get_findings",{days:fndDays});
+    fndCacheAt=Date.now();
+    flog("fnd: escaneo ok, "+fndCache.length+" tarjetas ("+fndDays+"d)");
     try{ localStorage.setItem("fndCacheSaved",
       JSON.stringify({days:fndDays,list:fndCache})); }catch(_){}
     renderFindings();
