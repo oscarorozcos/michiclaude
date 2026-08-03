@@ -4528,6 +4528,12 @@ async function loadFindings(force){
 function renderFindings(){
   const ign=fndIgnored();
   const list=(fndCache||[]).filter(f=>!ign.has(fndKey(f)));
+  // los MÁS RECIENTES arriba (Oscar 2026-08-02: su hallazgo fresco quedaba
+  // hasta abajo por ser barato). Los de sesión traen la hora de su última
+  // actividad; los "de estado" (mcp, skills, claudemd, mech) no tienen hora
+  // y quedan abajo ordenados por costo. El TOPE de 12 sigue cortando por
+  // costo en el backend: esto solo cambia el orden de lectura.
+  list.sort((a,b)=>(b.ts||0)-(a.ts||0) || b.cost-a.cost);
   const hid=(fndCache||[]).length-list.length;
   if(!list.length){
     $("fndList").innerHTML=`<div style="font-size:11.5px;margin-top:10px">${t("fnd_none")}</div>`;

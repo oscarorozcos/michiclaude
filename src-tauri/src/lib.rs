@@ -278,6 +278,12 @@ struct Finding {
     estimated: bool,
     #[serde(default)]
     origin: String,
+    /// Última actividad (epoch) de la sesión que originó el hallazgo: el
+    /// panel ordena los MÁS RECIENTES arriba (Oscar 2026-08-02). Los
+    /// hallazgos "de estado" (mcp, skills, claudemd, mech) no tienen hora
+    /// y se van abajo. serde(default): un exportador viejo manda 0.
+    #[serde(default)]
+    ts: i64,
 }
 
 /// Una máquina ajena vista a través del servidor.
@@ -2058,6 +2064,8 @@ struct SessFindings {
     reads: HashMap<String, u64>,
     read_chars: HashMap<String, u64>,
     models: HashMap<String, u64>,
+    /// última actividad de la sesión (epoch) — viaja en Finding.ts
+    last_ts: i64,
     /// nombre de la CARPETA de logs — se usa para CASAR con el detector de
     /// CLAUDE.md, así que no se toca
     proj: String,
@@ -2307,6 +2315,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                             }
                         }
                         st.turns += 1;
+                        st.last_ts = st.last_ts.max(ts.timestamp());
                         *st.models.entry(model.clone()).or_insert(0) += 1;
                         if st.first_cr.is_none() {
                             st.first_cr = Some(cr);
@@ -2417,6 +2426,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                 kind: "reread".into(),
                 file: path.clone(),
                 project: sdisp(s),
+                ts: s.last_ts,
                 count: *n,
                 tokens: stacked,
                 cost: stacked as f64 * pi / 1_000_000.0,
@@ -2430,6 +2440,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
             findings.push(Finding {
                 kind: "inflate".into(),
                 project: sdisp(s),
+                ts: s.last_ts,
                 session: sid8.clone(),
                 turns: s.turns,
                 tokens: growth,
@@ -2464,6 +2475,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
             findings.push(Finding {
                 kind: "cachebreak".into(),
                 project: sdisp(s),
+                ts: s.last_ts,
                 session: sid8,
                 count: breaks,
                 tokens: rew_tok,

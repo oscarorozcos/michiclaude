@@ -452,7 +452,7 @@ def scan_findings(projects_dir, window_ago, days):
                         # nombre real del cwd, solo para enseñar: la carpeta
                         # codifica la ruta entera con guiones y al recortarla
                         # se parten los nombres compuestos.
-                        "models": {}, "proj": proj.name, "disp": "",
+                        "models": {}, "proj": proj.name, "disp": "", "ts": 0,
                         "cb": [], "compacts": [], "hooks": {}})
                     # una compactación reescribe el contexto A PROPÓSITO:
                     # se marca para no contarla como ruptura de caché
@@ -528,6 +528,7 @@ def scan_findings(projects_dir, window_ago, days):
                     cr = usage.get("cache_read_input_tokens") or 0
                     pi, po, pcw, pcr = price_for(model)
                     S["turns"] += 1
+                    S["ts"] = max(S["ts"], int(ts.timestamp()))  # última actividad -> Finding.ts (epoch, como Rust)
                     S["models"][model] = S["models"].get(model, 0) + 1
                     if S["first_cr"] is None:
                         S["first_cr"] = cr
@@ -594,14 +595,14 @@ def scan_findings(projects_dir, window_ago, days):
             if stacked < REREAD_MIN_TOKENS:
                 continue
             findings.append({
-                "kind": "reread", "file": path, "project": S["disp"] or S["proj"],
+                "kind": "reread", "file": path, "ts": S["ts"], "project": S["disp"] or S["proj"],
                 "count": n, "tokens": stacked,
                 "cost": stacked * pi / 1e6, "estimated": True,
                 "session": sid[:8]})
         growth = ((S["last_cr"] or 0) - (S["first_cr"] or 0))
         if growth >= INFLATE_MIN_GROWTH and S["turns"] >= INFLATE_MIN_TURNS:
             findings.append({
-                "kind": "inflate", "project": S["disp"] or S["proj"], "session": sid[:8],
+                "kind": "inflate", "ts": S["ts"], "project": S["disp"] or S["proj"], "session": sid[:8],
                 "turns": S["turns"], "tokens": growth,
                 "cost": S["cr_cost"], "estimated": False})
         # rupturas de caché: turnos donde el prefijo cacheado se PERDIÓ
@@ -626,7 +627,7 @@ def scan_findings(projects_dir, window_ago, days):
             rew_cost += rew * price_for(m_i)[2] / 1e6
         if rew_tok >= CACHEBREAK_MIN_TOKENS:
             findings.append({
-                "kind": "cachebreak", "project": S["disp"] or S["proj"],
+                "kind": "cachebreak", "ts": S["ts"], "project": S["disp"] or S["proj"],
                 "session": sid[:8], "count": breaks, "tokens": rew_tok,
                 "cost": rew_cost, "estimated": False})
     if mech[0] >= MECH_MIN:

@@ -1287,7 +1287,17 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       (tope 300); botón 📜 junto a los simuladores (solo dev) la copia
       al portapapeles, Mayús+clic la vacía. Complementa a
       coach_debug.json (compuertas Rust): entre los dos se reconstruye
-      cualquier "no me llegó X" sin especular. PROBAR: sesión de Claude Code en Windows con trabajo real
+      cualquier "no me llegó X" sin especular.
+      Y ORDEN DE HALLAZGOS POR RECIENTES (2026-08-02, pedido de Oscar: su
+      hallazgo fresco quedaba hasta abajo por barato): Finding gana `ts`
+      (última actividad de la sesión, epoch, serde(default) — exportador
+      viejo manda 0) en los TRES detectores de sesión (reread/inflate/
+      cachebreak), en Rust Y meter-export.py (invariante #1; OJO parse_ts
+      en Python devuelve datetime — va int(ts.timestamp())). El panel
+      ordena por ts desc y luego costo; los "de estado" (mcp, skills,
+      claudemd, mech, hooks) no llevan hora y quedan abajo por costo. El
+      TOPE de 12 sigue cortando por costo en el backend: solo cambia el
+      orden de lectura. Verificado con datos reales del VPS. PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo
