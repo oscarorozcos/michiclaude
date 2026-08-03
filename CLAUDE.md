@@ -1256,7 +1256,17 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       (línea de tiempo de Oscar: sesión termina 7:20 → post-it turquesa
       SOLO, sin abrir el panel, 7:27 → push "1 min, 19 turnos · 1 aviso
       de ahorro" 7:29; y en sus capturas la ficha con ✕ y el contraer
-      recordado). Falta solo ver el RECIBO (~$ y ⚠, nace a los 10 min). PROBAR: sesión de Claude Code en Windows con trabajo real
+      recordado). Y el RECIBO también VALIDADO el mismo día (captura:
+      «Mantenimiento ligero de la calculadora» · 1 min · 0 comandos · 3
+      archivos · ~$1.24 · ⚠ cerró con 53k — el caché venció). De su
+      pregunta "¿por qué no volvió el post-it con el recibo?" salió el
+      ÚLTIMO bug de la cadena: el panel al cerrarse solo se OCULTA y la
+      pestaña Consejos seguía activa por dentro — el sondeo pintaba el
+      recibo recién nacido en la ventana invisible y lo marcaba VISTO SIN
+      VERSE. Arreglo: el marcado exige document.hasFocus() además de la
+      pestaña visible (variante nueva de la trampa ya documentada en
+      Hallazgos). El recibo NO manda push propio A PROPÓSITO: su push fue
+      el "terminó · N avisos de ahorro"; el recibo es el detalle. PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo

@@ -3885,8 +3885,12 @@ function renderTips(){
       if(lastPillArgs) emitPill(...lastPillArgs);
     }));
   // ver la pestaña APAGA el aviso (contador + post-it del widget) pero no
-  // despacha nada: las tarjetas esperan su ✕ o sus 24 h — como Hallazgos
-  if(!$("tab-tips").hidden && !simFnd){
+  // despacha nada: las tarjetas esperan su ✕ o sus 24 h — como Hallazgos.
+  // document.hasFocus() OBLIGATORIO: el panel al cerrarse solo se OCULTA y
+  // la pestaña sigue activa por dentro — sin el foco, el sondeo pintaba el
+  // recibo recién nacido en una ventana invisible y lo marcaba visto sin
+  // que nadie lo viera (el post-it nunca se encendía; Oscar 2026-08-02).
+  if(!$("tab-tips").hidden && document.hasFocus() && !simFnd){
     const a=coachCardsStore();
     let ch=false;
     a.forEach(c=>{ if(!c.v){ c.v=true; ch=true; } });
