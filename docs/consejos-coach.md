@@ -144,6 +144,31 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
   solo lleva el conteo ("· 1 aviso de ahorro"); dólares y detalle, aquí.
   Subagentes y hooks siguen siendo de la pasada diaria de Hallazgos.
 
+## 8bis. Ciclo de vida de las tarjetas vivas (2026-08-03, pedido de Oscar)
+
+Las tarjetas VIVAS del coach (recibos y fichas con "Ahora") se comportan
+como las de Hallazgos:
+
+- **✕ para despachar**: el recibo se va; la ficha "Ahora" vuelve a ser
+  ficha normal del catálogo.
+- **Contraer/expandir con clic**, y la pose SE RECUERDA (`min`) — "la leo
+  más tarde" era imposible cuando verla ya la mataba.
+- **Ver la pestaña apaga el aviso** (contador + post-it) **pero no
+  despacha nada**: las tarjetas esperan su ✕…
+- …**o caducan solas a las 24 h de nacer** (`TIP_TTL`). 24 h desde que
+  nacen y no "a medianoche": un recibo de las 11 pm debe llegar a la
+  mañana. Un día es coherente con lo que son — avisos del momento; lo
+  que importa de verdad vive en Hallazgos y el gasto, que no caducan.
+- Todo vive en `coachCards` (localStorage, tope 12): sobrevive sondeos y
+  reinicios. `coachHits` queda SOLO para el simulador.
+- **Tope diario subido a 10** (5 se quedaba corto con varios proyectos) y
+  **una tarjeta viva por regla**: el "Ahora" es una foto del momento, la
+  medición más nueva reemplaza a la vieja (la ficha dice a qué proyecto
+  aplica). El recibo sigue exento del tope y es por sesión.
+- Comparación con Hallazgos, para no confundirse: Hallazgos NO tiene tope
+  diario porque es un REPORTE que se recalcula (máx. 12 tarjetas por
+  escaneo, "Ignorar" despacha); Consejos es una COLA de momentos.
+
 ## 9. Preguntas sin ficha (la cola larga, sin telemetría)
 
 - Cuando el usuario busca algo que la chuleta no cubre, la app lo guarda

@@ -135,6 +135,13 @@
   .tab .tdot.acc{background:var(--accent)}
   .fnd.tip.open{border-left-color:var(--accent)}
   .fnd.tip.open .fnd-f{display:block}
+  /* ✕ de las tarjetas VIVAS del coach (recibos y "Ahora"): como en
+     Hallazgos, el usuario decide cuándo despacharlas (2026-08-03) */
+  .fnd.tip{position:relative}
+  .tip-x{position:absolute;top:7px;right:8px;background:transparent;border:0;
+    color:var(--txt-dim);cursor:pointer;font-size:11px;line-height:1;
+    padding:3px 5px;border-radius:6px;font-family:var(--font)}
+  .tip-x:hover{color:var(--txt);background:rgba(128,128,128,.18)}
   .fnd-x{float:right;background:transparent;border:0;color:var(--txt-dim);
     font-size:10.5px;cursor:pointer;padding:2px 4px}
   .fnd-x:hover{color:var(--txt)}
@@ -3810,15 +3817,12 @@ const TIPS=["clear","compact","cache","attach","ask","model"];
 function renderTips(){
   const q=($("tipFilter").value||"").toLowerCase();
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-  // resúmenes de sesión terminada (regla "sum"): tarjeta-espejo con el
-  // ai-title del log (solo display; respaldo = nombre del proyecto) y los
-  // contadores medidos. Se enseñan arriba y solo sin filtro activo.
-  // Salen del ALMACÉN coachSums, no de coachHits: Rust emite el recibo UNA
-  // vez y coachHits se reemplaza en cada sondeo — la tarjeta vivía 3 min y
-  // si la pestaña no estaba abierta justo entonces, moría sin ser vista
-  // (pasó 2026-08-02 con la auditoría de los "3 avisos de ahorro"). En el
-  // simulador se lee coachHits directo: el sim no toca localStorage.
-  let sums=q?[]:(simFnd?coachHits.filter(h=>h.rule==="sum"):coachSumsStore());
+  // Tarjetas VIVAS del coach al estilo Hallazgos (Oscar 2026-08-03): salen
+  // del almacén coachCards — cada una con su ✕, contraíbles (se recuerda),
+  // y caducan solas a las 24 h. Ver la pestaña apaga el aviso pero NO las
+  // despacha. En simulador se leen de coachHits: el sim no toca disco.
+  const cards=simFnd?coachHits.map(h=>({h})):coachCardsStore();
+  let sums=q?[]:cards.filter(c=>c.h.rule==="sum");
   // mini-auditoría del cierre: el costo medido de la sesión y, si algún
   // detector disparó sobre ELLA, la fuga con su hecho medido. El dinero y el
   // detalle viven AQUÍ — por ntfy solo viajó el conteo.
@@ -3826,49 +3830,71 @@ function renderTips(){
   // blanco — las 6 fichas estáticas se pintan pase lo que pase.
   let sumHtml="";
   try{
-    sumHtml=sums.map(h=>`<div class="fnd tip open">
+    sumHtml=sums.map(c=>{const h=c.h;
+      return `<div class="fnd tip${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
+      <button class="tip-x" aria-label="✕">✕</button>
       <div class="fnd-t">«${esc(h.title||h.project)}»</div>
       <div class="fnd-m">${t("tip_sum_t")} — ${esc(h.project)} · ${t("src_local")}</div>
       <div class="fnd-f">${t("tip_sum_line",h.value,h.cmds,h.edits)}${
         h.cost>0.005?` · ~$${(+h.cost).toFixed(2)}`:""}</div>
       ${(h.leaks||[]).map(l=>`<div class="fnd-f">⚠ ${tipLeak(l)}</div>`).join("")}
-    </div>`).join("");
+    </div>`;}).join("");
   }catch(_){ sums=[]; sumHtml=""; }
-  // fichas disparadas por el motor de reglas: primero, abiertas y con su
-  // línea "Ahora: <dato medido>" — el consejo en el momento en que sirve
-  const hot={}; coachHits.forEach(h=>{ if(h.rule!=="sum"&&!(h.rule in hot)) hot[h.rule]=h; });
+  // fichas disparadas por el motor de reglas: primero, abiertas (salvo que
+  // el usuario las haya contraído) y con su línea "Ahora: <dato medido>"
+  const hot={}; cards.forEach(c=>{ if(c.h.rule!=="sum"&&!(c.h.rule in hot)) hot[c.h.rule]=c; });
   const ids=[...TIPS].sort((a,b)=>((b in hot)?1:0)-((a in hot)?1:0));
   const list=ids.filter(id=>!q ||
     (t("tip_"+id+"_t")+" "+t("tip_"+id+"_b")).toLowerCase().includes(q));
   $("tipList").innerHTML=(sumHtml + list.map(id=>{
-    const h=hot[id];
+    const c=hot[id], h=c&&c.h;
     // la ficha disparada dice A QUÉ sesión aplicar el consejo: proyecto +
     // "local" — el coach solo mira esta máquina, y con el VPS abierto al
     // lado la duda era real (Oscar, 2026-07-31)
     const donde=h?[h.project||"", t("src_local")]
       .filter(Boolean).join(" · "):"";
-    return `<div class="fnd tip${h?" open":""}" data-tip="${id}">
+    return `<div class="fnd tip${h&&!c.min?" open":""}" data-tip="${id}"${
+        h?` data-ck="${esc(h.rule+"|"+h.session)}"`:""}>
+      ${h?`<button class="tip-x" aria-label="✕">✕</button>`:""}
       <div class="fnd-t">${t("tip_"+id+"_t")}</div>
       ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value)} — ${donde}</div>`:""}
       <div class="fnd-f">${t("tip_"+id+"_b")}</div>
     </div>`;}).join(""))
     || `<div style="font-size:11.5px;margin-top:10px;color:var(--txt-dim)">${t("tips_none")}</div>`;
+  // clic en la tarjeta = contraer/expandir; si es una tarjeta viva, la pose
+  // se RECUERDA (min) para poder "leerla más tarde"
   $("tipList").querySelectorAll(".tip").forEach(el=>
-    el.addEventListener("click",()=>el.classList.toggle("open")));
-  // lo que llegó a pintarse con la pestaña VISIBLE queda despachado: el
-  // punto se apaga y esa regla no vuelve a sonar en esta sesión. Las fichas
-  // siguen resaltadas hasta el próximo sondeo (ahí el filtro las limpia).
-  if(!$("tab-tips").hidden && (coachHits.length||sums.length) && !simFnd){
-    const seen=tipSeenSet();
-    coachHits.forEach(h=>seen.add(h.rule+"|"+h.session));
-    sums.forEach(h=>seen.add(h.rule+"|"+h.session));
-    localStorage.setItem("tipSeen",JSON.stringify([...seen].slice(-300)));
-    coachHits=[];                                 // despachados
-    // los recibos solo se dan por entregados si llegaron a pintarse (con
-    // filtro activo no se enseñan y deben esperar)
-    if(sums.length) localStorage.removeItem("coachSums");
-    renderTipsDot();
-    if(lastPillArgs) emitPill(...lastPillArgs);   // apaga el aviso del widget
+    el.addEventListener("click",()=>{
+      el.classList.toggle("open");
+      const k=el.dataset.ck;
+      if(k&&!simFnd){
+        const a=coachCardsStore();
+        const c=a.find(x=>x.h.rule+"|"+x.h.session===k);
+        if(c){ c.min=!el.classList.contains("open"); saveCoachCards(a); }
+      }
+    }));
+  // ✕ = despachar ESA tarjeta (el recibo se va; la ficha "Ahora" vuelve a
+  // ser ficha normal del catálogo)
+  $("tipList").querySelectorAll(".tip-x").forEach(x=>
+    x.addEventListener("click",e=>{
+      e.stopPropagation();
+      const k=x.parentElement.dataset.ck;
+      if(simFnd) coachHits=coachHits.filter(h=>h.rule+"|"+h.session!==k);
+      else saveCoachCards(coachCardsStore().filter(c=>c.h.rule+"|"+c.h.session!==k));
+      renderTips(); renderTipsDot();
+      if(lastPillArgs) emitPill(...lastPillArgs);
+    }));
+  // ver la pestaña APAGA el aviso (contador + post-it del widget) pero no
+  // despacha nada: las tarjetas esperan su ✕ o sus 24 h — como Hallazgos
+  if(!$("tab-tips").hidden && !simFnd){
+    const a=coachCardsStore();
+    let ch=false;
+    a.forEach(c=>{ if(!c.v){ c.v=true; ch=true; } });
+    if(ch){
+      saveCoachCards(a);
+      renderTipsDot();
+      if(lastPillArgs) emitPill(...lastPillArgs);
+    }
   }
 }
 $("tipFilter").addEventListener("input",renderTips);
@@ -3925,16 +3951,23 @@ $("tipDismiss").addEventListener("click",e=>{
 // el globo es del umbral en dólares. Consejo = pestaña + punto en acento.
 let coachHits=[];
 function tipSeenSet(){ try{ return new Set(JSON.parse(localStorage.getItem("tipSeen")||"[]")); }catch(_){ return new Set(); } }
-// Recibos de sesión pendientes de VER: sobreviven a los sondeos (que
-// reemplazan coachHits) y a los reinicios (Rust no re-emite un resumen).
-function coachSumsStore(){ try{ return JSON.parse(localStorage.getItem("coachSums")||"[]"); }catch(_){ return []; } }
-// Cuántos avisos del coach esperan al usuario: fichas del sondeo actual +
-// recibos guardados (sin contar dos veces el que esté en ambos lados).
+// Tarjetas VIVAS del coach (recibos "sum" y mediciones "Ahora"), al estilo
+// Hallazgos (pedido de Oscar 2026-08-03): sobreviven sondeos y reinicios,
+// cada una lleva su ✕, contraerlas se recuerda (`min`), ver la pestaña solo
+// apaga el aviso (`v`) sin despacharlas, y caducan SOLAS a las 24 h de
+// nacer — no a medianoche: un recibo de las 11 pm debe llegar a la mañana.
+const TIP_TTL=24*3600*1000;
+function coachCardsStore(){
+  let a=[]; try{ a=JSON.parse(localStorage.getItem("coachCards")||"[]"); }catch(_){}
+  const now=Date.now();
+  return a.filter(c=>c&&c.h&&(now-(c.born||0))<TIP_TTL);
+}
+function saveCoachCards(a){ localStorage.setItem("coachCards", JSON.stringify(a.slice(-12))); }
+// El aviso (contador de la pestaña + post-it del widget) cuenta solo las NO
+// vistas; las vistas siguen en la pestaña hasta su ✕ o su caducidad.
 function coachCount(){
   if(simFnd) return coachHits.length;
-  const extra=coachSumsStore().filter(s=>
-    !coachHits.some(h=>h.rule==="sum"&&h.session===s.session)).length;
-  return coachHits.length+extra;
+  return coachCardsStore().filter(c=>!c.v).length;
 }
 function renderTipsDot(n){
   const d=$("tipsTabDot");
@@ -4014,28 +4047,35 @@ async function coachPoll(){
     let day={}; try{ day=JSON.parse(localStorage.getItem("tipDay")||"{}"); }catch(_){ day={}; }
     const hoy=new Date().toISOString().slice(0,10);
     if(day.d!==hoy||!Array.isArray(day.keys)) day={d:hoy,keys:[]};
-    const out=[];
+    const cards=coachCardsStore();
+    let dirty=false;
     for(const h of hits){
       const k=h.rule+"|"+h.session;
-      if(seen.has(k)) continue;
+      if(seen.has(k)) continue;         // una vez por sesión y regla
       if(!day.keys.includes(k)){
-        // tope diario: el coach no ametralla. El RESUMEN queda exento — es
-        // el recibo de la sesión, una vez por sesión, y el día de la prueba
-        // del agente el tope se lo comió sin dejar rastro (2026-08-02)
-        if(h.rule!=="sum" && day.keys.length>=5) continue;
+        // tope diario SUBIDO a 10 (2026-08-03: con varios proyectos, 5 se
+        // quedaba corto). El RESUMEN sigue exento — es el recibo de la
+        // sesión, una vez por sesión.
+        if(h.rule!=="sum" && day.keys.length>=10) continue;
         day.keys.push(k);
       }
-      out.push(h);
+      seen.add(k);                      // se marca al ENTRAR, no al verse
+      if(h.rule==="sum"){
+        if(!cards.some(c=>c.h.rule==="sum"&&c.h.session===h.session)){
+          cards.push({h, born:Date.now()}); dirty=true;
+        }
+      }else{
+        // UNA tarjeta viva por regla: el "Ahora" es una foto del momento y
+        // la medición más nueva reemplaza a la vieja (la ficha ya dice a
+        // qué proyecto aplica)
+        const i=cards.findIndex(c=>c.h.rule===h.rule);
+        if(i>=0) cards.splice(i,1);
+        cards.push({h, born:Date.now()}); dirty=true;
+      }
     }
+    localStorage.setItem("tipSeen",JSON.stringify([...seen].slice(-300)));
     localStorage.setItem("tipDay",JSON.stringify(day));
-    // los RECIBOS (sum) se guardan hasta que el usuario los vea: Rust los
-    // emite una sola vez y este arreglo se reemplaza en cada sondeo
-    const pend=coachSumsStore();
-    for(const h of out.filter(x=>x.rule==="sum")){
-      if(!pend.some(s=>s.session===h.session)) pend.push(h);
-    }
-    if(pend.length) localStorage.setItem("coachSums", JSON.stringify(pend.slice(-5)));
-    coachHits=out;
+    if(dirty) saveCoachCards(cards);
     renderTipsDot();
     if(lastPillArgs) emitPill(...lastPillArgs);   // el widget lo ve al instante
     if(!$("tab-tips").hidden) renderTips();

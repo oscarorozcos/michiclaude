@@ -1225,7 +1225,19 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       llegaron a PINTARSE con la pestaña visible y sin filtro activo.
       `coachCount()` (fichas + recibos pendientes, sin doble conteo)
       alimenta el contador de la pestaña y el aviso del widget — así el
-      post-it sobrevive a reinicios igual que el de hallazgos. PROBAR: sesión de Claude Code en Windows con trabajo real
+      post-it sobrevive a reinicios igual que el de hallazgos.
+      Y REDISEÑO DEL CICLO DE VIDA 2026-08-03 (pedido de Oscar: "como
+      Hallazgos"): almacén `coachCards` (tope 12, sustituye a coachSums)
+      con TODAS las tarjetas vivas — recibos y "Ahora" —, cada una con ✕,
+      contraer/expandir recordado (`min`), ver la pestaña apaga el aviso
+      (`v`) SIN despachar nada, y caducidad automática a las 24 h de
+      nacer (TIP_TTL — no a medianoche: un recibo de las 11 pm debe
+      llegar a la mañana). Tope diario 5→10 y UNA tarjeta viva por regla
+      (la medición nueva reemplaza a la vieja). tipSeen se marca al
+      ENTRAR al almacén, no al verse. coachHits queda SOLO para el
+      simulador. Ciclo completo probado con arnés en el VPS (nacer →
+      reemplazo → visto → contraído → ✕ → caducar). Detalle en
+      docs/consejos-coach.md §8bis. SIN validar en vivo. PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo
