@@ -1403,7 +1403,8 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           Hallazgos se CONTRAEN con clic como las fichas de Consejos (se
           pliega solo la recomendación; título/origen/costo se quedan;
           pose recordada en localStorage fndMin, guard !simFnd; Ignorar
-          lleva stopPropagation para no plegar de paso), y quedó explicado
+          lleva stopPropagation para no plegar de paso — VALIDADO en vivo
+          por Oscar el mismo día, captura con 3 tarjetas plegadas), y quedó explicado
           que el contador de la pestaña no encendió por la trampa del
           vigilante — el escaneo corrió con la pestaña abierta.
       [x] detector de hooks con un hook real VALIDADO 2026-08-04 (captura
