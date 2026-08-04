@@ -1,1810 +1,468 @@
 # CLAUDE.md — MichiClaude (antes Claude Code Meter)
 
-Contexto del proyecto para Claude Code. **Léelo completo antes de modificar nada.**
+Contexto del proyecto para Claude Code. **Léelo completo antes de modificar
+nada.** Aquí vive solo lo VIGENTE: reglas, invariantes y pendientes. El
+HISTORIAL completo (jornadas, validaciones, bugs con autopsia, decisiones
+con su porqué) está en `docs/bitacora.md` — buscar ahí antes de rediscutir
+una decisión vieja. Al cerrar una jornada: validaciones nuevas a la
+bitácora; aquí solo se actualizan reglas y pendientes. REGLA DURA: este
+archivo debe quedar por debajo de 40k caracteres — Claude Code corta lo que
+sobre (pasó el 2026-08-04 con 118.8k y dos tercios del archivo sin leerse).
 
 ## Qué es esta app
 
-Widget de bandeja para Windows 11 hecho con **Tauri 2** que mide en tiempo real
-el uso de Claude (suscripción). Muestra:
+Widget de bandeja para Windows 11 hecho con **Tauri 2** que mide en tiempo
+real el uso de Claude (suscripción):
 
 - **Cuota real del plan** (sesión de 5 h + límites semanales con buckets por
-  modelo) — la misma que aparece en claude.ai → Configuración → Uso. Los
-  límites son compartidos entre claude.ai, Claude Code e IDEs.
-- **Marcador de ritmo**: línea que indica cuánto del periodo transcurrió; si el
-  consumo la adelanta, el color pasa a ámbar/rojo.
-- **Proyección de burn rate**: "a este ritmo llegas al 100% en X min, antes/después del reset".
-- **Gasto por proyecto** (equivalente API, 7 días) y **modelo más usado**,
-  desde los logs locales de Claude Code.
-- **Nota bajo el gasto**: los dólares son SOLO de Claude Code. Lo usado en
-  claude.ai también gasta el límite semanal pero NO se puede medir en $, así
-  que se dice con palabras en vez de con una cifra inventada.
-- **Icono de bandeja dinámico**: el icono del tray se redibuja con el % de
-  sesión (color por estado + barrita semanal), como los medidores de
-  batería/CPU. Sustituye a la antigua "franja sobre la barra" (descartada
-  2026-07-10: Windows 11 centra los iconos y cualquier overlay encima de la
-  barra los tapa y les bloquea los clics).
+  modelo) — la misma de claude.ai → Configuración → Uso. Compartida entre
+  claude.ai, Claude Code e IDEs.
+- **Marcador de ritmo** y **proyección de burn rate** ("al 100% en X min").
+- **Gasto por proyecto** (equivalente API) y modelo más usado, desde los
+  logs locales. Nota `spend_only_cc`: los $ son SOLO de Claude Code; lo de
+  claude.ai gasta cuota pero no es medible en dinero.
+- **Icono de bandeja dinámico** (% de sesión dibujado en canvas).
+- **Analizador de fugas de tokens** (pestaña Hallazgos) y **coach**
+  (pestaña Consejos) — ver sus secciones.
+- **Modo HUB** multi-máquina y **avisos al celular** (ntfy).
 
 ## Arquitectura
 
 ```
-src/index.html          # Frontend completo: HTML+CSS+JS vanilla, un solo archivo,
-                        # sin frameworks, sin bundler, sin dependencias npm de runtime.
+src/index.html          # Frontend completo: HTML+CSS+JS vanilla, un archivo,
+                        # sin frameworks, sin bundler, sin deps npm de runtime.
+src/pill.html pcard.html cat.html card.html notif.html   # ventanas del widget
 src-tauri/src/main.rs   # Entry point (windows_subsystem = "windows")
 src-tauri/src/lib.rs    # Backend: comandos, tray, ventanas, Win32
-src-tauri/tauri.conf.json
-src-tauri/capabilities/default.json
-scripts/meter-export.py  # Exportador remoto (corre en el VPS vía SSH; solo stdlib)
-app-icon.png            # Fuente de iconos (npm run icons los genera)
-.github/workflows/release.yml  # Compila y publica instalador en tags v*
+scripts/meter-export.py # Exportador remoto (VPS vía SSH; solo stdlib)
+docs/                   # bitacora.md + diseños (leer antes de tocar su área)
+.github/workflows/release.yml  # compila y publica instalador en tags v*
 ```
 
-### Fuentes de datos (dos, independientes)
+### Fuentes de datos
 
-**A) Cuota real — comando `get_quota` (Rust):**
-1. Lee el token OAuth de `~/.claude/.credentials.json`
-   (campo `claudeAiOauth.accessToken`). Respeta `CLAUDE_CONFIG_DIR` si existe.
-   Si falta o su `expiresAt` ya pasó, intenta las máquinas de `remotes.json`
-   (`ssh <host> cat ~/.claude/.credentials.json`) y usa el primer token
-   vigente — así el meter no depende de usar Claude Code en Windows si se usa
-   a diario en el VPS. El token remoto viaja por SSH y solo vive en memoria.
-   NUNCA se llama a la API con token vencido (provoca 429 temporales).
-2. `GET https://api.anthropic.com/api/oauth/usage` con `Bearer <token>` y
-   header `anthropic-beta: oauth-2025-04-20`.
-3. Devuelve el JSON crudo. Es un **endpoint no oficial** — puede cambiar de
-   forma; por eso el frontend extrae buckets de forma **recursiva y dinámica**
-   (`extractBuckets()`: busca objetos con `utilization`/`resets_at`) y pinta
-   los que existan (Sonnet, Opus, Fable, Cowork, futuros).
-4. Errores esperados y su mensaje: sin `.credentials.json` → "inicia sesión en
-   Claude Code"; 401 → "token expirado, ejecuta claude update".
-5. Escribe `quota_debug.json` con la respuesta para diagnóstico.
+**A) Cuota real — `get_quota` (Rust):** token OAuth de
+`~/.claude/.credentials.json` (respeta `CLAUDE_CONFIG_DIR`); si venció,
+respaldo WSL y luego máquinas de `remotes.json` (el PRIMER token vigente
+gana; viaja por SSH, solo vive en memoria). NUNCA llamar a la API con token
+vencido (provoca 429). `GET https://api.anthropic.com/api/oauth/usage` con
+`anthropic-beta: oauth-2025-04-20`. Endpoint NO oficial: el frontend extrae
+buckets de forma recursiva y dinámica (`extractBuckets()` busca
+`utilization`/`resets_at`) y pinta los que existan. El endpoint NO envía el
+plan (verificado con quota_debug.json real). Respuesta cruda a
+`quota_debug.json` para diagnóstico.
 
-**B) Detalle local — comando `get_local_stats` (Rust):**
-1. Parsea `~/.claude/projects/**/*.jsonl` (solo actividad de Claude Code en
-   esta máquina; los chats de claude.ai web NO dejan logs locales).
-   "**/*" incluye `<sesión>/subagents/agent-*.jsonl` vía `project_jsonls()`
-   (2026-08-04): Claude Code moderno pone ahí los transcripts de los
-   subagentes — sin entrar a esa subcarpeta, sus tokens no se cobraban.
-2. **Deduplicación** por `message.id + requestId` (los .jsonl duplican
-   entradas por reanudaciones/streaming).
-3. Tokens "de trabajo" = input + output + cache_write. **`cache_read` se
-   excluye** (infla ~100×) salvo para el cálculo de coste, donde entra a 10%
-   del precio de input.
-4. Coste equivalente-API con `price_for()`: primero la tabla DESCARGADA
-   (cascada LiteLLM → models.dev → OpenRouter, caché de 24 h en
-   `prices_cache.json`, apagable en Preferencias) y, si el modelo no está,
-   la tabla embebida `price_table()` — que decide por VERSIÓN, no por
-   familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75; Fable/Mythos
-   $10/$50; caché = 1.25x y 0.1x del input). Un modelo que no esté en
-   ninguna de las dos se marca `estimated` y la UI lo señala con "~".
-5. Agrega: por proyecto (ventana 1/7/30 días, con desglose `by_model` por
-   proyecto), por modelo, coste hoy y de la ventana (`cost_week`), y la serie
-   `daily` de los últimos 30 días para la gráfica de tendencia. Los proyectos
-   llevan sufijo de origen (" · wsl-<distro>", " · <servidor>"); el frontend etiqueta
-   "local" a los que no llevan sufijo.
+**B) Detalle local — `get_local_stats` (Rust):** parsea
+`~/.claude/projects/**/*.jsonl`. "**/*" incluye
+`<sesión>/subagents/agent-*.jsonl` vía `project_jsonls()` (2026-08-04):
+Claude Code moderno (v2.1.221+) pone ahí los transcripts de subagentes —
+sin entrar a esa subcarpeta ni el costo ni el detector los ven.
+Deduplicación por `message.id + requestId` (los duplicados TAMBIÉN cruzan
+archivos — la dedup global es imprescindible). Tokens "de trabajo" = input
++ output + cache_write; **cache_read excluido** (infla ~100×) salvo para el
+coste (a 10% del precio de input). `<synthetic>` fuera. Fuente WSL:
+`wsl.exe -l -q` (UTF-16LE) + `\\wsl.localhost\<distro>\{home/*,root}\.claude`,
+sufijo `wsl-<distro>`. Lectura incremental: archivos más viejos que la
+ventana ni se abren; de los recientes se cachea el PARSEO por tamaño+mtime
+(`scan_cache.json`), nunca el coste. Agrega por proyecto (ventana 1/7/30,
+`by_model`), por modelo, coste hoy/ventana y serie `daily` de 30 días. Los
+proyectos remotos llevan el sufijo del nombre que el usuario dio al server.
 
-**C) Fuentes remotas opcionales (dentro de `get_local_stats`):**
-1. Si existe `%APPDATA%\com.oscarorozco.michiclaude\remotes.json`
-   (`{"remotes":[{"name":"vps","host":"<alias ssh>","command":"python3 /opt/projects/michiclaude/scripts/meter-export.py"}]}`),
-   por cada fuente se ejecuta `ssh -o BatchMode=yes <host> <command>`.
-2. `scripts/meter-export.py` replica en Python la MISMA agregación que
-   `get_local_stats` (dedup, `<synthetic>` fuera, cache_read excluido, precios)
-   y emite un JSON con la forma de `LocalStats`. Mantener ambos en sincronía.
-3. El meter fusiona: totales sumados, proyectos etiquetados `nombre · vps`,
-   modelos agregados. Si el SSH falla, se ignora en silencio (los datos
-   locales nunca se bloquean por la red).
+**Precios:** `price_for()` usa la tabla DESCARGADA (cascada LiteLLM →
+models.dev → OpenRouter, caché 24 h en `prices_cache.json`, es RESPALDO no
+verificación cruzada) y cae a la embebida `price_table()`, que decide por
+VERSIÓN, no familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75;
+Fable/Mythos $10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`,
+la UI marca "~". Los precios frescos viajan al exportador por STDIN
+(`--prices-stdin`). Si la descarga falla >1 semana: aviso ⚠ junto a "costo
+estimado", no toast.
 
-### Ventanas
+**C) Remotas (dentro de `get_local_stats`):** `remotes.json` en
+`%APPDATA%\com.oscarorozco.michiclaude\`; por fuente, `ssh -o BatchMode=yes
+<host> <command>`. `meter-export.py` replica la MISMA agregación
+(**mantener AMBOS lados en sincronía** — invariante #1). Fusión: totales
+sumados, proyectos etiquetados. SSH falla → se ignora en silencio. El alta
+sube el exportador EMBEBIDO (include_str!, saltos normalizados a LF) a
+`~/.michiclaude/meter-export.py` y lo re-sube al arrancar — editar el .py
+en el VPS NO tiene efecto, hay que recompilar. `install_remote(host,python)`
+verifica el binario de Python (`verify_python`); sin Python debe fallar con
+ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
+
+## Ventanas
 
 - **Panel** (`main`): flyout sin decoraciones, transparente, alwaysOnTop,
-  skipTaskbar. Se abre con clic en el tray; se oculta al perder foco (excepto
-  durante arrastre); ✕ oculta a bandeja; arrastrable desde el encabezado.
-- **Widget flotante** (`pill`, src/pill.html): cápsula opcional SIEMPRE
-  visible que vive
-  ENCIMA de la barra de tareas — nunca dentro ni tapando iconos (lección
-  aprendida de la franja descartada). No roba foco (`WS_EX_NOACTIVATE`),
-  arrastrable solo desde el asa ⠿ (al soltar persiste posición vía
-  `pill_moved`), clic abre el panel, clic derecho la oculta. Visibilidad y
-  posición en `pill_config.json`; se activa desde ⚙ Preferencias o el menú
-  del tray ("Floating widget"). NUNCA llama al endpoint: el panel le emite
-  `quota:update` (con tema y tooltip localizados) y la pill pide el último
-  dato con `pill:ready` al cargar. (El "diseño coral" alternativo se
-  eliminó el 2026-07-25 a petición de Oscar: solo existe el diseño
-  original de pastilla y el gatito.)
-  REDISEÑO 2026-07-27 (maqueta de Oscar): cápsula de cristal (280x54) con
-  borde de acento, asa ⠿, marca, "Sesión X%" y hasta dos porcentajes con
-  icono — semanal (calendario) y el bucket semanal POR MODELO (destellos),
-  que es un hueco VARIABLE: el icono se queda, el modelo cambia (Fable hoy,
-  lo que salga mañana) y si el endpoint no reporta ninguno no se pinta.
-  IDA Y VUELTA del 2026-07-31 (dejarlo escrito evita repetirla): los
-  huecos semanal/por-modelo SALIERON de la cápsula ("repetitivo con el
-  detalle") y VOLVIERON a las horas — Oscar los extrañó como vistazo
-  rápido. Quedaron: los huecos de vuelta, ancho de vuelta a 280 (las
-  ventanas se definen en ensure_widget_windows, NO en el json), el grupo
-  de contenido CENTRADO entre asa y flecha (márgenes auto en .mkbtn y
-  .chev), y el gatito+Sesión sin truncarse. Lo que SÍ quedó de esa ronda:
-  (1) SIN tooltips nativos en la cápsula (ni title del cap ni del bucket
-  por modelo: se veían encima del detalle); (2) el hover para desplegar
-  se probó y Oscar lo DEVOLVIÓ a clic el mismo día — no reintroducirlo;
-  (3) la CABECERA GEMELA del detalle ya no es puro dibujo (parecía rota:
-  su gatito no abría el panel y su asa no movía): el gatito abre el
-  panel y el asa arrastra de verdad vía `drag_pill_from_card` — Rust
-  pliega, muestra la pastilla (que quedó exactamente bajo la cabecera,
-  el despliegue no la mueve) y le pasa el arrastre del sistema en el
-  mismo gesto; la posición se persiste con salvados repetidos ~2.5 s.
-  VALIDADO en vivo por Oscar el 2026-07-31 ("funciona bien"). El clic
-  derecho oculta. Y el remate del mismo día: con el detalle ABIERTO la
-  cabecera ya no repite los números (se veían duplicados con las filas)
-  — CSS del pcard esconde .lab/.pct/.m del hdr; quedan asa, gatito y
-  flecha. La regla de geometría IDÉNTICA entre cápsula y cabecera sigue
-  (tamaños y posiciones); lo que cambia es solo el contenido visible.
-  Iconos SVG en el propio archivo: la fuente Tabler de la maqueta se
-  descarga de fuera y la CSP no lo permite. Color de los porcentajes: el
-  VERDE de "todo bien" se cambió por el acento de la app (`--acc`: #56c7d6
-  en oscuro = tag "Suscripción" del panel, #0b7c8c en claro = pestaña
-  activa), pero ÁMBAR y ROJO se conservan — son los que avisan de que vas
-  por encima del ritmo, y perderlos sí sería un retroceso.
-  La caja lleva 6 px de margen dentro de su ventana: pegada al borde, el
-  halo del box-shadow se cortaba en recto y se veían dos esquinas
-  rectangulares sobre el escritorio. Ese mismo margen en `pill` y `pcard`
-  es lo que mantiene alineada la cabecera al desplegar — si se cambia en
-  una, hay que cambiarlo en la otra.
-  Clic en la cápsula = desplegar el detalle; clic en la MARCA = abrir el
-  panel; ⠿ arrastra (y pliega antes); clic derecho oculta.
-- **Detalle de la pastilla** (`pcard`, src/pcard.html, 280x300): la maqueta
-  crece al hacer clic, pero una ventana transparente NO se puede
-  redimensionar en vivo (WebView2 deja de pintar). Son dos ventanas: al
-  desplegar se OCULTA la pastilla y se muestra `pcard` con la cabecera
-  idéntica en su mismo sitio, y parece que creció. `toggle_pill_card()`
-  elige la pose: hacia abajo si cabe, y si no —el caso normal, con el
-  widget pegado a la barra— ancla por el borde inferior y las filas salen
-  ENCIMA de la cabecera (`body.up` invierte el orden). Ventana fija más
-  alta de lo necesario: el hueco transparente sobrante no estorba porque un
-  clic en cualquier parte pliega. El globo de aviso NO es un globo de
-  cómic cuando el widget es la pastilla: es un POPOVER (`body.cap` en
-  notif.html, maqueta de Oscar 2026-07-28) — cristal, esquina de 16, icono
-  en pastilla de color, título + línea secundaria, ✕ redonda y una flecha
-  pequeña (cuadrado girado 45°) en vez del pico grande. La SEVERIDAD tiñe
-  borde, resplandor e icono (`--sev`: acento = informativo, ámbar = ojo,
-  rojo = crítico) para que se entienda sin leerlo; la calcula
-  `balloonMeta()` en el panel y el cómic del gatito la ignora. La línea
-  secundaria solo se pone donde aporta (la alarma de %, con el tiempo que
-  falta para el reset). Con la pastilla sigue al tema del panel, NO a los
-  selectores "Arte/Globos del gatito", que ahí no se ven. La punta de la
-  cola se mete 40 px en el gatito pero solo 8 en la cápsula (`notif_overlap`):
-  el gato tiene márgenes transparentes de sobra y la cápsula mide 44 px, así
-  que con 40 la cola le caía encima del texto. Globo y detalle NUNCA a la
-  vez: el globo tiene prioridad y pliega el detalle; al plegarlo a mano,
-  `pcard` emite `notif:ready` y el aviso pendiente vuelve.
-- **Widget gatito** (estilo `cat` en `PillConfig.style`, elegible en
-  Preferencias; validado en vivo 2026-07-22): el gato Bongo SUSTITUYE a la
-  pastilla (nunca conviven). Cuatro ventanas fijas: `cat` (gif animado +
-  cápsula "Sesión X%" sobre la cabeza + zona invisible `.head` sobre la
-  cabeza que abre el panel — el sticker de la pantalla se retiró el
-  2026-07-26; la laptop y los márgenes solo arrastran. Las coordenadas de
-  la zona son variables CSS `--hx/--hy/--hw/--hh` para recalibrarla),
-  `card` (globo cómic de información al hover, con
-  buckets semanales extra DINÁMICOS — Fable, futuros), `notif` (globo de
-  alarma persistente con ✕) y la pastilla oculta. Estados del gif según
-  los avisos, de más grave a más leve (`mascotState()`): cat-zzz (semana al
-  100% = `hit:week`, hasta el reset semanal) / cat-break (SESIÓN al 100% =
-  `hit:session`, de descanso hasta el reset de la sesión) / cat-fire (alarma
-  de % pendiente = `ackPending:alarm`, se calma al abrir el panel o cerrar
-  el globo) / normal. Los dos banderines `hit:*` los limpia `trackResets()`
-  al detectar ventana nueva, así que el estado dura exactamente lo que dura
-  la espera real. La cápsula del % nace OCULTA (`body.nodata`) y solo
-  aparece con una lectura de sesión de verdad: al arrancar o sin token no
-  debe verse texto de relleno. Si falta el arte de un estado, `cat.html`
-  cae al gif normal en vez de dejar la ventana transparente vacía.
-  En modo gatito las alarmas de % NO van a toast de
-  Windows: salen como globo `notif` (los demás avisos y la pastilla normal
-  siguen con toasts). NINGÚN aviso va ya a toast de Windows mientras haya
-  widget en pantalla —gatito o PASTILLA (2026-07-27)—: todos salen por el
-  globo `notif`, con un `kind` que viaja y vuelve con la ✕. `place_balloon()`
-  ancla al widget que esté puesto (cola al 62% del ancho en el gato, al 50%
-  en la pastilla). El toast queda SOLO como respaldo cuando el usuario apagó
-  el widget: ahí no hay dónde colgar el globo, y entonces sí se repite cada
-  5 min. Motivo del cambio: un toast se va en segundos y quien se levanta de
-  su lugar no se entera nunca.
-  REGLA ÚNICA (2026-07-27, decisión de Oscar): el globo se queda hasta que
-  el usuario le dé ✕ o abra el panel, y no vuelve. NADA de auto-cierre por
-  temporizador — un reloj no sabe si el usuario estaba frente a la
-  pantalla. Un hover lo oculta (para dejar salir el `card`) pero NO cuenta
-  como leído: `notif:ready` lo restaura al terminar. Un globo a la vez;
-  si hay varios pendientes gana el primero de `ACK_KINDS`.
-  SEGUNDA REGLA, la que evita mentir: cerrar el globo NO cambia el dibujo
-  del gatito, que refleja siempre el estado REAL. Cerrar el de descanso no
-  devuelve la cuota, así que el gato sigue en `break` hasta el reset de
-  verdad; solo la alarma lo calma, porque ahí el estado ERA "hay un aviso
-  sin ver". Avisos: `break` ("Sin cuota de sesión. Vuelvo en 8 min.",
-  banderín `notifS`), `zzz` ("Semana agotada. Vuelvo el lunes.", banderín
-  `notifW`, sustituye al toast `notif_week_limit`) y los restablecimientos
-  (`notif_back_*`, versión corta de los `notif_reset_*` porque el toast
-  debe explicar cómo callarlo y el globo lleva su ✕ a la vista). break y
-  zzz no tienen `ackPending` —no esperan confirmación de nada— así que su
-  pendiente vive en `infoBalloon`. El día del `zzz` lo da
-  `toLocaleDateString(lang,{weekday:"long"})`, sin claves nuevas, y a menos
-  de 24 h del reset se dicen las horas; las frases omiten el artículo donde
-  varía con el día (portugués "na segunda" pero "no sábado"). Los gifs (800², transparentes, en variantes -black/-white
-  elegidas según el tema) se recortan por CSS
-  (unión visible x[39,748] y[0,530] medida con decodificador propio) — NO
-  editar los archivos. EXCEPCIÓN: `cat-break-black.gif` llegó en lienzo
-  1411x860 (visible x[17,1383] y[74,803]); es el mismo dibujo a otra escala
-  (proporción idéntica al 0.11% a la del -white) y se recoloca con la regla
-  `.cat.odd-canvas`, que hay que BORRAR si algún día se reexporta a 800². `place_balloon()` coloca los globos con pose
-  automática (arriba/abajo según espacio en el monitor ACTUAL del gato,
-  origen+tamaño = multi-monitor OK) y cola dinámica (`balloon:pose` →
-  `--tailx`) que siempre apunta al gato; nunca dos globos a la vez.
-- **Capa en pantalla** (`PillConfig.layer`, elegible en Preferencias):
-  "top" (siempre al frente, default) / "normal" / "bottom" (pegado al
-  escritorio). `apply_layer()` la aplica y `reassert_layers()` la re-afirma
-  en CADA ciclo (`update_tray`) porque Windows degrada el always-on-top.
-  REGLA: widget y globos (`card`, `notif`) van SIEMPRE en la misma capa —
-  son una sola pieza para el usuario (2026-07-26; antes la alarma se
-  forzaba al frente y se veía incoherente). El panel (`main`) no participa.
-- **CRÍTICO — ventanas transparentes**: NUNCA redimensionar en vivo una
-  ventana transparente (`set_size` con la ventana visible u oculta): WebView2
-  deja de pintar el contenido aunque la geometría quede bien (bug sufrido
-  2026-07-22, tres intentos de fix fallidos). El patrón correcto es SIEMPRE
-  ventanas de tamaño fijo que se muestran/ocultan.
-- **Tray icon dinámico**: única presencia permanente en la barra. El panel
-  dibuja el % de sesión en un canvas 32×32 (número coloreado por estado +
-  barrita semanal al pie) y lo manda por el comando `update_tray`
-  (RGBA → `tray.set_icon`), junto con el tooltip ("Sesión X% · reset en …").
-  Clic izquierdo muestra el panel, clic derecho menú (abrir panel / salir).
-  Con cuota en error, el icono muestra "–" gris (nunca datos inventados).
-  El módulo Win32 `win_taskbar` solo se usa ya para apoyar el panel encima
-  de la barra (`Shell_TrayWnd` vía crate `windows`).
+  skipTaskbar. Clic en tray abre; se oculta al perder foco (salvo drag);
+  ✕ oculta a bandeja; arrastrable desde el encabezado. 5 pestañas
+  (Principal · Fuentes de datos · Hallazgos · Consejos · Preferencias),
+  encabezado+pestañas sticky en `.p-top` (el padding superior vive AHÍ, no
+  en `.panel` — devolverlo abre una rendija transparente al hacer scroll).
+  Pie Hoy/Semana solo en Principal. El panel es el ÚNICO que llama al
+  endpoint; el tray se actualiza desde su ciclo (`updateTray`).
+- **Pastilla** (`pill`, 280x54) + **detalle** (`pcard`, 280x300): cápsula
+  de cristal con asa ⠿, sticker del gatito como MARCA, "Sesión X%", hueco
+  semanal (calendario) y hueco semanal POR MODELO (destellos, VARIABLE: si
+  el endpoint no lo reporta no se pinta). Clic en cápsula = desplegar
+  detalle; clic en la MARCA = abrir panel; ⠿ arrastra (pliega antes); clic
+  derecho oculta. NO robar foco (WS_EX_NOACTIVATE). NUNCA llama al
+  endpoint: el panel emite `quota:update` y cada ventana pide el último
+  dato con `pill:ready` al cargar (toda ventana nueva del widget DEBE
+  emitirlo). El detalle son DOS ventanas (mostrar/ocultar, parece que
+  crece); `toggle_pill_card()` elige pose (hacia abajo si cabe; si no,
+  `body.up` invierte). Cabecera del detalle = geometría IDÉNTICA a la
+  cápsula (el margen de 6 px en ambas es lo que las alinea — cambiar en
+  una obliga a la otra; sin él, el halo del box-shadow se corta en recto);
+  con el detalle abierto la cabecera esconde números (CSS del pcard). La
+  cabecera es funcional: gatito abre panel, asa arrastra vía
+  `drag_pill_from_card`. SIN tooltips nativos en la cápsula. El hover para
+  desplegar se probó y se DEVOLVIÓ a clic — no reintroducirlo. El % en
+  color: acento en "todo bien", pero ÁMBAR y ROJO se conservan. Los
+  tamaños de estas ventanas se definen en `ensure_widget_windows`, NO en
+  el json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos),
+  ambos SVG inline (la CSP no permite fuentes externas).
+- **Gatito** (estilo `cat`): 4 ventanas — `cat` (gif + cápsula "Sesión X%"
+  + zona `.head`), `card` (globo resumen al hover), `notif` (globo de
+  alarma), pastilla oculta. Estados por gravedad (`mascotState()`):
+  cat-zzz (`hit:week`) / cat-break (`hit:session`) / cat-fire
+  (`ackPending:alarm`) / normal; los banderines `hit:*` los limpia
+  `trackResets()` con ventana nueva. Cápsula nace OCULTA (`body.nodata`)
+  hasta tener lectura real; si falta el arte de un estado, cae al gif
+  normal. Zona `.head` en vars CSS `--hx:50% --hy:52% --hw:37% --hh:36%`
+  (RECALIBRADA 2026-08-04 midiendo los píxeles del gif: cabeza real
+  x[50%,86.5%] y[53%,87.5%]; para recalibrar, pintar .head con fondo
+  rojo). El HOVER del globo resumen vive SOLO en `.head` (la laptop no lo
+  despliega; salir de la ventana pliega; rozar <300ms cancela el
+  temporizador). Laptop y márgenes arrastran. Post-its en la tapa:
+  pilita ROJA de hallazgos (`.fstack`, vars `--bx/--by/--bs`, rojo FIJO
+  sin tinte por severidad) y pilita TURQUESA del coach (`.tstack`,
+  #128097 profundo para que el número blanco dé ~4.7:1, tamaño .95bs,
+  offset 1.8bs). Clic en post-it = panel directo en su pestaña
+  (`panel:findings` / `panel:tips`). Gifs 400² transparentes en variantes
+  -black/-white por tema, recortados por CSS EN PORCENTAJES — NO editar
+  los archivos; `cat-break-black.gif` vino en lienzo distinto y se
+  recoloca con `.cat.odd-canvas` (borrarla si se reexporta). Arte del
+  gatito y piel de los globos se eligen POR SEPARADO (`catArt`/`catSkin`,
+  viajan como `artTheme`/`skinTheme` en el resumen); la cápsula del % va
+  con los globos.
+- **Globos** (`notif`): REGLA ÚNICA — el globo se queda hasta ✕ o abrir el
+  panel, y no vuelve. NADA de auto-cierre por temporizador. Hover lo
+  oculta pero NO cuenta como leído (`notif:ready` lo restaura). Un globo a
+  la vez; gana el primero de `ACK_KINDS`. SEGUNDA REGLA: cerrar el globo
+  NO cambia el dibujo del gatito (el dibujo refleja el estado REAL; solo
+  la alarma lo calma). NINGÚN aviso va a toast de Windows mientras haya
+  widget; el toast queda SOLO sin widget (y ahí se repite cada 5 min).
+  Con la pastilla el globo es POPOVER (`body.cap`): severidad en `--sev`
+  (acento/ámbar/rojo, la calcula `balloonMeta()`), fondo OPACO a
+  propósito, cola pequeña; sigue al tema del panel. Si notif.html se ve
+  "sin estilo", verificar que sigan `*{box-sizing}`, `.box`, `.msg`, `.x`
+  — `body.cap` solo las ESPECIALIZA. `place_balloon()` ancla al widget
+  (cola 62% gato / 50% pastilla), pose automática multi-monitor; la punta
+  se mete 40 px en el gatito y 8 en la cápsula (`notif_overlap`). Globo y
+  detalle de la pastilla NUNCA a la vez (el globo gana y pliega).
+- **Capa** (`PillConfig.layer`): top/normal/bottom. `apply_layer()` +
+  `reassert_layers()` en cada ciclo + `win_taskbar::force_topmost()`
+  (SetWindowPos HWND_TOPMOST con SWP_NOACTIVATE — Windows degrada el
+  always-on-top y la llamada de Tauri se vuelve no-op). REGLA: widget y
+  globos van SIEMPRE en la misma capa; el panel no participa. Si el bug
+  de hundirse reapareciera: SetWinEventHook (EVENT_SYSTEM_FOREGROUND).
+- **CRÍTICO — ventanas transparentes:** NUNCA redimensionar en vivo
+  (`set_size`): WebView2 deja de pintar. Patrón correcto: ventanas de
+  tamaño fijo que se muestran/ocultan.
+- **Creación en caliente:** `pill`/`pcard`/`cat`/`card` NO están en
+  tauri.conf.json — las crea `ensure_widget_windows()` (solo el par del
+  estilo elegido; al cambiar de widget se crea el nuevo y se DESTRUYE el
+  viejo — ahorra ~115 MB). Sus tamaños se tocan en Rust. Las capabilities
+  siguen listando las 6 etiquetas (los permisos van por etiqueta).
+- **Tray dinámico:** número a 24 px con contorno de 4 px (legible en barra
+  clara/oscura sin detectar tema) + barrita semanal. Con cuota en error:
+  "–" gris, nunca datos inventados. Menú (clic derecho) lo construye Rust
+  pero el panel se lo manda TRADUCIDO vía `set_tray_menu` desde
+  `applyI18n()` — todo texto que Rust dibuje debe llegarle así. Windows
+  CORTA el tooltip a 128 chars: si el motivo no cabe, solo la primera
+  frase (`firstSentence`).
 
 ## INVARIANTES — no romper nunca
 
-1. `get_quota` y `get_local_stats`: no cambiar firmas (get_local_stats acepta
-   `days: Option<u32>` — ventana 1/7/30, clamp 1..90 — desde 2026-07-11); no
-   eliminar la deduplicación ni la exclusión de `cache_read`. Cualquier campo
-   nuevo en LocalStats debe replicarse en `scripts/meter-export.py` y llevar
-   `#[serde(default)]` para tolerar exportadores viejos.
-2. La función `demo()` del frontend (datos ficticios: vps-infra, edge-gallery,
-   rocket-code-prep, MAX 5×, $47.20…) existe SOLO para abrir `index.html`
-   suelto en un navegador (cuando `window.__TAURI__` no existe). **PROHIBIDO**
-   que datos de demo se rendericen en la app real o se copien a otros archivos.
-3. Seguridad: el token nunca se loggea, nunca se muestra en UI, nunca viaja a
-   otro dominio que `api.anthropic.com`. Mantener CSP restrictiva en
-   `tauri.conf.json`. Sin telemetría.
-   MATIZ OBLIGATORIO (2026-07-29): `security` lleva
-   `"dangerousDisableAssetCspModification": ["style-src"]`, y NO se puede
-   quitar sin romper la app COMPILADA. Tauri, al compilar, inyecta sus
-   propios nonces y hashes en la CSP; y el estándar CSP dice que cuando una
-   directiva tiene un nonce o un hash, se IGNORA `'unsafe-inline'`. Resultado:
-   en release se bloqueaban todos los estilos escritos al vuelo —el ancho y el
-   color de cada barra de gasto, las barras de la tendencia diaria, las del
-   globo del gatito y las del detalle de la pastilla, y la línea de precios de
-   Preferencias— mientras en desarrollo se veía perfecto, porque ahí no se
-   inyecta nada. La app instalada se veía a medio pintar y NADIE lo habría
-   achacado a la CSP. Lo encontró Oscar comparando dev contra release.
-   Lo que este ajuste NO toca: `script-src` sigue con la protección de Tauri
-   intacta, que es donde vive el riesgo de XSS de verdad. Solo se le pide a
-   Tauri que no reescriba `style-src`, para que sobreviva el `'unsafe-inline'`
-   que ya estaba declarado a mano. La alternativa —pasar los ~40 estilos en
-   línea a asignaciones por JavaScript, que la CSP no bloquea— se descartó por
-   ser un refactor grande de una interfaz recién validada.
-   AL DIAGNOSTICAR: si algo se ve bien con `npm run dev` y mal con
-   `npm run build`, sospechar de la CSP ANTES que del código.
-4. Frontend: `index.html` y `bar.html` vanilla. No agregar frameworks,
-   bundlers ni dependencias npm de runtime. Dependencias Rust nuevas: solo
-   imprescindibles y con features mínimas.
-5. Los porcentajes SIEMPRE redondeados a entero en UI (`Math.round`).
-6. Buckets de cuota: render dinámico, nunca hardcodear nombres de modelos.
-   Lo mismo aplica a `prettyModel()`: separa el id en palabras (familia) y
-   números (versión) en cualquier orden, sin listas — así los modelos que
-   salgan mañana se identifican solos. NO volver a un regex con familias
-   fijas ni exigir versión de dos dígitos (eso dejaba "claude-opus-5" como
-   "Opus" sin versión, detectado 2026-07-26).
-7. El tag del plan del header: usar el que reporte el endpoint; si no viene,
-   "Suscripción". No inventar "MAX 5×".
-8. NUNCA poner una cifra donde no se puede calcular. La fila
-   "claude.ai / otros" se ELIMINÓ el 2026-07-28 (decisión de Oscar): su
-   etiqueta prometía el desglose de claude.ai y el número era el consumo
-   TOTAL de la semana — el mismo que ya sale en el medidor de arriba. Ese
-   desglose NO es calculable: el gasto local está en dólares y la cuota en
-   porcentaje, y el endpoint nunca expone cuánto vale el tope en dinero. En
-   su lugar va una nota de texto pegada a los dólares (`spend_only_cc`), que
-   es donde nace el malentendido; en un tooltip o en el README no la lee
-   quien la necesita. Por lo mismo, con la ventana de 1 día el pie oculta la
-   segunda cifra: "hoy" son las últimas 24 h y la ventana de 1 día también,
-   y enseñar el mismo número dos veces con dos nombres parece un error.
-   Ambos cambios validados en vivo por Oscar el 2026-07-28.
-9. No tocar `README.md`, `.github/workflows/release.yml` ni `app-icon.png`
-   salvo petición explícita.
-10ter. Todo comando de Rust que HAGA ESPERA (SSH, red, escaneo de disco
-    largo) tiene que ser `async fn` y delegar en
-    `tauri::async_runtime::spawn_blocking`: Tauri ejecuta los comandos
-    SÍNCRONOS en el mismo hilo que dibuja la ventana, así que uno bloqueante
-    congela el panel entero mientras dura. Se descubrió el 2026-07-28 porque
-    cambiar de pestaña tardaba segundos: abrir "Fuentes de datos" dispara
-    `test_remote`, que es un SSH de 1-2 s. Envueltos así: test_remote,
-    install_remote, get_local_stats, export_data, save_hub_config y
-    load_hub_config. NO envolver los que tocan ventanas (hover_card,
-    set_notif_visible, toggle_pill_card, set_pill_visible, update_tray): esos
-    tienen que seguir en el hilo principal, y además son instantáneos.
-    EXCEPCIÓN, y por un motivo OPUESTO: `set_pill_style` SÍ es `async fn`
-    desde el 2026-07-29, no porque sea lento sino porque CREA una ventana.
-    Crear una ventana desde un comando síncrono CONGELA la app entera en
-    Windows: la ventana nueva necesita que el bucle de eventos avance para
-    nacer, y ese bucle está detenido esperando a que el comando termine. Se
-    esperan mutuamente. Pasó en vivo al cambiar a la pastilla —el gatito se
-    quedaba en pantalla y el panel dejaba de responder a todo, hasta al
-    filtro de días— y se arregló solo añadiendo `async`, que hace que Tauri
-    lo ejecute fuera del hilo de la interfaz. En `setup()` la misma llamada
-    puede ser síncrona porque ahí el bucle todavía no ha arrancado — por eso
-    el gatito aparecía bien al arrancar y el fallo solo salía al cambiar de
-    widget. REGLA para lo que venga: todo comando que cree ventanas tiene
-    que ser async.
-    VALIDADO en vivo por Oscar el 2026-07-28: el panel pasó a sentirse
-    fluido al cambiar de pestaña. OJO al diagnosticar "la app va lenta":
-    los gifs del gatito parecían el sospechoso obvio y no tenían nada que
-    ver; la pista buena fue que get_quota, la operación MÁS pesada, nunca
-    se sintió lenta porque ya era asíncrona.
-10bis. `[hidden]{display:none !important}` en index.html: NO quitarlo. El
-    navegador aplica `hidden` desde su hoja por defecto, así que cualquier
-    regla propia con display (`.cfg-row`, `.btnrow`, `.fld` son flex) lo
-    anulaba en silencio. Se descubrió el 2026-07-28 porque las filas del
-    gatito seguían viéndose con la pastilla puesta, y arrastraba algo peor:
-    el simulador —que solo debe existir en desarrollo— se veía en RELEASE.
-10. UI multiidioma: diccionario `I18N` en index.html (inglés por defecto,
-    español incluido; autodetección por `navigator.language`, persistido en
-    localStorage). Todo texto visible pasa por `t()` — nunca hardcodear
-    cadenas en un solo idioma. El backend Rust devuelve errores como códigos
-    `ERR_*` (ERR_NO_TOKEN, ERR_TOKEN_EXPIRED, ERR_RATE_LIMITED:<min>,
-    ERR_API:<status>, ERR_NET, ERR_BAD_RESPONSE) que el frontend traduce.
-    Tono claro y accionable en ambos idiomas.
-    EL CASO RARO: el menú del icono de bandeja (clic derecho) lo construye
-    RUST al arrancar, cuando el idioma —que vive en el localStorage del
-    panel— todavía no se conoce. Se quedaba en inglés para todo el mundo
-    hasta el 2026-07-29, que lo vio Oscar con la app en español. Ahora el
-    panel se lo manda ya traducido desde `applyI18n()` con el comando
-    `set_tray_menu`, al cargar y en cada cambio de idioma; las etiquetas de
-    `setup()` quedan como respaldo para los milisegundos previos.
-    VALIDADO en vivo por Oscar el 2026-07-29 en español y japonés, cambiando
-    el idioma con la app abierta: el menú cambia al momento, sin reiniciar. REGLA: si
-    algún día se añade otra cosa que Rust dibuje con texto, tiene que llegarle
-    igual — desde el panel, nunca escrita en el backend.
-11. Tema claro/oscuro: variables CSS con override en `body.light`, toggle ◐
-    en el header, persistido en localStorage.
+1. `get_quota` y `get_local_stats`: no cambiar firmas (`days: Option<u32>`,
+   clamp 1..90); no eliminar dedup ni exclusión de cache_read. Campo nuevo
+   en LocalStats → replicar en `meter-export.py` y `#[serde(default)]`
+   (ExportRow.origin y Finding.ts ya mordieron por esto).
+2. `demo()` del frontend existe SOLO para abrir index.html suelto en un
+   navegador. PROHIBIDO que datos de demo lleguen a la app real.
+3. Seguridad: el token nunca se loggea/muestra/viaja a otro dominio que
+   api.anthropic.com. CSP restrictiva. Sin telemetría. MATIZ OBLIGATORIO:
+   `security` lleva `"dangerousDisableAssetCspModification": ["style-src"]`
+   y NO se puede quitar sin romper la app COMPILADA: Tauri inyecta nonces
+   al compilar y el estándar CSP ignora `'unsafe-inline'` cuando hay
+   nonce — en release se bloqueaban todos los estilos al vuelo (barras,
+   tendencia, globos) mientras dev se veía perfecto. `script-src` intacto.
+   AL DIAGNOSTICAR: si algo se ve bien con `npm run dev` y mal con `npm
+   run build`, sospechar de la CSP ANTES que del código.
+4. Frontend vanilla: sin frameworks, bundlers ni deps npm de runtime.
+   Deps Rust nuevas: solo imprescindibles, features mínimas.
+5. Porcentajes SIEMPRE redondeados a entero en UI (`Math.round`).
+6. Buckets de cuota: render dinámico, nunca hardcodear modelos. Lo mismo
+   `prettyModel()`: separa familia y números sin listas fijas — NO volver
+   a un regex con familias ni exigir versión de dos dígitos.
+7. Tag del plan: el que reporte el endpoint; si no viene, "Suscripción".
+   No inventar "MAX 5×".
+8. NUNCA poner una cifra donde no se puede calcular. La fila "claude.ai /
+   otros" se ELIMINÓ (el desglose no es calculable: gasto local en $ y
+   cuota en %); en su lugar la nota `spend_only_cc`. Con ventana de 1 día
+   el pie oculta la segunda cifra (sería el mismo número dos veces).
+9. No tocar `README.md`, `.github/workflows/release.yml` ni
+   `app-icon.png` salvo petición explícita. (El token de este entorno no
+   puede tocar workflows — eso lo hace Oscar desde la web.)
+10. UI multiidioma: diccionario `I18N` (8 idiomas, EN default,
+    autodetección, persistido). Todo texto visible pasa por `t()`. El
+    backend devuelve códigos `ERR_*` que el frontend traduce.
+10bis. `[hidden]{display:none !important}` en index.html: NO quitarlo
+    (cualquier regla con display lo anula en silencio; sin él, el
+    simulador de dev se veía en RELEASE).
+10ter. Todo comando Rust que ESPERE (SSH, red, disco largo) es `async fn`
+    + `spawn_blocking` (síncrono congela el panel: test_remote,
+    install_remote, get_local_stats, export_data, save/load_hub_config,
+    get_findings, get_coach). NO envolver los que tocan ventanas — PERO
+    todo comando que CREE ventanas tiene que ser async (`set_pill_style`:
+    crear ventana desde comando síncrono congela la app entera — el bucle
+    de eventos y el comando se esperan mutuamente; en `setup()` sí puede
+    ser síncrono).
+11. Tema claro/oscuro: variables CSS + override `body.light`, toggle ◐
+    persistido. `color-scheme` en body para controles nativos. Texto
+    SOBRE el acento usa `--accent-ink` (tinta oscura en tema oscuro,
+    blanco en claro) — nunca blanco fijo sobre acento claro (~2:1).
 
-## Comportamiento ya validado — no regresionar
+## Reglas de comportamiento — no regresionar
 
-- Panel con datos reales (gauge sesión, buckets dinámicos incl. Fable,
-  proyección con burn rate, gasto por proyecto con dedup, split de modelos con
-  nombres bonitos, totales hoy/semana).
-- Arrastre del panel desde el encabezado (con guarda anti-blur durante drag).
-- ✕ oculta a bandeja; clic en tray reabre; flyout se oculta al perder foco.
-- Estados de error legibles con punto rojo en la línea de estado.
-- Notificaciones de umbral CONFIGURABLES: el usuario define sus alarmas de
-  sesión en % (chips en ⚙ Preferencias, localStorage `alarms`, default
-  [80,95]). Al cruzar un umbral, el toast se REPITE cada 5 min hasta que el
-  usuario abra el panel; confirmado, silencio hasta el siguiente umbral o la
-  siguiente ventana. Al cruzar varios de golpe suena solo el más alto.
-  Límite semanal al 100%: un aviso por ventana.
-- CRÍTICO: el `resets_at` del endpoint trae jitter entre consultas — la
-  detección de "ventana nueva" SIEMPRE con tolerancia (`windowChanged`,
-  10 min sesión / 360 min semana), nunca comparación exacta de strings
-  (causaba re-disparos de alarmas cada ciclo).
-- Avisos de RESTABLECIMIENTO (sesión y semanal): solo si la ventana anterior
-  llegó al 100% (`hit:*`); la notificación de WINDOWS se repite cada 5 min
-  HASTA que el usuario abra/enfoque el panel (eso confirma y limpia
-  `ackPending:*`). Sin banners dentro de la app (decisión de Oscar
-  2026-07-11). Nunca quitar el mecanismo de confirmación.
-- Controles nativos (select, spinners): `color-scheme` en body sigue el tema
-  para que los desplegables se vean bien en oscuro.
-- El panel es el ÚNICO que llama al endpoint; el icono del tray se actualiza
-  desde su mismo ciclo de refresco (`updateTray` en cada render).
+- `resets_at` trae JITTER: detección de ventana nueva SIEMPRE con
+  tolerancia (`windowChanged`, 10 min sesión / 360 semana), nunca
+  comparación exacta (re-disparaba alarmas cada ciclo).
+- Alarmas de sesión configurables (chips, localStorage `alarms`): el aviso
+  se REPITE cada 5 min hasta abrir el panel; varios umbrales de golpe →
+  solo el más alto. Límite semanal al 100%: un aviso por ventana. Avisos
+  de restablecimiento solo si la anterior llegó al 100% (`hit:*`); con
+  confirmación (abrir/enfocar el panel limpia `ackPending:*`). Sin banners
+  dentro de la app. Nunca quitar el mecanismo de confirmación.
+- 429: espera 5 min respetando Retry-After (backoff rápido solo para
+  errores de red; NUNCA reintentar rápido un rate-limit); cuerpo a
+  quota_debug.json; cadencia de cuota 3 min (60 s disparaba 429); el
+  gauge conserva el último dato bueno hasta 15 min. OJO: muchos arranques
+  seguidos (compilar-probar) acaban en 429 de 60 MINUTOS.
+- Instancia única (tauri-plugin-single-instance, registrado primero).
+- Si se toca algo que `emitPill()` calcula, se llama
+  `emitPill(...lastPillArgs)` — NUNCA parchear un campo suelto de
+  `lastPill` (dejaba el tema del ciclo pasado).
+- Export CSV/JSON: UNA fila por hecho (fecha × proyecto × modelo ×
+  origen); BOM en el CSV; campos entre comillas; filas solo al exportar
+  (`want_rows`); el ORIGEN remoto lo pone quien lee; sin fila de totales;
+  periodo propio (1/7/15/30). Un export es una foto, no un cierre.
+- Presupuesto semanal: se compara contra la suma de los últimos 7 días de
+  la serie diaria, no contra la ventana elegida.
+- Autostart solo release, una única vez (marker); si el usuario lo apaga,
+  se respeta.
 
-## Estado actual / pendientes conocidos
+## Analizador de fugas (pestaña Hallazgos)
 
-- [x] Panel completo con datos reales
-- [x] Buckets semanales dinámicos (incluido Fable)
-- [x] Fila "claude.ai / otros" — ELIMINADA 2026-07-28, ver invariante 8
-- [x] Fix de arrastre y flyout
-- [x] `cargo check` limpio (verificado 2026-07-10; la sesión que se cortó a
-      mitad de editar Cargo.toml no dejó nada roto)
-- [x] Franja sobre la barra: DESCARTADA (2026-07-10, solapaba los iconos
-      centrados de Windows 11 y bloqueaba sus clics). Sustituida por el icono
-      de bandeja dinámico con %.
-- [x] Icono de bandeja dinámico (`updateTray` + comando `update_tray`) —
-      validado en vivo: legibilidad en barra clara y oscura (ver la entrada
-      del contorno, más abajo) y actualización en cada ciclo de refresco.
-- [x] 429 del endpoint: espera de 5 min (el backoff rápido 5→40 s queda solo
-      para errores de red; nunca reintentar rápido un rate-limit).
-- [x] Instancia única (tauri-plugin-single-instance, registrado el primero):
-      instancias duplicadas de dev eran sospechosas del 429.
-- [x] 429: se respeta el Retry-After del servidor, el cuerpo del error se
-      vuelca a quota_debug.json, y si el token local ya venció (expiresAt) no
-      se llama a la API (evita bloqueos por reintentos con token muerto).
-- [x] Cadencia de cuota bajada a 3 min (60 s disparaba 429 recurrentes) y el
-      gauge/icono conservan el último dato bueno hasta 15 min ante fallos
-      transitorios (nunca se borra la lectura por un error pasajero).
-- [x] Ajustes en el panel (botón ⚙): alta/baja de servidores SSH con prueba
-      de conexión (comandos get_remotes/save_remotes/test_remote); escribe
-      remotes.json. Este PC y claude.ai no requieren configuración.
-- [x] Fuente remota VPS: exportador + fusión, verificados en vivo. Los
-      proyectos del servidor salen etiquetados con el nombre corto que el
-      usuario le puso, y desde el 2026-07-29 ese nombre se puede editar con
-      un clic (antes había que borrar el servidor y darlo de alta otra vez).
-- [x] PULIDO Windows ronda 1 (2026-07-24/25, validado por Oscar): barrido de
-      mayúsculas/gramática en TODAS las cadenas visibles de los 8 idiomas
-      (JA/KO/ZH sin caja); nota de Fuentes de datos como lista con viñetas;
-      formulario de servidores con etiquetas+pistas y lista con pastilla de
-      estado, chip contador, icono de bote y CONFIRMACIÓN en dos pasos al
-      eliminar; pantalla de bienvenida adaptativa (setup sin Claude Code /
-      banner Token vencido con datos); "Diseño de la pastilla" (coral)
-      ELIMINADO a petición de Oscar; arte del gatito y sticker en variantes
-      -black/-white según tema (geometría verificada idéntica al recorte
-      CSS); sticker translúcido al 40% con hover a 100%; el tag del plan
-      confirmado como dinámico-con-respaldo (el endpoint NO envía el plan —
-      verificado con quota_debug.json real de Oscar; los campos con nombres
-      en clave tipo iguana_necktie confirman API interna inestable).
-      Experimento revertido: apagar el texto turquesa de la pantalla en los
-      gifs oscuros vía parche de paleta (funcionó, pero a Oscar no le
-      convenció el resultado — el parche queda documentado en el historial
-      af16d6d por si se retoma con otra mezcla).
-- [~] Micro-pendientes de pulido (2026-07-27): HECHO los backticks de
-      \`claude\` (ahora comillas tipográficas por idioma) y la nota de
-      subagentes (README + tooltip de "costo estimado" en los 8 idiomas).
-      FALTA: capturas para el README (las tiene que hacer Oscar). Hecho
-      también el 2026-07-27: guía del caso SSH reescrita con el enfoque de
-      Oscar (problema → 3 requisitos → escenario con un usuario ficticio →
-      preguntas rápidas), el sufijo de los proyectos remotos documentado como
-      lo que es (el nombre corto que elige el usuario, no "· vps") y Mythos
-      fuera de la tabla de precios por ser de acceso por invitación. Idea
-      cancelada 2026-07-25: placa translúcida tras el sticker en tema oscuro.
-- [x] Icono de bandeja legible en cualquier tema (2026-07-27, validado por
-      Oscar en barra clara y oscura; número a 24 px y contorno de 4 px tras
-      pedirlo él más grande): el número se
-      dibujaba en verde/ámbar/rojo sólido, que sobre una barra CLARA se lava.
-      Se le añade contorno oscuro (strokeText) y marco a la barrita semanal,
-      así se lee sobre fondo claro, oscuro o de color sin detectar el tema de
-      Windows (que además no cubriría fondos personalizados).
-- [x] BUG capa "Siempre al frente" — RESUELTO (2026-07-27: Oscar lo dejó
-      corriendo con su uso normal y el gatito ya no se hundió; antes fallaba
-      tras un rato largo. Si reapareciera, la siguiente vía está anotada
-      abajo). Causa y arreglo: Hipótesis fuerte: la llamada
-      `set_always_on_top(true)` de Tauri NO llega al sistema cuando su estado
-      interno ya dice que la ventana es topmost; Windows la degrada por su
-      cuenta (otra app se activa, cambia de escritorio, se conecta un monitor)
-      y todas nuestras re-afirmaciones eran no-ops — por eso el gatito se
-      quedaba detrás para siempre y ni el hilo de 2 s lo rescataba. Arreglo:
-      `win_taskbar::force_topmost()` llama a `SetWindowPos(HWND_TOPMOST,
-      SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE)` por Win32 directo, que reinserta
-      la ventana en la banda topmost sin depender de ningún estado cacheado;
-      `apply_layer()` lo hace además de la llamada de Tauri. SWP_NOACTIVATE es
-      obligatorio (el widget no debe robar foco). Si aún así reapareciera,
-      lo siguiente sería reaccionar al cambio de ventana en primer plano con
-      `SetWinEventHook` (EVENT_SYSTEM_FOREGROUND) en vez de sondear cada 2 s.
-      Descripción original del bug:
-      pese al ajuste, (a) el globo de información/resumen a veces queda DETRÁS
-      de otras ventanas al abrirse, y (b) tras un rato el gatito se va atrás
-      solo. Ya intentado sin éxito definitivo: `apply_layer()` en las tres
-      ventanas (cat/card/notif), `reassert_layers()` en cada `update_tray`
-      (3 min) y luego un hilo cada 2 s con guarda de panel abierto. Sigue
-      fallando de forma INTERMITENTE, así que el remedio actual (re-aplicar
-      `set_always_on_top`) no basta. Hipótesis a investigar: otras ventanas
-      TAMBIÉN son topmost y compiten dentro de esa banda (SetWindowPos con
-      HWND_TOPMOST solo reordena dentro del grupo); reaccionar al cambio de
-      ventana en primer plano con `SetWinEventHook`
-      (EVENT_SYSTEM_FOREGROUND) en vez de sondear cada 2 s; o forzar la
-      re-elevación con Win32 directo (`SetWindowPos` + `SWP_NOACTIVATE`)
-      en vez del wrapper de Tauri. Al depurar, confirmar primero el valor
-      real de `layer` en pill_config.json (en "normal"/"bottom" el
-      comportamiento observado sería el correcto).
-- [x] PRECIOS DINÁMICOS — implementados y probados en vivo, con red y sin ella.
-      `price_for()` consulta primero la tabla descargada y cae a la embebida
-      (ya corregida). Cascada en `fetch_prices()`: LiteLLM → models.dev →
-      OpenRouter; primera que responde gana (NO es verificación cruzada).
-      Caché en `prices_cache.json`, refresco al arrancar y cada 6 h saltando
-      si el caché tiene menos de 24 h; `prices_config.json` guarda el
-      interruptor y URLs opcionales. Comandos get_prices_status /
-      set_prices_auto / refresh_prices_now; Preferencias muestra fuente,
-      antigüedad ("hace 2 h" vía Intl.RelativeTimeFormat, sin claves i18n
-      nuevas) y botón de actualizar. Modelos sin tarifa conocida se marcan
-      "~" en la leyenda (`ModelAgg.estimated`). Los precios frescos viajan al
-      exportador del VPS por STDIN (`--prices-stdin`): una sola fuente de
-      verdad; un exportador viejo ignora el flag y sigue con su tabla. Los
-      tres parsers se validaron contra las fuentes reales (18/11/17 modelos,
-      valores idénticos) y Oscar lo confirmó en vivo (fuente litellm, 18
-      claves tras normalizar). El interruptor se sacó de la UI el 2026-07-27
-      (solo empeoraba y era fácil tocarlo sin querer): vive en
-      prices_config.json y en su lugar hay un botón ⓘ que enseña las fuentes.
-      Si la descarga falla o lleva más de una semana sin lograrlo, aparece un
-      aviso ⚠ junto a "costo estimado" — no un toast: no es urgente ni
-      accionable al instante. PROBADO SIN RED el 2026-07-28 (Oscar apagó el
-      wifi): la app degrada bien —dice "Token vencido" en vez de callar, el
-      medidor muestra "—" en vez de inventar cifras, los costes locales se
-      calculan igual, el servidor SSH queda marcado "sin conexión" y los
-      precios caen al caché con su fuente y antigüedad a la vista. FALTA solo
-      el camino del ⚠: sin caché o con más de una semana sin actualizar. Para
-      forzarlo hay que cerrar la app DEL TODO (la instancia única hace que un
-      segundo `npm run dev` no reinicie nada) y renombrar prices_cache.json
-      antes de arrancar. VERIFICADO el 2026-07-28: con el caché fuera y sin
-      red sale el ⚠ y Preferencias dice "Sin conexión — se usa la tabla
-      incluida". OJO al reproducirlo: `Rename-Item` falla si el destino ya
-      existe de un intento anterior, y la app recrea prices_cache.json en
-      cuanto vuelve la red.
-      Descripción original de la investigación:
-      Hallazgo URGENTE: `price_for()` cobra $15/$75 a opus/fable/mythos, que
-      es la tarifa del difunto Opus 4.1; las reales son Opus 5/4.8 $5/$25 y
-      Fable 5 $10/$50 (sonnet y haiku sí están bien). Los costes de Opus
-      salen ~3x inflados. Investigación: NO existe API oficial de precios de
-      Anthropic (`/v1/models` da id, display_name, límites y capabilities,
-      pero ningún precio). Tres fuentes públicas verificadas en vivo, todas
-      con los modelos actuales correctos: LiteLLM
-      (`model_prices_and_context_window.json`, el estándar de facto — es lo
-      que usa ccusage, y refleja hasta el precio introductorio de Sonnet 5),
-      models.dev/api.json (esquema más limpio) y openrouter.ai/api/v1/models
-      (sin auth; los más frescos porque facturan con ellos). Diseño acordado
-      (opción B): descarga diaria a un `prices_cache.json` en la carpeta de
-      datos, con CASCADA de fuentes de mayor a menor confiabilidad —
-      (1) LiteLLM: el estándar de facto, comunidad enorme, actualiza el
-      mismo día del lanzamiento y trae hasta las tarifas introductorias y
-      de contexto largo; (2) models.dev: open source, esquema más limpio
-      (`cost:{input,output,cache_read,cache_write}`), comunidad menor;
-      (3) OpenRouter: los datos más frescos porque facturan con ellos,
-      pero es una empresa comercial (dependencia de un tercero con
-      intereses propios) — se usa como último recurso de red. Si las tres
-      fallan → caché guardado → si no hay caché, tabla embebida
-      (CORREGIDA) → si el modelo no aparece en ninguna, marcarlo como
-      estimación en la UI en vez de cobrarlo en silencio. Solo cascada de
-      RESPALDO: nunca consultar varias para comparar (descartado por
-      sobreingeniería). Con URLs configurables, toggle en Preferencias
-      (por defecto activo) y nota
-      honesta en el README (es un GET anónimo, no viaja nada del usuario;
-      matiza la promesa "solo api.anthropic.com"). El exportador del VPS NO
-      debe duplicar la tabla: MichiClaude le pasa los precios frescos por
-      argumento y `meter-export.py` usa la suya solo como respaldo.
-      Alternativa descartable si se prefiere no tocar la promesa de red:
-      espejo propio en el repo actualizado por GitHub Actions.
-- [x] USABILIDAD fuente remota — RESUELTO 2026-07-27: el exportador viaja
-      dentro del binario (include_str!) y se sube por SSH desde stdin a
-      ~/.michiclaude/meter-export.py al dar de alta el servidor; el campo
-      "comando" queda vacío y opcional (solo para script propio, y entonces
-      no se escribe nada en el servidor ajeno). Al arrancar se refresca en
-      los remotos que usan nuestra ruta, para que no se desincronice del
-      backend tras actualizar la app. Descripción original:
-      formulario de servidores viene por defecto con la ruta PERSONAL de Oscar
-      (`python3 /opt/projects/michiclaude/scripts/meter-export.py`), que no
-      sirve para otros usuarios y confunde. Además hoy el usuario tendría que
-      copiar meter-export.py al servidor a mano y saber su ruta — no está
-      explicado ni automatizado. Arreglo mínimo: default genérico
-      (`python3 ~/meter-export.py`) + nota corta. Ideal: que MichiClaude SUBA
-      el script solo por SSH la primera vez (nombre + host y listo). Encaja
-      naturalmente con el Modo HUB — resolver ahí.
-- [x] Lectura incremental de .jsonl — IMPLEMENTADO 2026-07-26 en AMBOS lados
-      (Rust y meter-export.py) y el lado Rust ya corriendo en el Windows de
-      Oscar desde el 2026-07-27 con las cifras correctas. Dos
-      optimizaciones que NO cambian ningún número: (1) todos los agregados
-      están acotados en el tiempo, así que un archivo cuya última escritura
-      sea anterior a la ventana más amplia (la elegida o los 30 días de la
-      tendencia, +2 de margen) se salta sin abrirlo — el coste pasa de crecer
-      con todo el historial a quedarse en "el último mes"; (2) de los
-      recientes se cachea el PARSEO indexado por tamaño+mtime
-      (`scan_cache.json`), nunca el coste, para que un cambio de precios se
-      aplique a todo al instante. La retención del caché se adapta a la
-      ventana pedida (--days 90 tras un ciclo de 7 descarta el caché en vez
-      de devolver de menos). Es reconstruible: si se borra o no se entiende,
-      se recalcula. Medido en el exportador con 50 MB: 1.06 s -> 0.06 s,
-      caché de 172 KB, salida IDÉNTICA byte a byte contra una copia congelada
-      de los logs en ventanas 1/7/30/90, frío y caliente, más casos límite
-      (caché corrupto, archivo modificado, archivo viejo). El lado Rust lleva
-      corriendo en el Windows de Oscar desde el 2026-07-27 con las cifras
-      correctas.
-      OJO: los duplicados TAMBIÉN cruzan archivos (365 en los logs reales),
-      así que la dedup global al fusionar es imprescindible — una medición
-      inicial que comparaba nombres en vez de rutas los daba en cero.
-- [x] Token de respaldo desde remotes.json cuando el local venció (2026-07-10):
-      el meter ya no depende de usar Claude Code en Windows.
-- [x] Autostart (tauri-plugin-autostart): solo builds release, se activa una
-      única vez (marker `autostart_configured`); si el usuario lo desactiva
-      en el Administrador de tareas, se respeta.
-- [x] LICENSE GPL-3.0 con excepción de assets Bongo Cat (2026-07-24; antes
-      MIT — Oscar eligió copyleft para que los derivados sigan abiertos y
-      con crédito). Los gifs/sticker de la mascota quedan fuera de la GPL.
-- [x] RENOMBRADO a "MichiClaude" (2026-07-24, decisión de Oscar): repo,
-      productName, identifier (com.oscarorozco.michiclaude — se cambió
-      porque aún no había usuarios; la config vieja de %APPDATA% no migra),
-      exe (michiclaude.exe), crates, títulos de ventanas y marca en UI.
-      La carpeta del VPS se renombró a /opt/projects/michiclaude (con
-      symlink de compatibilidad desde la ruta vieja claude-code-meter).
-- [x] Multiidioma (8): EN default, ES, PT, FR, DE, JA, KO, ZH — diccionario
-      I18N, autodetección, selector en ajustes, errores del backend como
-      códigos ERR_* traducidos en el frontend.
-- [x] Fuente WSL — VERIFICADA EN VIVO el 2026-07-29, tras semanas anotada
-      como "sin probar". Resulta que el Windows de Oscar SÍ tiene Ubuntu
-      (llegó con una actualización y nunca lo usó); se descubrió mirando la
-      lista de procesos por RAM, donde aparecía `vmmemWSL`.
-      Como no había uso real, se probó con un registro sintético: un
-      `.jsonl` de una sola entrada escrito en
-      `\\wsl.localhost\Ubuntu\home\oscar\.claude\projects\-tmp-prueba-wsl\`
-      y borrado al terminar. Salió la fila `prueba-wsl` con la etiqueta
-      `wsl-Ubuntu` en las ventanas 1d/7d/30d. Con eso queda probada la cadena
-      COMPLETA: `wsl.exe -l -q` con su UTF-16LE, el barrido de
-      `home/*/.claude`, la lectura desde Windows por `\\wsl.localhost`, el
-      parseo y el sufijo con el nombre REAL de la distro.
-      REGALO: el coste salió $0.40 donde la tabla embebida daría $0.60 —
-      es el precio INTRODUCTORIO de Sonnet 5 de la tabla descargada. Sin
-      buscarlo, quedó probado que los precios dinámicos se aplican de verdad.
-      TOKEN DE RESPALDO desde WSL — probado a medias el 2026-07-29, falta el
-      último eslabón. NO hace falta iniciar sesión dentro de Ubuntu: basta un
-      `.credentials.json` con token FALSO y `expiresAt` en el futuro, porque
-      `get_quota` se queda con el PRIMER token válido (Windows -> WSL ->
-      remotos) y si ese da 401 NO prueba con el siguiente. Así, con la
-      credencial de Windows apartada y `remotes.json` apartado, cualquier
-      respuesta HTTP demuestra que usó el de WSL, y un ERR_NO_TOKEN
-      demostraría lo contrario.
-      VERIFICADO de esa cadena: la app lista la distro (`Ubuntu`), recorre los
-      hogares (`oscar`) y encuentra la carpeta `.claude` — los tres pasos que
-      podían fallar. Falta ver la llamada final, que quedó tapada por un 429.
-      LO QUE ESTORBÓ, y hay que preverlo al repetirlo: abrir y cerrar la app
-      muchas veces seguidas (compilar, probar, medir) dispara una consulta en
-      cada arranque y acaba en un 429 de 60 MINUTOS. Con el endpoint
-      bloqueado no se puede leer ningún veredicto, porque la app respeta el
-      Retry-After y deja de preguntar. Repetir la prueba en frío, sin haber
-      reiniciado la app en un rato.
-      CÓMO REPETIR LA PRUEBA (dos trampas que costaron intentos): escribir el
-      archivo desde `wsl bash -lc 'echo "{...}"'` NO funciona — PowerShell se
-      come las comillas y deja un archivo de 20 bytes; hay que escribirlo
-      desde Windows por la ruta `\\wsl.localhost`. Y con `Set-Content` hay
-      que usar `-Encoding ascii`: la opción `utf8` mete un BOM que rompe la
-      primera línea del JSON y parecería un fallo de la app.
-      Fuente WSL implementada (el sufijo es "wsl-<distro>" desde
-      el 2026-07-29; antes todas caían bajo un "wsl" genérico y con dos
-      instaladas no había forma de distinguirlas): `wsl.exe -l -q` (UTF-16LE) + escaneo de
-      \\wsl.localhost\<distro>\{home/*,root}\.claude como fuente local extra
-      (proyectos "nombre · wsl") y token de respaldo desde WSL antes que los
-      remotos. FALTA probar en una máquina con WSL real.
-- [x] El resumen del widget se RECALCULA entero al cambiar de widget, no se
-      parchea (2026-07-29). `skinTheme` se decide SEGÚN el estilo —con la
-      pastilla los globos siguen al panel; con el gatito, al selector "Globos
-      del gatito"—, así que parchear solo `style` en el objeto anterior
-      dejaba el tema del ciclo pasado: al irse a la pastilla y volver, el
-      globo del gatito regresaba en oscuro con "Claro" elegido. Lo encontró
-      Oscar probando el cambio de ventanas. REGLA: si se toca algo que
-      `emitPill()` calcula, se llama a `emitPill(...lastPillArgs)` — nunca se
-      escribe un campo suelto de `lastPill`.
-- [x] Tema claro/oscuro con toggle ◐ persistido. Alcanza también a las
-      ventanas del gatito (2026-07-27): la cápsula del % y los dos globos
-      (`card`, `notif`) invierten el cómic en oscuro (relleno #20242c, trazo
-      y texto #e9ebef, coral a #d97757 porque el #C15F3C se apaga sobre
-      fondo oscuro). Antes eran lo único del widget que se quedaba en papel
-      blanco. El tema viaja en el resumen `quota:update`, así que `notif`
-      lo escucha solo para eso; en `card` se aplica ANTES del early-return
-      de `ok:false`, para que siga al panel aunque conserve el dato viejo.
-      TODAS las ventanas del widget emiten `pill:ready` al cargar para pedir
-      el último resumen; `notif` era la única que no lo hacía y salía con el
-      tema de fábrica hasta el siguiente ciclo, ignorando lo elegido
-      (2026-07-28). Si se añade otra ventana que dependa del resumen, tiene
-      que emitirlo también.
-      Además el ARTE del gatito y la PIEL de sus globos se eligen por
-      separado (2026-07-27): dos selectores en Preferencias, cada uno
-      "Según el tema" (default, sigue al ◐) / Claro / Oscuro, en
-      localStorage `catArt` y `catSkin`. El resumen lleva `artTheme` y
-      `skinTheme` además de `theme`; los widgets caen a `theme` si faltan.
-      La CÁPSULA del % va con los globos, no con el gato: es información,
-      igual que ellos (decisión de Oscar, a prueba — si no convence, se
-      quita). Las dos filas se esconden con la pastilla (clase `catOnly`).
-- [x] Periodo dinámico del gasto por proyecto (1d/7d/30d, persistido) y
-      desglose por modelo de cada proyecto (tooltip al pasar el mouse).
-- [x] Gráfica de tendencia diaria (30 días, calculada de los logs — no hay
-      base de datos propia que se pueda perder).
-- [x] Presupuesto semanal con notificación toast de Windows (funciona con el
-      panel cerrado; anti-spam 1 aviso/semana). Se compara contra la suma de
-      los últimos 7 días de la serie diaria, no contra la ventana elegida.
-- [x] Export CSV/JSON — REHECHO 2026-07-29 (maqueta de Oscar). Antes era un
-      volcado con tres tablas en una (proyectos, modelos y días) y una columna
-      `name_or_date` que a veces era un nombre y a veces una fecha. Ahora es
-      UNA FILA POR HECHO: fecha × proyecto × modelo × origen, con costo y
-      tokens — todas las columnas aplican a todas las filas, así que Excel
-      puede hacer tablas dinámicas. 25 filas para 30 días de datos reales.
-      DETALLES QUE IMPORTAN:
-      · BOM al inicio del CSV: sin él Excel lo abre como texto de Windows y un
-        "·" se ve como "Â·". Tres bytes que salvan todos los acentos.
-      · Campos entre comillas con las internas duplicadas. Antes se sustituían
-        las comas por espacios, que mutila el dato en vez de citarlo.
-      · Las filas solo se calculan al exportar (`want_rows`): hacerlo en cada
-        ciclo del panel sería trabajo tirado y engordaría la foto del hub.
-      · El exportador remoto las devuelve con `--rows`, y el ORIGEN lo pone
-        quien lee con el nombre que el usuario dio al servidor — el script
-        remoto no sabe cómo se llama a sí mismo.
-      · Títulos traducidos a los 8 idiomas (`exp_cols`), y el origen local usa
-        `src_local`. Sin fila de totales A PROPÓSITO: rompería las tablas
-        dinámicas, y Excel la calcula con un clic.
-      · Periodo PROPIO (1/7/15/30, persistido): mirar 1 día en pantalla y
-        querer exportar 30 es un caso normal.
-      VERIFICADO EN VIVO el 2026-07-29 con los dos formatos: el CSV abre en
-      Excel con los acentos correctos (se acabó el "Â·") y el JSON trae las 28
-      filas de los DOS orígenes, ordenadas por fecha descendente y por costo
-      dentro de cada día. Al cuadrar los totales contra el servidor salía una
-      diferencia de $0.57: no era un fallo, era que la sesión de Claude Code
-      seguía gastando MIENTRAS medíamos — la fila del día creció $1.10 en dos
-      minutos. Un export es una foto, no un cierre contable.
-      El JSON exporta las MISMAS filas, más lo único que un CSV no puede
-      llevar: `generated_at`, `window_days` y la nota del costo. Quien lo
-      procese con un script no tiene que adivinar de cuándo es ni de qué
-      ventana. Y conserva la precisión completa, sin los 4 decimales del CSV.
-      OJO (mordió el 2026-07-29): `ExportRow.origin` DEBE llevar
-      `#[serde(default)]`. El exportador remoto manda sus filas SIN ese campo
-      —a propósito, no sabe cómo lo llamó el usuario— y sin el default serde
-      daba por inválida la respuesta entera: las filas del servidor
-      desaparecían del reporte sin ningún aviso.
-- [x] Panel en 3 PESTAÑAS (2026-07-21, decisión de Oscar): Principal
-      (cuota/proyección/gasto/tendencia/modelos) · Fuentes de datos
-      (nota + servidores con estado y alta) · Preferencias (idioma, widget,
-      alarmas, presupuesto, export). Pie con Hoy/Semana fijo en todas. El
-      botón ⚙ se eliminó — las pestañas siempre están visibles. Encabezado y
-      pestañas van en `.p-top`, STICKY (2026-07-27): el relleno superior del
-      panel vive en `.p-top`, no en `.panel`, y los márgenes negativos lo
-      llevan de borde a borde. Si se devuelve el `padding-top` a `.panel` o
-      se le pone `margin-bottom` a `.tabs`, se abre una rendija transparente
-      por la que se ve pasar el contenido al hacer scroll.
-- [x] Leyenda de modelos completa (todos los usados, "<1%" para los mínimos).
-- [x] Umbrales de prueba devueltos a valores normales (Oscar, 2026-07-29):
-      los 25 que había puestos eran para ver el simulador.
-- [~] Alarmas de uso configurables + avisos de límite/restablecimiento con
-      confirmación "Enterado" — implementado (2026-07-11). La parte VISUAL
-      quedó validada el 2026-07-28 con el simulador (gatito y pastilla).
-      Falta solo la detección real: cruzar un umbral de verdad, llegar al
-      100% y comprobar que se reconoce la ventana nueva.
-- [x] Widget flotante (pill) sobre la barra — probado en vivo (2026-07-22):
-      arrastre, persistencia, sin robo de foco, tema OK.
-- [x] Widget gatito (2026-07-22, validado en vivo por Oscar): mascota con
-      estados normal/llamas/zzz ligados a los avisos, cápsula de %, sticker
-      que abre el panel, globo de información al hover (buckets dinámicos)
-      y globo de notificación con ✕ en vez de toasts. Pose automática de
-      globos, cola dinámica y soporte multi-monitor. Ver sección Ventanas.
+Diseño completo en `docs/analizador-fugas.md` — LEERLO antes de tocar.
+Tres piezas en sincronía (invariante #1): motor en `meter-export.py`
+(`scan_findings`, `--findings`), réplica Rust (`scan_local_findings` +
+`get_findings`, async doble), pestaña con severidad por costo (rojo ≥$10,
+ámbar ≥$1 o MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
 
-  --- Jornada 2026-07-27 (26 commits). Lo validado en vivo por Oscar y lo
-      que quedó pendiente de mirar: ---
+**Detectores y umbrales** (constantes): reread (≥3 lecturas y ~2k tok
+apilados — MIDE chars devueltos, no tamaño de archivo), inflate (+50k y
+10+ turnos), cachebreak (≥300k reescritos; excluye isSidechain y
+compactaciones ±120 s), mech (≥5; lista corta git/pytest/cargo/npm),
+subagents (≥50k tok de sidechain), hooks_noise (≥15 disparos y ≥10k tok;
+mira attachments hook_success, no texto), mcp_unused (resta de conjuntos),
+skills_unused y claudemd (solo ventana 7+; claudemd: identificadores por
+línea contra el texto crudo, gris sin identificadores, rojo solo si
+NINGUNA mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos).
+Tope 12 por costo en el backend. REGLA: los de "lo instalado" señalan lo
+que NO se usa y lo que cuesta cargarlo — nunca califican si algo que sí
+se usa "gastó de más".
 
-- [x] ARTE REESCALADO a la mitad (2026-07-29, validado en vivo por Oscar en
-      los dos temas: "se ven bien, no se ven mal a nivel visual"). Los gifs
-      venían en 800² para dibujar un gato de ~180 px en pantalla — 19 veces
-      los píxeles que se ven. A 400² sobra incluso para pantallas de alta
-      densidad y el arte pasa de 11.1 MB a 3.0 MB. El `cat-break-black` de
-      lienzo raro quedó en 706x430 (misma proporción, desvío 0.071%).
-      NO se tocó código: el recorte del margen transparente está en
-      PORCENTAJES desde el principio y por eso sobrevivió al cambio de
-      escala. Verificado por programa antes de reemplazar: mismos fotogramas,
-      transparencia intacta, proporción del lienzo idéntica.
-      Hecho con `gifsicle --scale 0.5 --resize-method mix --colors 256 -O3`.
-- [x] Cuarto estado del gatito, `break` (sesión agotada, espera al reset) y
-      su arte en los dos temas. OJO: `cat-break-black.gif` vino en lienzo
-      1411x860 en vez de 800² y se recoloca por CSS (`.cat.odd-canvas`).
-- [x] La cápsula del % nace oculta: al arrancar enseñaba "session —" en
-      inglés, que era el texto de relleno del HTML y parecía un error.
-- [x] Encabezado y pestañas del panel FIJOS al hacer scroll.
-- [x] Simulador de estados (solo builds de dev) con pausa ajustable, que
-      recorre dibujo Y globo sin ensuciar el estado real.
-- [x] Regla única de globos: se quedan hasta que el usuario los cierre, y
-      cerrar el globo NO cambia el dibujo del gatito (el dibujo va con el
-      estado real). Cuatro avisos: alarma, break, zzz y restablecimiento.
-- [x] Los globos siguen al tema oscuro, y arte del gatito / piel de los
-      globos se eligen por separado en Preferencias.
-- [x] La CÁPSULA del % va con los globos y no con el gato — a prueba desde
-      el 2026-07-27 y CONFIRMADA por Oscar el 2026-07-29 tras usarla dos
-      días. (Si algún día se quisiera al revés: cambiar `curSkin` por
-      `curArt` en `cat.html`.)
-- [x] REDISEÑO DE LA PASTILLA en cápsula + detalle desplegable (`pcard`),
-      con el % en color de acento — VALIDADO en vivo por Oscar el 2026-07-28
-      en los dos temas: la cabecera se queda en su sitio al desplegar, el
-      arrastre funciona, y las esquinas dejaron de recortarse al meter la
-      caja 6 px (el halo se cortaba contra el borde de la ventana).
-- [x] AVISOS de la pastilla como POPOVER con severidad (icono en pastilla de
-      color, título + línea secundaria, ✕ arriba a la derecha, flecha
-      pequeña) — validado en vivo el 2026-07-28 con el simulador: se ven los
-      tres colores y el fondo opaco se lee sobre cualquier escritorio.
-      LECCIÓN: el primer intento salió transparente y apilado porque una
-      edición mía borró las reglas base del CSS de notif.html. Si algo de ese
-      archivo se ve "sin estilo", mirar primero que sigan ahí `*{box-sizing}`,
-      `.box`, `.msg` y `.x` — el bloque `body.cap` solo las ESPECIALIZA.
-      El fondo va OPACO a propósito: con alfa sobre una ventana transparente
-      se lee el escritorio a través del aviso.
-- [x] El globo/popover acompaña al widget al arrastrarlo y se aparta del
-      detalle desplegado (nunca los dos a la vez) — validado 2026-07-28.
-- [~] Simulador con la PASTILLA ("🔔 Simular avisos") — validado en vivo el
-      2026-07-28. Con eso, del ciclo de alarmas ya está visto TODO lo visual;
-      lo que sigue sin probarse de verdad es la DETECCIÓN: cruzar un umbral
-      real, tocar el 100% y que `trackResets()`/`windowChanged()` reconozcan
-      la ventana nueva. Eso solo se comprueba usando la cuota.
-- [x] `cargo check` limpio con todo lo del 2026-07-27 (comando
-      `toggle_pill_card`, ventana `pcard`, `notif_dx`, `is_dev`): verificado
-      por Oscar en Windows el 2026-07-28, sin errores ni advertencias.
-      RECORDATORIO: en el VPS no hay toolchain de Rust, así que esa
-      verificación SIEMPRE corre en el Windows de Oscar.
-- [x] Alta automática de servidor — VERIFICADA en vivo el 2026-07-29: Oscar
-      borró su VPS y lo volvió a agregar con el comando VACÍO. La app detectó
-      Python, subió el lector a `~/.michiclaude/meter-export.py` y guardó el
-      comando resuelto sola. Comprobado en el servidor que el archivo existe y
-      corre. FALTA aún el caso de error (un host SIN Python debe fallar con
-      ERR_NO_PYTHON traducido, no darse por bueno).
-      DOS COSAS QUE SALIERON DE ESA PRUEBA:
-      (1) El archivo subido llevaba saltos CRLF —git los mete al clonar en
-      Windows e `include_str!` los embebe—, así que el shebang quedaba como
-      `python3\r`. Funciona porque se ejecuta con `python3 archivo`, pero se
-      sube con permiso de ejecución y quien probara `./meter-export.py` en el
-      servidor se topaba con un error incomprensible. `upload_exporter`
-      normaliza los saltos.
-      (2) El campo "Comando a ejecutar" DESAPARECIÓ (2026-07-29). Nació
-      oculto y revelándose al fallar la detección, pero eso no servía: si no
-      hay Python, `install_remote` se detiene ANTES de subir el lector, así
-      que el comando que escribiera el usuario apuntaría a un archivo que no
-      existe. En su lugar el campo pregunta "¿dónde está Python?"
-      (`lbl_py`/`hint_py`), que es un dato que el usuario SÍ puede averiguar
-      con `which python3`; `install_remote(host, python)` verifica ese binario
-      con `verify_python` —si no, se guardaría un comando roto y el servidor
-      saldría "conectado" sin devolver datos— y arma el comando la app.
-      El caso "script propio" ya no está en la interfaz: quien lo necesite
-      puede editar remotes.json a mano.
-      (3) El NOMBRE de un servidor guardado se edita haciendo clic en él
-      (2026-07-29): antes había que borrarlo y volver a darlo de alta por
-      una errata. Como el nombre es el sufijo que llevan sus proyectos
-      ("proyecto · nombre"), al cambiarlo se recarga el panel.
-      OJO al probar cambios del exportador: tras el alta automática, el que
-      corre en el servidor es la copia EMBEBIDA en el binario, que la app
-      re-sube al arrancar. Editar `scripts/meter-export.py` en el VPS ya NO
-      tiene efecto — hay que recompilar.
-- [x] MODO HUB — LAS TRES FASES IMPLEMENTADAS Y VERIFICADAS contra el VPS
-      real (2026-07-28/29). Fase 1 (subir): Cada ciclo deja la foto de ESTA máquina en cada servidor, en
-      `~/.michiclaude/hosts/<máquina>.json`, vía `upload_summary()`.
-      Identidad en `hub_identity.json` (id irrepetible + nombre, por defecto
-      COMPUTERNAME); el id viaja DENTRO del archivo y el guard lo comprueba
-      EN EL SERVIDOR dentro del mismo comando SSH: si existe con otro id no
-      sobreescribe y sale con código 3 (dos PCs con el mismo nombre se
-      pisarían en cada ciclo sin que nadie se entere). Guard probado en el
-      VPS con los tres casos (nuevo / mismo id / otro id).
-      CRÍTICO: se sube lo LOCAL A SECAS, antes de fusionar. Subir lo ya
-      fusionado haría que las máquinas se hagan eco y los totales se
-      multipliquen solos.
-      `RemoteSource` gana `share` ("all"/"picked") y `shared`, ambos con
-      serde(default) — en fase 1 siempre "all", pero el campo existe desde ya
-      porque afecta a cómo se construye la subida.
-      Los fallos no bloquean nada y quedan en `hub_debug.json`; todavía NO
-      hay nada en la interfaz (eso es la fase 2).
-      VERIFICADA EN VIVO el 2026-07-28: compila limpio en Windows y el
-      archivo aparece en el VPS como `hosts/oscar-huawei.json` con la
-      máquina OSCAR-HUAWEI, SOLO los dos proyectos locales de Windows
-      (claude-code-meter-tauri $10.37 y system32 $0.30) —ninguno del VPS,
-      que era la comprobación que importaba—, más su serie diaria y sus
-      modelos. Nota: el nombre del ARCHIVO va en minúsculas (`safe_name`)
-      y el del campo `machine` conserva el original.
-      Diseño completo y casos en `docs/hub-modo-equipo.md`.
-      FASE 2 (fusionar) IMPLEMENTADA 2026-07-28: `meter-export.py` devuelve
-      una clave `hosts` con los resúmenes que encuentre en
-      `~/.michiclaude/hosts/`, SIN fusionar —la etiqueta la pone quien lee, y
-      lleva el nombre de la MÁQUINA, no el del servidor: el VPS es el punto
-      de encuentro, no el origen—. `fetch_remote` le pasa
-      `--exclude-host <id>` para que no le devuelva lo suyo, y el lado Rust
-      vuelve a filtrar por id por si un exportador viejo ignorase el flag:
-      recibir lo propio de vuelta significaría contarlo dos veces en cada
-      ciclo. Cada resumen viaja con `seen_at` (mtime del archivo) y NO se
-      descarta nada por antigüedad: la app no puede distinguir "se fue" de
-      "está de vacaciones". Probado en el VPS con una máquina falsa
-      (`pc-trabajo.json`): exclusión en los dos sentidos, sin el flag salen
-      las dos, un resumen corrupto se ignora sin tumbar a los demás, sin
-      carpeta `hosts/` todo sigue igual, y la fusión simulada no duplica el
-      proyecto local.
-      VENTANA (arreglado 2026-07-28 al verlo en las capturas de Oscar): cada
-      máquina sube UNA FOTO POR VENTANA (`HUB_WINDOWS` = 1/7/15/30) y el
-      SERVIDOR elige la pedida en `read_hosts(exclude_id, days)`. Quien lee
-      NO puede recortar un resumen ajeno —su desglose por proyecto ya viene
-      sumado—, así que sin esto el selector 1d/7d/30d movía los proyectos
-      del servidor pero dejaba clavados los de las otras máquinas: un número
-      de otra ventana sin ninguna señal. Si falta la ventana pedida se cae a
-      `stats` y se marca `window_exact:false` en vez de darla por buena.
-      `HUB_WINDOWS` tiene que coincidir SIEMPRE con las opciones del selector
-      del panel.
-      FASE 3 (configuración compartida) IMPLEMENTADA 2026-07-28: dos botones
-      al final de FUENTES DE DATOS —no en Preferencias: dependen de tener un
-      servidor, así que se leen después de la lista— (`save_hub_config` / `load_hub_config`) que guardan y
-      traen los ajustes en `~/.michiclaude/config.json` del servidor. Viajan
-      idioma, tema, alarmas, presupuesto, ventana, estilo del widget, capa,
-      los dos temas del gatito y la LISTA de servidores (nombre/host/comando:
-      es una libreta de direcciones, no un secreto, y con varios servidores
-      es lo más pesado de rehacer). NO viaja la posición del widget (cada
-      pantalla es distinta), ni la identidad de la máquina, ni las LLAVES
-      SSH — MichiClaude no las tiene ni las lee, de eso se encarga el ssh del
-      sistema, y esa promesa no se toca. Los servidores se FUSIONAN por host
-      al traerlos, nunca se reemplazan: quitarle a una máquina un servidor
-      que la otra no conocía la dejaría sin acceso, y recuperarlo cuesta
-      mucho más que borrar una fila de sobra. Al traerlos se
-      recarga el panel: hay ajustes que solo se leen al arrancar y
-      repintarlos uno a uno sería fácil de olvidar al añadir el siguiente.
-      DECISIÓN: es MANUAL a propósito. Una sincronización automática de ida y
-      vuelta acabaría pisando en una máquina lo que acabas de cambiar en la
-      otra, y unos ajustes que cambian solos son peores que unos que no se
-      comparten. Al guardar se escribe en TODOS los servidores; al traer gana
-      el primero que responda. Es UNA foto que se reemplaza en cada guardado,
-      sin historial. Traer va en DOS PASOS —como el bote de borrar servidor—
-      y el segundo dice de cuándo es lo guardado: reemplaza la configuración
-      entera sin deshacer, así que confirmar sin esa fecha sería decir que sí
-      a ciegas. El botón armado se desarma solo a los 8 s.
-      VERIFICADO el 2026-07-28 mirando el archivo real en el VPS: se guarda
-      `config.json` con idioma, tema, ventana, widget, capa y los dos temas
-      del gatito. Las tres fases del hub dejan datos correctos —
-      `hosts/<máquina>.json` con sus cuatro ventanas y `config.json` con los
-      ajustes. La lista de servidores se pide FRESCA al backend al guardar:
-      leer la variable del panel la dejaba vacía si el usuario no había
-      abierto Fuentes de datos en esa sesión. ANÁLISIS COMPLETO en `docs/hub-modo-equipo.md`
-      (2026-07-28): cómo funciona por dentro, el interruptor de qué compartir
-      —que va POR SERVIDOR, no global—, los casos de alta/baja/formateo/
-      vacaciones con ejemplos numéricos, por qué un permiso de administrador
-      dentro de la app sería decorativo, y por qué el modo EQUIPO sigue
-      descartado. Leerlo antes de tocar código del hub. Diseño base: el VPS consolida los datos de todas las máquinas para que
-      los totales cuadren en cualquier PC. Diseño acordado: (1) cada meter
-      sube su resumen local por SSH a ~/.michiclaude/hosts/<hostname>.json
-      en el VPS en cada ciclo; (2) meter-export.py devuelve sus logs + los
-      resúmenes de los demás hosts, excluyendo el del host que pregunta
-      (--exclude-host <hostname>) para no contar doble; (3) opcional: config
-      compartida (servidores/presupuesto) guardada también en el hub para que
-      una PC nueva herede todo al conectar el VPS.
-- [~] Auto-updater (tauri-plugin-updater) — IMPLEMENTADO 2026-07-29, sin
-      probar en vivo (hace falta publicar un tag). Comprueba GitHub al
-      arrancar (8 s después, para no competir con la primera carga) y avisa
-      en una franja de la cabecera FIJA —visible desde cualquier pestaña— más
-      un globo persistente del widget, por si el usuario no abre el panel en
-      días. Comandos propios en Rust (`check_update`, `install_update`,
-      `open_releases`) en vez de la API JS del plugin: invariante #4, sin
-      dependencias npm de runtime.
-      DOS DECISIONES DE SEGURIDAD:
-      (1) Un fallo al instalar —el caso "se perdió la llave y se firmó con
-      otra"— NO deja al usuario congelado sin enterarse: enseña "descárgala
-      una vez a mano" con botón a las descargas.
-      (2) Esa URL es una CONSTANTE en Rust (`RELEASES_URL`) y jamás sale de
-      un archivo descargado. Se descartó la idea de un "archivo de avisos"
-      remoto: al no ir firmado, quien lo manipulara podría mandar a todos los
-      usuarios a donde quisiera. El texto puede venir de fuera; el destino
-      del botón, nunca.
-      La llave pública vive en tauri.conf.json (es pública a propósito); la
-      privada solo en los secretos del repo y en las copias de Oscar. Si se
-      pierde: llave nueva + versión nueva + los usuarios instalan a mano UNA
-      vez; no se pierde ningún dato porque todo es local.
-      El workflow ya firma (lo aplicó Oscar el 2026-07-29 desde la web: el
-      token de este entorno NO puede tocar `.github/workflows/`, GitHub lo
-      rechaza sin el permiso `workflow` — cualquier cambio ahí hay que
-      pedírselo a él). NO hace falta `uploadUpdaterJson`: tauri-action ya lo
-      publica por defecto (y OJO, `includeUpdaterJson` no existe).
-      Los dos secretos ya están cargados en el repo (Oscar, 2026-07-29).
-      FALTA: (a) DECIDIR si el repo se hace público —con él privado las
-      releases no se pueden descargar sin autenticación y el updater
-      devolvería 404 a todo el mundo, incluido Oscar— y (b) publicar un tag
-      para probarlo de punta a punta. Hasta entonces el código está puesto y
-      no estorba: sin releases, la comprobación no encuentra nada y calla.
+**Orden:** por `ts` desc (última actividad) y luego costo. Llevan ts los
+de sesión (reread/inflate/cachebreak) Y los agregados con actividad
+(hooks_noise/subagents/mech); solo los de estado puro (mcp, skills,
+claudemd) van abajo por costo. En Python `parse_ts` da datetime — va
+`int(ts.timestamp())`.
 
-## Diferenciadores estratégicos (post-pulido Windows, decididos 2026-07-24)
+**Subagentes:** sus turnos llevan el sessionId de la sesión MADRE y NO
+tocan el estado de sesión (turns/first_cr/last_cr/cr_cost/cb) — solo
+suman a su tarjeta; sus tool_use SÍ cuentan (MCP usado es usado). El
+coach queda plano a propósito. `proj` (carpeta de logs, para casar con
+claudemd) y `disp` (cwd real, para enseñar) son campos SEPARADOS —
+unificarlos dejaría claudemd en costo 0 en silencio.
 
-Tras investigar la competencia (Mac saturado con 8+ apps de menu bar; Windows
-competido pero ganable; Linux sin app gráfica nativa = hueco). El combo actual
-—cuota real + costo por proyecto + multi-máquina + gatito— ya es único; casi
-nadie junta cuota Y costo, casi nadie hace multi-máquina, y NADIE tiene mascota.
-Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
+**Tarjetas:** contraíbles con clic (se pliega solo la recomendación; pose
+en `fndMin`, guard !simFnd; Ignorar lleva stopPropagation). Primera
+apertura: enseña el último resultado guardado al instante con
+"Analizando…" mientras corre el fresco; el reporte se refresca al abrir
+la pestaña si tiene >5 min. Precarga de fondo a los 15 s.
 
-- [x] **APUESTA #1 — Modo HUB TERMINADO** (2026-07-29, ver arriba). Es el foso técnico
-      real y lo más difícil de copiar; los demás leen una sola máquina. Además
-      es lo más vendible en el CV de Oscar ("sistema distribuido que consolida
-      uso entre máquinas"). Prioridad #1: no es función nueva, es rematar lo
-      que ya lo hace único.
-- [ ] **APUESTA #2 — El gatito como motor de marketing** (lo único que 0
-      competidores tienen). (a) **Tarjeta semanal para compartir**: botón que
-      genera una imagen bonita del resumen (cuota, proyecto top, gatito en su
-      estado) lista para redes → marketing viral incorporado (Oscar ya postea
-      el gato a mano). (b) **Gamificación ligera**: rachas ("N días sin pasarte
-      del presupuesto → gato feliz"), estados de ánimo con el tiempo. Barato,
-      imposible de copiar (es la marca), ataca el problema real: que nadie
-      conoce un proyecto nuevo. Empezar por la tarjeta (mejor esfuerzo/impacto).
-- [~] **APUESTA #3 — Analizador de fugas de tokens** — PRIMERA VERSIÓN
-      FUNCIONANDO, validada en vivo por Oscar el 2026-07-29 (tarjetas, colores
-      de severidad, Ignorar, selector de ventana e idiomas). Tres piezas:
-      (1) MOTOR en `meter-export.py` (`scan_findings`, flag `--findings`) —
-      pasada aparte sin caché que el ciclo del panel nunca paga;
-      (2) RÉPLICA Rust (`scan_local_findings` + comando `get_findings`, async
-      por partida doble: SSH y escaneo de disco) que analiza este PC + WSL y
-      pide los hallazgos de cada servidor; mantener AMBOS lados en sincronía
-      como la agregación;
-      (3) PESTAÑA Hallazgos (cuarta, entre Fuentes de datos y Preferencias):
-      severidad en el borde, costo en $ y tokens con "~" solo donde hay
-      heurística, recomendación del catálogo en tono "hazlo así y sale
-      gratis", Ignorar persistente (localStorage `fndIgnore`) y ventana
-      propia (`fndDays`).
-      Detectores v1: archivos releídos (MIDE los chars devueltos por cada
-      lectura — no estima por tamaño de archivo), sesiones que acumulan
-      contexto (costo de cache_read MEDIDO del log), peticiones mecánicas
-      (solo git/pytest/cargo check/npm test-ci-install; lista corta a
-      propósito) y MCP configurado sin invocar. Umbrales en constantes
-      (REREAD_MIN 3 / 2000 tok, INFLATE 50k+10 turnos, MECH 5, tope 12).
-      Detector 5 (2026-07-29; cargo check limpio y VALIDADO EN VIVO por
-      Oscar el mismo día — la tarjeta salió etiquetada VPS-EU, o sea que la
-      cadena exportador→SSH→fusión→i18n quedó probada entera): RUPTURAS DE
-      CACHÉ. Turnos del hilo principal donde
-      cache_read cae a menos de la mitad del contexto del turno anterior:
-      el prefijo cacheado se perdió y la conversación entera se reescribió
-      a 1.25x input en vez de leerse a 0.1x (causas típicas: pausa mayor al
-      TTL o cambio de modelo). Costo MEDIDO como piso min(cache_write,
-      contexto_previo). DOS EXCLUSIONES obligatorias: isSidechain (los
-      subagentes llevan SU contexto; mezclarlos fabrica rupturas falsas) y
-      compactaciones (isCompactSummary/compact_boundary ±120 s — ahí
-      reescribir es el ahorro, no la fuga). Umbrales CACHEBREAK_MIN_PREV
-      20k / CACHEBREAK_MIN_TOKENS 300k. Validado en el VPS con exploración
-      independiente ANTES de escribir el detector, cuadre exacto: $80.85 en
-      la sesión de los $403 (cada pausa sobre ~900k de contexto = ~$6 de
-      reescritura), $22.27 y $4.37 en otras dos; los hallazgos previos
-      salieron IDÉNTICOS con y sin el cambio (diff limpio). Es la fuga más
-      cara del catálogo: inflate mide RELEER, este mide REESCRIBIR.
-      LA VALIDACIÓN PAGÓ DOS VECES el primer día: el cálculo manual de
-      relecturas exageraba ~100x (multiplicaba por el tamaño del archivo
-      cuando casi todas las lecturas eran parciales — la trampa documentada,
-      cazada por el propio detector midiendo), y el costo de contexto por
-      sesión cuadró contra la agregación normal (camino independiente) al
-      0.4%. Hallazgo estrella real: $403 de la semana eran UNA conversación
-      de 1392 turnos releyendo su propio contexto.
-      INDICADOR DE HALLAZGOS NUEVOS (2026-07-29, implementado; SIN validar
-      en vivo aún — solo frontend, cero cambios en Rust): una señal, tres
-      superficies — sticker cómic en la laptop del gatito (posición en
-      variables --bx/--by/--bs de cat.html, como la zona de la cabeza),
-      puntito en la cápsula de la pastilla y contador en la pestaña
-      Hallazgos. Color = severidad de la tarjeta más cara (misma escala:
-      rojo ≥$10, ámbar ≥$1 o MCP, acento el resto). CÓMO FUNCIONA: el panel
-      —único que escanea— corre una pasada ligera de 1 día como mucho cada
-      20 h (get_findings days:1, guard fndAutoLast) y guarda el resultado en
-      localStorage `fndAuto` para que reiniciar no apague un aviso que nadie
-      vio; los widgets solo reciben {n, sev, tip} dentro de quota:update.
-      "VISTO" = la tarjeta llegó a pintarse en la pestaña (claves en
-      `fndSeen`, tope 300): el aviso se apaga y esas tarjetas no lo vuelven
-      a encender — se despacha una vez, no persigue, como el globo. Ignorar
-      también lo apaga. Clic en sticker/puntito = evento `panel:findings` +
-      show_panel: el panel abre YA en Hallazgos. Checkbox en Preferencias
-      (encendido por defecto; localStorage `fndBadgeOff`) que apaga SOLO el
-      widget — el contador de la pestaña se queda siempre porque no
-      interrumpe. El sticker del gato va ANTES del early-return de ok:false
-      en apply() (un fallo pasajero de cuota no apaga un aviso pendiente) y
-      el contador de la pestaña vive en un <span> DENTRO del botón porque
-      applyI18n pisa el textContent de todo [data-i18n].
-      VALIDADO en vivo por Oscar el 2026-07-29 — y el aviso funcionó TAN
-      bien que la primera vez pareció roto: Oscar abrió la pestaña buscando
-      la notificación y ese vistazo marcó las tarjetas como vistas antes de
-      ver el sticker (fndSeen tenía las 4 claves; se confirmó por consola).
-      DISEÑO FINAL, iterado en capturas y VALIDADO por Oscar el 2026-07-29
-      ("se ve y funciona bien"): en el GATITO es una PILITA DE POST-ITS
-      pegada en la tapa de la laptop (dos notas asoman por detrás — ámbar y
-      papel, la de papel sigue al tema de los globos — y encima el post-it
-      ROJO ladeado con cinta adhesiva, número blanco y translúcido al 78%;
-      toda la pilita es botón; posición en --bx/--by/--bs). El rojo es FIJO,
-      sin tinte por severidad — decisión de Oscar: rojo = "hay algo nuevo",
-      la severidad se ve en las tarjetas. En la PASTILLA es una CAMPANA roja
-      SVG (más brillante en oscuro, #ff5a5a vs #ef4444) con meneo al clic, y
-      la MARCA dejó de ser el sunburst: la cápsula lleva el sticker del
-      gatito (variante -white/-black según tema, misma regla que los gifs) y
-      el detalle desplegado lleva icon-mini-panel.png — la mascota ES la
-      marca; los tres PNG los subió Oscar desde Windows. OJO: los tres son
-      IDÉNTICOS byte a byte A PROPÓSITO (validado por Oscar el 2026-07-30 en
-      ambos widgets y ambos temas: "está bien") — no es un error que haya
-      que corregir; si algún día quiere variantes por tema o icono propio
-      del detalle, basta reemplazar los archivos, el código ya lo soporta. En el PANEL el
-      contador es cápsula roja flotante en la esquina de la pestaña, tope
-      9+. PRIMERA APERTURA de Hallazgos: enseña AL INSTANTE el último
-      resultado guardado (localStorage fndCacheSaved, por ventana) con
-      "Analizando…" en el pie mientras el escaneo fresco corre detrás y
-      reemplaza al llegar; si falla, lo viejo se queda y el pie avisa. Más
-      la PRECARGA de fondo a los 15 s de arrancar. DOS TRAMPAS: pintar en la
-      pestaña OCULTA no debe marcar visto (mataría el aviso — el marcado
-      está condicionado a !$("tab-findings").hidden) y la primera prueba
-      pareció rota porque el propio Oscar abrió la pestaña buscando la
-      notificación y ese vistazo la despachó. Para re-armar el aviso al
-      probar: borrar fndSeen y fndAutoLast del localStorage del panel.
-      LOS TRES DETECTORES DE "LO INSTALADO": HECHOS los tres el 2026-07-30,
-      con cargo check limpio ese mismo día en el Windows de Oscar.
-      DETECTOR 9 — líneas de CLAUDE.md sin respaldo: HECHO 2026-07-30 (kind
-      claudemd; umbrales CLAUDEMD_MIN_LINES 5 / CLAUDEMD_MAX_TOKENS 400;
-      solo ventanas 7+). Las tres cubetas del doc: identificadores por línea
-      (backticks + rutas/archivo.ext) buscados como subcadena en el texto
-      crudo de los logs; sin identificadores = gris (sin opinión); roja solo
-      si NINGUNA mención aparece. CLAUDE.md global + el de cada proyecto con
-      actividad (cwd de las primeras líneas del .jsonl; dedup por ruta real
-      por el symlink claude-code-meter). Costo PISO chars/4 × sesiones (~),
-      NUNCA líneas × turnos (la trampa del doc). Validado con fixture al
-      número exacto y en el VPS (367 identificadores, 3 sin respaldo y los
-      3 correctos: rutas de Windows); regresión byte-idéntica sobre copia
-      congelada. Cuesta ~7 s extra en --findings 7d+ (asumido y
-      documentado); cargo check limpio 2026-07-30. Detalle completo en
-      docs/analizador-fugas.md §11.
-      EL GLOBO DEL DÍA — IMPLEMENTADO 2026-07-30 y VALIDADO EN VIVO por
-      Oscar el mismo día (capturas: globo con hallazgo real del VPS "164
-      turnos · ~$34.17", clic abrió Hallazgos con la tarjeta VPS-EU, y al
-      verla se despacharon globo y post-it — la cadena completa probada de
-      una vez; solo frontend: index.html + notif.html, cero Rust). Un hallazgo
-      NUEVO con costo ≥ umbral configurable (fndNudgeUsd, $1 default,
-      campo en Preferencias) sale como globo notif kind "findings" al
-      terminar la pasada diaria: título de tarjeta + ~$X, clic = panel
-      directo en Hallazgos. Máx 1/día, la cuota gana (ackPending o
-      infoBalloon puesto → reintenta mañana), sin toast, cada hallazgo
-      avisa UNA vez (fndNudged), comparte el checkbox fndBadgeOff.
-      PROBAR: borrar fndAutoLast/fndNudged/fndSeen y recargar; a los 90 s
-      escanea y si hay hallazgo de hoy ≥$1 sale el globo. Detalle en
-      docs/analizador-fugas.md §11.
-      ... Y ELIMINADO 2026-08-04 (decisión de Oscar, tras un mes de uso):
-      el globo era más intrusivo que útil y su trabajo lo hace el
-      indicador pasivo. EN SU LUGAR: los hallazgos avisan como Consejos —
-      post-it rojo / campana / contador de pestaña que se encienden cada
-      vez que hay hallazgos NO VISTOS, sin tope diario. Para que eso pase
-      el mismo día, la pasada ligera de 1d ahora también se dispara AL
-      NACER UN RECIBO (sesión local terminada = el momento en que nacen
-      hallazgos), con freno propio de 15 min (fndEventLast, marcado ANTES
-      de la pasada para no reentrar); la diaria de 20 h queda como
-      respaldo para hallazgos que nacen sin cerrar sesión local (VPS).
-      fndPass(tag) es la función compartida y cada disparo refresca
-      fndAutoLast (una pasada por cierre pospone la diaria: mismo dato).
-      FUERA: fndNudge/fndNudgeUsd/fndNudged/fndNudgeSev, el campo del
-      umbral en Preferencias, las claves i18n fnd_nudge_* (×8), el kind
-      "findings" de notif.html y el paso "globo del día" del simulador
-      (quedó en 2 pasos). Los localStorage viejos (fndNudgeUsd/fndNudged)
-      quedan huérfanos e inofensivos. Solo frontend: index.html +
-      notif.html, cero Rust. SIN validar en vivo: probar cerrando una
-      sesión local con una fuga fresca — post-it/campana deben encender
-      a los ~10-13 min (recibo + pasada) SIN globo.
-      SECCIÓN CONSEJOS — PRIMERA ENTREGA HECHA Y VALIDADA EN VIVO por
-      Oscar el 2026-07-30 (capturas: las 5 pestañas caben, el acordeón
-      abre/cierra, el filtro "clear" deja las 3 fichas correctas, y el
-      cambio de idioma ES↔EN repinta las fichas al momento): quinta
-      pestaña "tips", molde de tarjeta compartido con variante `.fnd.tip`
-      (acordeón, sin costo ni severidad), 6 fichas ×8 idiomas
-      (tip_<id>_t/_b en I18N, ids en TIPS), filtro cliente y repintado al
-      cambiar idioma. Único ajuste de la validación: el cuerpo de las
-      fichas a 12.5px/1.5 (el 11px del fix de Hallazgos es para una línea,
-      no para párrafos — lo notó Oscar). Diseño completo en
-      docs/consejos-coach.md — LEERLO antes de tocar esta sección.
-      MOTOR DE REGLAS DE SESIÓN ACTIVA — HECHO 2026-07-30 con cargo check
-      limpio ese día; SIN validar en vivo (necesita sesión de Claude Code
-      activa EN WINDOWS — la del VPS no cuenta: el coach mira la máquina
-      donde corre la app): comando `get_coach` (Rust, lectura incremental
-      por offset de los logs tocados en 30 min, SOLO locales) devuelve
-      hechos medidos y el panel les pone el anti-spam (tipSeen por
-      sesión+regla, tope diario 5) y los pinta: ficha primera, abierta,
-      línea "Ahora: <dato>" en acento y contador acento en la pestaña.
-      Tres reglas v1: ctx≥120k → compact; pausa≥6min con ctx≥30k → cache;
-      mismo archivo leído ≥3 veces → attach. Detalle en
-      docs/consejos-coach.md §10.3.
-      VALIDADO PARCIALMENTE en vivo el 2026-07-31 (la regla de contexto
-      alto disparó con ~372k reales y el contador acento salió); del
-      feedback de Oscar salieron tres ajustes YA implementados:
-      la ficha dice a qué sesión aplicar ("· proyecto · local", campo
-      project en CoachHit — cargo check limpio 2026-07-31, compilación
-      desde cero en 1m41s tras la mudanza del repo), el coach avisa en el
-      widget (post-it ACENTO junto a la pilita del gatito, punto acento
-      junto a la campana de la pastilla, clic = panel en Consejos vía
-      panel:tips, campo coach en quota:update, mismo interruptor
-      fndBadgeOff) y el "sin datos" del widget dice el MOTIVO (reason =
-      errText en quota:update, #why en card.html, tooltip del tray) —
-      decisión: sin animación especial de sin-datos, el dibujo del gatito
-      refleja solo el estado real de la cuota.
-      COACH VALIDADO EN VIVO COMPLETO el 2026-07-31 (captura de Oscar):
-      regla del caché con dato real ("26 min de pausa"), ficha con
-      "test · local" y post-it turquesa en la laptop del gatito. El
-      post-it ganó su cinta adhesiva tras la validación (sin ella parecía
-      un cuadrito — Oscar). Su pregunta "¿por qué Consejos no manda globo
-      como Hallazgos?" quedó respondida y documentada en
-      docs/consejos-coach.md §10.3: a propósito, el globo es solo para lo
-      que duele en dólares.
-      RESUMEN DE SESIÓN — IMPLEMENTADO 2026-07-31 y VALIDADO EN VIVO el
-      2026-08-01 (captura de Oscar: «Crear calculadora web completa con
-      pruebas» — 4 min · 0 comandos · 7 archivos): sesión quieta 10+ min
-      con 5+ turnos → tarjeta «ai-title» + minutos/comandos/archivos
-      editados, arriba de Consejos, una vez por sesión. Detalle en
-      docs/consejos-coach.md §8.
-      MINI-AUDITORÍA AL CIERRE — IMPLEMENTADA 2026-08-02 (SIN cargo check
-      ni validación en vivo; idea de Oscar: "si ya vigilamos esa sesión
-      larga que gasta, lo que interesa es el AHORRO, no solo que acabó").
-      CoachSess acumula `cost` (usage × tarifa por turno, cost_of) y
-      `gaps` (pausas ≥6 min con contexto ≥30k, contadas turno a turno);
-      al disparar done/sum, `coach_leaks()` arma la lista con lo que ya
-      está EN MEMORIA (cero re-escaneo): reread ≥3 del archivo más releído,
-      ctx final ≥120k, gaps>0 — kinds que casan con las fichas del catálogo
-      (attach/compact/cache). La tarjeta del resumen gana `· ~$X` (oculto
-      bajo medio centavo) y líneas ⚠ vía `tipLeak()`; el push de ntfy gana
-      SOLO el conteo ("· 1 aviso de ahorro", clave ntfy_done_save ×8 con
-      singular en los 5 idiomas que declinan) — ni dólares ni archivos ni
-      reglas por el canal público (regla de privacidad intacta). Claves
-      nuevas tip_leak_reread/ctx/cache/gap ×8. AJUSTE del 2026-08-02 tras
-      la segunda prueba real de Oscar (push sin sufijo y un minuto después
-      el consejo del caché en el panel): el push sale a los 5 min de
-      silencio pero la regla viva del caché pide 6 — historias distintas
-      por 60 segundos. Ahora cerrar con contexto ≥30k (sin llegar a los
-      120k del ctx) ES fuga al cierre (kind "cache"): el usuario está
-      lejos y el TTL se vence antes de que lea el push. ctx y cache son
-      excluyentes (else if) para no contar el mismo contexto dos veces.
-      PROBAR: tanda en test-agente que relea un archivo 3+ veces o cierre
-      con 30k+ de contexto, quieta 5 min → push con "· N avisos de
-      ahorro"; la tarjeta con ~$ y ⚠ a los 10 min.
-      "CLAUDE ESTÁ ESPERANDO TU APROBACIÓN" — IMPLEMENTADO 2026-08-02 (SIN
-      cargo check ni prueba en vivo) tras el falso positivo que cazó la
-      prueba real de Oscar: dejó la tarea, Claude se detuvo en un permiso,
-      y a los 5 min el push dijo "terminó · 6 min, 42 turnos" con el
-      permiso en pantalla; el final real quedó mudo (notified ya gastado)
-      y el resumen se lo comió el tope diario. TRES arreglos: (1) señal
-      `pending_tool` (tool_use sin tool_result = sesión detenida) → regla
-      `ask` a los 3 min (COACH_ASK_QUIET), push prioridad 4 con minutos
-      detenido, rearmable al crecer el log (`asked`) y dedup frontend por
-      sesión+turno (ntfyAsked); (2) con pending_tool puesto NI "terminó"
-      NI el resumen disparan — así el "terminó" queda armado para el final
-      real; (3) el resumen (`sum`) exento del tope diario de 5 del coach.
-      Claves ntfy_ask_body(_p) ×8; misma casilla `done` de Preferencias.
-      VALIDADO EN VIVO 2026-08-02 (capturas del teléfono de Oscar): DOS
-      atascos avisados con prioridad alta ("Claude espera tu aprobación en
-      test-agente · 4 min detenido" a las 4:27 y 4:33), CERO "terminó"
-      falsos en medio, y el final real a las 5:00 con "· 28 min, 117
-      turnos · 3 avisos de ahorro". El circuito ask→done→auditoría entero.
-      Y de esa misma prueba salió OTRO bug, arreglado el mismo día: la
-      TARJETA del recibo con la auditoría no aparecía en Consejos. Causa:
-      Rust emite el `sum` UNA vez (banderín done) y coachHits se REEMPLAZA
-      en cada sondeo de 3 min — si la pestaña no estaba abierta justo en
-      esa ventana, la tarjeta moría sin ser vista. Arreglo: almacén
-      `coachSums` en localStorage (tope 5) — el sondeo guarda los recibos
-      nuevos, renderTips los lee de ahí (en simulador sigue leyendo
-      coachHits: el sim no toca localStorage), y solo se borran cuando
-      llegaron a PINTARSE con la pestaña visible y sin filtro activo.
-      `coachCount()` (fichas + recibos pendientes, sin doble conteo)
-      alimenta el contador de la pestaña y el aviso del widget — así el
-      post-it sobrevive a reinicios igual que el de hallazgos.
-      Y REDISEÑO DEL CICLO DE VIDA 2026-08-03 (pedido de Oscar: "como
-      Hallazgos"): almacén `coachCards` (tope 12, sustituye a coachSums)
-      con TODAS las tarjetas vivas — recibos y "Ahora" —, cada una con ✕,
-      contraer/expandir recordado (`min`), ver la pestaña apaga el aviso
-      (`v`) SIN despachar nada, y caducidad automática a las 24 h de
-      nacer (TIP_TTL — no a medianoche: un recibo de las 11 pm debe
-      llegar a la mañana). Tope diario 5→10 y UNA tarjeta viva por regla
-      (la medición nueva reemplaza a la vieja). tipSeen se marca al
-      ENTRAR al almacén, no al verse. coachHits queda SOLO para el
-      simulador. Ciclo completo probado con arnés en el VPS (nacer →
-      reemplazo → visto → contraído → ✕ → caducar). Detalle en
-      docs/consejos-coach.md §8bis. Las FICHAS con ✕ ya se vieron en vivo
-      (capturas de Oscar 2026-08-03); y el RECIBO del ciclo nuevo quedó
-      VALIDADO el 2026-08-04 (ver la entrada del resumen de sesión, abajo).
-      Y DE ESA MISMA PRUEBA, UN BUG GORDO (2026-08-03, a0d02bc): con tres
-      fichas calientes encendidas (162k ctx, 10 relecturas) NO salieron ni
-      el push de "terminó" ni el recibo — un PENDIENTE FANTASMA:
-      pending_tool quedaba atorado en true (un tool_use cuyo tool_result
-      no se vio con la forma esperada) y bloqueaba done y sum para
-      siempre. Blindaje doble: (1) un turno nuevo del hilo principal
-      LIMPIA pending_tool (una sesión que avanza no está esperando
-      permiso; si ese mismo mensaje trae tool_use, el bucle de bloques lo
-      repone) y (2) los tool_use de SUBAGENTES ya no tocan el pendiente.
-      Además OBSERVABILIDAD: coach_debug.json en la carpeta de datos, se
-      escribe en cada sondeo con las compuertas de cada sesión viva (sid,
-      turnos, quiet_min, ctx, pending, asked, notified, sum_done, gaps,
-      cost) y los hits emitidos — al depurar "no llegó el push", LEER ESE
-      ARCHIVO PRIMERO. VALIDADO EN VIVO 2026-08-02 tras el blindaje
-      (línea de tiempo de Oscar: sesión termina 7:20 → post-it turquesa
-      SOLO, sin abrir el panel, 7:27 → push "1 min, 19 turnos · 1 aviso
-      de ahorro" 7:29; y en sus capturas la ficha con ✕ y el contraer
-      recordado). Y el RECIBO también VALIDADO el mismo día (captura:
-      «Mantenimiento ligero de la calculadora» · 1 min · 0 comandos · 3
-      archivos · ~$1.24 · ⚠ cerró con 53k — el caché venció). De su
-      pregunta "¿por qué no volvió el post-it con el recibo?" salió el
-      ÚLTIMO bug de la cadena: el panel al cerrarse solo se OCULTA y la
-      pestaña Consejos seguía activa por dentro — el sondeo pintaba el
-      recibo recién nacido en la ventana invisible y lo marcaba VISTO SIN
-      VERSE. Arreglo: el marcado exige document.hasFocus() además de la
-      pestaña visible (variante nueva de la trampa ya documentada en
-      Hallazgos). El recibo NO manda push propio A PROPÓSITO: su push fue
-      el "terminó · N avisos de ahorro"; el recibo es el detalle.
-      FLUJO COMPLETO CRONOMETRADO por Oscar el 2026-08-02 en proyecto
-      virgen (test-local), TODO dentro de especificación: atasco 7:55 →
-      push aprobación 8:00 (compuerta 3 min + sondeo); terminó 8:04 →
-      post-it 8:12 (ficha caché, 6 min + sondeo) → push 8:14 ("2 avisos
-      de ahorro" = las DOS ⚠ del recibo, no dos fichas — confusión
-      esperable) → recibo 8:18 re-encendiendo el post-it (el fix
-      hasFocus probado en vivo). El aviso de APROBACIÓN es solo-celular
-      a propósito (frente a la PC ya ves la pregunta en la terminal).
-      DE ESA PRUEBA, DOS CAMBIOS (2026-08-02): (1) BUG REAL — Hallazgos
-      solo escaneaba la PRIMERA vez por arranque y las sesiones
-      posteriores no aparecían hasta reiniciar; ahora el reporte en
-      memoria se refresca al abrir la pestaña si tiene >5 min (lo viejo
-      queda a la vista con "Analizando…" mientras corre el fresco).
-      (2) BITÁCORA DEL FLUJO (pedido de Oscar: "necesitamos logs para no
-      adivinar con capturas"): flog() apunta con hora cada activación —
-      pushes ok/error, tarjetas del coach al nacer, vistas/✕, globos,
-      escaneos de hallazgos y pasada diaria — en localStorage flowLog
-      (tope 300); botón 📜 junto a los simuladores (solo dev) la copia
-      al portapapeles, Mayús+clic la vacía. Complementa a
-      coach_debug.json (compuertas Rust): entre los dos se reconstruye
-      cualquier "no me llegó X" sin especular.
-      Y ORDEN DE HALLAZGOS POR RECIENTES (2026-08-02, pedido de Oscar: su
-      hallazgo fresco quedaba hasta abajo por barato): Finding gana `ts`
-      (última actividad de la sesión, epoch, serde(default) — exportador
-      viejo manda 0) en los TRES detectores de sesión (reread/inflate/
-      cachebreak), en Rust Y meter-export.py (invariante #1; OJO parse_ts
-      en Python devuelve datetime — va int(ts.timestamp())). El panel
-      ordena por ts desc y luego costo. AMPLIADO 2026-08-04 (Oscar validó
-      el detector de hooks y su tarjeta fresca salió hasta abajo): también
-      llevan ts los agregados con actividad — hooks_noise (máx last_ts de
-      las sesiones donde disparó), subagents y mech (máx ts de sus turnos).
-      SOLO los de estado puro (mcp, skills, claudemd) quedan sin hora,
-      abajo por costo — no describen actividad sino configuración. El
-      TOPE de 12 sigue cortando por costo en el backend: solo cambia el
-      orden de lectura. Verificado con datos reales del VPS (regresión
-      byte-idéntica salvo los ts nuevos, 10/10 hallazgos iguales).
-      Y LO MISMO EN CONSEJOS (2026-08-04, pedido de Oscar al ver su ficha
-      fresca del caché debajo de dos recibos viejos): renderTips junta las
-      tarjetas VIVAS (recibos y fichas calientes) en UNA corriente ordenada
-      por `born` desc — la más reciente arriba —; las fichas frías del
-      catálogo quedan abajo en su orden de siempre. Solo frontend
-      (index.html); el blindaje del recibo malformado pasó a ser por
-      tarjeta (una rota ya no tumba a las demás). PROBAR: sesión de Claude Code en Windows con trabajo real
-      (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
-      abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
-      SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo
-      dev, botón "🧪 Simular hallazgos" junto al del gatito): tres pasos
-      con la pausa de simMin — tarjetas falsas + contador + post-it rojo,
-      el globo del día en rojo, y fichas calientes + resumen + post-it
-      turquesa. MISMAS REGLAS que el simulador del gatito: nada toca
-      localStorage (guards !simFnd en los render para no pisar
-      fndSeen/tipSeen; fndAutoScan y coachPoll se inhiben), simRunning se
-      enciende para heredar la inhibición de acks, y al parar se restaura
-      el estado real. Los dos botones se paran entre sí. Sirve para
-      testear lo VISUAL en segundos; la detección real se valida con uso.
-      LISTA DE PRUEBAS PENDIENTES (Oscar pidió mantenerla; se van
-      cerrando conforme mande capturas — actualizar aquí):
-      [x] cargo check del resumen de sesión — limpio 2026-07-31 (4.54s)
-      [x] resumen de sesión en vivo VALIDADO 2026-08-04 (captura +
-          bitácora de Oscar, sesión real en test-local): ficha del caché
-          en vivo 17:25 (7 min de pausa, 39k ctx) → push "terminó · 2 min,
-          18 turnos · 1 aviso" 17:28 → recibo «Crear calculadora Python
-          con pruebas» (~$1.10, ⚠ cerró con 39k) 17:31 → vistas con foco
-          17:33 apagando el aviso — el ciclo §8bis entero con datos
-          reales, incluido el fix del "visto sin verse". DE PASO reapareció
-          la confusión documentada del 2026-08-02, ahora al revés: push
-          "1 aviso" (las ⚠ del recibo) contra contador "2" del panel
-          (tarjetas vivas: ficha + recibo). Dos veces la misma duda ya es
-          señal — si vuelve, considerar renombrar el sufijo del push
-          (p. ej. "· 1 fuga en esta sesión").
-      [x] simulador de hallazgos: VALIDADO 2026-07-31 con capturas de
-          Oscar — tarjetas, contadores 4/3, globo del día, post-it rojo
-          del gatito y los indicadores de la pastilla, todo a la primera.
-          De esa validación salió el rediseño del indicador de consejos
-          de la PASTILLA: FOCO ÁMBAR encendido (maqueta de Oscar, SVG
-          inline tipo Tabler, #fbbf24 oscuro / #e0930b claro, pulso al
-          clic) en vez del punto acento; en el GATITO sigue el post-it
-          turquesa. La campana roja queda para hallazgos.
-      [x] foco ámbar en la pastilla VALIDADO 2026-08-04 (captura de Oscar
-          con el simulador de hallazgos): campana roja y foco ámbar
-          conviven en la cápsula, cada uno con su color. Este cierre cubre
-          también el viejo pendiente del "punto turquesa en la pastilla" —
-          ese punto YA NO EXISTE ahí (lo sustituyó el foco ámbar en el
-          rediseño); el turquesa quedó solo en el post-it del gatito.
-      [x] VALIDADO 2026-08-01 con capturas de Oscar: pie del gasto SOLO en
-          Principal, pestañas en dos líneas sin barra horizontal, Sí/No del
-          "Canal nuevo", y la cabecera del detalle limpia (asa, gatito y
-          flecha; los números solo en las filas). Falta ver el motivo del
-          sin-datos EN LA PASTILLA: con el token vigente no hay error que
-          enseñar, así que sale la próxima vez que caduque.
-      [x] motivo del "sin datos" VALIDADO EN VIVO 2026-08-01 (capturas de
-          Oscar tras hibernar el PC): el globo del gatito lo explica bien.
-          De ahí salieron DOS arreglos del mismo día: (1) Windows CORTA el
-          tooltip de la bandeja a 128 caracteres y el motivo largo se
-          quedaba en "…Usa Claude" —parecía un error de la app—, así que
-          si no cabe entero se deja solo la primera frase (firstSentence,
-          corta en . y en 。; FR y DE caben enteros y la conservan);
-          (2) la PASTILLA no decía nada, solo un "—" mudo: el detalle
-          (pcard) ahora pinta el motivo con la misma regla que el gatito
-          (antes del early-return de ok:false). La cápsula se queda sin
-          texto a propósito: mide 54 px.
-      [~] tarjeta de subagentes con datos reales — LA PRUEBA DESTAPÓ UN BUG
-          GORDO (2026-08-04): Claude Code moderno (visto en v2.1.221) YA NO
-          escribe los turnos del subagente en el .jsonl de la sesión con
-          isSidechain:true — los pone en <sesión>/subagents/agent-*.jsonl,
-          una SUBCARPETA a la que ningún escáner entraba (todos recorrían
-          la carpeta del proyecto PLANA). Consecuencia doble: el detector
-          de subagentes era ciego ante subagentes reales (se validó con
-          fixture sintético del formato viejo) y sus tokens TAMPOCO
-          entraban al costo por proyecto. Lo cazó Oscar: lanzó un Explore
-          real con Opus ("Backgrounded agent · finished 3m59s") y el conteo
-          de isSidechain:true en los .jsonl planos dio CERO. Verificado en
-          el VPS generando un subagente-sonda y mirando su transcript:
-          sessionId = el de la sesión MADRE, isSidechain:true, usage
-          normal. ARREGLO (mismo día): project_jsonls() en lib.rs y
-          meter-export.py (planos + */subagents/*.jsonl) usado por la
-          agregación y por scan_findings; y como el sessionId es el de la
-          madre, los turnos sidechain YA NO tocan el estado de la sesión
-          (turns/first_cr/last_cr/cr_cost/cb) — su cache_read chico
-          rompería el detector de infladas y fabricaría rupturas; solo
-          suman a su tarjeta. Sus tool_use SÍ cuentan (un MCP invocado por
-          el subagente ES un MCP usado). El coach queda plano a propósito
-          (excluye sidechains). Regresión en el VPS: mismos hallazgos,
-          +1 archivo, +8,558 tokens y +$0.06 — exactamente la sonda.
-          VALIDADO EN VIVO el mismo día (captura de Oscar tras recompilar):
-          "Los subagentes trabajaron 44 turnos aparte · local · $2.33 ·
-          399k tok" — cargo check limpio y la cadena completa
-          subcarpeta→escaneo→tarjeta funcionando con su exploración real.
-          Y de esa ronda, ajustes de UI (2026-08-04): las tarjetas de
-          Hallazgos se CONTRAEN con clic como las fichas de Consejos (se
-          pliega solo la recomendación; título/origen/costo se quedan;
-          pose recordada en localStorage fndMin, guard !simFnd; Ignorar
-          lleva stopPropagation para no plegar de paso — VALIDADO en vivo
-          por Oscar el mismo día, captura con 3 tarjetas plegadas), y quedó explicado
-          que el contador de la pestaña no encendió por la trampa del
-          vigilante — el escaneo corrió con la pestaña abierta.
-          MÁS TRES del mismo día (SIN validar en vivo): (1) la ZONA DE LA
-          CABEZA del gatito estaba mal calibrada DE ORIGEN (nunca se movió
-          — se verificó en el historial de git): se pasaba 6% por la
-          derecha y por arriba sobre teclado/vacío (clic ahí abría el
-          panel) y dejaba fuera cachete izquierdo y barbilla (ahí
-          arrastraba). Se RECALIBRÓ midiendo los píxeles blancos del gif
-          con un decodificador GIF propio en el VPS (scratchpad, stdlib
-          puro) y viendo las zonas dibujadas sobre el fotograma: cabeza
-          real x[50%,86.5%] y[53%,87.5%] → --hx:50% --hy:52% --hw:37%
-          --hh:36%. (2) El post-it TURQUESA del coach ahora es PILITA como
-          el rojo (dos orillas asoman detrás: ámbar y papel — una nota
-          sola se leía como cuadrito, mismo feedback que motivó su cinta).
-          (3) La etiqueta del interruptor del widget decía solo
-          "hallazgos" pero SIEMPRE cubrió también al coach (fnd y coach
-          pasan ambos por fndBadgeOn() en el resumen): ahora dice
-          "Avisarme en el widget (hallazgos y consejos)" ×8 idiomas.
-          Aclarado además: apagarlo deja los contadores de pestaña
-          SIEMPRE encendidos en el panel — no interrumpen.
-          Y PULIDO VISUAL de la misma noche (pedidos de Oscar; (a) y (b)
-          VALIDADOS en vivo el 2026-08-04 con su captura — pilita
-          turquesa con orillas, separada de la roja, y contadores de
-          pestaña legibles en ambos colores; del (c) falta confirmar el
-          hover y los clics de la cabeza recalibrada):
-          (a) post-it turquesa más grande (.95bs, fuente 10.5) y
-          más separado de la pilita roja (offset 1.8bs); (b) CONTRASTE de
-          los avisos acento — el contador de Consejos ponía blanco sobre
-          #56c7d6 (~2:1, invisible) y ahora usa --accent-ink (tinta
-          #0c2f36 en oscuro >8:1, blanco en claro donde el acento es
-          profundo), y el papel del post-it turquesa pasó de #2ea3b4 a
-          #128097 para que su número blanco dé ~4.7:1 (regla UX: el color
-          del texto se elige según el fondo, nunca blanco fijo sobre
-          acento claro); (c) el HOVER del globo resumen vive ahora SOLO
-          en la cabeza del gato — pasar el mouse por la laptop ya no lo
-          despliega; salir de la ventana entera lo pliega (así no
-          parpadea al cruzar de la cabeza a la laptop) y rozar la cabeza
-          <300ms cancela el temporizador para que no salga tarde.
-      [x] detector de hooks con un hook real VALIDADO 2026-08-04 (captura
-          de Oscar): hook PostToolUse de prueba en test-hook (imprime
-          ~3.4k chars por disparo) + tanda de 20 Write con Haiku vía
-          `claude --model haiku --allowedTools Write -p` — OJO: sin
-          --allowedTools el modo -p no puede pedir permisos y sale sin
-          escribir nada (le pasó a Oscar al primer intento). Tarjeta
-          "PostToolUse:Write · local · ~$0.02 · ~18k tok" correcta. De esa
-          prueba: TERCERA vez de la trampa del vigilante (pestaña abierta
-          al nacer la tarjeta = vista al instante, sin campana ni globo —
-          comportamiento correcto) y la aclaración de que los hallazgos
-          NUNCA van al celular (regla de privacidad ntfy) — su único aviso
-          con texto es el globo del día, que además pide costo ≥$1.
-          La carpeta test-hook se borra tras la prueba (el hook es ruido).
-      [ ] alta de servidor SIN Python → ERR_NO_PYTHON traducido
-      [ ] alarmas reales: cruzar umbral, 100%, y ventana nueva
-          reconocida (trackResets/windowChanged con datos de verdad)
-      [x] ntfy básico VALIDADO EN VIVO 2026-08-01 (capturas de Oscar):
-          bloque en Preferencias, QR escaneado con la cámara, suscripción
-          en la app y "Enviar prueba" llegando al teléfono. Dejó activada
-          la casilla de alarmas de %.
-      [ ] ntfy camino completo: push de alarma de % real, 100% real y el
-          programado llegando con la PC APAGADA — va junto con las
-          alarmas reales de abajo
-      [x] "tu agente terminó" VALIDADO EN VIVO 2026-08-01 a la primera
-          (captura del teléfono de Oscar: "Terminó tu sesión en agente ·
-          8 min, 20 turnos"), con la casilla del nombre activada. De ahí
-          salió UN BUG: decía "agente" y la carpeta era "test-agente".
-          Causa: el coach usaba el nombre de la CARPETA DE LOGS, que
-          codifica la ruta entera cambiando cada separador por "-"
-          ("C--Users-oscar-Claude-test-agente"), y el recorte se quedaba
-          con el último trozo. Arreglado leyendo el `cwd` real de la
-          sesión (lo mismo que ya hacía la agregación) y mandando el
-          nombre YA RESUELTO desde Rust (`pname`), así que el panel no
-          adivina: se quitó fndProj de los usos del coach.
-          HALLAZGOS ARREGLADO IGUAL el mismo día, en Rust Y en
-          meter-export.py (invariante #1). TRAMPA que casi muerde: en los
-          hallazgos ese nombre NO es solo display — `proj` casa las
-          sesiones con el detector de CLAUDE.md (sess_pi vs pj), así que
-          cambiarlo habría dejado ese hallazgo en costo 0 y lo habría
-          tirado EN SILENCIO. Por eso son dos campos: `proj` (carpeta de
-          logs, para casar, intacto) y `disp` (cwd real, para enseñar).
-          `fndProj` del panel ya no recorta un nombre que venga limpio —
-          solo los codificados de exportadores viejos o logs sin cwd.
-          Regresión verificada en el VPS contra la versión anterior:
-          mismos 10 hallazgos, mismo orden y mismos costos, solo cambian
-          los nombres ("-opt-projects-michiclaude" -> "michiclaude").
-      AVISOS AL CELULAR (ntfy) — IMPLEMENTADO 2026-08-01; cargo check
-      limpio y lo BÁSICO VALIDADO EN VIVO por Oscar ese mismo día (QR +
-      suscripción + prueba en su teléfono). Falta el camino de eventos
-      reales (ver lista). SUSTITUYE a la propuesta de Telegram
-      (descartada por decisión de Oscar 2026-08-01: fricción de BotFather,
-      chat_id personal y, lo decisivo, no puede avisar con la PC apagada).
-      Diseño completo en docs/avisos-ntfy.md — LEERLO antes de tocar esto.
-      Lo esencial: opt-in APAGADO por defecto; ntfy_config.json (enabled/
-      topic/server/alarms; topic = contraseña del canal, CSPRNG getrandom,
-      "michi-"+12 [a-z0-9]; server editable solo a mano, self-host gratis);
-      comandos get_ntfy/save_ntfy/ntfy_push (async, publicación JSON a la
-      raíz — los headers HTTP no aguantan UTF-8 y hay 8 idiomas)/ntfy_qr
-      (matriz al canvas, sin dependencia de imagen; enlace ntfy://host/topic
-      porque la app ntfy NO trae escáner — se usa la cámara del sistema).
-      La estrella: al 100% va el aviso inmediato + el "ya volvió" PROGRAMADO
-      (header delay, +120 s de colchón por el jitter) que ntfy entrega con
-      la PC APAGADA; si el reset semanal no cabe en los 3 días del servidor
-      público, no se programa NI se promete ("puedes apagar" solo cuando es
-      verdad). REGLA NUEVA de privacidad: por ntfy viajan SOLO porcentajes,
-      horas de reset y frases del diccionario — nunca proyectos, rutas ni
-      dólares (los topics son públicos por diseño). Rust no redacta avisos
-      (invariante #10); textos reutilizan breakBody/weekBody/notif_back_*;
-      un push por ventana gracias a los banderines notifS/notifW; el
-      simulador nunca manda pushes (guard simRunning en ntfyPush);
-      fallos a ntfy_debug.json sin bloquear nada local. Dependencias
-      nuevas mínimas: getrandom, qrcode (sin features). Botón CANAL NUEVO
-      (2026-08-01, pregunta de Oscar que destapó el hueco): regenera el
-      topic en dos pasos —patrón del bote de borrar servidor— para cuando
-      el canal se filtre (un QR en una captura regala la contraseña);
-      comando ntfy_regen, el canal viejo muere y hay que re-escanear.
-      "TU AGENTE TERMINÓ" (2026-08-01, lo pidió Oscar tras ver que el valor
-      real está en dejar a Claude trabajando e irse): regla `done` en
-      coach_scan — sesión quieta 5 min (COACH_DONE_QUIET) con 5+ turnos
-      (COACH_DONE_TURNS), banderín `notified` propio. NO es una ficha:
-      coachPoll la aparta antes del filtro de Consejos (ni gasta el tope
-      diario ni sale en el panel) y la manda al celular. Dedup por partida
-      doble —el estado del coach vive en memoria y al reiniciar la app una
-      sesión recién callada volvería a reportarse—: localStorage `ntfyDone`,
-      tope 100, y máximo 3 pushes por sondeo. El NOMBRE del proyecto es una
-      casilla aparte (`names`, apagada): la regla general prohíbe nombres
-      por ntfy, y la casilla advierte que el canal es público. Hereda las
-      limitaciones del coach: solo ESTA máquina y solo si la app estuvo
-      abierta durante la sesión. Detalle en docs/avisos-ntfy.md.
-      Y DECISIÓN del mismo día: ntfy NO viaja en los ajustes compartidos
-      del hub — esa pantalla promete "no guarda llaves ni contraseñas" y
-      el topic ES la contraseña del canal; además cada máquina con su
-      canal se silencia por separado en la app ntfy (ver
-      docs/avisos-ntfy.md). README ACTUALIZADO el 2026-08-01 a petición
-      expresa de Oscar (única excepción al invariante #9 en esta ronda):
-      sección "Avisos en el celular" con el alta paso a paso, la tabla de
-      qué llega, el caso de DOS O TRES PCs (cada una su canal, los ajustes
-      compartidos NO lo copian, y la doble notificación con dos equipos
-      encendidos como comportamiento esperado), el QR tratado como
-      contraseña y los límites del servidor gratuito; más el punto 5 de
-      Privacidad y "Los avisos al celular, en claro". De paso se borró de
-      la tabla de Preferencias la fila "Diseño de la pastilla" (el diseño
-      coral se eliminó el 2026-07-25 y el README seguía anunciándolo).
-      Confirmación del "Canal nuevo" cambiada a SÍ/NO explícito (Oscar:
-      un botón que cambia de texto no se lee como pregunta) con claves
-      btn_yes/btn_no ×8 — reutilizables. PENDIENTE: la prueba en vivo de
-      la lista.
-      FAQMISSES + ISSUE PRE-LLENADO — HECHO 2026-07-31 (SIN validar en
-      vivo ni cargo check; tocó Rust: comando open_faq_issue con base
-      constante ISSUES_URL y lanzado por rundll32, no cmd/start — el &
-      de la query rompería cmd). Búsqueda 4+ letras sin ficha → se
-      apunta local (faqMisses, dedup, tope 50, 1.5 s de pausa); pie de
-      Consejos con "N búsquedas sin ficha este mes" + botón que abre el
-      issue pre-llenado con la lista. CAVEAT: repo privado = issues 404
-      para no-colaboradores; útil para todos al hacerlo público. CON
-      ESTO EL DOC DE CONSEJOS QUEDA COMPLETO (§10: 5/5). PROBAR: en
-      Consejos buscar algo inexistente ("docker" p. ej.), esperar 2 s,
-      borrar el filtro → pie con el contador; clic en "Proponerlas en
-      GitHub" → navegador con el issue redactado.
-      (Después de cerrar esto: las pruebas pendientes de la lista. La
-      propuesta de TELEGRAM quedó DESCARTADA 2026-08-01 — la sustituyó
-      ntfy, ver arriba. El modelo local quedó DESCARTADO dentro de la
-      app también en su variante "modelo-lector" — fase 2 opcional aparte,
-      compuertas en ~/.michiclaude/notas-coach-local.md. Las ideas del doc
-      de estrategia de Oscar 2026-08-01 —dashboard móvil QR con servidor
-      HTTP local, edición VPS headless— quedaron ANALIZADAS y en fila,
-      sin fecha: la primera toca invariantes (dependencia axum + promesa
-      de red) y la segunda espera señal de demanda real.)
-      (1) DETECTOR skills instaladas sin uso — HECHO 2026-07-30 (Python
-          validado en el VPS: caza exactamente eliminar-proyecto y respeta
-          las ventanas; cargo check limpio 2026-07-30). UNA tarjeta agregada
-          (kind skills_unused, count + nombres en `file`), solo con ventana
-          de 7+ días ("no usaste tu skill HOY" no dice nada). Fuentes de
-          uso: <command-name> en los logs + tool_use Skill + el `skillUsage`
-          de ~/.claude.json (Claude Code YA registra cada uso con fecha —
-          descubierto en esta sesión). DECISIÓN CLAVE: solo cuenta
-          ~/.claude/skills/ como "instalado"; la carpeta de plugins NO — es
-          el catálogo ENTERO del marketplace cacheado (docenas de skills que
-          nadie instaló) y contarla fabricaría hallazgos falsos;
-      (2) DETECTOR subagentes caros — HECHO 2026-07-30 (kind subagents,
-          umbral SUB_MIN_TOKENS 50k, costo MEDIDO del usage propio de cada
-          turno isSidechain; validado con fixture sintético al centavo —
-          $0.2775 — porque los logs del VPS tienen CERO sidechains; falta
-          verlo con datos reales en Windows y el cargo check);
-      (3) DETECTOR hooks ruidosos — HECHO 2026-07-30 (kind hooks_noise,
-          umbrales HOOKNOISE_MIN_FIRES 15 / HOOKNOISE_MIN_TOKENS 10k). El
-          formato se averiguó GENERANDO un log real (hook de prueba +
-          `claude -p` con Haiku en carpeta temporal, luego borrada): cada
-          disparo queda como attachment `hook_success` con `hookName` y
-          `content` = lo que entró al contexto; dedup por uuid. Tokens ~
-          chars/4 (tarjeta con "~") y costo piso a input del modelo
-          dominante de la sesión. Validado al centavo con el fixture
-          amplificado (20×2960 chars = 14 800 tok = $0.0148 Haiku) y
-          regresión limpia en 7d/30d; cargo check limpio 2026-07-30, falta un
-          hook real (Oscar no usa hooks — OJO: el VPS tampoco, y todas las
-          menciones de "hook" en sus logs son conversaciones SOBRE hooks,
-          no salida de hooks: el detector mira attachments, no texto);
-      REGLA de los tres, ya acordada: señalan lo instalado que NO se usa y
-      lo que cuesta CARGARLO — nunca califican si una skill que sí se usa
-      "gastó de más" (categoría prohibida del doc).
-      Después: el detector de líneas de CLAUDE.md sin respaldo, el aviso EN
-      EL MOMENTO con texto (el globito 1×/día — el indicador ya es la
-      versión pasiva), el fix personalizado por `entrypoint` (VS Code vs.
-      terminal, con respaldo genérico) y la verificación antes/después
-      (necesita semanas de historial, ya asegurado con cleanupPeriodDays=365
-      en ambos lados). El de rupturas de caché ya está (detector 5).
-      Idea original: Diseño completo en `docs/analizador-fugas.md`
-      (2026-07-29): los cinco elementos de un hallazgo, el catálogo de
-      detectores, por qué es DETERMINISTA y nunca un modelo local, y la
-      redacción de los mensajes. Leerlo antes de escribir código.
-      Orden acordado: (1) MCP servers inactivos —resta de conjuntos, el más
-      barato—, (2) archivos releídos, (3) sesiones que se inflan, y luego el
-      antes/después, que no depende del código sino de tener semanas de
-      historial a los dos lados.
-      DOS TRAMPAS ANOTADAS: el CLAUDE.md inflado se MIDE con los conteos de
-      cache read que ya están en los JSONL, nunca se estima multiplicando
-      líneas por turnos (exagera ~5x porque tras el primer turno está
-      cacheado); y el 70% del tiempo va en validar que los números son
-      correctos, no en escribirlos.
-      La parte de NEGOCIO (precio, auditorías, posicionamiento) vive FUERA
-      del repo en `~/.michiclaude/notas-negocio-analizador.md`: al hacer
-      público el repo para el updater se publica también todo el historial de
-      git, y un archivo borrado después sigue siendo legible.
-      Idea original, más amplia:
-      insights accionables — proyección SEMANAL ("a este ritmo llegas al límite
-      el jueves"), desglose caro por proyecto ("60% es lectura de caché"),
-      sugerencia de ahorro por modelo ("usaste Opus donde Haiku bastaba →
-      ahorro $X", con cuidado). Eleva de "app de gauges" a "app que me ayuda a
-      no quedarme sin cuota / gastar menos".
+**Avisos (sin globo — se eliminó 2026-08-04):** post-it rojo / campana /
+contador de pestaña encienden cada vez que hay hallazgos NO VISTOS.
+Pasada ligera 1d compartida `fndPass()`: al NACER UN RECIBO (cierre de
+sesión local; freno 15 min `fndEventLast`, marcado ANTES) y diaria de
+20 h como respaldo (VPS). "Visto" = la tarjeta se pintó con la pestaña
+VISIBLE y el panel CON FOCO (pintar en pestaña oculta no marca — mataría
+el aviso). TRAMPA DEL VIGILANTE (mordió 3 veces): si miras la pestaña
+cuando nace, nace vista y no hay aviso — es lo correcto. Los hallazgos
+NUNCA van al celular (privacidad ntfy). El interruptor de Preferencias
+("Avisarme en el widget — hallazgos y consejos") apaga SOLO el widget;
+los contadores de pestaña quedan siempre. Para re-armar en pruebas:
+borrar fndSeen y fndAutoLast.
 
-NO hacer (dilución de foco): rastrear otras herramientas (Codex/Gemini/Copilot),
-base de datos de historial largo (contradice "nada que se pueda perder"), modo
-equipo/empresa (fuera del público Pro/Max individual).
+## Coach (pestaña Consejos)
 
-## Consumo de recursos (medido 2026-07-29 en el Windows de Oscar)
+Diseño en `docs/consejos-coach.md` — LEERLO antes de tocar. Fichas
+estáticas curadas (sin IA, sin red, `tip_<id>_*` ×8) + motor de sesión
+activa: `get_coach` (Rust, lectura incremental por offset, sesiones
+tocadas en 30 min, SOLO esta máquina). Reglas: ctx≥120k → compact;
+pausa≥6 min con ctx≥30k → cache; mismo archivo leído ≥3 → attach; `ask`
+(tool_use sin tool_result ≥3 min) y `done` (quieta 5 min, 5+ turnos) son
+SOLO push al celular, no fichas; `sum` (quieta 10 min) = recibo con
+título AI, min/comandos/archivos, `· ~$X` y ⚠ de `coach_leaks()` (kinds
+attach/compact/cache; ctx y cache EXCLUYENTES; cerrar con ctx≥30k es fuga
+al cierre). Anti-spam: tope diario 10 (`tipDay`, sum EXENTO), una tarjeta
+viva por regla (la nueva reemplaza), `tipSeen` se marca al ENTRAR al
+almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`),
+visto (`v`) apaga el aviso sin despachar, caducidad 24 h (TIP_TTL).
+"Visto" exige pestaña visible + `document.hasFocus()`. Las tarjetas vivas
+(recibos y fichas calientes) se pintan en UNA corriente por `born` desc —
+la más reciente arriba; las frías del catálogo abajo. PENDIENTE FANTASMA
+(blindado): un turno nuevo del hilo principal LIMPIA pending_tool; los
+tool_use de subagentes no lo tocan. El nombre del proyecto va RESUELTO
+desde Rust (`pname`, cwd real). Aviso en widget: post-it turquesa /
+foco ámbar, campo `coach` en quota:update, mismo interruptor. El recibo
+NO manda push propio (su push fue el "terminó"). Al depurar "no llegó
+X": LEER PRIMERO `coach_debug.json` (compuertas por sesión en cada
+sondeo) y la bitácora `flowLog` (botón 📜 en dev: clic copia, Mayús+clic
+vacía). coachHits queda SOLO para el simulador.
 
-Cifras REALES, no estimadas. Se midieron con la app compilada en RELEASE,
-sumando `michiclaude.exe` y todos sus procesos hijos de WebView2 (hay que
-seguir la cadena de PID padre: `Get-Process msedgewebview2` a secas incluye
-los de OTRAS apps del sistema — Copilot, Outlook nuevo, Teams — y da un
-número que no es nuestro).
+## Avisos al celular (ntfy)
 
-| | Antes | Después |
-|---|---|---|
-| Instalador NSIS | 12.3 MB | **5.8 MB** |
-| `michiclaude.exe` | 21.7 MB (release) · 46 MB (dev) | igual |
-| Datos en disco | < 1 MB | igual |
-| RAM (suma de working sets) | ~830 MB | ~695 MB |
-| **RAM privada — la cifra HONESTA** | | **276 MB** |
+Diseño en `docs/avisos-ntfy.md` — LEERLO antes de tocar. Opt-in APAGADO
+por defecto; `ntfy_config.json` (topic = CONTRASEÑA del canal, CSPRNG,
+"michi-"+12). REGLA DE PRIVACIDAD: por ntfy viajan SOLO porcentajes,
+horas de reset, conteos y frases del diccionario — nunca proyectos,
+rutas ni dólares (los topics son públicos). El nombre del proyecto es
+casilla aparte (`names`, apagada, con advertencia). Rust no redacta
+avisos (códigos, invariante #10). Publicación JSON a la raíz (headers no
+aguantan UTF-8). Al 100%: aviso inmediato + "ya volvió" PROGRAMADO
+(header delay +120 s de colchón) que llega con la PC APAGADA; si el
+reset no cabe en los 3 días del servidor público, no se promete. Un push
+por ventana (banderines notifS/notifW). El simulador NUNCA manda pushes
+(guard simRunning). "Canal nuevo" regenera el topic en dos pasos (Sí/No
+explícito). ntfy NO viaja en los ajustes compartidos del hub (esa
+pantalla promete no guardar contraseñas). Dedup de done/ask:
+localStorage ntfyDone/ntfyAsked, máx 3 por sondeo. Fallos a
+ntfy_debug.json sin bloquear nada.
 
-CUIDADO CON LA MEDICIÓN (esto invalidó medio día de conclusiones): sumar
-`WorkingSet64` de cada proceso CUENTA VARIAS VECES la memoria que comparten
-entre sí, y con 10 procesos de WebView2 infla el resultado más del doble. La
-cifra real es la suma de `WorkingSetPrivate`
-(`Win32_PerfRawData_PerfProc_Process`): 276 MB, no 695. Para dar contexto, en
-la misma máquina y el mismo momento: VS Code 799 MB, Brave 730 MB,
-explorer 360 MB. O sea, un tercio del editor — bastante mejor de lo que
-parecía. Está publicado en el README con el comando para reproducirlo.
+## Modo HUB (multi-máquina)
 
-LO QUE HAY QUE SABER ANTES DE VOLVER A DIAGNOSTICAR ESTO:
+TERMINADO y verificado. Análisis en `docs/hub-modo-equipo.md` — LEERLO
+antes de tocar código del hub. Cada ciclo sube la foto LOCAL A SECAS
+(antes de fusionar — subir lo fusionado haría eco) a
+`~/.michiclaude/hosts/<máquina>.json` por SSH; identidad en
+`hub_identity.json`, guard por id EN el servidor (código 3 si otro id).
+UNA FOTO POR VENTANA (`HUB_WINDOWS` = 1/7/15/30, DEBE coincidir con el
+selector del panel); quien lee no puede recortar un resumen ajeno.
+`fetch_remote` pasa `--exclude-host <id>` y Rust re-filtra por id
+(recibir lo propio = contarlo doble). Nada se descarta por antigüedad.
+Config compartida: MANUAL a propósito (dos botones en Fuentes de datos);
+al guardar escribe en TODOS los servidores, al traer gana el primero;
+los servidores se FUSIONAN por host, nunca se reemplazan; NO viajan
+posición del widget, identidad, llaves SSH ni ntfy. Traer va en dos
+pasos con la fecha de lo guardado.
 
-1. **Compilar en release NO baja la RAM.** dev 817 MB vs release 830 MB. El
-   `.exe` sí baja a la mitad, pero el peso está en los ~11 procesos de
-   WebView2 y a esos les da igual el perfil de compilación. Se comprobó.
-2. **El gatito NO es el culpable** (es la SEGUNDA vez que lo parece y no lo
-   es; la primera fue con la lentitud, que era el hilo de la UI bloqueado).
-   Medido con el simulador: cargar los cuatro dibujos sube ~120 MB de pico y
-   los DEVUELVE (939 -> 828), así que tampoco hay fuga de memoria.
-3. **El costo real son las SEIS ventanas.** Cada WebView2 tiene un piso de
-   ~57 MB aunque esté vacía y oculta — se ve en la propia medición: la
-   pastilla (una cápsula con dos líneas) y el globo de aviso pesan eso. Seis
-   ventanas son ~345 MB de piso antes de dibujar nada, más la infraestructura
-   (GPU, red, almacenamiento, crashpad).
-4. Para comparar: el instalador está muy bien (una app equivalente en
-   Electron ronda 90-150 MB), pero la RAM está al nivel de Slack o Discord,
-   que es justo lo que un widget de bandeja no debería costar.
+## Auto-updater
 
-ARREGLADO 2026-07-29 (~115 MB): la pastilla y el gatito son EXCLUYENTES, así
-que dos de las seis ventanas no se mostraban NUNCA — con el gatito puesto,
-`pill` y `pcard` se cargaban para no pintar nada jamás. Ahora `pill`, `pcard`,
-`cat` y `card` YA NO ESTÁN en tauri.conf.json: las crea
-`ensure_widget_windows()` en Rust, solo el par del estilo elegido, y al
-cambiar de widget se crea el par nuevo y se DESTRUYE el viejo (si solo se
-ocultara, quien probara los dos acabaría con las cuatro cargadas hasta
-reiniciar). En el json solo quedan `main` y `notif`, que salen con los dos
-estilos.
-CONSECUENCIA para el mantenimiento: el TAMAÑO de esas cuatro ventanas ya no
-se toca en el json, se toca en `ensure_widget_windows()`. Y las capabilities
-tienen que seguir listando las seis etiquetas: los permisos van por etiqueta,
-así que una ventana creada en caliente hereda los mismos.
-No choca con la regla de no redimensionar ventanas transparentes: esa prohíbe
-cambiar el TAMAÑO de una ventana viva, y aquí cada una nace con el suyo fijo.
-Lo que lo hizo barato: TODOS los usos de esas ventanas ya toleraban su
-ausencia (`if let Some` / `else { return }`), así que no hubo que blindar
-nada — solo crearlas antes de medirlas en `set_pill_style`.
+Implementado, SIN probar (falta publicar un tag). Comandos propios Rust
+(`check_update`/`install_update`/`open_releases`) — sin API JS del
+plugin (invariante #4). Franja fija en cabecera + globo persistente.
+Fallo al instalar → "descárgala a mano" con botón a `RELEASES_URL`, que
+es CONSTANTE en Rust y jamás sale de un archivo descargado. Llave
+pública en tauri.conf.json; la privada en secretos del repo y copias de
+Oscar (si se pierde: llave nueva + instalar a mano UNA vez). El workflow
+ya firma; secretos cargados. BLOQUEADO por decisión: el repo es PRIVADO
+y las releases privadas dan 404 sin auth — el updater no funciona hasta
+hacer público el repo (o sus releases).
 
-## Retención de los logs (requisito del analizador)
+## Estado / pendientes
 
-Claude Code borra `~/.claude/projects/**/*.jsonl` a los **30 días** por
-defecto. El analizador de fugas compara ventanas ANTES y DESPUÉS de aplicar
-un fix, así que sin historial no tiene contra qué comparar — y lo borrado no
-se recupera. Se sube con `cleanupPeriodDays` en `~/.claude/settings.json`:
+- [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
+      umbral, 100%, ventana nueva reconocida por trackResets/
+      windowChanged), camino completo ntfy (push de alarma real, 100%, el
+      programado con PC apagada), y el aviso de hallazgos al cierre de
+      sesión (post-it/campana solos a los ~10-13 min, sin globo).
+- [ ] ERR_NO_PYTHON: alta de servidor sin Python debe fallar traducido
+      (necesita montar un host SSH sin Python).
+- [ ] Updater: decidir repo público + publicar tag v* y probar completo.
+- [ ] Capturas para el README (las hace Oscar).
+- APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
+  gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
+  herramientas, base de datos de historial, modo equipo/empresa.
 
-- VPS: puesto en **365** el 2026-07-29 (respaldo en `settings.json.bak`).
-- Windows de Oscar: **365** confirmado el 2026-07-29 (ya estaba puesto en su
-  `settings.json`; verificado por Oscar mirando el archivo). AMBOS lados
-  conservan ya un año de logs — el antes/después solo espera historial.
+## Consumo de recursos (medido en release)
+
+Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB** (la cifra
+honesta es `WorkingSetPrivate` — sumar WorkingSet64 cuenta doble la
+memoria compartida y dio 695). Lecciones: release NO baja la RAM (el
+peso son los ~9 procesos WebView2); el gatito NO es el culpable (dos
+veces lo pareció); cada ventana WebView2 tiene piso ~57 MB — por eso los
+pares de widget se crean/destruyen al cambiar de estilo.
+
+## Retención de logs
+
+Claude Code borra los .jsonl a los 30 días; el analizador necesita
+historial. `cleanupPeriodDays: 365` puesto en VPS y Windows (2026-07-29).
 
 ## Comandos
 
 ```powershell
 npm install        # CLI de Tauri (solo devDependency)
-npm run icons      # regenera src-tauri/icons desde app-icon.png
-npm run dev        # desarrollo (compila Rust la 1.ª vez, luego rápido)
-npm run build      # release: EXE + instalador NSIS en src-tauri/target/release/bundle/nsis/
+npm run icons      # regenera iconos desde app-icon.png
+npm run dev        # desarrollo
+npm run build      # release: NSIS en src-tauri/target/release/bundle/nsis/
 cd src-tauri; cargo check   # verificación rápida del backend
 ```
 
-Verificación obligatoria al terminar cualquier cambio en Rust: `cargo check`
-limpio dentro de `src-tauri`, y listar archivos tocados con el motivo.
-(En el VPS NO hay toolchain de Rust: es solo espejo de código. `cargo check`
-corre en el Windows de Oscar. CONSECUENCIA: al cambiar la FIRMA de una
-función hay que buscar TODOS sus usos con grep antes de subir — el
-compilador no está para avisar. Pasó el 2026-07-29 con `wsl_claude_dirs`:
-se actualizó el uso de la agregación y se olvidó el del token de
-respaldo, y el error lo descubrió Oscar al compilar.)
+Verificación obligatoria al terminar cualquier cambio en Rust: `cargo
+check` limpio y listar archivos tocados con motivo. En el VPS NO hay
+toolchain de Rust (espejo de código; `cargo check` corre en el Windows de
+Oscar) — al cambiar la FIRMA de una función, grep de TODOS sus usos antes
+de subir: el compilador no está para avisar.
 
-**Simulador** (Preferencias). Se adapta al widget elegido:
-- Con el GATITO ("🐱 Simular estados") recorre el ciclo COMPLETO —dibujo y
-  globo— en cinco pasos: normal (sin globo) → fire (globo de alarma, con TU
-  umbral configurado) → break → zzz → normal + globo de cuota restablecida.
-- Con la PASTILLA ("🔔 Simular avisos") no hay mascota que cambiar, así que
-  recorre los AVISOS, uno por severidad e icono del popover: alarma ámbar →
-  alarma roja → break → zzz → presupuesto (SOLO si el usuario configuró uno:
-  sin cifra real no se inventa un importe) → restablecida. La alarma sale dos
-  veces a propósito: verlas seguidas es la única forma de comparar ámbar y
-  rojo. El paso puede sobreescribir lo que calcula `balloonMeta()`.
-`simRunning` es la bandera de "simulación en curso" — NO `simMascot`, que
-con la pastilla es null siempre. Usa los datos reales cuando existen
-(tu `resets_at`, tu alarma) y solo inventa la fecha si aún no hay lectura.
-Los globos simulados NO tocan localStorage: al terminar no debe quedar
-ningún aviso pendiente falso; `processAcks()` y `notif:ack` se inhiben
-mientras corre, y `simStop()` llama a `processAcks()` para devolver el
-globo REAL que hubiera pendiente. Pausa AJUSTABLE entre cada paso
-(campo de minutos al lado, admite decimales: 0.5 = 30 s, mínimo 5 s,
-persistido en localStorage `simMin`), para ver el arte sin esperar a agotar
-la sesión o la semana. Mientras corre,
-`mascotState()` devuelve el estado forzado y los refrescos normales no lo
-pisan; vive en memoria (cerrar la app cancela). SOLO aparece en compilaciones
-de desarrollo (comando `is_dev` = `cfg!(debug_assertions)`), por eso es el
-único control cuyos textos no pasan por `t()` — nunca llega a un usuario.
+**Simulador** (solo dev, `is_dev`): "🐱 Simular estados" (gatito: ciclo
+dibujo+globo) / "🔔 Simular avisos" (pastilla: un aviso por severidad) /
+"🧪 Simular hallazgos" (tarjetas+post-its y fichas+resumen; dos pasos).
+`simRunning` es la bandera (NO simMascot). Los simuladores NUNCA tocan
+localStorage ni mandan pushes; al parar, `processAcks()` restaura lo
+real. Pausa ajustable (`simMin`, mínimo 5 s). Único control sin `t()`.
 
 ## Flujo de trabajo del repo
 
-- Remoto: `https://github.com/oscarorozcos/michiclaude` — PRIVADO a fecha
-  2026-07-29 (comprobado: da 404 sin sesión). La nota de "público desde
-  2026-07-24" era falsa. CONSECUENCIA para el auto-updater: los archivos de
-  una release privada NO se pueden descargar sin autenticación, así que el
-  endpoint configurado devolvería 404 a todo el mundo. El updater no puede
-  funcionar hasta que el repo (o al menos sus releases) sea público.
-- El desarrollo y las pruebas ocurren en el PC Windows de Oscar
-  (`C:\Users\oscar\Claude\MichiClaude` — mudado ahí el 2026-07-31 desde
-  Downloads; C:\Users\oscar\Claude es su carpeta madre para todos los
-  proyectos. OJO al mover un clon en Windows: target/ guarda rutas
-  ABSOLUTAS y el build script de Tauri falla con "failed to read plugin
-  permissions" apuntando a la ruta vieja — se arregla con `cargo clean`,
-  que además liberó 20 GB); en el VPS vive
-  un clon espejo (`/opt/projects/michiclaude`) para revisión de código.
-- Antes de empezar a trabajar en cualquiera de los dos lados: `git pull`.
-  Al terminar y verificar: commit (Conventional Commits en español) y push.
+- Remoto: `https://github.com/oscarorozcos/michiclaude` — **PRIVADO**.
+- Desarrollo y pruebas en el Windows de Oscar
+  (`C:\Users\oscar\Claude\MichiClaude`); en el VPS un clon espejo
+  (`/opt/projects/michiclaude`) para revisión. OJO al mover un clon en
+  Windows: `target/` guarda rutas absolutas → `cargo clean`.
+- Antes de trabajar en cualquier lado: `git pull`. Al terminar y
+  verificar: commit (Conventional Commits en español) y push.
+- La parte de negocio del analizador vive FUERA del repo
+  (`~/.michiclaude/notas-negocio-analizador.md`): el historial de git se
+  publica con el repo.
 
-## Contexto de producto (para decisiones de diseño)
+## Contexto de producto
 
-- Usuario objetivo: suscriptores Pro/Max que usan Claude Code y quieren saber
-  (1) cuánto les queda, (2) cuándo se les acaba al ritmo actual, (3) qué
-  proyecto/modelo consume más.
-- El coste en $ es **nocional** (equivalente API) para suscriptores; solo es
-  gasto real para usuarios de API key. La UI lo etiqueta como "equiv. API".
-- Competencia de referencia: ccusage (CLI, $/proyecto), claudeusagewin y
-  usage-monitor-for-claude (tray Windows con cuota real). Diferenciadores de
-  esta app: marcador de ritmo + proyección + franja
-  sobre la barra.
-- Se publicará en GitHub (GPL-3.0, releases automáticas por tag). La confianza del
-  usuario es prioridad: transparencia total sobre el manejo del token y el
-  disclaimer del endpoint no oficial.
+- Usuario objetivo: suscriptores Pro/Max de Claude Code que quieren saber
+  cuánto les queda, cuándo se les acaba al ritmo actual y qué proyecto/
+  modelo consume más.
+- El coste en $ es NOCIONAL (equiv. API) para suscriptores; la UI lo
+  etiqueta así.
+- Diferenciadores vs ccusage/claudeusagewin: cuota real + costo por
+  proyecto + multi-máquina + gatito (nadie tiene mascota). GPL-3.0 con
+  excepción de assets Bongo Cat; releases automáticas por tag. La
+  confianza es prioridad: transparencia total sobre el token y el
+  endpoint no oficial.
