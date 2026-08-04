@@ -18,8 +18,12 @@
     --acc:#2ea3b4;   /* turquesa del post-it de consejos (blanco legible) */
     /* zona de clic sobre la CABEZA del gato (abre el panel). Rectángulo
        invisible; el resto de la ventana —laptop y márgenes— solo arrastra.
-       Para calibrarla: pinta .head con background:rgba(255,0,0,.25) */
-    --hx:53%; --hy:47%; --hw:40%; --hh:39%;
+       Para calibrarla: pinta .head con background:rgba(255,0,0,.25).
+       RECALIBRADA 2026-08-04 midiendo los píxeles blancos del gif (la
+       original se pasaba 6% por la derecha y por arriba sobre el teclado
+       y el vacío, y dejaba fuera cachete izquierdo y barbilla — lo notó
+       Oscar). Cabeza medida: x[50%,86.5%] y[53%,87.5%] de la ventana. */
+    --hx:50%; --hy:52%; --hw:37%; --hh:36%;
     /* post-it de hallazgos nuevos pegado en la tapa de la laptop, lado
        izquierdo (iterado con Oscar en capturas, 2026-07-29). Variables
        para recalibrar sin tocar nada más, como la zona de la cabeza. */
@@ -109,6 +113,12 @@
     transition:opacity .15s;cursor:pointer;z-index:4}
   .tstack:hover{opacity:1}
   body.hastip .tstack{display:block}
+  /* pilita también aquí (Oscar 2026-08-04): dos orillas asoman por detrás,
+     como en la de hallazgos — una sola nota se leía como cuadrito */
+  .tstack i{position:absolute;inset:0;border:1.6px solid var(--ink);
+    border-radius:2px}
+  .tn1{background:var(--warn);transform:translate(2.5px,2px) rotate(-8deg)}
+  .tn2{background:var(--paper);transform:translate(-2px,2.5px) rotate(14deg)}
   .tbadge{position:absolute;inset:0;border:1.6px solid var(--ink);
     border-radius:2px;background:var(--acc);color:#fff;
     font-family:var(--mono);font-weight:800;font-size:9.5px;
@@ -127,7 +137,7 @@
 <img class="cat" id="cat" src="cat-black.gif" alt="" draggable="false">
 <button class="head" id="head" aria-label="MichiClaude"></button>
 <div class="fstack" id="fstack"><i class="fn2"></i><i class="fn1"></i><button class="fbadge" id="fbadge">!</button></div>
-<div class="tstack" id="tstack"><button class="tbadge" id="tbadge">!</button></div>
+<div class="tstack" id="tstack"><i class="tn2"></i><i class="tn1"></i><button class="tbadge" id="tbadge">!</button></div>
 <div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b></div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.

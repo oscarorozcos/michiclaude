@@ -1419,7 +1419,7 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           "Los subagentes trabajaron 44 turnos aparte · local · $2.33 ·
           399k tok" — cargo check limpio y la cadena completa
           subcarpeta→escaneo→tarjeta funcionando con su exploración real.
-          Y de esa ronda, DOS ajustes de UI (2026-08-04): las tarjetas de
+          Y de esa ronda, ajustes de UI (2026-08-04): las tarjetas de
           Hallazgos se CONTRAEN con clic como las fichas de Consejos (se
           pliega solo la recomendación; título/origen/costo se quedan;
           pose recordada en localStorage fndMin, guard !simFnd; Ignorar
@@ -1427,6 +1427,24 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           por Oscar el mismo día, captura con 3 tarjetas plegadas), y quedó explicado
           que el contador de la pestaña no encendió por la trampa del
           vigilante — el escaneo corrió con la pestaña abierta.
+          MÁS TRES del mismo día (SIN validar en vivo): (1) la ZONA DE LA
+          CABEZA del gatito estaba mal calibrada DE ORIGEN (nunca se movió
+          — se verificó en el historial de git): se pasaba 6% por la
+          derecha y por arriba sobre teclado/vacío (clic ahí abría el
+          panel) y dejaba fuera cachete izquierdo y barbilla (ahí
+          arrastraba). Se RECALIBRÓ midiendo los píxeles blancos del gif
+          con un decodificador GIF propio en el VPS (scratchpad, stdlib
+          puro) y viendo las zonas dibujadas sobre el fotograma: cabeza
+          real x[50%,86.5%] y[53%,87.5%] → --hx:50% --hy:52% --hw:37%
+          --hh:36%. (2) El post-it TURQUESA del coach ahora es PILITA como
+          el rojo (dos orillas asoman detrás: ámbar y papel — una nota
+          sola se leía como cuadrito, mismo feedback que motivó su cinta).
+          (3) La etiqueta del interruptor del widget decía solo
+          "hallazgos" pero SIEMPRE cubrió también al coach (fnd y coach
+          pasan ambos por fndBadgeOn() en el resumen): ahora dice
+          "Avisarme en el widget (hallazgos y consejos)" ×8 idiomas.
+          Aclarado además: apagarlo deja los contadores de pestaña
+          SIEMPRE encendidos en el panel — no interrumpen.
       [x] detector de hooks con un hook real VALIDADO 2026-08-04 (captura
           de Oscar): hook PostToolUse de prueba en test-hook (imprime
           ~3.4k chars por disparo) + tanda de 20 Write con Haiku vía
