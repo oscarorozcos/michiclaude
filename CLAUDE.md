@@ -61,6 +61,9 @@ app-icon.png            # Fuente de iconos (npm run icons los genera)
 **B) Detalle local — comando `get_local_stats` (Rust):**
 1. Parsea `~/.claude/projects/**/*.jsonl` (solo actividad de Claude Code en
    esta máquina; los chats de claude.ai web NO dejan logs locales).
+   "**/*" incluye `<sesión>/subagents/agent-*.jsonl` vía `project_jsonls()`
+   (2026-08-04): Claude Code moderno pone ahí los transcripts de los
+   subagentes — sin entrar a esa subcarpeta, sus tokens no se cobraban.
 2. **Deduplicación** por `message.id + requestId` (los .jsonl duplican
    entradas por reanudaciones/streaming).
 3. Tokens "de trabajo" = input + output + cache_write. **`cache_read` se
@@ -1303,7 +1306,14 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       abajo por costo — no describen actividad sino configuración. El
       TOPE de 12 sigue cortando por costo en el backend: solo cambia el
       orden de lectura. Verificado con datos reales del VPS (regresión
-      byte-idéntica salvo los ts nuevos, 10/10 hallazgos iguales). PROBAR: sesión de Claude Code en Windows con trabajo real
+      byte-idéntica salvo los ts nuevos, 10/10 hallazgos iguales).
+      Y LO MISMO EN CONSEJOS (2026-08-04, pedido de Oscar al ver su ficha
+      fresca del caché debajo de dos recibos viejos): renderTips junta las
+      tarjetas VIVAS (recibos y fichas calientes) en UNA corriente ordenada
+      por `born` desc — la más reciente arriba —; las fichas frías del
+      catálogo quedan abajo en su orden de siempre. Solo frontend
+      (index.html); el blindaje del recibo malformado pasó a ser por
+      tarjeta (una rota ya no tumba a las demás). PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo
@@ -1362,7 +1372,32 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           (pcard) ahora pinta el motivo con la misma regla que el gatito
           (antes del early-return de ok:false). La cápsula se queda sin
           texto a propósito: mide 54 px.
-      [ ] tarjeta de subagentes con datos reales (isSidechain en Windows)
+      [~] tarjeta de subagentes con datos reales — LA PRUEBA DESTAPÓ UN BUG
+          GORDO (2026-08-04): Claude Code moderno (visto en v2.1.221) YA NO
+          escribe los turnos del subagente en el .jsonl de la sesión con
+          isSidechain:true — los pone en <sesión>/subagents/agent-*.jsonl,
+          una SUBCARPETA a la que ningún escáner entraba (todos recorrían
+          la carpeta del proyecto PLANA). Consecuencia doble: el detector
+          de subagentes era ciego ante subagentes reales (se validó con
+          fixture sintético del formato viejo) y sus tokens TAMPOCO
+          entraban al costo por proyecto. Lo cazó Oscar: lanzó un Explore
+          real con Opus ("Backgrounded agent · finished 3m59s") y el conteo
+          de isSidechain:true en los .jsonl planos dio CERO. Verificado en
+          el VPS generando un subagente-sonda y mirando su transcript:
+          sessionId = el de la sesión MADRE, isSidechain:true, usage
+          normal. ARREGLO (mismo día): project_jsonls() en lib.rs y
+          meter-export.py (planos + */subagents/*.jsonl) usado por la
+          agregación y por scan_findings; y como el sessionId es el de la
+          madre, los turnos sidechain YA NO tocan el estado de la sesión
+          (turns/first_cr/last_cr/cr_cost/cb) — su cache_read chico
+          rompería el detector de infladas y fabricaría rupturas; solo
+          suman a su tarjeta. Sus tool_use SÍ cuentan (un MCP invocado por
+          el subagente ES un MCP usado). El coach queda plano a propósito
+          (excluye sidechains). Regresión en el VPS: mismos hallazgos,
+          +1 archivo, +8,558 tokens y +$0.06 — exactamente la sonda.
+          FALTA: cargo check en Windows y ver la tarjeta con la
+          exploración real de Oscar (su agente leyó index.html y lib.rs
+          enteros — debe cruzar el umbral de 50k con holgura).
       [x] detector de hooks con un hook real VALIDADO 2026-08-04 (captura
           de Oscar): hook PostToolUse de prueba en test-hook (imprime
           ~3.4k chars por disparo) + tanda de 20 Write con Haiku vía

@@ -375,6 +375,16 @@ def mcp_servers_configured():
     return out
 
 
+def project_jsonls(proj):
+    """Los .jsonl de un proyecto: los planos MÁS los transcripts de
+    subagentes. Claude Code moderno (visto en v2.1.221, 2026-08-04) ya no
+    escribe los turnos del subagente en el archivo de la sesión — los pone
+    en <sesión>/subagents/agent-*.jsonl. Sin entrar ahí, ni el costo por
+    proyecto ni el detector de subagentes los ven. Mantener en sincronía
+    con project_jsonls() de lib.rs."""
+    return sorted(proj.glob("*.jsonl")) + sorted(proj.glob("*/subagents/*.jsonl"))
+
+
 def scan_findings(projects_dir, window_ago, days):
     """Corre los detectores sobre la ventana pedida y devuelve la lista de
     hallazgos, la más cara primero. Relee los .jsonl (sin caché): solo corre
@@ -418,7 +428,7 @@ def scan_findings(projects_dir, window_ago, days):
         for proj in sorted(projects_dir.iterdir()):
             if not proj.is_dir():
                 continue
-            for f in sorted(proj.glob("*.jsonl")):
+            for f in project_jsonls(proj):
                 try:
                     if f.stat().st_mtime < skip_before:
                         continue
@@ -527,17 +537,22 @@ def scan_findings(projects_dir, window_ago, days):
                     cw = usage.get("cache_creation_input_tokens") or 0
                     cr = usage.get("cache_read_input_tokens") or 0
                     pi, po, pcw, pcr = price_for(model)
-                    S["turns"] += 1
-                    S["ts"] = max(S["ts"], int(ts.timestamp()))  # última actividad -> Finding.ts (epoch, como Rust)
-                    S["models"][model] = S["models"].get(model, 0) + 1
-                    if S["first_cr"] is None:
-                        S["first_cr"] = cr
-                    S["last_cr"] = cr
-                    S["cr_cost"] += cr * pcr / 1e6   # MEDIDO: releer el contexto
-                    # hilo principal en orden para el detector de rupturas;
-                    # los subagentes llevan SU contexto y mezclarlos
-                    # fabricaría rupturas que no existieron
+                    # los subagentes llevan SU contexto y SU sessionId es el
+                    # de la sesión MADRE (verificado 2026-08-04 con un
+                    # transcript real): si tocaran el estado de la sesión,
+                    # su cache_read chico rompería first/last_cr (infladas)
+                    # y fabricaría rupturas que no existieron. Solo suman a
+                    # su propia tarjeta; sus tool_use de abajo sí cuentan
+                    # (un MCP invocado por el subagente ES un MCP usado).
                     if not v.get("isSidechain"):
+                        S["turns"] += 1
+                        S["ts"] = max(S["ts"], int(ts.timestamp()))  # última actividad -> Finding.ts (epoch, como Rust)
+                        S["models"][model] = S["models"].get(model, 0) + 1
+                        if S["first_cr"] is None:
+                            S["first_cr"] = cr
+                        S["last_cr"] = cr
+                        S["cr_cost"] += cr * pcr / 1e6   # MEDIDO: releer el contexto
+                        # hilo principal en orden para el detector de rupturas
                         S["cb"].append((ts, model, cr, cw))
                     else:
                         # subagentes: costo MEDIDO de su propio usage — ya
@@ -817,7 +832,7 @@ def main():
             if not proj.is_dir():
                 continue
             raw = proj.name
-            for f in sorted(proj.glob("*.jsonl")):
+            for f in project_jsonls(proj):
                 try:
                     st = f.stat()
                 except OSError:

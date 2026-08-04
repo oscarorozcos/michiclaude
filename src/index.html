@@ -3836,31 +3836,35 @@ function renderTips(){
   // y caducan solas a las 24 h. Ver la pestaña apaga el aviso pero NO las
   // despacha. En simulador se leen de coachHits: el sim no toca disco.
   const cards=simFnd?coachHits.map(h=>({h})):coachCardsStore();
-  let sums=q?[]:cards.filter(c=>c.h.rule==="sum");
+  const sums=q?[]:cards.filter(c=>c.h.rule==="sum");
   // mini-auditoría del cierre: el costo medido de la sesión y, si algún
   // detector disparó sobre ELLA, la fuga con su hecho medido. El dinero y el
   // detalle viven AQUÍ — por ntfy solo viajó el conteo.
   // BLINDADO: un recibo con datos inesperados no puede dejar la pestaña en
   // blanco — las 6 fichas estáticas se pintan pase lo que pase.
-  let sumHtml="";
-  try{
-    sumHtml=sums.map(c=>{const h=c.h;
-      return `<div class="fnd tip${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
+  // Las VIVAS (recibos y fichas calientes) van en UNA sola corriente
+  // ordenada por nacimiento, la más reciente ARRIBA (Oscar 2026-08-04:
+  // "conforme vayan saliendo"); las fichas frías del catálogo, abajo.
+  const live=[];
+  for(const c of sums){
+    try{
+      const h=c.h;
+      live.push({born:c.born||0, html:`<div class="fnd tip${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
       <button class="tip-x" aria-label="✕">✕</button>
       <div class="fnd-t">«${esc(h.title||h.project)}»</div>
       <div class="fnd-m">${t("tip_sum_t")} — ${esc(h.project)} · ${t("src_local")}</div>
       <div class="fnd-f">${t("tip_sum_line",h.value,h.cmds,h.edits)}${
         h.cost>0.005?` · ~$${(+h.cost).toFixed(2)}`:""}</div>
       ${(h.leaks||[]).map(l=>`<div class="fnd-f">⚠ ${tipLeak(l)}</div>`).join("")}
-    </div>`;}).join("");
-  }catch(_){ sums=[]; sumHtml=""; }
-  // fichas disparadas por el motor de reglas: primero, abiertas (salvo que
-  // el usuario las haya contraído) y con su línea "Ahora: <dato medido>"
+    </div>`});
+    }catch(_){/* un recibo malformado no tumba a los demás */}
+  }
+  // fichas disparadas por el motor de reglas: abiertas (salvo que el
+  // usuario las haya contraído) y con su línea "Ahora: <dato medido>"
   const hot={}; cards.forEach(c=>{ if(c.h.rule!=="sum"&&!(c.h.rule in hot)) hot[c.h.rule]=c; });
-  const ids=[...TIPS].sort((a,b)=>((b in hot)?1:0)-((a in hot)?1:0));
-  const list=ids.filter(id=>!q ||
+  const ids=[...TIPS].filter(id=>!q ||
     (t("tip_"+id+"_t")+" "+t("tip_"+id+"_b")).toLowerCase().includes(q));
-  $("tipList").innerHTML=(sumHtml + list.map(id=>{
+  const tipHtml=id=>{
     const c=hot[id], h=c&&c.h;
     // la ficha disparada dice A QUÉ sesión aplicar el consejo: proyecto +
     // "local" — el coach solo mira esta máquina, y con el VPS abierto al
@@ -3873,7 +3877,11 @@ function renderTips(){
       <div class="fnd-t">${t("tip_"+id+"_t")}</div>
       ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value)} — ${donde}</div>`:""}
       <div class="fnd-f">${t("tip_"+id+"_b")}</div>
-    </div>`;}).join(""))
+    </div>`;};
+  for(const id of ids){ if(id in hot) live.push({born:hot[id].born||0, html:tipHtml(id)}); }
+  live.sort((a,b)=>b.born-a.born);
+  $("tipList").innerHTML=(live.map(x=>x.html).join("") +
+    ids.filter(id=>!(id in hot)).map(tipHtml).join(""))
     || `<div style="font-size:11.5px;margin-top:10px;color:var(--txt-dim)">${t("tips_none")}</div>`;
   // clic en la tarjeta = contraer/expandir; si es una tarjeta viva, la pose
   // se RECUERDA (min) para poder "leerla más tarde"

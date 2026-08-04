@@ -1409,6 +1409,32 @@ fn parse_jsonl_file(
     (display, entries, dups)
 }
 
+/// Los .jsonl de una carpeta de proyecto: los planos MÁS los transcripts de
+/// subagentes. Claude Code moderno (visto en v2.1.221, 2026-08-04) ya no
+/// escribe los turnos del subagente en el archivo de la sesión con
+/// isSidechain:true — los pone en <sesión>/subagents/agent-*.jsonl. Sin
+/// entrar ahí, ni el costo por proyecto ni el detector de subagentes los ven.
+fn project_jsonls(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    let Ok(files) = fs::read_dir(dir) else { return out };
+    for f in files.flatten() {
+        let p = f.path();
+        if p.is_dir() {
+            if let Ok(subs) = fs::read_dir(p.join("subagents")) {
+                for s in subs.flatten() {
+                    let sp = s.path();
+                    if sp.extension().and_then(|e| e.to_str()) == Some("jsonl") {
+                        out.push(sp);
+                    }
+                }
+            }
+        } else if p.extension().and_then(|e| e.to_str()) == Some("jsonl") {
+            out.push(p);
+        }
+    }
+    out
+}
+
 fn scan_projects_dir(
     projects_dir: &std::path::Path,
     suffix: Option<&str>,
@@ -1445,13 +1471,8 @@ fn scan_projects_dir(
             by_model: HashMap::new(),
         });
 
-        let Ok(files) = fs::read_dir(proj.path()) else { continue };
-        for f in files.flatten() {
-            let path = f.path();
-            if path.extension().map(|e| e != "jsonl").unwrap_or(true) {
-                continue;
-            }
-            let Ok(meta) = f.metadata() else { continue };
+        for path in project_jsonls(&proj.path()) {
+            let Ok(meta) = fs::metadata(&path) else { continue };
             let mtime = meta
                 .modified()
                 .ok()
@@ -2145,15 +2166,10 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                 continue;
             }
             let proj_name = proj.file_name().to_string_lossy().to_string();
-            let Ok(files) = fs::read_dir(&ppath) else { continue };
-            for f in files.flatten() {
-                let fp = f.path();
-                if fp.extension().and_then(|e| e.to_str()) != Some("jsonl") {
-                    continue;
-                }
+            for fp in project_jsonls(&ppath) {
                 // demasiado viejo para la ventana: ni se abre (mismo margen
                 // de 2 días que el exportador)
-                if let Ok(md) = f.metadata() {
+                if let Ok(md) = fs::metadata(&fp) {
                     if let Ok(mt) = md.modified() {
                         let secs = mt
                             .duration_since(std::time::UNIX_EPOCH)
@@ -2317,19 +2333,25 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                                 st.disp = b;
                             }
                         }
-                        st.turns += 1;
-                        st.last_ts = st.last_ts.max(ts.timestamp());
-                        *st.models.entry(model.clone()).or_insert(0) += 1;
-                        if st.first_cr.is_none() {
-                            st.first_cr = Some(cr);
-                        }
-                        st.last_cr = cr;
-                        // MEDIDO: lo que costó releer el contexto en este turno
-                        st.cr_cost += cost_of(&model, 0, 0, 0, cr);
-                        // hilo principal para el detector de rupturas; los
-                        // subagentes llevan SU contexto y mezclarlos
-                        // fabricaría rupturas que no existieron
+                        // los subagentes llevan SU contexto y SU sessionId es
+                        // el de la sesión MADRE (verificado 2026-08-04 con un
+                        // transcript real): si tocaran el estado de la sesión,
+                        // su cache_read chico rompería first/last_cr
+                        // (infladas) y fabricaría rupturas que no existieron.
+                        // Solo suman a su propia tarjeta; sus tool_use de
+                        // abajo sí cuentan (un MCP invocado por el subagente
+                        // ES un MCP usado).
                         if !v["isSidechain"].as_bool().unwrap_or(false) {
+                            st.turns += 1;
+                            st.last_ts = st.last_ts.max(ts.timestamp());
+                            *st.models.entry(model.clone()).or_insert(0) += 1;
+                            if st.first_cr.is_none() {
+                                st.first_cr = Some(cr);
+                            }
+                            st.last_cr = cr;
+                            // MEDIDO: lo que costó releer el contexto en este turno
+                            st.cr_cost += cost_of(&model, 0, 0, 0, cr);
+                            // hilo principal en orden para el detector de rupturas
                             st.cb.push((ts.timestamp(), model.clone(), cr, cw));
                         } else {
                             // subagentes: costo MEDIDO de su propio usage —
