@@ -1324,8 +1324,12 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           inline tipo Tabler, #fbbf24 oscuro / #e0930b claro, pulso al
           clic) en vez del punto acento; en el GATITO sigue el post-it
           turquesa. La campana roja queda para hallazgos.
-      [ ] ver el foco ámbar en la pastilla (recién cambiado)
-      [ ] punto turquesa del coach en la PASTILLA (cambiar de widget)
+      [x] foco ámbar en la pastilla VALIDADO 2026-08-04 (captura de Oscar
+          con el simulador de hallazgos): campana roja y foco ámbar
+          conviven en la cápsula, cada uno con su color. Este cierre cubre
+          también el viejo pendiente del "punto turquesa en la pastilla" —
+          ese punto YA NO EXISTE ahí (lo sustituyó el foco ámbar en el
+          rediseño); el turquesa quedó solo en el post-it del gatito.
       [x] VALIDADO 2026-08-01 con capturas de Oscar: pie del gasto SOLO en
           Principal, pestañas en dos líneas sin barra horizontal, Sí/No del
           "Canal nuevo", y la cabecera del detalle limpia (asa, gatito y
