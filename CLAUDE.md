@@ -1445,6 +1445,20 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           "Avisarme en el widget (hallazgos y consejos)" ×8 idiomas.
           Aclarado además: apagarlo deja los contadores de pestaña
           SIEMPRE encendidos en el panel — no interrumpen.
+          Y PULIDO VISUAL de la misma noche (pedidos de Oscar, SIN validar
+          en vivo): (a) post-it turquesa más grande (.95bs, fuente 10.5) y
+          más separado de la pilita roja (offset 1.8bs); (b) CONTRASTE de
+          los avisos acento — el contador de Consejos ponía blanco sobre
+          #56c7d6 (~2:1, invisible) y ahora usa --accent-ink (tinta
+          #0c2f36 en oscuro >8:1, blanco en claro donde el acento es
+          profundo), y el papel del post-it turquesa pasó de #2ea3b4 a
+          #128097 para que su número blanco dé ~4.7:1 (regla UX: el color
+          del texto se elige según el fondo, nunca blanco fijo sobre
+          acento claro); (c) el HOVER del globo resumen vive ahora SOLO
+          en la cabeza del gato — pasar el mouse por la laptop ya no lo
+          despliega; salir de la ventana entera lo pliega (así no
+          parpadea al cruzar de la cabeza a la laptop) y rozar la cabeza
+          <300ms cancela el temporizador para que no salga tarde.
       [x] detector de hooks con un hook real VALIDADO 2026-08-04 (captura
           de Oscar): hook PostToolUse de prueba en test-hook (imprime
           ~3.4k chars por disparo) + tanda de 20 Write con Haiku vía

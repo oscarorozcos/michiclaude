@@ -14,6 +14,10 @@
     --stroke-soft:rgba(255,255,255,.055);
     --txt:#e9ebef; --txt-mut:#969ba6; --txt-dim:#6c717c;
     --brand:#d97757; --accent:#56c7d6;
+    /* texto SOBRE el acento (contador de Consejos): el blanco sobre #56c7d6
+       da ~2:1 y no se distingue (lo notó Oscar 2026-08-04); un tinta oscura
+       da >8:1. En claro el acento es profundo y ahí el blanco sí funciona. */
+    --accent-ink:#0c2f36;
     --accent-weak:rgba(86,199,214,.14); --accent-line:rgba(86,199,214,.35);
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
     --track:rgba(255,255,255,.08);
@@ -27,6 +31,7 @@
     /* teal profundo: el #56c7d6 brillante queda lavado sobre blanco (contraste
        ~1.7:1). Este da ~4.7:1 — legible en pestañas, enlaces y barras. */
     --accent:#0b7c8c;
+    --accent-ink:#fff;
     --accent-weak:rgba(11,124,140,.12); --accent-line:rgba(11,124,140,.30);
     --track:rgba(0,0,0,.09);
   }
@@ -136,7 +141,7 @@
   /* ficha disparada por el motor de reglas: la línea "Ahora: ..." lleva el
      dato MEDIDO de la sesión activa, en acento — consejo, no alarma */
   .fnd.tip .fnd-m{color:var(--accent)}
-  .tab .tdot.acc{background:var(--accent)}
+  .tab .tdot.acc{background:var(--accent);color:var(--accent-ink)}
   .fnd.tip.open{border-left-color:var(--accent)}
   .fnd.tip.open .fnd-f{display:block}
   /* ✕ de las tarjetas VIVAS del coach (recibos y "Ahora"): como en

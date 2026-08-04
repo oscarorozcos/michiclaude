@@ -15,7 +15,10 @@
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
     --ink:#111; --paper:#FDFCF9; --brand:#d97757;
     --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
-    --acc:#2ea3b4;   /* turquesa del post-it de consejos (blanco legible) */
+    /* turquesa del post-it de consejos, PROFUNDO a propósito: con el
+       #2ea3b4 anterior el número blanco daba ~2.7:1 de contraste y no se
+       leía (lo notó Oscar 2026-08-04); este da ~4.7:1. */
+    --acc:#128097;
     /* zona de clic sobre la CABEZA del gato (abre el panel). Rectángulo
        invisible; el resto de la ventana —laptop y márgenes— solo arrastra.
        Para calibrarla: pinta .head con background:rgba(255,0,0,.25).
@@ -107,9 +110,11 @@
   /* post-it ACENTO de consejos, asomado junto a la pilita roja: consejo,
      no alarma (rojo = hallazgos). Solo con aviso del coach (hastip);
      clic = panel directo en Consejos. */
-  .tstack{position:absolute;left:calc(var(--bx) + var(--bs)*1.35);
-    top:calc(var(--by) + var(--bs)*0.55);width:calc(var(--bs)*.82);
-    height:calc(var(--bs)*.82);display:none;opacity:.78;
+  /* tamaño y separación subidos el 2026-08-04 (Oscar: se veía chiquito y
+     muy pegado a la pilita roja cuando salen los dos juntos) */
+  .tstack{position:absolute;left:calc(var(--bx) + var(--bs)*1.8);
+    top:calc(var(--by) + var(--bs)*0.5);width:calc(var(--bs)*.95);
+    height:calc(var(--bs)*.95);display:none;opacity:.78;
     transition:opacity .15s;cursor:pointer;z-index:4}
   .tstack:hover{opacity:1}
   body.hastip .tstack{display:block}
@@ -121,7 +126,7 @@
   .tn2{background:var(--paper);transform:translate(-2px,2.5px) rotate(14deg)}
   .tbadge{position:absolute;inset:0;border:1.6px solid var(--ink);
     border-radius:2px;background:var(--acc);color:#fff;
-    font-family:var(--mono);font-weight:800;font-size:9.5px;
+    font-family:var(--mono);font-weight:800;font-size:10.5px;
     display:flex;align-items:center;justify-content:center;padding:0;
     transform:rotate(9deg);cursor:pointer;
     box-shadow:0 2px 3px rgba(0,0,0,.3)}
@@ -223,13 +228,21 @@ function foldBubble(){
   // si había una alarma pendiente, su globo vuelve (el panel la re-muestra)
   EVENT?.emit("notif:ready");
 }
-document.body.addEventListener("mouseenter",()=>{
+// el hover que abre el globo vive SOLO en la cabeza del gato (Oscar
+// 2026-08-04: pasar el mouse por la laptop no debe desplegar el resumen).
+// Salir de la VENTANA entera lo pliega — así el globo no parpadea al
+// cruzar de la cabeza a la laptop.
+$("head").addEventListener("mouseenter",()=>{
   clearTimeout(hoverT);
   hoverT=setTimeout(()=>{
     document.body.classList.add("hovering");
     invoke?.("hover_card",{hovering:true});
   },300);
 });
+// rozar la cabeza <300ms y seguir a la laptop NO debe disparar el globo
+// tarde: el temporizador se cancela al salir de la cabeza (si el globo ya
+// está abierto, se queda hasta salir de la ventana)
+$("head").addEventListener("mouseleave",()=>clearTimeout(hoverT));
 document.body.addEventListener("mouseleave",foldBubble);
 
 // la LAPTOP y los márgenes son asa de arrastre (se puede llevar a cualquier
