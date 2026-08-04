@@ -1238,7 +1238,8 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       simulador. Ciclo completo probado con arnés en el VPS (nacer →
       reemplazo → visto → contraído → ✕ → caducar). Detalle en
       docs/consejos-coach.md §8bis. Las FICHAS con ✕ ya se vieron en vivo
-      (capturas de Oscar 2026-08-03); falta el recibo.
+      (capturas de Oscar 2026-08-03); y el RECIBO del ciclo nuevo quedó
+      VALIDADO el 2026-08-04 (ver la entrada del resumen de sesión, abajo).
       Y DE ESA MISMA PRUEBA, UN BUG GORDO (2026-08-03, a0d02bc): con tres
       fichas calientes encendidas (162k ctx, 10 relecturas) NO salieron ni
       el push de "terminó" ni el recibo — un PENDIENTE FANTASMA:
@@ -1313,9 +1314,18 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       LISTA DE PRUEBAS PENDIENTES (Oscar pidió mantenerla; se van
       cerrando conforme mande capturas — actualizar aquí):
       [x] cargo check del resumen de sesión — limpio 2026-07-31 (4.54s)
-      [ ] resumen de sesión en vivo (receta arriba; el simulador nuevo
-          enseña la tarjeta al instante, pero la detección real sigue
-          pendiente)
+      [x] resumen de sesión en vivo VALIDADO 2026-08-04 (captura +
+          bitácora de Oscar, sesión real en test-local): ficha del caché
+          en vivo 17:25 (7 min de pausa, 39k ctx) → push "terminó · 2 min,
+          18 turnos · 1 aviso" 17:28 → recibo «Crear calculadora Python
+          con pruebas» (~$1.10, ⚠ cerró con 39k) 17:31 → vistas con foco
+          17:33 apagando el aviso — el ciclo §8bis entero con datos
+          reales, incluido el fix del "visto sin verse". DE PASO reapareció
+          la confusión documentada del 2026-08-02, ahora al revés: push
+          "1 aviso" (las ⚠ del recibo) contra contador "2" del panel
+          (tarjetas vivas: ficha + recibo). Dos veces la misma duda ya es
+          señal — si vuelve, considerar renombrar el sufijo del push
+          (p. ej. "· 1 fuga en esta sesión").
       [x] simulador de hallazgos: VALIDADO 2026-07-31 con capturas de
           Oscar — tarjetas, contadores 4/3, globo del día, post-it rojo
           del gatito y los indicadores de la pastilla, todo a la primera.
