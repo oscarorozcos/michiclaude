@@ -1445,8 +1445,12 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           "Avisarme en el widget (hallazgos y consejos)" ×8 idiomas.
           Aclarado además: apagarlo deja los contadores de pestaña
           SIEMPRE encendidos en el panel — no interrumpen.
-          Y PULIDO VISUAL de la misma noche (pedidos de Oscar, SIN validar
-          en vivo): (a) post-it turquesa más grande (.95bs, fuente 10.5) y
+          Y PULIDO VISUAL de la misma noche (pedidos de Oscar; (a) y (b)
+          VALIDADOS en vivo el 2026-08-04 con su captura — pilita
+          turquesa con orillas, separada de la roja, y contadores de
+          pestaña legibles en ambos colores; del (c) falta confirmar el
+          hover y los clics de la cabeza recalibrada):
+          (a) post-it turquesa más grande (.95bs, fuente 10.5) y
           más separado de la pilita roja (offset 1.8bs); (b) CONTRASTE de
           los avisos acento — el contador de Consejos ponía blanco sobre
           #56c7d6 (~2:1, invisible) y ahora usa --accent-ink (tinta
