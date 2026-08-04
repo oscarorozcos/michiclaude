@@ -563,6 +563,16 @@ cuota — pero eso no sale de los logs.
       PARA PROBARLO EN VIVO: borrar fndAutoLast, fndNudged y fndSeen del
       localStorage del panel y recargar — a los 90 s corre el escaneo y si
       hay un hallazgo de hoy ≥$1 sale el globo.
+      ELIMINADO 2026-08-04 (decisión de Oscar tras un mes de uso): el
+      globo era más intrusivo que útil. Su sustituto: el post-it rojo /
+      campana / contador de pestaña se encienden cada vez que hay
+      hallazgos NO VISTOS — como Consejos — y para que eso pase el mismo
+      día, la pasada ligera de 1d también se dispara al NACER UN RECIBO
+      (sesión local terminada), con freno de 15 min (fndEventLast). La
+      diaria de 20 h queda de respaldo (hallazgos del VPS que nacen sin
+      cerrar sesión local). Todo el aparato del globo (fndNudge,
+      fndNudgeUsd, fndNudged, fndNudgeSev, el campo de Preferencias, las
+      claves fnd_nudge_* y el kind "findings" de notif.html) se retiró.
 - [ ] Fix personalizado por entrypoint (VS Code vs. terminal, respaldo
       genérico — mismo patrón que prettyModel/price_for).
 - [ ] El antes/después (necesita semanas de historial).

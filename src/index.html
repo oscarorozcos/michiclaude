@@ -598,11 +598,6 @@
       <label class="cfg-row" style="cursor:pointer;margin-top:2px">
         <input type="checkbox" id="fndBadgeChk"> <span data-i18n="fnd_badge_label"></span>
       </label>
-      <!-- El globo del día: umbral en dólares (propuesta de Oscar). Por
-           debajo solo el post-it; a partir de aquí, globo con texto.
-           Comparte el interruptor de arriba: un concepto, un apagador. -->
-      <div class="cfg-lbl" data-i18n="fnd_nudge_lbl"></div>
-      <input id="fndNudgeIn" type="number" min="0" step="0.5" style="max-width:80px" placeholder="$">
       <!-- Simulador de estados del gatito: SOLO visible en compilaciones de
            desarrollo (is_dev). Nunca llega a un usuario, por eso es el único
            control cuyos textos no pasan por t(). -->
@@ -871,8 +866,6 @@ en:{
   fnd_hooks_f:"Everything a hook prints joins the context of that turn — and travels again with every turn after it. If it has nothing to say, exiting silently (exit 0, no output) is free.",
   fnd_claudemd_t:n=>`${n} CLAUDE.md lines mention things with no recent trace`,
   fnd_claudemd_f:"CLAUDE.md travels whole with every conversation. These lines mention paths or commands that never showed up in this window's logs — worth checking if they still earn their place. Deleting is free (only the next message rebuilds the cache once); if something is used only now and then, keep it.",
-  fnd_nudge_lbl:"Balloon when a new finding exceeds ($)",
-  fnd_nudge_sub:"Click to see the details",
   tips_tab:"Tips",
   tips_title:"Tips to stretch your quota",
   tips_intro:"Short hand-written cards — no AI, no network. They update with each app release. Tap one to open it.",
@@ -1112,8 +1105,6 @@ es:{
   fnd_hooks_f:"Todo lo que un hook imprime entra al contexto de ese turno — y vuelve a viajar con cada turno posterior. Si no tiene nada que decir, callar (exit 0 sin salida) sale gratis.",
   fnd_claudemd_t:n=>`${n} líneas del CLAUDE.md mencionan cosas sin rastro reciente`,
   fnd_claudemd_f:"El CLAUDE.md viaja entero con cada conversación. Estas líneas mencionan rutas o comandos que no aparecieron en los logs de esta ventana — vale la pena revisar si siguen ganándose su lugar. Borrar es gratis (solo el siguiente mensaje reconstruye el caché una vez); si algo se usa solo de vez en cuando, se queda.",
-  fnd_nudge_lbl:"Globo cuando un hallazgo nuevo supere ($)",
-  fnd_nudge_sub:"Clic para ver el detalle",
   tips_tab:"Consejos",
   tips_title:"Consejos para cuidar tu cuota",
   tips_intro:"Fichas cortas escritas a mano — sin IA, sin red. Se actualizan con cada versión de la app. Toca una para abrirla.",
@@ -1353,8 +1344,6 @@ pt:{
   fnd_hooks_f:"Tudo o que um hook imprime entra no contexto daquele turno — e viaja de novo a cada turno seguinte. Se não tem nada a dizer, calar (exit 0 sem saída) sai de graça.",
   fnd_claudemd_t:n=>`${n} linhas do CLAUDE.md mencionam coisas sem rastro recente`,
   fnd_claudemd_f:"O CLAUDE.md viaja inteiro com cada conversa. Estas linhas mencionam caminhos ou comandos que não apareceram nos logs desta janela — vale conferir se ainda merecem o lugar. Apagar é de graça (só a próxima mensagem reconstrói o cache uma vez); se algo se usa só de vez em quando, fica.",
-  fnd_nudge_lbl:"Balão quando um novo achado passar de ($)",
-  fnd_nudge_sub:"Clique para ver o detalhe",
   tips_tab:"Dicas",
   tips_title:"Dicas para render sua cota",
   tips_intro:"Fichas curtas escritas à mão — sem IA, sem rede. Atualizam com cada versão do app. Toque em uma para abrir.",
@@ -1594,8 +1583,6 @@ fr:{
   fnd_hooks_f:"Tout ce qu'un hook imprime entre dans le contexte de ce tour — et voyage à nouveau à chaque tour suivant. S'il n'a rien à dire, se taire (exit 0 sans sortie) ne coûte rien.",
   fnd_claudemd_t:n=>`${n} lignes du CLAUDE.md mentionnent des choses sans trace récente`,
   fnd_claudemd_f:"Le CLAUDE.md voyage en entier avec chaque conversation. Ces lignes mentionnent des chemins ou des commandes absents des journaux de cette fenêtre — cela vaut la peine de vérifier s'ils méritent encore leur place. Supprimer est gratuit (seul le message suivant reconstruit le cache une fois) ; ce qui ne sert que de temps en temps peut rester.",
-  fnd_nudge_lbl:"Bulle quand un nouveau constat dépasse ($)",
-  fnd_nudge_sub:"Cliquez pour voir le détail",
   tips_tab:"Conseils",
   tips_title:"Conseils pour économiser votre quota",
   tips_intro:"Fiches courtes écrites à la main — sans IA, sans réseau. Mises à jour à chaque version de l’app. Touchez-en une pour l’ouvrir.",
@@ -1835,8 +1822,6 @@ de:{
   fnd_hooks_f:"Alles, was ein Hook ausgibt, wandert in den Kontext dieses Zugs — und reist mit jedem weiteren Zug erneut mit. Wenn er nichts zu sagen hat, ist Schweigen (exit 0 ohne Ausgabe) kostenlos.",
   fnd_claudemd_t:n=>`${n} CLAUDE.md-Zeilen nennen Dinge ohne aktuelle Spur`,
   fnd_claudemd_f:"Die CLAUDE.md reist mit jeder Unterhaltung komplett mit. Diese Zeilen nennen Pfade oder Befehle, die in den Logs dieses Zeitraums nie auftauchten — es lohnt sich zu prüfen, ob sie ihren Platz noch verdienen. Löschen ist gratis (nur die nächste Nachricht baut den Cache einmal neu auf); was nur ab und zu gebraucht wird, bleibt.",
-  fnd_nudge_lbl:"Sprechblase, wenn ein neuer Befund ($) übersteigt",
-  fnd_nudge_sub:"Klicken für Details",
   tips_tab:"Tipps",
   tips_title:"Tipps, damit die Quota länger reicht",
   tips_intro:"Kurze, handgeschriebene Karten — ohne KI, ohne Netz. Sie aktualisieren sich mit jeder App-Version. Zum Öffnen antippen.",
@@ -2076,8 +2061,6 @@ ja:{
   fnd_hooks_f:"フックが出力した内容はそのターンのコンテキストに入り、以降のターンごとに再送されます。伝えることがなければ、何も出力せず終了（exit 0）すれば無料です。",
   fnd_claudemd_t:n=>`CLAUDE.mdの${n}行が最近使われていないものに言及しています`,
   fnd_claudemd_f:"CLAUDE.mdは会話のたびに丸ごと送られます。これらの行は、この期間のログに一度も現れなかったパスやコマンドに言及しています — まだ必要か見直す価値があります。削除は無料です（次のメッセージで一度だけキャッシュが再構築されます）。たまにしか使わないものは残してください。",
-  fnd_nudge_lbl:"新しい検出が ($) を超えたら吹き出しで知らせる",
-  fnd_nudge_sub:"クリックで詳細を表示",
   tips_tab:"ヒント",
   tips_title:"クォータを長持ちさせるヒント",
   tips_intro:"手書きの短いカードです — AIもネットも使いません。アプリの更新ごとに新しくなります。タップで開きます。",
@@ -2317,8 +2300,6 @@ ko:{
   fnd_hooks_f:"훅이 출력하는 모든 내용은 그 턴의 컨텍스트에 들어가고, 이후 매 턴마다 다시 전송됩니다. 전할 내용이 없다면 아무것도 출력하지 않고 종료(exit 0)하는 것이 무료입니다.",
   fnd_claudemd_t:n=>`CLAUDE.md의 ${n}개 줄이 최근 흔적 없는 것을 언급합니다`,
   fnd_claudemd_f:"CLAUDE.md는 대화마다 통째로 전송됩니다. 이 줄들은 이 기간의 로그에 한 번도 나타나지 않은 경로나 명령을 언급합니다 — 아직 자리를 차지할 가치가 있는지 확인해 볼 만합니다. 삭제는 무료입니다(다음 메시지에서 캐시가 한 번만 재구축됩니다). 가끔만 쓰는 것은 남겨 두세요.",
-  fnd_nudge_lbl:"새 발견 항목이 ($) 를 넘으면 말풍선 알림",
-  fnd_nudge_sub:"클릭하면 자세히 보기",
   tips_tab:"팁",
   tips_title:"쿼터를 아끼는 팁",
   tips_intro:"손으로 쓴 짧은 카드입니다 — AI도 네트워크도 쓰지 않습니다. 앱 업데이트마다 갱신됩니다. 눌러서 여세요.",
@@ -2558,8 +2539,6 @@ zh:{
   fnd_hooks_f:"钩子打印的所有内容都会进入该轮的上下文，并随之后的每一轮再次传送。如果没有要说的，安静退出（exit 0 且无输出）是免费的。",
   fnd_claudemd_t:n=>`CLAUDE.md 有 ${n} 行提到近期没有踪迹的内容`,
   fnd_claudemd_f:"CLAUDE.md 每次对话都会完整传送。这些行提到的路径或命令在此时间窗的日志中从未出现——值得检查它们是否还配得上这个位置。删除是免费的（只有下一条消息会重建一次缓存）；偶尔才用的内容请保留。",
-  fnd_nudge_lbl:"新发现超过 ($) 时弹出气泡",
-  fnd_nudge_sub:"点击查看详情",
   tips_tab:"技巧",
   tips_title:"让额度更耐用的技巧",
   tips_intro:"手写的简短卡片——不用 AI，不联网。随每个版本更新。点一下展开。",
@@ -3375,10 +3354,8 @@ function balloonMeta(kind){
   if(kind==="break")  return {sev:"danger", icon:"bolt", sub:""};
   if(kind==="zzz")    return {sev:"danger", icon:"week", sub:""};
   if(kind==="budget") return {sev:"warn",   icon:"warn", sub:""};
-  // globo del día de hallazgos: la severidad se decidió al dispararlo y se
-  // guarda para que sobreviva al ciclo hover -> notif:ready -> showBalloon
-  if(kind==="findings") return {sev:localStorage.getItem("fndNudgeSev")||"warn",
-    icon:"warn", sub:t("fnd_nudge_sub")};
+  // (el globo del día de hallazgos se ELIMINÓ el 2026-08-04 — su trabajo lo
+  // hace el post-it/campana, que ahora enciende al cierre de cada sesión)
   return {sev:"ok", icon:"ok", sub:""};      // sesión/semana restablecidas
 }
 function showBalloon(body, kind){
@@ -4080,7 +4057,7 @@ async function coachPoll(){
     const hoy=new Date().toISOString().slice(0,10);
     if(day.d!==hoy||!Array.isArray(day.keys)) day={d:hoy,keys:[]};
     const cards=coachCardsStore();
-    let dirty=false;
+    let dirty=false, sumBorn=false;
     for(const h of hits){
       const k=h.rule+"|"+h.session;
       if(seen.has(k)) continue;         // una vez por sesión y regla
@@ -4095,7 +4072,7 @@ async function coachPoll(){
       flog("coach: nace tarjeta "+k+(h.project?" ("+h.project+")":""));
       if(h.rule==="sum"){
         if(!cards.some(c=>c.h.rule==="sum"&&c.h.session===h.session)){
-          cards.push({h, born:Date.now()}); dirty=true;
+          cards.push({h, born:Date.now()}); dirty=true; sumBorn=true;
         }
       }else{
         // UNA tarjeta viva por regla: el "Ahora" es una foto del momento y
@@ -4112,6 +4089,10 @@ async function coachPoll(){
     renderTipsDot();
     if(lastPillArgs) emitPill(...lastPillArgs);   // el widget lo ve al instante
     if(!$("tab-tips").hidden) renderTips();
+    // sesión local terminada = el momento en que nacen hallazgos: pasada
+    // ligera para encender la campana/post-it el MISMO día (Oscar
+    // 2026-08-04; el freno de 15 min vive dentro de fndEventScan)
+    if(sumBorn) fndEventScan();
   }catch(_){/* sin backend o sin logs: el siguiente ciclo reintenta */}
 }
 setTimeout(coachPoll,60*1000);       // el primer sondeo, tras la carga inicial
@@ -4166,13 +4147,7 @@ const SF_STEPS=[
     if(lastPillArgs) emitPill(...lastPillArgs);
     return "hallazgos: tarjetas + post-it rojo";
   },
-  function(){   // 2: el globo del día, en rojo (pasa de $10)
-    simB={kind:"findings", sev:"danger",
-      body:`${t("fnd_cachebreak_t",15)} · ~$63.37`};
-    simBalloon(simB);
-    return "globo del día";
-  },
-  function(){   // 3: fichas calientes + resumen + post-it turquesa
+  function(){   // 2: fichas calientes + resumen + post-it turquesa
     simB=null; invoke?.("set_notif_visible",{visible:false});
     showTab("tips");
     coachHits=sfFakeCoach(); renderTipsDot(); renderTips();
@@ -4300,57 +4275,37 @@ function renderFndDot(){
   // la señal de "hay algo nuevo"; la severidad se ve en las tarjetas
   if(fndBadge) d.textContent=fndBadge.n>9?"9+":String(fndBadge.n);
 }
-async function fndAutoScan(){
+// La pasada ligera es COMPARTIDA: la diaria (respaldo, cubre hallazgos que
+// nacen sin cerrar sesiones locales — p. ej. del VPS) y la de CIERRE DE
+// SESIÓN (2026-08-04, decisión de Oscar: los hallazgos avisan el mismo día
+// por post-it/campana, como Consejos; el GLOBO del día se ELIMINÓ — era más
+// intrusivo y su trabajo lo hace el indicador pasivo).
+async function fndPass(tag){
   if(!invoke) return;
   if(simFnd) return;               // simulación en curso: no la pises
-  if(Date.now()-(+localStorage.getItem("fndAutoLast")||0)<FND_SCAN_MS) return;
   try{
     const list=await invoke("get_findings",{days:1});
-    flog("fnd: pasada diaria ok, "+(list||[]).length+" tarjetas (1d)");
+    flog("fnd: pasada "+tag+" ok, "+(list||[]).length+" tarjetas (1d)");
     localStorage.setItem("fndAutoLast",String(Date.now()));
-    // se guarda lo justo para el badge Y para el título del globo del día
+    // se guarda lo justo para el badge entre reinicios
     localStorage.setItem("fndAuto",JSON.stringify(
       (list||[]).map(f=>({k:fndKey(f),c:f.cost,mcp:f.kind==="mcp_unused",
         kind:f.kind,n:f.count||f.turns,sv:f.server}))));
     fndBadgeCalc();
-    fndNudge();
   }catch(_){/* sin datos o sin red: el siguiente tic reintenta */}
 }
-// ---------- el globo del día ----------
-// Un hallazgo NUEVO que duela en dólares merece un empujón activo, no solo
-// el post-it. Reglas (acordadas con Oscar 2026-07-30): máximo uno al día
-// (hereda la cadencia del escaneo), umbral en $ configurable, la CUOTA
-// siempre gana la prioridad de globos, sin toast de Windows (no es urgente:
-// sin widget queda el contador de la pestaña), y cada hallazgo se avisa UNA
-// sola vez en la vida (fndNudged) — el globo no persigue, como todo aquí.
-// Se despacha con la ✕ o al abrir el panel (regla única de los globos, vía
-// infoBalloon); si hoy no se pudo salir, el escaneo de mañana reintenta.
-function fndNudgeUsd(){
-  const v=parseFloat(localStorage.getItem("fndNudgeUsd"));
-  return isNaN(v)||v<0 ? 1 : v;
+async function fndAutoScan(){
+  if(Date.now()-(+localStorage.getItem("fndAutoLast")||0)<FND_SCAN_MS) return;
+  await fndPass("diaria");
 }
-function fndNudgedSet(){ try{ return new Set(JSON.parse(localStorage.getItem("fndNudged")||"[]")); }catch(_){ return new Set(); } }
-function fndNudge(){
-  if(simRunning) return;
-  if(!fndBadgeOn()) return;              // mismo interruptor que el post-it
-  if(!pillOn) return;                    // sin widget no hay dónde colgarlo
-  for(const k of ACK_KINDS)
-    if(localStorage.getItem("ackPending:"+k)==="1") return;   // la cuota gana
-  if(infoBalloon()) return;              // ya hay un globo informativo puesto
-  let saved=[]; try{ saved=JSON.parse(localStorage.getItem("fndAuto")||"[]"); }catch(_){ saved=[]; }
-  const seen=fndSeen(), ign=fndIgnored(), nudged=fndNudgedSet();
-  const cand=saved.filter(x=>!seen.has(x.k)&&!ign.has(x.k)&&!nudged.has(x.k)
-    &&x.c>0&&x.c>=fndNudgeUsd());
-  if(!cand.length) return;
-  cand.sort((a,b)=>b.c-a.c);
-  // TODOS los candidatos quedan avisados: un globo al día, no una cola
-  cand.forEach(x=>nudged.add(x.k));
-  localStorage.setItem("fndNudged",JSON.stringify([...nudged].slice(-300)));
-  const f=cand[0];
-  localStorage.setItem("fndNudgeSev", f.c>=10?"danger":"warn");
-  const title=f.kind?fndTitle({kind:f.kind,count:f.n,turns:f.n,server:f.sv})
-    :t("fnd_badge_tip",cand.length);     // entrada vieja sin kind: genérico
-  showBalloon(`${title} · ~$${f.c.toFixed(2)}`,"findings");
+// al nacer un recibo (sesión local terminada) — el momento en que suelen
+// nacer hallazgos. Freno propio: máx. una cada 15 min aunque cierren varias
+// sesiones juntas; el guard se marca ANTES para no reentrar.
+const FND_EVENT_MS=15*60*1000;
+async function fndEventScan(){
+  if(Date.now()-(+localStorage.getItem("fndEventLast")||0)<FND_EVENT_MS) return;
+  localStorage.setItem("fndEventLast",String(Date.now()));
+  await fndPass("por cierre de sesión");
 }
 setTimeout(fndAutoScan,90*1000);      // sin competir con la primera carga
 setInterval(fndAutoScan,30*60*1000);  // tic barato; el guard de 20 h decide
@@ -4370,11 +4325,6 @@ $("fndBadgeChk").addEventListener("change",()=>{
   else localStorage.setItem("fndBadgeOff","1");
   if(lastPillArgs) emitPill(...lastPillArgs);
 });
-$("fndNudgeIn").value=localStorage.getItem("fndNudgeUsd")||"1";
-$("fndNudgeIn").addEventListener("change",()=>{
-  localStorage.setItem("fndNudgeUsd", $("fndNudgeIn").value||"1");
-});
-
 // ---------- avisos al celular (ntfy) ----------
 // La config vive en ntfy_config.json (backend); aquí solo una copia en
 // memoria. Rust no redacta nada: todos los textos salen de t() ya en el

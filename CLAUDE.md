@@ -1126,6 +1126,26 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       PROBAR: borrar fndAutoLast/fndNudged/fndSeen y recargar; a los 90 s
       escanea y si hay hallazgo de hoy ≥$1 sale el globo. Detalle en
       docs/analizador-fugas.md §11.
+      ... Y ELIMINADO 2026-08-04 (decisión de Oscar, tras un mes de uso):
+      el globo era más intrusivo que útil y su trabajo lo hace el
+      indicador pasivo. EN SU LUGAR: los hallazgos avisan como Consejos —
+      post-it rojo / campana / contador de pestaña que se encienden cada
+      vez que hay hallazgos NO VISTOS, sin tope diario. Para que eso pase
+      el mismo día, la pasada ligera de 1d ahora también se dispara AL
+      NACER UN RECIBO (sesión local terminada = el momento en que nacen
+      hallazgos), con freno propio de 15 min (fndEventLast, marcado ANTES
+      de la pasada para no reentrar); la diaria de 20 h queda como
+      respaldo para hallazgos que nacen sin cerrar sesión local (VPS).
+      fndPass(tag) es la función compartida y cada disparo refresca
+      fndAutoLast (una pasada por cierre pospone la diaria: mismo dato).
+      FUERA: fndNudge/fndNudgeUsd/fndNudged/fndNudgeSev, el campo del
+      umbral en Preferencias, las claves i18n fnd_nudge_* (×8), el kind
+      "findings" de notif.html y el paso "globo del día" del simulador
+      (quedó en 2 pasos). Los localStorage viejos (fndNudgeUsd/fndNudged)
+      quedan huérfanos e inofensivos. Solo frontend: index.html +
+      notif.html, cero Rust. SIN validar en vivo: probar cerrando una
+      sesión local con una fuga fresca — post-it/campana deben encender
+      a los ~10-13 min (recibo + pasada) SIN globo.
       SECCIÓN CONSEJOS — PRIMERA ENTREGA HECHA Y VALIDADA EN VIVO por
       Oscar el 2026-07-30 (capturas: las 5 pestañas caben, el acordeón
       abre/cierra, el filtro "clear" deja las 3 fichas correctas, y el
