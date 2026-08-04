@@ -396,6 +396,9 @@ hacer público el repo (o sus releases).
 
 ## Estado / pendientes
 
+- [ ] SIGUIENTE SESIÓN (decisión de Oscar 2026-08-04): ronda de ajustes
+      ESTÉTICOS y de UX/UI — él trae la lista. Después, el resto de
+      pendientes en orden.
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
       umbral, 100%, ventana nueva reconocida por trackResets/
       windowChanged), camino completo ntfy (push de alarma real, 100%, el
