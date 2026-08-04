@@ -117,6 +117,10 @@
     border-radius:9px;padding:9px 11px;margin-top:8px}
   .fnd.warn{border-left-color:var(--warn)}
   .fnd.bad{border-left-color:var(--bad)}
+  /* hallazgo contraído a mano (clic, como Consejos): se pliega SOLO la
+     recomendación — título, origen y costo se quedan, que son el ranking */
+  #fndList .fnd{cursor:pointer}
+  .fnd.min .fnd-f{display:none}
   .fnd-t{font-size:12px;font-weight:600}
   .fnd-m{font-size:11px;color:var(--txt-dim);margin-top:2px;overflow-wrap:anywhere}
   .fnd-c{font-family:var(--mono);font-size:11.5px;margin-top:4px}
@@ -4248,6 +4252,9 @@ function fndTitle(f){
     :t("fnd_mcp_t",f.server);
 }
 function fndIgnored(){ try{ return new Set(JSON.parse(localStorage.getItem("fndIgnore")||"[]")); }catch(_){ return new Set(); } }
+// tarjetas contraídas a mano (clic, como las fichas de Consejos) — la pose
+// se recuerda por hallazgo, igual que `min` en coachCards (Oscar 2026-08-04)
+function fndMins(){ try{ return new Set(JSON.parse(localStorage.getItem("fndMin")||"[]")); }catch(_){ return new Set(); } }
 function fmtTok(n){ return n>=1e6 ? (n/1e6).toFixed(1)+"M" : n>=1e3 ? Math.round(n/1e3)+"k" : String(n); }
 // nombre legible del proyecto: la carpeta cruda viene tipo
 // "-opt-projects-michiclaude" o "C--Users-oscar-mi-proyecto"
@@ -4546,25 +4553,43 @@ function renderFindings(){
   if(!list.length){
     $("fndList").innerHTML=`<div style="font-size:11.5px;margin-top:10px">${t("fnd_none")}</div>`;
   }else{
+    const mins=fndMins();
     $("fndList").innerHTML=list.map(f=>{
       // severidad por costo, como los avisos: rojo duele, ámbar avisa
       const sev=f.cost>=10?"bad":f.cost>=1||f.kind==="mcp_unused"?"warn":"";
       const est=f.estimated?"~":"";
       const title=fndTitle(f);
+      const k=fndKey(f).replace(/"/g,"&quot;");
       const meta=[f.file?f.file.split(/[\\/]/).pop():"",
         f.project?fndProj(f.project):"", f.origin||t("src_local")]
         .filter(Boolean).join(" · ");
       const cost=f.cost>0?`${est}$${f.cost.toFixed(2)} · ${est}${fmtTok(f.tokens)} tok`
         :f.tokens>0?`${est}${fmtTok(f.tokens)} tok`:"";
-      return `<div class="fnd ${sev}">
-        <button class="fnd-x" data-k="${fndKey(f).replace(/"/g,"&quot;")}">${t("fnd_ignore")} ✕</button>
+      return `<div class="fnd ${sev}${mins.has(fndKey(f))?" min":""}" data-k="${k}">
+        <button class="fnd-x" data-k="${k}">${t("fnd_ignore")} ✕</button>
         <div class="fnd-t">${title}</div>
         <div class="fnd-m">${meta}</div>
         ${cost?`<div class="fnd-c">${cost}</div>`:""}
         <div class="fnd-f">${t("fnd_"+f.kind.split("_")[0]+"_f")||""}</div>
       </div>`;
     }).join("");
-    $("fndList").querySelectorAll(".fnd-x").forEach(b=>b.addEventListener("click",()=>{
+    // contraer/expandir con clic, como las fichas de Consejos (Oscar
+    // 2026-08-04): se queda título+datos, se pliega la recomendación. La
+    // pose se recuerda por hallazgo (fndMin) — salvo en simulador, que no
+    // toca localStorage.
+    $("fndList").querySelectorAll(".fnd").forEach(el=>
+      el.addEventListener("click",()=>{
+        el.classList.toggle("min");
+        if(!simFnd){
+          const m=fndMins();
+          if(el.classList.contains("min")) m.add(el.dataset.k);
+          else m.delete(el.dataset.k);
+          localStorage.setItem("fndMin",JSON.stringify([...m].slice(-300)));
+        }
+      }));
+    // Ignorar no debe plegar la tarjeta al mismo tiempo: se detiene aquí
+    $("fndList").querySelectorAll(".fnd-x").forEach(b=>b.addEventListener("click",e=>{
+      e.stopPropagation();
       const ign2=fndIgnored(); ign2.add(b.dataset.k);
       localStorage.setItem("fndIgnore",JSON.stringify([...ign2]));
       renderFindings();

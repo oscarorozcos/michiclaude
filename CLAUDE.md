@@ -1395,9 +1395,17 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           el subagente ES un MCP usado). El coach queda plano a propósito
           (excluye sidechains). Regresión en el VPS: mismos hallazgos,
           +1 archivo, +8,558 tokens y +$0.06 — exactamente la sonda.
-          FALTA: cargo check en Windows y ver la tarjeta con la
-          exploración real de Oscar (su agente leyó index.html y lib.rs
-          enteros — debe cruzar el umbral de 50k con holgura).
+          VALIDADO EN VIVO el mismo día (captura de Oscar tras recompilar):
+          "Los subagentes trabajaron 44 turnos aparte · local · $2.33 ·
+          399k tok" — cargo check limpio y la cadena completa
+          subcarpeta→escaneo→tarjeta funcionando con su exploración real.
+          Y de esa ronda, DOS ajustes de UI (2026-08-04): las tarjetas de
+          Hallazgos se CONTRAEN con clic como las fichas de Consejos (se
+          pliega solo la recomendación; título/origen/costo se quedan;
+          pose recordada en localStorage fndMin, guard !simFnd; Ignorar
+          lleva stopPropagation para no plegar de paso), y quedó explicado
+          que el contador de la pestaña no encendió por la trampa del
+          vigilante — el escaneo corrió con la pestaña abierta.
       [x] detector de hooks con un hook real VALIDADO 2026-08-04 (captura
           de Oscar): hook PostToolUse de prueba en test-hook (imprime
           ~3.4k chars por disparo) + tanda de 20 Write con Haiku vía
