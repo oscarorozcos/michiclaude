@@ -1840,3 +1840,19 @@ y ~1858 tok correctos contra el CLAUDE.md recién adelgazado) y regresión
 limpia con el umbral real. Pendiente: cargo check en Windows. Y de la
 limpieza salió otra confirmación: el CLAUDE.md destilado ya no dispara ni
 el detector de líneas sin respaldo.
+
+2026-08-04 (noche) — ERR_NO_PYTHON y ERR_BAD_PYTHON VALIDADOS EN VIVO por
+Oscar, con capturas. Receta del host sin Python (reutilizable): contenedor
+Alpine desechable en el VPS (`docker run … alpine:3.20` con openssh, llaves
+de authorized_keys, puerto 127.0.0.1:2223) + alias SSH en Windows con
+ProxyJump por el VPS; OJO: hay que conectar UNA vez a mano desde PowerShell
+para aceptar la llave del host (la app usa BatchMode y no puede contestar).
+Resultado: alta con host sin Python → error traducido y el campo "¿Dónde
+está Python?" se REVELA con el error delante (nace oculto — diseño
+confirmado); ruta falsa en ese campo → ERR_BAD_PYTHON traducido; nada quedó
+guardado en la lista. BONUS cazado por Oscar probando en alemán: los
+mensajes transitorios del alta se escriben con t() del momento y el cambio
+de idioma no los repinta — la UI cambió a alemán y el error siguió en
+español. Arreglo: applyI18n limpia rMsg al cambiar idioma (un transitorio
+en el idioma viejo confunde más de lo que informa). Contenedor y llaves de
+prueba eliminados al cerrar.

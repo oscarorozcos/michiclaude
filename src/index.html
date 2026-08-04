@@ -2680,6 +2680,11 @@ function applyI18n(){
   document.querySelectorAll("[data-i18n-title]").forEach(el=>{ el.title=t(el.dataset.i18nTitle); });
   $("hideBtn").title=t("hide_title"); $("themeBtn").title=t("theme_title");
   $("langSel").value=lang;
+  // los mensajes TRANSITORIOS (estado del alta de servidor) se escribieron
+  // con t() del idioma anterior y el cambio no los repinta: mejor limpiarlos
+  // que dejarlos en el idioma viejo (cazado por Oscar 2026-08-04 probando
+  // ERR_BAD_PYTHON en alemán: la UI cambió y el error siguió en español)
+  $("rMsg").textContent="";
   // El menú del icono de bandeja lo construye Rust al arrancar y no puede
   // pasar por t(): el idioma vive aquí. Se lo mandamos ya traducido, al
   // cargar y en cada cambio de idioma (era el único texto que se quedaba

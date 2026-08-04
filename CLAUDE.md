@@ -401,8 +401,6 @@ hacer público el repo (o sus releases).
       windowChanged), camino completo ntfy (push de alarma real, 100%, el
       programado con PC apagada), y el aviso de hallazgos al cierre de
       sesión (post-it/campana solos a los ~10-13 min, sin globo).
-- [ ] ERR_NO_PYTHON: alta de servidor sin Python debe fallar traducido
-      (necesita montar un host SSH sin Python).
 - [ ] Updater: decidir repo público + publicar tag v* y probar completo.
 - [ ] Capturas para el README (las hace Oscar).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
