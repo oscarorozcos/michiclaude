@@ -2096,6 +2096,9 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     let mut seen: HashSet<String> = HashSet::new();
     let (mut mech_count, mut mech_tokens, mut mech_cost) = (0u64, 0u64, 0f64);
     let (mut sub_count, mut sub_tokens, mut sub_cost) = (0u64, 0u64, 0f64);
+    // última actividad de cada detector agregado — sin ella la tarjeta cae
+    // al fondo del reporte aunque sea la más fresca (ordenamiento por ts)
+    let (mut mech_ts, mut sub_ts): (i64, i64) = (0, 0);
 
     let mut dirs_to_scan = vec![claude_dir().join("projects")];
     for (_distro, d) in wsl_claude_dirs() {
@@ -2334,6 +2337,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                             sub_count += 1;
                             sub_tokens += inp + out_t + cw;
                             sub_cost += cost_of(&model, inp, out_t, cw, cr);
+                            sub_ts = sub_ts.max(ts.timestamp());
                         }
                     }
                     let empty = Vec::new();
@@ -2376,6 +2380,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                         mech_count += 1;
                         mech_tokens += inp + out_t + cw;
                         mech_cost += cost_of(&model, inp, out_t, cw, cr);
+                        mech_ts = mech_ts.max(ts.timestamp());
                     }
                 }
             }
@@ -2383,8 +2388,8 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     }
 
     let mut findings: Vec<Finding> = Vec::new();
-    // hookName -> (disparos, chars, costo) sumado entre sesiones
-    let mut hooks_g: HashMap<String, (u64, u64, f64)> = HashMap::new();
+    // hookName -> (disparos, chars, costo, última actividad) sumado entre sesiones
+    let mut hooks_g: HashMap<String, (u64, u64, f64, i64)> = HashMap::new();
     // (proyecto, precio de input del modelo dominante) por sesión de la
     // ventana, para el costo piso del detector de CLAUDE.md
     let mut sess_pi: Vec<(String, f64)> = Vec::new();
@@ -2403,10 +2408,11 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
         // los disparos se acumulan por hook GLOBAL, pero el costo se valora
         // con el modelo dominante de la sesión donde ocurrieron
         for (hname, (nf, nch)) in &s.hooks {
-            let g = hooks_g.entry(hname.clone()).or_insert((0, 0, 0.0));
+            let g = hooks_g.entry(hname.clone()).or_insert((0, 0, 0.0, 0));
             g.0 += nf;
             g.1 += nch;
             g.2 += *nch as f64 / 4.0 * pi / 1_000_000.0;
+            g.3 = g.3.max(s.last_ts);
         }
         let sid8: String = sid.chars().take(8).collect();
         // archivos releídos: el contenido se APILA en la conversación, no se
@@ -2487,6 +2493,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     if mech_count >= MECH_MIN {
         findings.push(Finding {
             kind: "mech".into(),
+            ts: mech_ts,
             count: mech_count,
             tokens: mech_tokens,
             cost: mech_cost,
@@ -2499,6 +2506,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     if sub_tokens >= SUB_MIN_TOKENS {
         findings.push(Finding {
             kind: "subagents".into(),
+            ts: sub_ts,
             count: sub_count,
             tokens: sub_tokens,
             cost: sub_cost,
@@ -2513,7 +2521,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     let mut hnames: Vec<&String> = hooks_g.keys().collect();
     hnames.sort();
     for hname in hnames {
-        let (nf, nch, hcost) = hooks_g[hname];
+        let (nf, nch, hcost, hts) = hooks_g[hname];
         let tok = nch / 4;
         if nf < HOOKNOISE_MIN_FIRES || tok < HOOKNOISE_MIN_TOKENS {
             continue;
@@ -2521,6 +2529,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
         findings.push(Finding {
             kind: "hooks_noise".into(),
             file: hname.clone(),
+            ts: hts,
             count: nf,
             tokens: tok,
             cost: hcost,

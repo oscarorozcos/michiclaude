@@ -1295,10 +1295,15 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
       viejo manda 0) en los TRES detectores de sesión (reread/inflate/
       cachebreak), en Rust Y meter-export.py (invariante #1; OJO parse_ts
       en Python devuelve datetime — va int(ts.timestamp())). El panel
-      ordena por ts desc y luego costo; los "de estado" (mcp, skills,
-      claudemd, mech, hooks) no llevan hora y quedan abajo por costo. El
+      ordena por ts desc y luego costo. AMPLIADO 2026-08-04 (Oscar validó
+      el detector de hooks y su tarjeta fresca salió hasta abajo): también
+      llevan ts los agregados con actividad — hooks_noise (máx last_ts de
+      las sesiones donde disparó), subagents y mech (máx ts de sus turnos).
+      SOLO los de estado puro (mcp, skills, claudemd) quedan sin hora,
+      abajo por costo — no describen actividad sino configuración. El
       TOPE de 12 sigue cortando por costo en el backend: solo cambia el
-      orden de lectura. Verificado con datos reales del VPS. PROBAR: sesión de Claude Code en Windows con trabajo real
+      orden de lectura. Verificado con datos reales del VPS (regresión
+      byte-idéntica salvo los ts nuevos, 10/10 hallazgos iguales). PROBAR: sesión de Claude Code en Windows con trabajo real
       (5+ turnos), cerrarla o dejarla quieta 10-30 min con MichiClaude
       abierto; la tarjeta aparece en Consejos en el siguiente sondeo.
       SIMULADOR DE HALLAZGOS Y CONSEJOS (idea de Oscar, 2026-07-31; solo
@@ -1358,7 +1363,19 @@ Tres apuestas priorizadas, a trabajar DESPUÉS de pulir Windows:
           (antes del early-return de ok:false). La cápsula se queda sin
           texto a propósito: mide 54 px.
       [ ] tarjeta de subagentes con datos reales (isSidechain en Windows)
-      [ ] detector de hooks con un hook real
+      [x] detector de hooks con un hook real VALIDADO 2026-08-04 (captura
+          de Oscar): hook PostToolUse de prueba en test-hook (imprime
+          ~3.4k chars por disparo) + tanda de 20 Write con Haiku vía
+          `claude --model haiku --allowedTools Write -p` — OJO: sin
+          --allowedTools el modo -p no puede pedir permisos y sale sin
+          escribir nada (le pasó a Oscar al primer intento). Tarjeta
+          "PostToolUse:Write · local · ~$0.02 · ~18k tok" correcta. De esa
+          prueba: TERCERA vez de la trampa del vigilante (pestaña abierta
+          al nacer la tarjeta = vista al instante, sin campana ni globo —
+          comportamiento correcto) y la aclaración de que los hallazgos
+          NUNCA van al celular (regla de privacidad ntfy) — su único aviso
+          con texto es el globo del día, que además pide costo ≥$1.
+          La carpeta test-hook se borra tras la prueba (el hook es ruido).
       [ ] alta de servidor SIN Python → ERR_NO_PYTHON traducido
       [ ] alarmas reales: cruzar umbral, 100%, y ventana nueva
           reconocida (trackResets/windowChanged con datos de verdad)

@@ -381,8 +381,8 @@ def scan_findings(projects_dir, window_ago, days):
     bajo --findings y tarda ~1 s por cada 50 MB de logs."""
     sessions = {}   # sid -> estado por sesión
     pend_reads = {}  # tool_use_id -> (sid, ruta)  para casar con su resultado
-    mech = [0, 0, 0.0]           # [peticiones, tokens, costo]
-    sub = [0, 0, 0.0]            # subagentes: [turnos, tokens, costo]
+    mech = [0, 0, 0.0, 0]        # [peticiones, tokens, costo, última actividad]
+    sub = [0, 0, 0.0, 0]         # subagentes: [turnos, tokens, costo, última actividad]
     mcp_used = set()
     skills_used = set()          # invocadas en la ventana (logs)
     seen = set()                 # misma dedup que la agregación
@@ -546,6 +546,7 @@ def scan_findings(projects_dir, window_ago, days):
                         sub[1] += inp + out_t + cw
                         sub[2] += (inp * pi + out_t * po
                                    + cw * pcw + cr * pcr) / 1e6
+                        sub[3] = max(sub[3], int(ts.timestamp()))
                     uses = [b for b in blocks
                             if isinstance(b, dict) and b.get("type") == "tool_use"]
                     for b in uses:
@@ -568,6 +569,7 @@ def scan_findings(projects_dir, window_ago, days):
                         mech[0] += 1
                         mech[1] += inp + out_t + cw
                         mech[2] += (inp * pi + out_t * po + cw * pcw + cr * pcr) / 1e6
+                        mech[3] = max(mech[3], int(ts.timestamp()))
 
     findings = []
     hooks_g = {}   # hookName -> [disparos, chars, costo] sumado entre sesiones
@@ -579,10 +581,11 @@ def scan_findings(projects_dir, window_ago, days):
         # los disparos se acumulan por hook GLOBAL, pero el costo se valora
         # con el modelo dominante de la sesión donde ocurrieron
         for hname, hk in S["hooks"].items():
-            g = hooks_g.setdefault(hname, [0, 0, 0.0])
+            g = hooks_g.setdefault(hname, [0, 0, 0.0, 0])
             g[0] += hk[0]
             g[1] += hk[1]
             g[2] += hk[1] / 4 * pi / 1e6
+            g[3] = max(g[3], S["ts"])
         # archivos releídos: el contenido se APILA en la conversación, no se
         # reemplaza. Tokens ~ chars/4 de lo devuelto tras la primera lectura;
         # el costo es el PISO (una ingesta a precio de input) — la realidad es
@@ -631,14 +634,14 @@ def scan_findings(projects_dir, window_ago, days):
                 "session": sid[:8], "count": breaks, "tokens": rew_tok,
                 "cost": rew_cost, "estimated": False})
     if mech[0] >= MECH_MIN:
-        findings.append({"kind": "mech", "count": mech[0],
+        findings.append({"kind": "mech", "ts": mech[3], "count": mech[0],
                          "tokens": mech[1], "cost": mech[2],
                          "estimated": False})
     # subagentes: una tarjeta con el costo agregado de la ventana. No juzga
     # si valieron la pena — solo hace VISIBLE un gasto que hoy se mezcla
     # con el total de la conversación principal.
     if sub[1] >= SUB_MIN_TOKENS:
-        findings.append({"kind": "subagents", "count": sub[0],
+        findings.append({"kind": "subagents", "ts": sub[3], "count": sub[0],
                          "tokens": sub[1], "cost": sub[2],
                          "estimated": False})
     # hooks ruidosos: la salida de un hook entra al contexto en CADA disparo
@@ -647,12 +650,13 @@ def scan_findings(projects_dir, window_ago, days):
     # turnos posteriores. No juzga si el hook sirve: mide lo que cuesta
     # cargarlo, igual que skills_unused y mcp_unused.
     for hname in sorted(hooks_g):
-        nf, nch, hcost = hooks_g[hname]
+        nf, nch, hcost, hts = hooks_g[hname]
         tok = nch // 4
         if nf < HOOKNOISE_MIN_FIRES or tok < HOOKNOISE_MIN_TOKENS:
             continue
-        findings.append({"kind": "hooks_noise", "file": hname, "count": nf,
-                         "tokens": tok, "cost": hcost, "estimated": True})
+        findings.append({"kind": "hooks_noise", "file": hname, "ts": hts,
+                         "count": nf, "tokens": tok, "cost": hcost,
+                         "estimated": True})
     for server in sorted(mcp_servers_configured() - mcp_used):
         findings.append({"kind": "mcp_unused", "server": server,
                          "tokens": 0, "cost": 0.0, "estimated": False})
