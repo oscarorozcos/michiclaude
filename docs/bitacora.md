@@ -1824,3 +1824,19 @@ de desarrollo (comando `is_dev` = `cfg!(debug_assertions)`), por eso es el
 - Se publicará en GitHub (GPL-3.0, releases automáticas por tag). La confianza del
   usuario es prioridad: transparencia total sobre el manejo del token y el
   disclaimer del endpoint no oficial.
+
+---
+
+2026-08-04 (noche) — DETECTOR 10 `claudemdsize`: CLAUDE.md más grande de lo
+que Claude Code carga (40k chars). Nació de que nos pasó en carne propia:
+nuestro CLAUDE.md llegó a 118.8k y durante semanas dos tercios de las
+reglas no se leyeron en ninguna sesión — el único aviso era una línea
+amarilla en la terminal que nadie vio. Implementado en Rust y
+meter-export.py reutilizando la enumeración del detector de líneas (costo
+de implementación casi cero); tarjeta de estado (costo 0, tokens ~ del
+tramo sin leer, count = tamaño en k), claves fnd_claudemdsize_* ×8. Solo
+ventanas 7d+. Validado en el VPS con umbral bajado a 20k (tarjeta con 27k
+y ~1858 tok correctos contra el CLAUDE.md recién adelgazado) y regresión
+limpia con el umbral real. Pendiente: cargo check en Windows. Y de la
+limpieza salió otra confirmación: el CLAUDE.md destilado ya no dispara ni
+el detector de líneas sin respaldo.

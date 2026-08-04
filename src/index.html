@@ -871,6 +871,8 @@ en:{
   fnd_hooks_f:"Everything a hook prints joins the context of that turn — and travels again with every turn after it. If it has nothing to say, exiting silently (exit 0, no output) is free.",
   fnd_claudemd_t:n=>`${n} CLAUDE.md lines mention things with no recent trace`,
   fnd_claudemd_f:"CLAUDE.md travels whole with every conversation. These lines mention paths or commands that never showed up in this window's logs — worth checking if they still earn their place. Deleting is free (only the next message rebuilds the cache once); if something is used only now and then, keep it.",
+  fnd_claudemdsize_t:n=>`CLAUDE.md is bigger than Claude Code loads (${n}k chars)`,
+  fnd_claudemdsize_f:"Claude Code only loads the first 40k characters — the rest is never read, so rules at the bottom of the file silently never reach the model. Move history and old notes to docs/ and keep only what's current in CLAUDE.md.",
   tips_tab:"Tips",
   tips_title:"Tips to stretch your quota",
   tips_intro:"Short hand-written cards — no AI, no network. They update with each app release. Tap one to open it.",
@@ -1110,6 +1112,8 @@ es:{
   fnd_hooks_f:"Todo lo que un hook imprime entra al contexto de ese turno — y vuelve a viajar con cada turno posterior. Si no tiene nada que decir, callar (exit 0 sin salida) sale gratis.",
   fnd_claudemd_t:n=>`${n} líneas del CLAUDE.md mencionan cosas sin rastro reciente`,
   fnd_claudemd_f:"El CLAUDE.md viaja entero con cada conversación. Estas líneas mencionan rutas o comandos que no aparecieron en los logs de esta ventana — vale la pena revisar si siguen ganándose su lugar. Borrar es gratis (solo el siguiente mensaje reconstruye el caché una vez); si algo se usa solo de vez en cuando, se queda.",
+  fnd_claudemdsize_t:n=>`El CLAUDE.md pasa de lo que Claude Code carga (${n}k caracteres)`,
+  fnd_claudemdsize_f:"Claude Code solo carga los primeros 40k caracteres — el resto no se lee nunca, así que las reglas al fondo del archivo no llegan al modelo, en silencio. Muda el historial y lo viejo a docs/ y deja en CLAUDE.md solo lo vigente.",
   tips_tab:"Consejos",
   tips_title:"Consejos para cuidar tu cuota",
   tips_intro:"Fichas cortas escritas a mano — sin IA, sin red. Se actualizan con cada versión de la app. Toca una para abrirla.",
@@ -1349,6 +1353,8 @@ pt:{
   fnd_hooks_f:"Tudo o que um hook imprime entra no contexto daquele turno — e viaja de novo a cada turno seguinte. Se não tem nada a dizer, calar (exit 0 sem saída) sai de graça.",
   fnd_claudemd_t:n=>`${n} linhas do CLAUDE.md mencionam coisas sem rastro recente`,
   fnd_claudemd_f:"O CLAUDE.md viaja inteiro com cada conversa. Estas linhas mencionam caminhos ou comandos que não apareceram nos logs desta janela — vale conferir se ainda merecem o lugar. Apagar é de graça (só a próxima mensagem reconstrói o cache uma vez); se algo se usa só de vez em quando, fica.",
+  fnd_claudemdsize_t:n=>`O CLAUDE.md passa do que o Claude Code carrega (${n}k caracteres)`,
+  fnd_claudemdsize_f:"O Claude Code só carrega os primeiros 40k caracteres — o resto nunca é lido, então regras no fim do arquivo nunca chegam ao modelo, em silêncio. Mova o histórico para docs/ e deixe no CLAUDE.md só o que vale hoje.",
   tips_tab:"Dicas",
   tips_title:"Dicas para render sua cota",
   tips_intro:"Fichas curtas escritas à mão — sem IA, sem rede. Atualizam com cada versão do app. Toque em uma para abrir.",
@@ -1588,6 +1594,8 @@ fr:{
   fnd_hooks_f:"Tout ce qu'un hook imprime entre dans le contexte de ce tour — et voyage à nouveau à chaque tour suivant. S'il n'a rien à dire, se taire (exit 0 sans sortie) ne coûte rien.",
   fnd_claudemd_t:n=>`${n} lignes du CLAUDE.md mentionnent des choses sans trace récente`,
   fnd_claudemd_f:"Le CLAUDE.md voyage en entier avec chaque conversation. Ces lignes mentionnent des chemins ou des commandes absents des journaux de cette fenêtre — cela vaut la peine de vérifier s'ils méritent encore leur place. Supprimer est gratuit (seul le message suivant reconstruit le cache une fois) ; ce qui ne sert que de temps en temps peut rester.",
+  fnd_claudemdsize_t:n=>`CLAUDE.md dépasse ce que Claude Code charge (${n}k caractères)`,
+  fnd_claudemdsize_f:"Claude Code ne charge que les premiers 40k caractères — le reste n'est jamais lu : les règles en fin de fichier n'atteignent jamais le modèle, en silence. Déplacez l'historique vers docs/ et ne gardez que l'actuel dans CLAUDE.md.",
   tips_tab:"Conseils",
   tips_title:"Conseils pour économiser votre quota",
   tips_intro:"Fiches courtes écrites à la main — sans IA, sans réseau. Mises à jour à chaque version de l’app. Touchez-en une pour l’ouvrir.",
@@ -1827,6 +1835,8 @@ de:{
   fnd_hooks_f:"Alles, was ein Hook ausgibt, wandert in den Kontext dieses Zugs — und reist mit jedem weiteren Zug erneut mit. Wenn er nichts zu sagen hat, ist Schweigen (exit 0 ohne Ausgabe) kostenlos.",
   fnd_claudemd_t:n=>`${n} CLAUDE.md-Zeilen nennen Dinge ohne aktuelle Spur`,
   fnd_claudemd_f:"Die CLAUDE.md reist mit jeder Unterhaltung komplett mit. Diese Zeilen nennen Pfade oder Befehle, die in den Logs dieses Zeitraums nie auftauchten — es lohnt sich zu prüfen, ob sie ihren Platz noch verdienen. Löschen ist gratis (nur die nächste Nachricht baut den Cache einmal neu auf); was nur ab und zu gebraucht wird, bleibt.",
+  fnd_claudemdsize_t:n=>`Die CLAUDE.md ist größer, als Claude Code lädt (${n}k Zeichen)`,
+  fnd_claudemdsize_f:"Claude Code lädt nur die ersten 40k Zeichen — der Rest wird nie gelesen: Regeln am Ende der Datei erreichen das Modell stillschweigend nie. Historie nach docs/ verschieben und in der CLAUDE.md nur das Aktuelle behalten.",
   tips_tab:"Tipps",
   tips_title:"Tipps, damit die Quota länger reicht",
   tips_intro:"Kurze, handgeschriebene Karten — ohne KI, ohne Netz. Sie aktualisieren sich mit jeder App-Version. Zum Öffnen antippen.",
@@ -2066,6 +2076,8 @@ ja:{
   fnd_hooks_f:"フックが出力した内容はそのターンのコンテキストに入り、以降のターンごとに再送されます。伝えることがなければ、何も出力せず終了（exit 0）すれば無料です。",
   fnd_claudemd_t:n=>`CLAUDE.mdの${n}行が最近使われていないものに言及しています`,
   fnd_claudemd_f:"CLAUDE.mdは会話のたびに丸ごと送られます。これらの行は、この期間のログに一度も現れなかったパスやコマンドに言及しています — まだ必要か見直す価値があります。削除は無料です（次のメッセージで一度だけキャッシュが再構築されます）。たまにしか使わないものは残してください。",
+  fnd_claudemdsize_t:n=>`CLAUDE.mdがClaude Codeの読み込み上限を超えています（${n}k文字）`,
+  fnd_claudemdsize_f:"Claude Codeが読み込むのは最初の40k文字だけ。残りは一切読まれず、ファイル末尾のルールはモデルに届きません。履歴はdocs/に移し、CLAUDE.mdには現行の内容だけを残しましょう。",
   tips_tab:"ヒント",
   tips_title:"クォータを長持ちさせるヒント",
   tips_intro:"手書きの短いカードです — AIもネットも使いません。アプリの更新ごとに新しくなります。タップで開きます。",
@@ -2305,6 +2317,8 @@ ko:{
   fnd_hooks_f:"훅이 출력하는 모든 내용은 그 턴의 컨텍스트에 들어가고, 이후 매 턴마다 다시 전송됩니다. 전할 내용이 없다면 아무것도 출력하지 않고 종료(exit 0)하는 것이 무료입니다.",
   fnd_claudemd_t:n=>`CLAUDE.md의 ${n}개 줄이 최근 흔적 없는 것을 언급합니다`,
   fnd_claudemd_f:"CLAUDE.md는 대화마다 통째로 전송됩니다. 이 줄들은 이 기간의 로그에 한 번도 나타나지 않은 경로나 명령을 언급합니다 — 아직 자리를 차지할 가치가 있는지 확인해 볼 만합니다. 삭제는 무료입니다(다음 메시지에서 캐시가 한 번만 재구축됩니다). 가끔만 쓰는 것은 남겨 두세요.",
+  fnd_claudemdsize_t:n=>`CLAUDE.md가 Claude Code 로드 한도를 넘었습니다 (${n}k자)`,
+  fnd_claudemdsize_f:"Claude Code는 처음 40k자만 로드합니다. 나머지는 전혀 읽히지 않아 파일 뒷부분의 규칙이 모델에 조용히 전달되지 않습니다. 이력은 docs/로 옮기고 CLAUDE.md에는 현재 유효한 내용만 남기세요.",
   tips_tab:"팁",
   tips_title:"쿼터를 아끼는 팁",
   tips_intro:"손으로 쓴 짧은 카드입니다 — AI도 네트워크도 쓰지 않습니다. 앱 업데이트마다 갱신됩니다. 눌러서 여세요.",
@@ -2544,6 +2558,8 @@ zh:{
   fnd_hooks_f:"钩子打印的所有内容都会进入该轮的上下文，并随之后的每一轮再次传送。如果没有要说的，安静退出（exit 0 且无输出）是免费的。",
   fnd_claudemd_t:n=>`CLAUDE.md 有 ${n} 行提到近期没有踪迹的内容`,
   fnd_claudemd_f:"CLAUDE.md 每次对话都会完整传送。这些行提到的路径或命令在此时间窗的日志中从未出现——值得检查它们是否还配得上这个位置。删除是免费的（只有下一条消息会重建一次缓存）；偶尔才用的内容请保留。",
+  fnd_claudemdsize_t:n=>`CLAUDE.md 超过 Claude Code 的加载上限（${n}k 字符）`,
+  fnd_claudemdsize_f:"Claude Code 只加载前 40k 字符——其余部分永远不会被读取，文件末尾的规则悄悄地到不了模型。把历史记录移到 docs/，CLAUDE.md 只留当前有效的内容。",
   tips_tab:"技巧",
   tips_title:"让额度更耐用的技巧",
   tips_intro:"手写的简短卡片——不用 AI，不联网。随每个版本更新。点一下展开。",
@@ -4229,6 +4245,7 @@ function fndTitle(f){
     :f.kind==="subagents"?t("fnd_subagents_t",f.count)
     :f.kind==="hooks_noise"?t("fnd_hooks_t",f.count)
     :f.kind==="claudemd"?t("fnd_claudemd_t",f.count)
+    :f.kind==="claudemdsize"?t("fnd_claudemdsize_t",f.count)
     :t("fnd_mcp_t",f.server);
 }
 function fndIgnored(){ try{ return new Set(JSON.parse(localStorage.getItem("fndIgnore")||"[]")); }catch(_){ return new Set(); } }

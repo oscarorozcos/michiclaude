@@ -276,7 +276,12 @@ subagents (≥50k tok de sidechain), hooks_noise (≥15 disparos y ≥10k tok;
 mira attachments hook_success, no texto), mcp_unused (resta de conjuntos),
 skills_unused y claudemd (solo ventana 7+; claudemd: identificadores por
 línea contra el texto crudo, gris sin identificadores, rojo solo si
-NINGUNA mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos).
+NINGUNA mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos), y
+claudemdsize (detector 10, 2026-08-04: CLAUDE.md > CLAUDEMD_LOAD_LIMIT
+40k chars — lo que sobra Claude Code NO lo carga y las reglas del fondo
+no llegan al modelo; tarjeta de estado costo 0, tokens ~ del tramo sin
+leer, solo 7d+ porque reutiliza la enumeración de claudemd; nos pasó en
+carne propia con 118.8k).
 Tope 12 por costo en el backend. REGLA: los de "lo instalado" señalan lo
 que NO se usa y lo que cuesta cargarlo — nunca califican si algo que sí
 se usa "gastó de más".

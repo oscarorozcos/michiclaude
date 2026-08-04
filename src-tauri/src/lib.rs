@@ -1845,6 +1845,9 @@ const HOOKNOISE_MIN_FIRES: u64 = 15;
 const HOOKNOISE_MIN_TOKENS: u64 = 10_000;
 const CLAUDEMD_MIN_LINES: usize = 5;
 const CLAUDEMD_MAX_TOKENS: usize = 400;
+// chars que Claude Code CARGA de un CLAUDE.md; lo que sobre no se lee
+// nunca (detector 10)
+const CLAUDEMD_LOAD_LIMIT: usize = 40_000;
 const MAX_FINDINGS: usize = 12;
 
 /// Comandos deterministas: turnos donde Claude no piensa, solo ejecuta.
@@ -2135,8 +2138,13 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
     let mut md_lines: Vec<(usize, usize, usize, Vec<String>)> = Vec::new();
     let mut md_pending: HashSet<String> = HashSet::new();
     let mut md_found: HashSet<String> = HashSet::new();
+    // (ruta, proyecto, chars) — detector 10
+    let mut md_big: Vec<(String, Option<String>, usize)> = Vec::new();
     if window_days >= 7 {
         for (ruta, pj, texto) in claude_mds(&dirs_to_scan, skip_before) {
+            if texto.len() > CLAUDEMD_LOAD_LIMIT {
+                md_big.push((ruta.clone(), pj.clone(), texto.len()));
+            }
             let idx = md_meta.len();
             md_meta.push((ruta, pj));
             let mut added: HashSet<String> = HashSet::new();
@@ -2639,6 +2647,25 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
             project: pj.clone().unwrap_or_default(),
             tokens: tok_est,
             cost,
+            estimated: true,
+            ..Default::default()
+        });
+    }
+    // detector 10 — CLAUDE.md más grande de lo que Claude Code CARGA (40k
+    // chars): lo que sobra no se lee NUNCA — reglas al fondo del archivo no
+    // llegan al modelo, en silencio. No es fuga de dinero sino de
+    // INSTRUCCIONES: tarjeta de estado (costo 0 — el costo del tramo
+    // cargado ya lo mide el detector de líneas); tokens ~ del tramo sin
+    // leer. Nos pasó en carne propia el 2026-08-04 (118.8k chars, semanas
+    // sin ver el aviso amarillo de la terminal).
+    for (ruta, pj, sz) in md_big {
+        findings.push(Finding {
+            kind: "claudemdsize".into(),
+            count: (sz / 1000) as u64,
+            file: ruta,
+            project: pj.unwrap_or_default(),
+            tokens: ((sz - CLAUDEMD_LOAD_LIMIT) / 4) as u64,
+            cost: 0.0,
             estimated: true,
             ..Default::default()
         });

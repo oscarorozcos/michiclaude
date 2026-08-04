@@ -228,6 +228,8 @@ HOOKNOISE_MIN_FIRES = 15    # disparos de un hook en la ventana para avisar
 HOOKNOISE_MIN_TOKENS = 10_000  # ~tokens inyectados (chars/4) para avisar
 CLAUDEMD_MIN_LINES = 5      # líneas sin respaldo en un CLAUDE.md para avisar
 CLAUDEMD_MAX_TOKENS = 400   # tope de identificadores a buscar por archivo
+CLAUDEMD_LOAD_LIMIT = 40_000  # chars que Claude Code CARGA de un CLAUDE.md;
+#                               lo que sobre no se lee nunca (detector 10)
 MAX_FINDINGS = 12       # las tarjetas no son un log: lo más caro primero
 
 
@@ -407,8 +409,11 @@ def scan_findings(projects_dir, window_ago, days):
     md_lines = []     # (md_idx, line_no, chars, [tokens buscados])
     md_pending = set()
     md_found = set()
+    md_big = []       # (ruta, proyecto_o_None, chars) — detector 10
     if days >= 7:
         for ruta, pj, texto in _claude_mds(projects_dir, skip_before):
+            if len(texto) > CLAUDEMD_LOAD_LIMIT:
+                md_big.append((ruta, pj, len(texto)))
             idx = len(md_meta)
             md_meta.append((ruta, pj))
             added = set()
@@ -717,6 +722,18 @@ def scan_findings(projects_dir, window_ago, days):
                          "file": "%s · %s" % (ruta, nums),
                          "project": pj or "", "tokens": tok_est,
                          "cost": cost, "estimated": True})
+    # detector 10 — CLAUDE.md más grande de lo que Claude Code CARGA (40k
+    # chars): lo que sobra no se lee NUNCA, así que reglas al fondo del
+    # archivo no llegan al modelo, en silencio. No es fuga de dinero sino
+    # de INSTRUCCIONES: tarjeta de estado (costo 0 — el costo del tramo
+    # cargado ya lo mide el detector de líneas); tokens ~ del tramo que
+    # queda sin leer. Nos pasó en carne propia el 2026-08-04: 118.8k chars
+    # y semanas sin ver el aviso amarillo de la terminal.
+    for ruta, pj, sz in md_big:
+        findings.append({"kind": "claudemdsize", "count": sz // 1000,
+                         "file": ruta, "project": pj or "",
+                         "tokens": (sz - CLAUDEMD_LOAD_LIMIT) // 4,
+                         "cost": 0.0, "estimated": True})
     findings.sort(key=lambda x: -x["cost"])
     return findings[:MAX_FINDINGS]
 
