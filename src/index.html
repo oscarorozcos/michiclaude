@@ -185,31 +185,48 @@
   /* Tarjetas del analizador de fugas (pestaña Hallazgos). El borde
      izquierdo lleva la severidad, como el popover de avisos: se entiende
      sin leer. */
-  .fnd{border:1px solid var(--stroke-soft);border-left:3px solid var(--accent);
-    border-radius:9px;padding:9px 11px;margin-top:8px}
-  .fnd.warn{border-left-color:var(--warn)}
-  .fnd.bad{border-left-color:var(--bad)}
+  /* TARJETA DE HALLAZGO (rediseño v5): fondo propio, icono de severidad en
+     cuadrito y el importe destacado. El borde izquierdo de color se retira:
+     la severidad ya la lleva el icono, y con fondo de tarjeta el filo
+     quedaba como un resto del diseño viejo. */
+  .fnd{position:relative;background:var(--card);border:1px solid var(--stroke-soft);
+    border-radius:var(--r-md);padding:13px 14px;margin-top:10px;transition:background .15s}
+  #fndList .fnd{cursor:pointer}
+  #fndList .fnd:hover{background:var(--card-hi)}
+  .fnd-top{display:flex;gap:11px;align-items:flex-start}
+  .fnd-sev{flex:0 0 auto;position:relative;isolation:isolate;width:34px;height:34px;
+    border-radius:11px;display:grid;place-items:center;color:var(--accent)}
+  .fnd-sev i{position:absolute;inset:0;border-radius:inherit;background:currentColor;
+    opacity:.15;z-index:-1}
+  .fnd.warn .fnd-sev{color:var(--warn)}
+  .fnd.bad .fnd-sev{color:var(--bad)}
+  .fnd-body{min-width:0;flex:1 1 auto}
   /* hallazgo contraído a mano (clic, como Consejos): se pliega SOLO la
      recomendación — título, origen y costo se quedan, que son el ranking */
-  #fndList .fnd{cursor:pointer}
   .fnd.min .fnd-f{display:none}
-  .fnd-t{font-size:12px;font-weight:600}
-  .fnd-m{font-size:11px;color:var(--txt-dim);margin-top:2px;overflow-wrap:anywhere}
-  .fnd-c{font-family:var(--mono);font-size:11.5px;margin-top:4px}
-  .fnd-f{font-size:11px;margin-top:4px}
+  .fnd-t{font-size:12.5px;font-weight:600;line-height:1.35;padding-right:60px}
+  .fnd-m{font-size:10.5px;color:var(--txt-dim);font-family:var(--mono);margin-top:3px;
+    overflow-wrap:anywhere}
+  .fnd-c{font-family:var(--mono);font-size:11.5px;margin-top:5px;color:var(--txt-dim)}
+  .fnd-c b{font-weight:600;color:var(--txt)}
+  .fnd-f{font-size:12px;color:var(--txt-mut);line-height:1.55;margin-top:11px;
+    border-top:1px dashed var(--stroke-soft);padding-top:10px}
   /* ficha de Consejos: mismo molde que la tarjeta de Hallazgos, variante
      tip — sin costo ni borde de severidad (una ficha con $0.00 devalúa el
      sistema); acordeón: el cuerpo se abre al tocar el título */
-  .fnd.tip{border-left-color:var(--stroke-soft);cursor:pointer}
-  /* cuerpo más grande que el fix de Hallazgos (11px): aquí son párrafos de
+  .fnd.tip{cursor:pointer}
+  /* la ficha no lleva icono de severidad, así que su título no necesita
+     dejar hueco para la píldora de Ignorar (su ✕ es pequeña) */
+  .fnd.tip .fnd-t{padding-right:22px}
+  /* cuerpo más grande que el fix de Hallazgos: aquí son párrafos de
      lectura, no una línea de remate (lo notó Oscar el 2026-07-30) */
-  .fnd.tip .fnd-f{display:none;white-space:pre-line;margin-top:6px;
-    font-size:12.5px;line-height:1.5}
+  .fnd.tip .fnd-f{display:none;white-space:pre-line;margin-top:10px;
+    font-size:12.5px;line-height:1.55}
   /* ficha disparada por el motor de reglas: la línea "Ahora: ..." lleva el
      dato MEDIDO de la sesión activa, en acento — consejo, no alarma */
   .fnd.tip .fnd-m{color:var(--accent)}
   .tab .tdot.acc{background:var(--accent);color:var(--accent-ink)}
-  .fnd.tip.open{border-left-color:var(--accent)}
+  .fnd.tip.open{border-color:var(--accent-line)}
   .fnd.tip.open .fnd-f{display:block}
   /* ✕ de las tarjetas VIVAS del coach (recibos y "Ahora"): como en
      Hallazgos, el usuario decide cuándo despacharlas (2026-08-03) */
@@ -218,9 +235,10 @@
     color:var(--txt-dim);cursor:pointer;font-size:11px;line-height:1;
     padding:3px 5px;border-radius:6px;font-family:var(--font)}
   .tip-x:hover{color:var(--txt);background:rgba(128,128,128,.18)}
-  .fnd-x{float:right;background:transparent;border:0;color:var(--txt-dim);
-    font-size:10.5px;cursor:pointer;padding:2px 4px}
-  .fnd-x:hover{color:var(--txt)}
+  .fnd-x{position:absolute;top:11px;right:12px;font-size:10.5px;font-weight:600;
+    color:var(--txt-dim);background:var(--card-hi);border:1px solid var(--stroke-soft);
+    border-radius:999px;padding:3px 9px;cursor:pointer;transition:.15s}
+  .fnd-x:hover{color:var(--bad);border-color:rgba(255,107,94,.4)}
   .eyebrow{font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--txt-dim);
     font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;
     align-items:center;gap:8px}
@@ -898,15 +916,17 @@
   </div><!-- /tab-sources -->
 
   <div id="tab-findings" hidden>
-    <div class="sect">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="eyebrow" data-i18n="fnd_title"></div>
+    <!-- Encabezado del analizador en su propia tarjeta y las tarjetas de
+         hallazgo SUELTAS debajo (maqueta v5): antes iban todas dentro de
+         una, y una tarjeta dentro de otra tarjeta se leía como un cajón. -->
+    <div class="sect" style="padding-bottom:14px">
+      <div class="eyebrow"><span data-i18n="fnd_title"></span>
         <span class="q"><select id="fndDays" class="dsel"><option value="1">1 d</option><option value="7">7 d</option><option value="15">15 d</option><option value="30">30 d</option></select></span>
       </div>
-      <p style="font-size:11px;color:var(--txt-dim);margin:6px 0 2px" data-i18n="fnd_intro"></p>
-      <div id="fndList"></div>
-      <div id="fndFoot" style="font-size:10.5px;color:var(--txt-dim);margin-top:8px"></div>
+      <p style="font-size:11.5px;color:var(--txt-dim);line-height:1.5;margin:0" data-i18n="fnd_intro"></p>
     </div>
+    <div id="fndList"></div>
+    <div id="fndFoot" style="font-size:10.5px;color:var(--txt-dim);line-height:1.5;margin:10px 4px 0"></div>
   </div>
 
   <!-- Consejos: el coach 100% estático (docs/consejos-coach.md). Fichas
@@ -5197,6 +5217,21 @@ $("fndDays").addEventListener("change",()=>{
 });
 function fndKey(f){ return [f.kind,f.file||f.server||f.session,f.origin||""].join("|"); }
 // título de una tarjeta — lo usan la pestaña Y el globo del día
+// Icono por tipo de hallazgo (rediseño v5): se reconoce la clase de fuga
+// antes de leer el título. El COLOR lo pone la severidad, no el icono.
+const FND_ICON={
+  cachebreak:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.9 12.5H11L9.5 22 19 10.5h-6L13 2z"/></svg>`,
+  inflate:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>`,
+  reread:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+  mech:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+  subagents:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4M12 11.5L6.5 15.8M12 11.5l5.5 4.3"/></svg>`,
+  hooks_noise:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+  mcp_unused:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0V8zM12 18v4"/></svg>`,
+  skills_unused:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/></svg>`,
+  claudemd:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8M8 17h5"/></svg>`,
+  claudemdsize:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 12v3M12 18h.01"/></svg>`,
+  _:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>`,
+};
 function fndTitle(f){
   return f.kind==="reread"?t("fnd_reread_t",f.count)
     :f.kind==="inflate"?t("fnd_inflate_t",f.turns)
@@ -5498,11 +5533,21 @@ function renderFindings(){
         .filter(Boolean).join(" · ");
       const cost=f.cost>0?`${est}$${f.cost.toFixed(2)} · ${est}${fmtTok(f.tokens)} tok`
         :f.tokens>0?`${est}${fmtTok(f.tokens)} tok`:"";
+      // el importe destacado y las unidades apagadas: el dinero es lo que
+      // ordena la lista, los tokens son el detalle
+      const costHtml=f.cost>0
+        ? `<b>${est}$${f.cost.toFixed(2)}</b> <span>· ${est}${fmtTok(f.tokens)} tok</span>`
+        : f.tokens>0 ? `<b>${est}${fmtTok(f.tokens)} tok</b>` : "";
       return `<div class="fnd ${sev}${mins.has(fndKey(f))?" min":""}" data-k="${k}">
         <button class="fnd-x" data-k="${k}">${t("fnd_ignore")} ✕</button>
-        <div class="fnd-t">${title}</div>
-        <div class="fnd-m">${meta}</div>
-        ${cost?`<div class="fnd-c">${cost}</div>`:""}
+        <div class="fnd-top">
+          <span class="fnd-sev"><i></i>${FND_ICON[f.kind]||FND_ICON._}</span>
+          <div class="fnd-body">
+            <div class="fnd-t">${title}</div>
+            <div class="fnd-m">${meta}</div>
+            ${costHtml?`<div class="fnd-c">${costHtml}</div>`:""}
+          </div>
+        </div>
         <div class="fnd-f">${t("fnd_"+f.kind.split("_")[0]+"_f")||""}</div>
       </div>`;
     }).join("");

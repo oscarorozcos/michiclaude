@@ -549,6 +549,17 @@ hacer público el repo (o sus releases).
   es un ajuste, no una fuente; solo DEPENDE de un servidor. Como allí no
   se ve la lista, aparece un aviso ámbar (`hub_cfg_needsrv`) cuando no hay
   ninguno — antes el contexto lo daba estar debajo de la lista.
+- S7 HALLAZGOS (2026-08-05): el encabezado del analizador queda en su
+  tarjeta y las tarjetas de hallazgo van SUELTAS debajo (una tarjeta
+  dentro de otra se leía como un cajón). Cada hallazgo estrena ICONO por
+  tipo (`FND_ICON`: rayo=cachebreak, gráfico=inflate, hoja=reread,
+  terminal=mech, nodos=subagents, enchufe=mcp…) en cuadrito con el color
+  de la SEVERIDAD, importe destacado y unidades apagadas, e "Ignorar"
+  como píldora en la esquina. El borde izquierdo de color se retiró: con
+  fondo de tarjeta y el icono ya coloreado, sobraba.
+  OJO al tocar esto: las fichas de CONSEJOS comparten el molde `.fnd`
+  (variante `.tip`) — cualquier cambio en .fnd/.fnd-t/.fnd-f les llega
+  también, y por eso tienen sus propios overrides.
 - ANCHO DEL PANEL 400 → 446 (2026-08-05): lo cazó Oscar comparando con la
   maqueta — a 400 px los textos se apretaban ("Semanal · todos los …"
   cortado con puntos suspensivos, el ritmo partido en dos líneas). 446 =
