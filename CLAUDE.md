@@ -93,7 +93,9 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 - **Panel** (`main`, 446x660): flyout sin decoraciones, transparente, alwaysOnTop,
   skipTaskbar. Clic en tray abre; se oculta al perder foco (salvo drag);
   ✕ oculta a bandeja; arrastrable desde el encabezado. 5 pestañas
-  (Principal · Fuentes de datos · Hallazgos · Consejos · Preferencias),
+  (Principal · Fuentes de datos · Hallazgos · Consejos · Ajustes —
+  "Preferencias" se renombró a "Ajustes" en ES el 2026-08-05; los otros 7
+  idiomas ya decían Settings/Einstellungen/設定… y no cambian),
   encabezado+pestañas sticky en `.p-top` (el padding superior vive AHÍ, no
   en `.panel` — devolverlo abre una rendija transparente al hacer scroll).
   Pie Hoy/Semana solo en Principal. El panel es el ÚNICO que llama al

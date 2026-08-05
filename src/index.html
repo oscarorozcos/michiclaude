@@ -234,17 +234,28 @@
     background:linear-gradient(150deg,#E9EBFB 0%,#EFE8FB 55%,#E6EAFA 100%);
     border-color:rgba(91,95,224,.28);
     --txt-mut:#333C63; --txt-dim:#4E5780}
-  /* Jerarquía de las barras semanales (afinada con Oscar 2026-08-05): en
-     NEGRITA solo lo que la merece —el nombre del bucket y su %—; el ritmo
-     y los resets, en peso normal. Line-height holgado y wrap permitido:
-     "Reset en 47 h 52 min" se cortaba al no caber en una línea. */
-  .hero-sect .bar-row .lbl{font-weight:600;color:var(--txt)}
-  .hero-sect .bar-row .rst{font-size:10.5px;font-weight:400;line-height:1.55}
-  .hero-sect .bar-row .rst.pctv{font-size:11.5px;font-weight:600;color:var(--txt)}
-  /* datos de debajo de la barra: uno por línea, TODOS a la izquierda */
+  /* Jerarquía y ritmo vertical CALCADOS de la maqueta (Oscar 2026-08-05):
+     nombre en 600 casi blanco, % en mono más tenue, y los datos de abajo
+     en un bloque con interlineado 1.5 — sin separación extra entre sus
+     líneas, que es lo que da el aire parejo de la maqueta. */
+  .hero-sect .bar-row .brow-top{margin-bottom:6px}
+  .hero-sect .bar-row .lbl{font-weight:600;color:rgba(234,240,255,.92)}
+  .hero-sect .bar-row .rst{font-size:10px;font-weight:400;line-height:1.5;
+    color:rgba(234,240,255,.62)}
+  .hero-sect .bar-row .rst.pctv{font-size:11.5px;font-weight:500;
+    color:rgba(234,240,255,.82)}
+  body.light .hero-sect .bar-row .lbl{color:#242C4D}
+  body.light .hero-sect .bar-row .rst{color:#5A6488}
+  body.light .hero-sect .bar-row .rst.pctv{color:#333C63}
+  /* datos de debajo de la barra: uno por línea, TODOS a la izquierda y
+     pegados entre sí (el interlineado ya los separa) */
   .bmeta{display:flex;flex-direction:column;align-items:flex-start;
-    gap:1px;margin-top:5px}
+    gap:0;margin-top:5px}
   .bmeta .rst{margin-left:0;white-space:normal;overflow-wrap:anywhere}
+  /* misma barra para todas las filas del hero (la maqueta no adelgaza las
+     secundarias) y esquinas de cápsula */
+  .hero-sect .track,.hero-sect .mini .track{height:8px;border-radius:999px}
+  .hero-sect .fill{border-radius:999px}
   .sect.hero-sect::before{content:"";position:absolute;top:-40%;right:-18%;
     width:240px;height:240px;pointer-events:none;
     background:radial-gradient(circle,rgba(164,107,255,.30),transparent 65%)}
@@ -1186,7 +1197,7 @@ es:{
   src_local:"local",
   trend_title:"Tendencia diaria",
   trend_q:"últimos 30 días",
-  prefs_title:"Preferencias",
+  prefs_title:"Ajustes",
   budget_label:"Presupuesto semanal en $ (0 = sin aviso)",
   notif_budget:(s,b)=>`El gasto semanal $${s} superó tu presupuesto de $${b} (equiv. API).`,
   prices_label:"Precios de modelos",
