@@ -459,6 +459,18 @@ hacer público el repo (o sus releases).
       solo verlo nacer natural, con una fuga nueva y el panel cerrado).
 - [ ] Updater: decidir repo público + publicar tag v* y probar completo.
 - [ ] Capturas para el README (las hace Oscar).
+- [ ] MÉTRICAS DE RENDIMIENTO Y PRESIÓN DE CONTEXTO (analizado 2026-08-05,
+      sin arrancar): diseño y tabla comparativa completa en
+      `docs/presion-y-rendimiento.md` — LEERLO antes de tocar. En corto:
+      del documento de estrategia de Oscar, el Nivel 1 ya lo cubrimos casi
+      entero; lo NUEVO viable es (1) tokens por turno útil + antes/después
+      anclado a cada arreglo (la joya — alimenta la APUESTA #2), (2)
+      manómetro de contexto en pastilla/gatito (el coach ya calcula ctx,
+      solo falta pintarlo vía quota:update), (3) detector de auto-compacts
+      frecuentes. DESCARTADO con porqué en el doc: sesión contaminada
+      (falsos positivos), score único, modelo local, telemetría colectiva
+      (choca con invariante #3). Cada métrica nueva = 3 piezas en
+      sincronía (invariante #1).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
