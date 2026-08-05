@@ -1051,20 +1051,6 @@
   </div>
 
   <div id="tab-prefs" hidden>
-  <!-- AJUSTES COMPARTIDOS: mudado desde "Fuentes de datos" el 2026-08-05
-       (petición de Oscar). Es un ajuste y aquí lo busca el usuario; solo
-       DEPENDE de un servidor, que es otra cosa. El aviso de abajo aparece
-       cuando no hay ninguno, para que los botones no fallen en silencio. -->
-  <div class="sect">
-    <div class="eyebrow"><span data-i18n="hub_cfg_label"></span></div>
-    <div class="cfg-note" data-i18n="hub_cfg_hint"></div>
-    <div class="cfg-note" id="hubNoSrv" hidden style="color:var(--warn)" data-i18n="hub_cfg_needsrv"></div>
-    <div class="btnrow">
-      <button id="hubSave" data-i18n="hub_cfg_save"></button>
-      <button id="hubLoad" data-i18n="hub_cfg_load"></button>
-      <span id="hubMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
-    </div>
-  </div>
   <div class="sect" id="prefSect">
     <div class="eyebrow" data-i18n="prefs_general"></div>
     <div class="cfg-form">
@@ -1241,6 +1227,20 @@
     </div>
   </div>
 
+  <!-- AJUSTES COMPARTIDOS: mudado desde "Fuentes de datos" el 2026-08-05
+       (petición de Oscar). Es un ajuste y aquí lo busca el usuario; solo
+       DEPENDE de un servidor, que es otra cosa. El aviso de abajo aparece
+       cuando no hay ninguno, para que los botones no fallen en silencio. -->
+  <div class="sect">
+    <div class="eyebrow"><span data-i18n="hub_cfg_label"></span></div>
+    <div class="cfg-note" data-i18n="hub_cfg_hint"></div>
+    <div class="cfg-note" id="hubNoSrv" hidden style="color:var(--warn)" data-i18n="hub_cfg_needsrv"></div>
+    <div class="btnrow">
+      <button id="hubSave" data-i18n="hub_cfg_save"></button>
+      <button id="hubLoad" data-i18n="hub_cfg_load"></button>
+      <span id="hubMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+    </div>
+  </div>
   <!-- ACERCA DE (maqueta de Oscar 2026-08-05). Reúne cosas que ya existían
        sueltas: la comprobación de versión que hasta ahora solo corría sola
        al arrancar, y el atajo a GitHub. "Reportar un problema" abre el
@@ -5041,6 +5041,7 @@ async function loadRemotes(){
   renderRemotes();
   syncHubButtons();
 }
+loadRemotes();   // al arrancar: solo lee remotes.json, local y barato
 // Sin servidor, los ajustes compartidos no pueden funcionar. Se apagan los
 // botones y se dice POR QUÉ, en vez de dejar que el usuario los pulse y le
 // salga un error: quien solo usa su PC pensaría que la app está rota.
@@ -5528,7 +5529,11 @@ function showTab(name){
   for(const k of ["main","sources","findings","tips","prefs"]) $("tab-"+k).hidden = (k!==name);
   $("expBox").hidden = true;                      // el aviso era de ese momento
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
-  if(name==="sources") loadRemotes();             // refresca estado de servidores
+  // los servidores se refrescan en las DOS pestañas que dependen de ellos:
+  // Fuentes de datos (la lista) y Ajustes (los botones de ajustes
+  // compartidos — al mudarse allí se quedaban desactivados si no pasabas
+  // antes por Fuentes de datos, bug visto por Oscar 2026-08-05)
+  if(name==="sources"||name==="prefs") loadRemotes();
   // el reporte en memoria se refresca si tiene más de 5 min: antes solo se
   // escaneaba la PRIMERA vez por arranque, y una sesión terminada DESPUÉS
   // de ese escaneo nunca aparecía hasta reiniciar la app (Oscar 2026-08-02:

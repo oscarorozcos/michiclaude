@@ -2117,3 +2117,13 @@ ronda y los invariantes; el porqué de cada sección vive aquí.
   (invariante 10bis). Los botones secundarios (Copiar, Canal nuevo, CSV,
   JSON, Actualizar ahora, hub) van en tono apagado: el degradado es para
   la acción principal de cada tarjeta.
+- BUG del mudanza de Ajustes compartidos (2026-08-05, lo vio Oscar: botones
+  muertos): `loadRemotes()` —quien habilita los botones vía
+  syncHubButtons— solo corría al abrir Fuentes de datos. Cuando el bloque
+  vivía ahí, bastaba; al mudarlo a Ajustes, entrar directo a esa pestaña
+  dejaba `remotes=[]` y los botones desactivados para siempre. Arreglo:
+  loadRemotes corre al ARRANCAR (get_remotes solo lee remotes.json, local
+  y barato) y al abrir cualquiera de las dos pestañas que dependen de los
+  servidores. LECCIÓN para el resto del rediseño: al mover un bloque de
+  pestaña, buscar qué inicialización dependía de ABRIR la pestaña vieja.
+  Y el bloque quedó penúltimo (antes de Acerca de), como en la maqueta.
