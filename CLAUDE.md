@@ -432,31 +432,31 @@ hacer público el repo (o sus releases).
       sumar exactamente el total. Límite que quedaría: solo dentro de los
       30 (o 90) días que se suban.
 
-- [ ] EN CURSO (desde 2026-08-05): ronda de REDISEÑO UX/UI sobre las
-      maquetas de Oscar. RESPALDO del estado anterior en el tag
-      `pre-rediseno-20260805` (`git checkout pre-rediseno-20260805`).
-      CONTRATO (no romperlo): (1) SOLO reacomodo y estética — cero pérdida
-      de funcionalidad, textos, mensajes de error, confirmaciones, campos o
-      iconos; (2) sección por sección, nunca todo a la vez; (3) toda
-      NOVEDAD funcional se consulta con Oscar ANTES; (4) si el diseño choca
-      con un invariante, avisar antes.
-      HECHO y validado por Oscar: encabezado+pestañas+paleta, hero de
-      cuota, gasto por proyecto (avatares, filtros de fecha y de proyecto),
-      tendencia y modelos, fuentes de datos, hallazgos. FALTA: Consejos y
-      Ajustes.
-      DECISIONES VIGENTES que salieron de la ronda: tipografía EMBEBIDA
+- [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05, las 5
+      pestañas con capturas de Oscar). Respaldo del estado anterior en el
+      tag `pre-rediseno-20260805`. Por el camino cayeron además: coach
+      MULTI-FUENTE (ver su sección), calendario de rango en Gasto y
+      Hallazgos, filtro de proyectos, "cuándo pasó" en los hallazgos,
+      comandos resaltados, Acerca de con versión real, rastro de los
+      avisos en flowLog, y el panel llenando siempre su ventana (margen de
+      sombra 5 px). DECISIONES VIGENTES de la ronda: tipografía EMBEBIDA
       (`src/fonts/`, OFL, sin CDN — una fuente remota rompería CSP y
       privacidad); `.sect` es TARJETA con fondo; toda tarjeta con fondo
       propio redefine `--txt-mut`/`--txt-dim` en vez de repintar hijos;
       en filas con elementos que ocupan dos líneas, FLEX antes que grid;
       panel a 446 px; nada de `color-mix()` (demasiado reciente para
-      WebView2). El DETALLE de cada sección, con su porqué, está en
-      `docs/bitacora.md` §"Ronda de rediseño UX/UI".
+      WebView2); al MOVER un bloque de pestaña, buscar qué inicialización
+      dependía de abrir la pestaña vieja. El DETALLE de cada sección, con
+      su porqué, está en `docs/bitacora.md` §"Ronda de rediseño UX/UI".
+      El widget (pastilla/gatito/globos) CONSERVA su estética propia — el
+      rediseño fue solo del panel; si algún día se armoniza, es otra ronda.
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
       umbral, 100%, ventana nueva reconocida por trackResets/
       windowChanged), camino completo ntfy (push de alarma real, 100%, el
       programado con PC apagada), y el aviso de hallazgos al cierre de
-      sesión (post-it/campana solos a los ~10-13 min, sin globo).
+      sesión SIN re-armar nada (el mecanismo ya quedó validado el
+      2026-08-05 re-armando fndSeen: post-it 9+, contador y rastro; falta
+      solo verlo nacer natural, con una fuga nueva y el panel cerrado).
 - [ ] Updater: decidir repo público + publicar tag v* y probar completo.
 - [ ] Capturas para el README (las hace Oscar).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del

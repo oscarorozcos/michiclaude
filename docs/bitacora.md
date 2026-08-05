@@ -2183,3 +2183,36 @@ banderín notified impide que se repita.
   enseñaba lo de atrás. Arreglo: .panel pasa de max-height a HEIGHT — 
   llena siempre la ventana con fondo sólido; lo corto deja espacio vacío
   interior (intencional) y lo largo sigue con scroll interno.
+
+---
+
+## Cierre de jornada — 2026-08-05
+
+RONDA DE REDISEÑO UX/UI: TERMINADA Y VALIDADA, las cinco pestañas con
+capturas de Oscar en el mismo día. De la maqueta v5 al panel real:
+paleta azul-noche/violeta, tipografía embebida (Inter/Sora/JetBrains,
+OFL), tarjetas con fondo, hero con chip de estado, avatares de proyecto,
+popovers de filtros (calendario de rango + proyectos con buscador y
+chips), hallazgos con icono por tipo y "cuándo pasó", consejos con el
+ofrecimiento de proponer en el hueco de la búsqueda, ajustes en tarjetas
+con interruptores, y Acerca de con versión real y reporte pre-llenado.
+
+LO GRANDE que cayó además del rediseño: COACH MULTI-FUENTE (local + WSL
++ SSH) — el exportador replica el motor completo bajo --coach con estado
+incremental en el servidor (~80 ms/sondeo), validado en vivo con la
+propia sesión de trabajo (816k ctx) y con las fichas, el post-it
+turquesa, el push con origen y el rastro en flowLog funcionando a la
+primera en Windows. Y el AVISO ROJO validado también (post-it 9+ tras
+re-armar fndSeen).
+
+BUGS CAZADOS EN LA JORNADA: campo origin sin comodín en done/sum (no
+compilaba), ajustes compartidos muertos al mudarse de pestaña (su init
+dependía de abrir la pestaña vieja), lista de proyectos descuadrada
+(grid vs flex), falta de corte superior en los rangos del analizador
+Python, y el marco fantasma del panel (max-height → height).
+
+PRÓXIMA SESIÓN: lo que Oscar traiga. En la lista viven: validación
+pasiva natural (alarmas/ntfy/aviso al cierre), decisión del updater
+(repo público + tag), capturas del README, y las ideas apuntadas para su
+momento (hub con rangos por día; armonizar el widget con la estética v5
+si algún día apetece).
