@@ -4,6 +4,33 @@
 <meta charset="utf-8">
 <title>MichiClaude</title>
 <style>
+  /* TIPOGRAFÍA DEL REDISEÑO v5 (2026-08-05, decisión de Oscar): las tres
+     familias de la maqueta viajan DENTRO de la app (src/fonts/, 238 KB en
+     woff2 variable, licencia OFL en fonts/LICENSES.md). NUNCA se piden a
+     un servidor: una fuente remota rompería la promesa de privacidad y la
+     CSP, y dejaría la app fea si el CDN falla. Los subconjuntos son latin
+     y latin-ext; en japonés, coreano y chino no hay glifos y la pila cae
+     sola a la tipografía del sistema — por eso los respaldos siguen
+     completos en --font/--mono. */
+  @font-face{font-family:'Inter';font-style:normal;font-weight:100 900;
+    font-display:swap;src:url('fonts/inter-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+  @font-face{font-family:'Inter';font-style:normal;font-weight:100 900;
+    font-display:swap;src:url('fonts/inter-latin-ext.woff2') format('woff2');
+    unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+  @font-face{font-family:'Sora';font-style:normal;font-weight:100 800;
+    font-display:swap;src:url('fonts/sora-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+  @font-face{font-family:'Sora';font-style:normal;font-weight:100 800;
+    font-display:swap;src:url('fonts/sora-latin-ext.woff2') format('woff2');
+    unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+  @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:100 800;
+    font-display:swap;src:url('fonts/jbmono-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+  @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:100 800;
+    font-display:swap;src:url('fonts/jbmono-latin-ext.woff2') format('woff2');
+    unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
   /* PALETA DEL REDISEÑO v5 (2026-08-05, maqueta de Oscar): azul-noche con
      acento violeta y secundario turquesa. Se conservan los NOMBRES de las
      variables viejas para que toda la app herede los colores sin tocar cada
@@ -12,8 +39,11 @@
      fuentes web de la maqueta violarían la CSP (decisión pendiente de
      Oscar: embeberlas o quedarnos así). */
   :root{
-    --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
-    --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
+    --font:'Inter',"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    /* display: títulos y cifras grandes (nombre de la app, % del medidor,
+       totales). El resto usa --font. */
+    --disp:'Sora',var(--font);
+    --mono:'JetBrains Mono',"Cascadia Code",ui-monospace,"Consolas",monospace;
     /* fondo SÓLIDO: con alpha se transparenta lo que haya detrás del panel */
     --mica:#0F1830;
     --card:#151F3A; --card-hi:#1B2748;
@@ -95,7 +125,7 @@
   .p-head .mark{width:22px;height:22px;display:block}
   .p-htext{min-width:0;flex:1 1 auto}
   .p-hi{font-size:10.5px;color:var(--txt-mut);letter-spacing:.2px}
-  .p-title{font-size:15px;font-weight:700;letter-spacing:-.2px;
+  .p-title{font-family:var(--disp);font-size:15px;font-weight:700;letter-spacing:-.2px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .p-sub{font-size:10.5px;color:var(--txt-dim);font-family:var(--mono);margin-top:3px;
     display:flex;align-items:center;gap:6px;transition:opacity .2s;
@@ -211,10 +241,10 @@
   .hero-sect .bar-row .lbl{font-weight:600;color:var(--txt)}
   .hero-sect .bar-row .rst{font-size:10.5px;font-weight:400;line-height:1.55}
   .hero-sect .bar-row .rst.pctv{font-size:11.5px;font-weight:600;color:var(--txt)}
-  /* la fila de abajo (ritmo + reset) puede repartirse en dos líneas en vez
-     de comprimirse hasta cortarse */
-  .hero-sect .bar-row .brow-top{flex-wrap:wrap;gap:0 8px}
-  .hero-sect .bar-row .brow-top .rst{white-space:normal;overflow-wrap:anywhere}
+  /* datos de debajo de la barra: uno por línea, TODOS a la izquierda */
+  .bmeta{display:flex;flex-direction:column;align-items:flex-start;
+    gap:1px;margin-top:5px}
+  .bmeta .rst{margin-left:0;white-space:normal;overflow-wrap:anywhere}
   .sect.hero-sect::before{content:"";position:absolute;top:-40%;right:-18%;
     width:240px;height:240px;pointer-events:none;
     background:radial-gradient(circle,rgba(164,107,255,.30),transparent 65%)}
@@ -240,8 +270,8 @@
   .gauge{width:132px;flex:0 0 auto;position:relative;text-align:center}
   .gauge svg{width:132px;height:78px;display:block}
   #gFill{transition:stroke-dashoffset .6s,stroke .3s}
-  .g-val{position:absolute;left:0;right:0;top:36px;font-weight:800;
-    font-size:26px;letter-spacing:-.5px;line-height:1}
+  .g-val{position:absolute;left:0;right:0;top:36px;font-family:var(--disp);
+    font-weight:800;font-size:26px;letter-spacing:-.5px;line-height:1}
   .g-cap{position:absolute;left:0;right:0;top:64px;font-size:8.5px;font-weight:700;
     letter-spacing:1.1px;text-transform:uppercase;color:var(--txt-dim)}
   .g-reset{font-family:var(--mono);font-size:10px;color:var(--txt-mut);margin-top:3px}
@@ -3328,16 +3358,19 @@ function renderQuota(data){
   $("weekStack").innerHTML = weekly.map((b)=>{
     const hero=b.kind==="weekly_all";
     const pace=elapsedPct(b.resets,168), c=col(b.pct,pace);
+    // Nombre + % en UNA línea (% pegado a la derecha); debajo, cada dato en
+    // su propia línea y TODOS alineados a la izquierda — antes el reset de
+    // las filas mini se iba a la derecha y quedaba desalineado con el resto
+    // (Oscar 2026-08-05).
     return `<div class="bar-row ${hero?'':'mini'}">
       <div class="brow-top"><span class="lbl">${escapeHtml(b.label)}</span>
         <span class="rst pctv">${b.pct}%</span></div>
       <div class="track"><div class="fill" style="width:${b.pct}%;background:${c}"></div>
         ${pace!=null?`<div class="pace" style="left:${pace}%"></div>`:""}</div>
-      ${hero?`<div class="brow-top wrap" style="margin-top:4px;margin-bottom:0">
-        <span class="rst">${pace!=null&&b.pct<=pace?t("pace_ok"):t("pace_watch")}</span>
-        <span class="rst">${fmtReset(b.resets)}</span></div>`
-       :`<div class="brow-top" style="margin-top:3px;margin-bottom:0">
-        <span class="rst" style="margin-left:auto">${fmtReset(b.resets)}</span></div>`}
+      <div class="bmeta">
+        ${hero?`<span class="rst">${pace!=null&&b.pct<=pace?t("pace_ok"):t("pace_watch")}</span>`:""}
+        <span class="rst">${fmtReset(b.resets)}</span>
+      </div>
     </div>`;
   }).join("") || `<div class="errbox">${t("no_buckets")}</div>`;
 

@@ -431,6 +431,20 @@ hacer público el repo (o sus releases).
       de dentro hereda sin repintar reglas) y el % lleva clase `pctv` con
       más peso. REGLA NUEVA del rediseño: toda tarjeta con fondo propio
       redefine esos dos tonos en vez de tocar sus hijos uno por uno.
+      Y el acomodo definitivo de las barras (Oscar 2026-08-05): nombre +
+      % en UNA línea, y debajo `.bmeta` con un dato por línea TODOS a la
+      izquierda — el reset de las filas mini se iba a la derecha y
+      rompía la alineación.
+- TIPOGRAFÍA (2026-08-05, Oscar la pidió embebida): Inter (texto), Sora
+  (`--disp`: títulos y cifras grandes) y JetBrains Mono (`--mono`) viven
+  en `src/fonts/` — woff2 variable, subconjuntos latin y latin-ext, 238 KB,
+  licencia OFL con su copia en `fonts/LICENSES.md` (obligatoria al
+  redistribuir). NUNCA se piden a un CDN: rompería la CSP y la promesa de
+  privacidad, y un fallo del servidor dejaría la app sin tipografía. Sin
+  glifos CJK: en ja/ko/zh la pila cae sola al sistema — por eso los
+  respaldos de --font/--mono se conservan enteros. Se aplican SOLO donde
+  Oscar lo indique, sección por sección (por ahora: todo el panel hereda
+  Inter/JetBrains, y --disp está en el título y el % del medidor).
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
       umbral, 100%, ventana nueva reconocida por trackResets/
       windowChanged), camino completo ntfy (push de alarma real, 100%, el
