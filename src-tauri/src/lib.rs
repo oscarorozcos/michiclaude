@@ -2757,9 +2757,12 @@ async fn get_findings(days: Option<u32>, end: Option<i64>) -> Result<Vec<Finding
 // Coach de sesión activa (docs/consejos-coach.md §3-§4, nivel 2 de frescura):
 // el panel sondea cada ciclo la COLA de los logs tocados hace poco y evalúa
 // un catálogo CORTO de reglas medibles. Sin hooks: MichiClaude sigue afuera
-// mirando archivos. SOLO fuentes locales de esta máquina — el consejo es
-// para la sesión que tienes en el teclado, no para un servidor remoto (y el
-// exportador no participa: divergencia documentada, como el WSL en Python).
+// mirando archivos. Desde 2026-08-05 cubre la máquina ENTERA (Windows +
+// WSL) y los SERVIDORES por SSH: Oscar trabaja por SSH dentro del VPS y esa
+// sesión está tan "en el teclado" como una local — la vieja suposición de
+// que lo remoto es de otra persona no aguantó. El exportador replica este
+// motor bajo --coach (con estado incremental propio en el servidor) y
+// get_coach fusiona etiquetando el origen, como las filas del export.
 // La lectura es INCREMENTAL por offset: cada archivo se parsea entero una
 // sola vez y de ahí en adelante solo los bytes añadidos, así el sondeo de
 // 3 min cuesta casi nada aunque la sesión pese cientos de MB.
@@ -2813,7 +2816,8 @@ struct CoachSess {
 /// Una fuga detectada al CIERRE de la sesión (mini-auditoría del coach):
 /// hechos medidos en memoria, nunca re-escaneo de disco. `kind` casa con
 /// las fichas del catálogo (reread→attach, ctx→compact, gap→cache).
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 struct CoachLeak {
     kind: String,
     file: String,
@@ -2853,7 +2857,8 @@ fn coach_leaks(st: &CoachSess) -> Vec<CoachLeak> {
     out
 }
 
-#[derive(Serialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 struct CoachHit {
     rule: String,    // id de la ficha de Consejos — o "sum" para el resumen
     session: String, // sid corto, para el "una vez por sesión" del frontend
@@ -2867,6 +2872,11 @@ struct CoachHit {
     turns: u64,      // "sum"/"done": turnos de la sesión
     cost: f64,       // "sum"/"done": costo medido de la sesión (equiv. API)
     leaks: Vec<CoachLeak>, // "sum"/"done": mini-auditoría al cierre
+    /// De qué máquina viene el consejo: vacío = esta (el panel enseña
+    /// "local"); con nombre = el que el usuario le dio al servidor. Lo pone
+    /// get_coach al fusionar, nunca el exportador (el mismo patrón que el
+    /// origen de las filas del export: lo etiqueta quien lee).
+    origin: String,
 }
 
 static COACH_STATE: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, CoachSess>>> =
@@ -2918,8 +2928,15 @@ fn coach_scan() -> Vec<CoachHit> {
     let now = Utc::now().timestamp();
     let states = COACH_STATE.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
     let Ok(mut states) = states.lock() else { return hits };
-    let pdir = claude_dir().join("projects");
-    let Ok(projs) = fs::read_dir(&pdir) else { return hits };
+    // esta máquina ENTERA: Windows y sus distros WSL (mismo teclado; el
+    // coach las ignoraba y una sesión en Ubuntu no aconsejaba nada —
+    // pedido de Oscar 2026-08-05)
+    let mut pdirs = vec![claude_dir().join("projects")];
+    for (_distro, d) in wsl_claude_dirs() {
+        pdirs.push(d.join("projects"));
+    }
+    for pdir in pdirs {
+    let Ok(projs) = fs::read_dir(&pdir) else { continue };
     for proj in projs.flatten() {
         let ppath = proj.path();
         if !ppath.is_dir() {
@@ -3211,6 +3228,7 @@ fn coach_scan() -> Vec<CoachHit> {
             }));
         }
     }
+    }
     let _ = fs::write(
         app_data_dir().join("coach_debug.json"),
         serde_json::to_string_pretty(&serde_json::json!({
@@ -3226,12 +3244,70 @@ fn coach_scan() -> Vec<CoachHit> {
     hits
 }
 
-/// Sondeo del coach: async + spawn_blocking (invariante 10ter — toca disco).
+/// El coach de UN servidor: `--coach` le pide al exportador SOLO los
+/// consejos de sus sesiones vivas (atajo barato: sin agregación de gasto).
+/// Falla → None y silencio, como fetch_remote: la red nunca rompe el sondeo.
+fn fetch_remote_coach(r: &RemoteSource) -> Option<Vec<CoachHit>> {
+    use std::io::Write;
+    #[derive(Deserialize, Default)]
+    #[serde(default)]
+    struct CoachOut {
+        coach: Vec<CoachHit>,
+    }
+    let prices = prices_map()
+        .read()
+        .ok()
+        .filter(|m| !m.is_empty())
+        .and_then(|m| serde_json::to_string(&*m).ok());
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+        .arg(&r.host)
+        .arg(format!(
+            "{} --coach{}",
+            r.command,
+            if prices.is_some() { " --prices-stdin" } else { "" }
+        ))
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let mut child = cmd.spawn().ok()?;
+    if let Some(mut si) = child.stdin.take() {
+        if let Some(json) = &prices {
+            let _ = si.write_all(json.as_bytes());
+        }
+    }
+    let out = child.wait_with_output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    serde_json::from_slice::<CoachOut>(&out.stdout).ok().map(|c| c.coach)
+}
+
+/// Sondeo del coach: async + spawn_blocking (invariante 10ter — toca disco
+/// y SSH). Local + WSL con el motor de siempre; cada servidor aporta los
+/// suyos vía --coach y quien lee les pone el origen (el exportador viejo
+/// ignora el flag y devuelve el JSON grande sin clave `coach`: cero hits,
+/// cero errores — se degrada solo).
 #[tauri::command]
 async fn get_coach() -> Result<Vec<CoachHit>, String> {
-    tauri::async_runtime::spawn_blocking(coach_scan)
-        .await
-        .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut hits = coach_scan();
+        for r in load_remotes() {
+            let Some(remote) = fetch_remote_coach(&r) else { continue };
+            for mut h in remote {
+                h.origin = r.name.clone();
+                hits.push(h);
+            }
+        }
+        hits
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 /// Escapa un campo de CSV: comillas alrededor y las internas duplicadas. Antes

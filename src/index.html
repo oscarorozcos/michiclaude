@@ -556,9 +556,13 @@
     box-shadow:0 10px 22px -10px rgba(124,140,255,.6);transition:filter .15s}
   .cfg-form button:hover,.btnrow button:hover{filter:brightness(1.1)}
   /* secundarios (los de ajustes compartidos y export) en tono apagado */
-  .btnrow button.sec,.ntfy-url button.sec,#hubSave,#hubLoad,#expCsv,#expJson,#pricesNow{
-    background:var(--card-hi);color:var(--txt);border:1px solid var(--stroke);box-shadow:none}
-  .btnrow button.sec:hover,.ntfy-url button.sec:hover,#hubSave:hover,#hubLoad:hover,
+  /* .sec funciona en CUALQUIER contenedor: atarlo a .btnrow dejó sin
+     estilo al "Buscar actualización" de Acerca de (Oscar 2026-08-05) */
+  button.sec,#hubSave,#hubLoad,#expCsv,#expJson,#pricesNow{
+    background:var(--card-hi);color:var(--txt);border:1px solid var(--stroke);
+    box-shadow:none;border-radius:11px;padding:9px 15px;font-size:12px;
+    font-weight:700;cursor:pointer;font-family:var(--font);transition:background .15s}
+  button.sec:hover,#hubSave:hover,#hubLoad:hover,
   #expCsv:hover,#expJson:hover,#pricesNow:hover{background:var(--surface);filter:none}
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
   /* La ruta de exportación era el único mensaje del panel sin estilo:
@@ -1256,7 +1260,7 @@
       <button id="aboutCheck" class="sec" data-i18n="about_check"></button>
     </div>
     <div class="btnrow" style="margin-top:12px">
-      <button id="aboutIssue" class="sec" data-i18n="about_issue"></button>
+      <button id="aboutIssue" class="sec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px;margin-right:5px;color:var(--bad)"><rect x="8" y="6" width="8" height="12" rx="4"/><path d="M9 6a3 3 0 0 1 6 0M3 12h5M16 12h5M5 5l3 3M19 5l-3 3M5 19l3-3M19 19l-3-3"/></svg><span data-i18n="about_issue"></span></button>
       <a href="#" id="aboutReleases" class="about-link" data-i18n="about_releases"></a>
     </div>
   </div>
@@ -5153,7 +5157,7 @@ function renderTips(){
       live.push({born:c.born||0, html:`<div class="fnd tip${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
       <button class="tip-x" aria-label="✕">✕</button>
       <div class="fnd-t">«${esc(h.title||h.project)}»</div>
-      <div class="fnd-m">${t("tip_sum_t")} — ${esc(h.project)} · ${t("src_local")}</div>
+      <div class="fnd-m">${t("tip_sum_t")} — ${esc(h.project)} · ${esc(h.origin||t("src_local"))}</div>
       <div class="fnd-f">${t("tip_sum_line",h.value,h.cmds,h.edits)}${
         h.cost>0.005?` · ~$${(+h.cost).toFixed(2)}`:""}</div>
       ${(h.leaks||[]).map(l=>`<div class="fnd-f">⚠ ${tipLeak(l)}</div>`).join("")}
@@ -5170,7 +5174,7 @@ function renderTips(){
     // la ficha disparada dice A QUÉ sesión aplicar el consejo: proyecto +
     // "local" — el coach solo mira esta máquina, y con el VPS abierto al
     // lado la duda era real (Oscar, 2026-07-31)
-    const donde=h?[h.project||"", t("src_local")]
+    const donde=h?[h.project||"", h.origin||t("src_local")]
       .filter(Boolean).join(" · "):"";
     return `<div class="fnd tip${h&&!c.min?" open":""}" data-tip="${id}"${
         h?` data-ck="${esc(h.rule+"|"+h.session)}"`:""}>
@@ -5358,8 +5362,9 @@ function ntfyDone(list){
     // archivos, ni qué regla disparó (los topics de ntfy son públicos);
     // el desglose espera en la tarjeta del panel
     const extra=(h.leaks&&h.leaks.length)?" · "+t("ntfy_done_save",h.leaks.length):"";
+    const dnde=(h.project||"?")+(h.origin?" · "+h.origin:"");
     ntfyPush((ntfyCfg.names
-      ? t("ntfy_done_body_p", h.project||"?", mins, turns)
+      ? t("ntfy_done_body_p", dnde, mins, turns)
       : t("ntfy_done_body", mins, turns))+extra, 3, null);
   }
   localStorage.setItem("ntfyDone", JSON.stringify(sent.slice(-100)));
@@ -5378,7 +5383,7 @@ function ntfyAsk(list){
     if(sent.includes(k)) continue;
     sent.push(k);
     ntfyPush(ntfyCfg.names
-      ? t("ntfy_ask_body_p", h.project||"?", h.value||1)
+      ? t("ntfy_ask_body_p", (h.project||"?")+(h.origin?" · "+h.origin:""), h.value||1)
       : t("ntfy_ask_body", h.value||1), 4, null);
   }
   localStorage.setItem("ntfyAsked", JSON.stringify(sent.slice(-100)));

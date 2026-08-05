@@ -335,7 +335,15 @@ borrar fndSeen y fndAutoLast.
 Diseño en `docs/consejos-coach.md` — LEERLO antes de tocar. Fichas
 estáticas curadas (sin IA, sin red, `tip_<id>_*` ×8) + motor de sesión
 activa: `get_coach` (Rust, lectura incremental por offset, sesiones
-tocadas en 30 min, SOLO esta máquina). Reglas: ctx≥120k → compact;
+tocadas en 30 min). Desde 2026-08-05 MULTI-FUENTE: local + WSL + cada
+servidor SSH — el exportador replica el motor bajo `--coach` (invariante
+#1; estado incremental en `~/.cache/michiclaude/coach_state.json` del
+servidor, reconstruible; subagentes fuera, plano como en Rust) y
+`get_coach` fusiona poniendo `origin` (vacío = local; el panel lo enseña
+en fichas, recibos y pushes). Exportador viejo: ignora --coach y devuelve
+el JSON grande sin clave `coach` → cero hits, se degrada solo. VALIDADO
+en vivo en el VPS el mismo día: detectó la propia sesión de trabajo
+(compact 802k, attach 26) y el sondeo incremental cuesta ~80 ms. Reglas: ctx≥120k → compact;
 pausa≥6 min con ctx≥30k → cache; mismo archivo leído ≥3 → attach; `ask`
 (tool_use sin tool_result ≥3 min) y `done` (quieta 5 min, 5+ turnos) son
 SOLO push al celular, no fichas; `sum` (quieta 10 min) = recibo con

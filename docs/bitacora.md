@@ -2127,3 +2127,32 @@ ronda y los invariantes; el porqué de cada sección vive aquí.
   servidores. LECCIÓN para el resto del rediseño: al mover un bloque de
   pestaña, buscar qué inicialización dependía de ABRIR la pestaña vieja.
   Y el bloque quedó penúltimo (antes de Acerca de), como en la maqueta.
+
+### Coach multi-fuente (2026-08-05) — local + WSL + servidores SSH
+
+Pedido de Oscar tras entender la limitación con el ejemplo del doctor: los
+Hallazgos (análisis de laboratorio) ya veían el VPS, pero el coach (la
+enfermera del momento) era ciego fuera de lo local — y él trabaja por SSH
+DENTRO del VPS, donde más gasta. Implementación:
+- Rust: coach_scan recorre también las distros WSL; CoachHit gana `origin`
+  (lo pone get_coach al fusionar, como el origen del export) y
+  fetch_remote_coach trae los hits de cada servidor.
+- meter-export.py: réplica completa del motor bajo `--coach` (atajo: sin
+  agregación de gasto), con TODO el detalle — pendiente fantasma blindado,
+  gaps de caché, dedup de tool_use por id, ai-title, leaks del cierre — y
+  estado incremental propio en ~/.cache/michiclaude/coach_state.json (el
+  exportador es un proceso nuevo por sondeo; sin estado releería sesiones
+  enteras cada 3 min). El estado solo guarda sesiones vivas: se poda solo.
+- Frontend: fichas, recibos y los pushes de "terminó"/"espera tu
+  aprobación" enseñan el origen cuando no es local.
+VALIDACIÓN EN VIVO (la mejor posible): el --coach corrido en el VPS
+detectó LA PROPIA SESIÓN de trabajo de esta jornada — compact con 802k de
+contexto, attach con 26 relecturas, 1021 turnos, $401.86, pending:true
+mientras Claude ejecutaba herramientas. Sondeo incremental: 73-91 ms.
+VERIFICACIÓN DEL CIRCUITO DE INDICADORES (pedida por Oscar): el resumen
+emite fnd+coach antes del early-return de ok:false; la pastilla pinta
+fdot/tdotc y el gatito hasfnd/hastip, ambos antes de su early-return; y
+desde hoy fndBadgeCalc y renderTipsDot dejan rastro en flowLog al
+encenderse/apagarse. PRUEBA EN VIVO PARA WINDOWS: recompilar y esperar el
+primer sondeo (60 s) — esta sesión del VPS siempre está enorme, así que
+la ficha compact con origen VPS-EU y el post-it turquesa DEBEN aparecer.

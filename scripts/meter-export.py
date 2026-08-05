@@ -14,6 +14,8 @@ Uso:  meter-export.py [--days N] [--end EPOCH] [--exclude-host ID]
                         se desplaza al pasado y cubre [end - days, end]:
                         así se pide un rango de fechas concreto.
       --exclude-host ID no devolver el resumen de esa máquina (modo hub)
+      --coach           SOLO consejos de sesiones vivas (atajo del sondeo
+                        del panel; réplica del coach de lib.rs)
 
 El meter en Windows lo invoca por SSH. Solo stdlib; sin dependencias.
 """
@@ -741,6 +743,241 @@ def scan_findings(projects_dir, window_ago, days, end):
     return findings[:MAX_FINDINGS]
 
 
+
+
+# ---------- coach de sesión activa (--coach) ----------
+# Réplica del motor de coach_scan() en lib.rs (invariante #1: ambos lados en
+# sincronía), para que las sesiones que corren EN este servidor también
+# aconsejen — hasta 2026-08-05 el coach era solo local y trabajar por SSH
+# dentro del VPS no avisaba de nada aunque ahí se gaste lo más.
+# El estado incremental (offsets y banderines una-vez-por-sesión) vive en
+# ~/.cache/michiclaude/coach_state.json: el exportador es un proceso nuevo
+# en cada sondeo y sin él tendría que releer sesiones enteras cada 3 min.
+# Reconstruible: si se borra o no se entiende, se rehace desde los logs (el
+# frontend deduplica por rule|session, así que repetir un hecho no duplica
+# tarjetas ni pushes). Los transcripts de subagentes NO entran: el coach
+# queda plano a propósito, como en Rust.
+COACH_ACTIVE_MIN = 30
+COACH_CTX_HIGH = 120_000
+COACH_GAP_MIN = 6
+COACH_GAP_CTX = 30_000
+COACH_REREAD = 3
+COACH_SUM_QUIET = 10
+COACH_SUM_MIN_TURNS = 5
+COACH_DONE_QUIET = 5
+COACH_DONE_TURNS = 5
+COACH_ASK_QUIET = 3
+
+
+def coach_state_path():
+    base = os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")
+    return Path(base) / "michiclaude" / "coach_state.json"
+
+
+def _coach_default():
+    return {"offset": 0, "last_ctx": 0, "first_turn": 0, "last_turn": 0,
+            "turns": 0, "cmds": 0, "reads": {}, "edits": [], "tool_ids": [],
+            "title": "", "proj": "", "cost": 0.0, "gaps": 0, "done": False,
+            "notified": False, "asked": False, "pending_tool": False}
+
+
+def coach_leaks(st):
+    """Mini-auditoría del cierre — mismas tres reglas que coach_leaks() en
+    Rust: releídos, contexto (ctx y cache EXCLUYENTES) y pausas con caché
+    vencido."""
+    out = []
+    reread = [(f, n) for f, n in st["reads"].items() if n >= COACH_REREAD]
+    if reread:
+        f, n = max(reread, key=lambda x: x[1])
+        base = f.replace("\\", "/").rsplit("/", 1)[-1]
+        out.append({"kind": "reread", "file": base, "n": n})
+    if st["last_ctx"] >= COACH_CTX_HIGH:
+        out.append({"kind": "ctx", "file": "", "n": st["last_ctx"] // 1000})
+    elif st["last_ctx"] >= COACH_GAP_CTX:
+        out.append({"kind": "cache", "file": "", "n": st["last_ctx"] // 1000})
+    if st["gaps"] > 0:
+        out.append({"kind": "gap", "file": "", "n": st["gaps"]})
+    return out
+
+
+def coach_scan(projects_dir):
+    hits = []
+    dbg = []
+    now = int(datetime.now(timezone.utc).timestamp())
+    try:
+        state = json.loads(coach_state_path().read_text(encoding="utf-8"))
+        if not isinstance(state, dict):
+            state = {}
+    except Exception:
+        state = {}
+    alive = {}
+    if projects_dir.is_dir():
+        for proj in sorted(projects_dir.iterdir()):
+            if not proj.is_dir():
+                continue
+            proj_name = proj.name
+            # PLANO a propósito: los transcripts de subagentes no aconsejan
+            for fp in sorted(proj.glob("*.jsonl")):
+                try:
+                    st_f = fp.stat()
+                except OSError:
+                    continue
+                mtime = int(st_f.st_mtime)
+                if now - mtime > COACH_ACTIVE_MIN * 60:
+                    continue
+                key = str(fp)
+                st = state.get(key) or _coach_default()
+                # completar campos si el estado viene de una versión vieja
+                for k, v in _coach_default().items():
+                    st.setdefault(k, v)
+                size = st_f.st_size
+                if size < st["offset"]:
+                    st = _coach_default()   # truncado: de cero
+                if size > st["offset"]:
+                    try:
+                        with open(fp, "rb") as fh:
+                            fh.seek(st["offset"])
+                            buf = fh.read(size - st["offset"])
+                    except OSError:
+                        continue
+                    cut = buf.rfind(b"\n")
+                    if cut < 0:
+                        continue   # ni una línea completa nueva
+                    st["offset"] += cut + 1
+                    tool_ids = set(st["tool_ids"])
+                    edits = set(st["edits"])
+                    for line in buf[:cut + 1].decode("utf-8", "replace").splitlines():
+                        try:
+                            v = json.loads(line)
+                        except ValueError:
+                            continue
+                        if not isinstance(v, dict):
+                            continue
+                        ts = parse_ts(v.get("timestamp"))
+                        ts_s = int(ts.timestamp()) if ts else None
+                        if not st["proj"]:
+                            cwd = (v.get("cwd") or "").replace("\\", "/").rstrip("/")
+                            base = cwd.rsplit("/", 1)[-1]
+                            if base:
+                                st["proj"] = base
+                        if v.get("type") == "ai-title":
+                            t2 = (v.get("aiTitle") or "").strip()
+                            if t2:
+                                st["title"] = t2
+                        msg = v.get("message") or {}
+                        usage = msg.get("usage")
+                        side = bool(v.get("isSidechain"))
+                        if isinstance(usage, dict) and not side:
+                            # un turno nuevo del hilo principal limpia el
+                            # pendiente (el blindaje del fantasma, 2026-08-03)
+                            st["pending_tool"] = False
+                            cr = usage.get("cache_read_input_tokens") or 0
+                            cw = usage.get("cache_creation_input_tokens") or 0
+                            ctx = cr + cw
+                            if (ts_s and st["last_turn"] > 0
+                                    and ts_s - st["last_turn"] >= COACH_GAP_MIN * 60
+                                    and st["last_ctx"] >= COACH_GAP_CTX):
+                                st["gaps"] += 1
+                            if ctx > 0:
+                                st["last_ctx"] = ctx
+                            st["turns"] += 1
+                            pi, po, pcw, pcr = price_for(msg.get("model") or "unknown")
+                            st["cost"] += ((usage.get("input_tokens") or 0) * pi
+                                           + (usage.get("output_tokens") or 0) * po
+                                           + cw * pcw + cr * pcr) / 1e6
+                            if ts_s:
+                                if st["first_turn"] == 0:
+                                    st["first_turn"] = ts_s
+                                st["last_turn"] = ts_s
+                        blocks = msg.get("content")
+                        if isinstance(blocks, list):
+                            for b in blocks:
+                                if not isinstance(b, dict):
+                                    continue
+                                bt = b.get("type")
+                                if bt == "tool_use" and not side:
+                                    st["pending_tool"] = True
+                                elif bt == "tool_result" and not side:
+                                    st["pending_tool"] = False
+                                if bt != "tool_use":
+                                    continue
+                                bid = b.get("id") or ""
+                                if not bid or bid in tool_ids:
+                                    continue
+                                tool_ids.add(bid)
+                                name = b.get("name") or ""
+                                inp = b.get("input") or {}
+                                if name == "Read" and inp.get("file_path"):
+                                    fpx = inp["file_path"]
+                                    st["reads"][fpx] = st["reads"].get(fpx, 0) + 1
+                                elif name == "Bash":
+                                    st["cmds"] += 1
+                                elif name in ("Edit", "Write", "NotebookEdit") \
+                                        and inp.get("file_path"):
+                                    edits.add(inp["file_path"])
+                    st["tool_ids"] = sorted(tool_ids)
+                    st["edits"] = sorted(edits)
+                    st["asked"] = False   # el log creció: se rearma la espera
+                sid = fp.stem[:8]
+                proj_disp = st["proj"] or proj_name.split("-")[-1]
+
+                def hit(rule, value, **extra):
+                    h = {"rule": rule, "session": sid, "value": value,
+                         "project": proj_disp}
+                    h.update(extra)
+                    hits.append(h)
+
+                if st["last_ctx"] >= COACH_CTX_HIGH:
+                    hit("compact", st["last_ctx"] // 1000)
+                gap_min = (now - st["last_turn"]) // 60
+                if (st["last_turn"] > 0 and gap_min >= COACH_GAP_MIN
+                        and st["last_ctx"] >= COACH_GAP_CTX):
+                    hit("cache", max(gap_min, 0))
+                reread = [n for n in st["reads"].values() if n >= COACH_REREAD]
+                if reread:
+                    hit("attach", max(reread))
+                quiet_min = max(0, now - mtime) // 60
+                if (st["pending_tool"] and not st["asked"]
+                        and quiet_min >= COACH_ASK_QUIET and st["turns"] >= 1):
+                    st["asked"] = True
+                    hit("ask", quiet_min, turns=st["turns"])
+                mins = max((st["last_turn"] - st["first_turn"]) // 60, 1)
+                if (not st["notified"] and not st["pending_tool"]
+                        and quiet_min >= COACH_DONE_QUIET
+                        and st["turns"] >= COACH_DONE_TURNS):
+                    st["notified"] = True
+                    hit("done", mins, title=st["title"], cmds=st["cmds"],
+                        edits=len(st["edits"]), turns=st["turns"],
+                        cost=st["cost"], leaks=coach_leaks(st))
+                if (not st["done"] and not st["pending_tool"]
+                        and quiet_min >= COACH_SUM_QUIET
+                        and st["turns"] >= COACH_SUM_MIN_TURNS):
+                    st["done"] = True
+                    hit("sum", mins, title=st["title"], cmds=st["cmds"],
+                        edits=len(st["edits"]), turns=st["turns"],
+                        cost=st["cost"], leaks=coach_leaks(st))
+                alive[key] = st
+                dbg.append({"sid": sid, "proj": proj_disp, "turns": st["turns"],
+                            "quiet_min": quiet_min, "ctx": st["last_ctx"],
+                            "pending": st["pending_tool"], "asked": st["asked"],
+                            "notified": st["notified"], "sum_done": st["done"],
+                            "gaps": st["gaps"],
+                            "cost": round(st["cost"], 2)})
+    # solo sesiones vivas: las dormidas salen del estado solas (acotado)
+    try:
+        p = coach_state_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(alive), encoding="utf-8")
+        (p.parent / "coach_debug.json").write_text(json.dumps(
+            {"at": datetime.now(timezone.utc).isoformat(),
+             "sessions": dbg,
+             "hits": ["%s|%s" % (h["rule"], h["session"]) for h in hits]},
+            indent=1), encoding="utf-8")
+    except Exception:
+        pass   # el estado es un lujo, como el caché de escaneo
+    return hits
+
+
 HOSTS_DIR = Path.home() / ".michiclaude" / "hosts"
 
 
@@ -835,6 +1072,13 @@ def main():
 
     claude_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
     projects_dir = claude_dir / "projects"
+
+    # --coach: ATAJO — solo los consejos de las sesiones vivas, sin la
+    # agregación de gasto. Es lo que el panel pide cada 3 min; hacerle
+    # calcular todo el gasto para tirar el 95% sería trabajo tirado.
+    if "--coach" in args:
+        print(json.dumps({"coach": coach_scan(projects_dir)}))
+        return
     now = datetime.now(timezone.utc)
     end = (datetime.fromtimestamp(end_ts, timezone.utc)
            if end_ts is not None else now)
