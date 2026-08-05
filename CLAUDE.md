@@ -396,8 +396,26 @@ hacer público el repo (o sus releases).
 
 ## Estado / pendientes
 
-- [ ] SIGUIENTE SESIÓN (decisión de Oscar 2026-08-04): ronda de ajustes
-      ESTÉTICOS y de UX/UI — él trae la lista. Después, el resto de
+- [ ] EN CURSO (desde 2026-08-05): ronda de REDISEÑO UX/UI sobre la
+      maqueta de Oscar (docs/rediseno-v5.html). RESPALDO COMPLETO del
+      estado anterior en el tag `pre-rediseno-20260805` (recuperar:
+      `git checkout pre-rediseno-20260805`; comparar: `git diff`).
+      CONTRATO DEL REDISEÑO (pedido de Oscar): (1) SOLO reacomodo y
+      estética — cero pérdida de funcionalidad, textos, mensajes de
+      error, confirmaciones, campos o iconos; (2) sección por sección
+      del menú, nunca todo a la vez; (3) toda NOVEDAD funcional de la
+      maqueta se consulta con Oscar ANTES de implementarla; (4) si algo
+      del diseño choca con un invariante, avisar antes. CHOQUES YA
+      DETECTADOS en la maqueta (resolver al portar): fuentes de Google
+      (viola CSP/privacidad — van embebidas o tipografía del sistema),
+      textos hardcodeados en español (todo pasa por t(), invariante
+      #10), buckets y modelos hardcodeados (render dinámico, invariante
+      #6), selector de idiomas con Italiano y sin 中文 (son 8 fijos), el
+      GATITO desaparecido del selector de estilo y sin sus selectores de
+      arte/globos, capa sin la opción "Detrás", Consejos sin las
+      tarjetas VIVAS del coach, Hallazgos sin "volver a mostrar", pie
+      sin la cifra Semana, ntfy sin interruptor maestro opt-in, y
+      "Simular estados" ausente. Después del rediseño: el resto de
       pendientes en orden.
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
       umbral, 100%, ventana nueva reconocida por trackResets/
