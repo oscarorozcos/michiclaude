@@ -186,13 +186,46 @@
   .eyebrow .q{font-family:var(--mono);letter-spacing:0;text-transform:none;
     color:var(--txt-mut);font-weight:500;font-size:11px}
 
-  .hero{display:flex;gap:14px;align-items:center}
-  .gauge{width:132px;flex:0 0 auto;position:relative;text-align:center}
-  .gauge svg{width:132px;height:78px;display:block}
-  .g-val{position:absolute;left:0;right:0;top:38px;font-family:var(--mono);font-weight:700;
-    font-size:23px;letter-spacing:.5px}
-  .g-cap{position:absolute;left:0;right:0;top:64px;font-size:10px;color:var(--txt-dim)}
-  .g-reset{font-family:var(--mono);font-size:11px;color:var(--txt-mut);margin-top:2px}
+  /* HERO del rediseño v5: tarjeta violeta con destello, anillo completo y
+     el ritmo unificado adentro. El anillo conserva el truco pathLength=100
+     (el JS del medidor no cambia) y el COLOR sigue siendo el del estado
+     (verde/ámbar/rojo) — el degradado decorativo de la maqueta perdería la
+     semántica del semáforo. */
+  .sect.hero-sect{position:relative;overflow:hidden;
+    background:linear-gradient(150deg,#232A55 0%,#33296A 55%,#1E2547 100%);
+    border:1px solid rgba(164,140,255,.25);border-radius:var(--r-lg);
+    padding:14px;margin-top:0}
+  body.light .sect.hero-sect{
+    background:linear-gradient(150deg,#E9EBFB 0%,#EFE8FB 55%,#E6EAFA 100%);
+    border-color:rgba(91,95,224,.28)}
+  .sect.hero-sect::before{content:"";position:absolute;top:-40%;right:-18%;
+    width:240px;height:240px;pointer-events:none;
+    background:radial-gradient(circle,rgba(164,107,255,.30),transparent 65%)}
+  body.light .sect.hero-sect::before{
+    background:radial-gradient(circle,rgba(157,92,240,.16),transparent 65%)}
+  .hero-sect .eyebrow{position:relative}
+  /* chip de estado (remQ): píldora verde "dentro de lo previsto" / ámbar
+     "vas por delante del reloj" — la clase la pone renderQuota */
+  .hero-sect .eyebrow .q{font-family:var(--font);font-size:10.5px;font-weight:600;
+    letter-spacing:0;color:#CDE7B0;background:rgba(63,214,143,.16);
+    border:1px solid rgba(63,214,143,.3);padding:3px 9px;border-radius:999px}
+  .hero-sect .eyebrow .q.warn{color:#F8DFA9;background:rgba(242,180,67,.16);
+    border-color:rgba(242,180,67,.35)}
+  body.light .hero-sect .eyebrow .q{color:#1E6E45;background:rgba(31,169,104,.13);
+    border-color:rgba(31,169,104,.3)}
+  body.light .hero-sect .eyebrow .q.warn{color:#7A5605;background:rgba(181,126,9,.13);
+    border-color:rgba(181,126,9,.32)}
+
+  .hero{display:flex;gap:14px;align-items:center;position:relative}
+  .gauge{width:118px;flex:0 0 auto;position:relative}
+  .gauge svg{width:118px;height:118px;display:block;transform:rotate(-90deg)}
+  #gFill{transition:stroke-dashoffset .6s,stroke .3s}
+  .g-c{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center}
+  .g-val{font-weight:800;font-size:25px;letter-spacing:-.5px;line-height:1}
+  .g-cap{font-size:8.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
+    color:var(--txt-dim);margin-top:3px}
+  .g-reset{font-family:var(--mono);font-size:9.5px;color:var(--txt-mut);margin-top:4px}
 
   .stack{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
   .bar-row .brow-top{display:flex;justify-content:space-between;align-items:baseline;
@@ -208,10 +241,17 @@
   .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;transition:width .6s,background .3s}
   .pace{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--txt);opacity:.85}
 
-  .proj{display:flex;gap:11px;align-items:flex-start;border-radius:10px;padding:10px 12px;
-    background:rgba(230,164,23,.12);border:1px solid rgba(230,164,23,.32)}
-  .proj.calm{background:rgba(64,184,105,.11);border-color:rgba(64,184,105,.3)}
-  .proj .ptxt{font-size:12px;line-height:1.42}
+  .proj{display:flex;gap:11px;align-items:flex-start;border-radius:var(--r-md);padding:11px 13px;
+    background:rgba(242,180,67,.13);border:1px solid rgba(242,180,67,.32)}
+  .proj.calm{background:rgba(63,214,143,.11);border-color:rgba(63,214,143,.28)}
+  /* iconito de estado (maqueta v5): palomita en calma, rayo en aviso */
+  .proj .p-ic{flex:0 0 auto;width:28px;height:28px;border-radius:9px;display:grid;place-items:center}
+  .proj .p-ic.i-ok{background:rgba(63,214,143,.18);color:var(--ok)}
+  .proj .p-ic.i-warn{background:rgba(242,180,67,.2);color:var(--warn)}
+  .proj .p-ic.i-warn{display:none}
+  .proj:not(.calm) .p-ic.i-ok{display:none}
+  .proj:not(.calm) .p-ic.i-warn{display:grid}
+  .proj .ptxt{font-size:12px;line-height:1.45}
   .proj .rate{font-family:var(--mono);font-size:10.5px;color:var(--txt-mut);margin-top:3px}
 
   .plist{display:flex;flex-direction:column;gap:8px}
@@ -443,29 +483,34 @@
     </div>
   </div>
 
-  <div class="sect">
+  <div class="sect hero-sect">
     <div class="eyebrow"><span data-i18n="quota_title"></span> <span class="q" id="remQ"></span></div>
     <div class="hero">
       <div class="gauge">
-        <svg viewBox="0 0 132 78">
-          <path d="M 14 72 A 52 52 0 0 1 118 72" fill="none" stroke="var(--track)" stroke-width="11" stroke-linecap="round"/>
-          <path id="gFill" d="M 14 72 A 52 52 0 0 1 118 72" fill="none" stroke="var(--ok)" stroke-width="11"
+        <svg viewBox="0 0 118 118">
+          <circle cx="59" cy="59" r="50" fill="none" stroke="var(--track)" stroke-width="10"/>
+          <circle id="gFill" cx="59" cy="59" r="50" fill="none" stroke="var(--ok)" stroke-width="10"
                 stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
         </svg>
-        <div class="g-val" id="sesVal">–</div>
-        <div class="g-cap" data-i18n="session_cap"></div>
-        <div class="g-reset" id="sesReset"></div>
+        <div class="g-c">
+          <div class="g-val" id="sesVal">–</div>
+          <div class="g-cap" data-i18n="session_cap"></div>
+          <div class="g-reset" id="sesReset"></div>
+        </div>
       </div>
       <div class="stack" id="weekStack"><!-- barras semanales dinámicas --></div>
     </div>
-  </div>
-
-  <div class="sect" id="projSect" hidden>
-    <div class="eyebrow" data-i18n="at_this_rate"></div>
-    <div class="proj calm" id="proj">
-      <div>
-        <div class="ptxt" id="projTxt"></div>
-        <div class="rate" id="rateTxt"></div>
+    <!-- "A este ritmo" UNIFICADO dentro del hero (maqueta v5): el chip de
+         arriba resume y esta caja explica — antes eran dos tarjetas
+         diciendo lo mismo. Ids y lógica intactos (renderProjection). -->
+    <div id="projSect" hidden style="margin-top:13px;position:relative">
+      <div class="proj calm" id="proj">
+        <span class="p-ic i-ok"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 12.5l3 3L17 9"/></svg></span>
+        <span class="p-ic i-warn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2L4.9 12.5H11L9.5 22 19 10.5h-6L13 2z"/></svg></span>
+        <div>
+          <div class="ptxt" id="projTxt"></div>
+          <div class="rate" id="rateTxt"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -3256,7 +3301,9 @@ function renderQuota(data){
     $("gFill").setAttribute("stroke",c);
     $("sesVal").textContent=ses.pct+"%"; $("sesVal").style.color=c;
     $("sesReset").textContent=fmtReset(ses.resets);
-    $("remQ").textContent = pace!=null && ses.pct>pace+8 ? t("ahead_clock") : t("on_track");
+    const ahead = pace!=null && ses.pct>pace+8;
+    $("remQ").textContent = ahead ? t("ahead_clock") : t("on_track");
+    $("remQ").classList.toggle("warn", ahead);   // píldora verde/ámbar del hero
     renderProjection(ses.pct,pace,ses.resets);
     maybeNotify(ses.pct,ses.resets);
   }

@@ -417,6 +417,13 @@ hacer público el repo (o sus releases).
       sin la cifra Semana, ntfy sin interruptor maestro opt-in, y
       "Simular estados" ausente. Después del rediseño: el resto de
       pendientes en orden.
+      AVANCE: S1 encabezado+pestañas+paleta base VALIDADA por Oscar
+      (capturas 2026-08-05; decisiones: tipografía del SISTEMA se queda —
+      sin fuentes web —, y el contraste del degradado aprobado en
+      pantalla). S2 hero de Principal implementada (anillo con el mismo
+      truco pathLength=100 — JS del medidor intacto salvo la clase warn
+      de remQ —, ritmo unificado dentro del hero, eyebrow "A este ritmo"
+      retirado a propósito por la maqueta): POR VALIDAR con captura.
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
       umbral, 100%, ventana nueva reconocida por trackResets/
       windowChanged), camino completo ntfy (push de alarma real, 100%, el
