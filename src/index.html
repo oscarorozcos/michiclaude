@@ -592,15 +592,35 @@
   .srv-name .pen{margin-left:6px;opacity:.4;vertical-align:-1px}
   .srv-name:hover .pen{opacity:1}
   #remList .pitem{grid-template-columns:1fr auto}
-  .cfg-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt-mut)}
+  /* FILA DE AJUSTE (rediseño v5): etiqueta a la izquierda, control a la
+     derecha y una línea tenue entre filas — la lista corrida de antes se
+     leía como un formulario apretado. */
+  .cfg-row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    font-size:12.5px;color:var(--txt);padding:10px 0;
+    border-top:1px solid var(--stroke-soft)}
+  .cfg-row:first-child{border-top:0;padding-top:2px}
+  .cfg-row>span:first-child{min-width:0}
   /* select con colores SÓLIDOS explícitos: el popup nativo de opciones no
      hereda bien — oscuro: fondo oscuro/letra blanca; claro: al revés */
-  .cfg-row select{background:#262a33;border:1px solid var(--stroke);border-radius:7px;
-    padding:4px 8px;color:#e9ebef;font-family:var(--font);font-size:11.5px;outline:none}
-  .cfg-row select option{background:#262a33;color:#e9ebef}
-  body.light .cfg-row select{background:#ffffff;color:#1b1e24}
-  body.light .cfg-row select option{background:#ffffff;color:#1b1e24}
-  .cfg-lbl{font-size:10.5px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .cfg-row select{background:var(--card-hi);border:1px solid var(--stroke);border-radius:11px;
+    padding:8px 10px;color:var(--txt);font-family:var(--font);font-size:12px;outline:none;
+    flex:0 0 auto;max-width:62%}
+  .cfg-row select option{background:#1B2748;color:#EAF0FF}
+  body.light .cfg-row select option{background:#EDEFF9;color:#1A1F33}
+  .cfg-row select:focus{border-color:var(--accent-line)}
+  /* casilla como interruptor (maqueta v5): el checkbox nativo desentonaba */
+  .cfg-row input[type=checkbox]{appearance:none;-webkit-appearance:none;
+    position:relative;width:42px;height:24px;border-radius:999px;flex:0 0 auto;
+    background:var(--card-hi);border:1px solid var(--stroke);cursor:pointer;
+    margin:0;transition:background .2s,border-color .2s}
+  .cfg-row input[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;
+    width:16px;height:16px;border-radius:50%;background:var(--txt-dim);transition:.2s}
+  .cfg-row input[type=checkbox]:checked{background:var(--grad);border-color:transparent}
+  .cfg-row input[type=checkbox]:checked::after{left:22px;background:#fff}
+  /* sublínea explicativa bajo la etiqueta de una fila */
+  .cfg-sub{display:block;font-size:10.5px;color:var(--txt-dim);margin-top:2px}
+  .cfg-lbl{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    color:var(--txt-dim);margin-top:14px}
   .btnrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   button:disabled{opacity:.45;cursor:not-allowed}
   .btnrow button{align-self:auto}
@@ -608,11 +628,11 @@
   .rstat.ok{color:var(--ok)} .rstat.bad{color:var(--bad)}
 
   /* alarmas de uso (chips) */
-  .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);
-    border:1px solid var(--stroke);border-radius:999px;padding:3px 9px;
-    font-family:var(--mono);font-size:11px}
-  .chip b{cursor:pointer;color:var(--txt-dim);font-weight:400}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--card-hi);
+    border:1px solid var(--stroke-soft);border-radius:999px;padding:5px 10px;
+    font-family:var(--mono);font-size:11px;color:var(--txt-mut)}
+  .chip b{cursor:pointer;color:var(--txt-dim);font-weight:400;font-size:12px;line-height:1}
   .chip b:hover{color:var(--bad)}
 
 
@@ -1030,6 +1050,7 @@
     </div>
   </div>
   <div class="sect" id="prefSect">
+    <div class="eyebrow" data-i18n="prefs_general"></div>
     <div class="cfg-form">
       <div class="cfg-row">
         <span data-i18n="lang_label"></span>
@@ -1044,10 +1065,10 @@
           <option value="zh">中文</option>
         </select>
       </div>
-      <label class="cfg-row" style="cursor:pointer;margin-top:4px">
-        <input type="checkbox" id="pillChk"> <span data-i18n="pill_label"></span>
+      <label class="cfg-row" style="cursor:pointer">
+        <span data-i18n="pill_label"></span><input type="checkbox" id="pillChk">
       </label>
-      <div class="cfg-row" id="pillStyleRow" style="margin-top:2px">
+      <div class="cfg-row" id="pillStyleRow">
         <span data-i18n="pill_style_label"></span>
         <select id="pillStyleSel">
           <option value="plain" data-i18n="pill_style_plain"></option>
@@ -1072,7 +1093,7 @@
           <option value="dark" data-i18n="theme_dark"></option>
         </select>
       </div>
-      <div class="cfg-row" id="pillLayerRow" style="margin-top:2px">
+      <div class="cfg-row" id="pillLayerRow">
         <span data-i18n="pill_layer_label"></span>
         <select id="pillLayerSel">
           <option value="top" data-i18n="pill_layer_top"></option>
@@ -1083,8 +1104,8 @@
       <!-- El sticker/puntito de hallazgos nuevos en el widget. Encendido por
            defecto; quien lo sienta encima lo apaga aquí. El contador de la
            pestaña se queda siempre: no interrumpe a nadie. -->
-      <label class="cfg-row" style="cursor:pointer;margin-top:2px">
-        <input type="checkbox" id="fndBadgeChk"> <span data-i18n="fnd_badge_label"></span>
+      <label class="cfg-row" style="cursor:pointer">
+        <span data-i18n="fnd_badge_label"></span><input type="checkbox" id="fndBadgeChk">
       </label>
       <!-- Simulador de estados del gatito: SOLO visible en compilaciones de
            desarrollo (is_dev). Nunca llega a un usuario, por eso es el único
@@ -1097,7 +1118,16 @@
         <span style="font-size:10.5px;color:var(--txt-dim)">min c/u</span>
         <span id="simMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
       </div>
-      <div class="cfg-lbl" data-i18n="alarms_label"></div>
+    </div>
+  </div>
+
+  <!-- AVISOS: alarmas de %, presupuesto y celular son el mismo tema
+       ("cuándo quiero que me avise"), así que van juntos en una tarjeta con
+       tres bloques (maqueta de Oscar). -->
+  <div class="sect">
+    <div class="eyebrow" data-i18n="prefs_alerts"></div>
+    <div class="cfg-form">
+      <div class="cfg-lbl" style="margin-top:0" data-i18n="alarms_label"></div>
       <div class="chips" id="alarmList"></div>
       <div class="btnrow">
         <input id="alarmIn" type="number" min="1" max="100" step="1" style="max-width:80px" placeholder="%">
@@ -1113,7 +1143,7 @@
            blanco: un QR invertido no lo leen todas las cámaras. -->
       <div class="cfg-lbl" data-i18n="ntfy_label"></div>
       <label class="cfg-row" style="cursor:pointer">
-        <input type="checkbox" id="ntfyChk"> <span data-i18n="ntfy_on"></span>
+        <span data-i18n="ntfy_on"></span><input type="checkbox" id="ntfyChk">
       </label>
       <div id="ntfyBox" hidden>
         <div class="cfg-note" data-i18n-html="ntfy_steps"></div>
@@ -1137,26 +1167,36 @@
           <span id="ntfyMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
         </div>
         <label class="cfg-row" style="cursor:pointer">
-          <input type="checkbox" id="ntfyAlarmChk"> <span data-i18n="ntfy_alarms"></span>
+          <span data-i18n="ntfy_alarms"></span><input type="checkbox" id="ntfyAlarmChk">
         </label>
         <!-- "tu agente terminó": el caso de dejar a Claude trabajando e irse.
              La segunda casilla añade el NOMBRE del proyecto y avisa de lo que
              implica: el canal es público. Solo se ve con la primera activada. -->
         <label class="cfg-row" style="cursor:pointer">
-          <input type="checkbox" id="ntfyDoneChk"> <span data-i18n="ntfy_done"></span>
+          <span data-i18n="ntfy_done"></span><input type="checkbox" id="ntfyDoneChk">
         </label>
         <label class="cfg-row" id="ntfyNamesRow" hidden style="cursor:pointer;margin-left:18px">
-          <input type="checkbox" id="ntfyNamesChk"> <span data-i18n="ntfy_names"></span>
+          <span data-i18n="ntfy_names"></span><input type="checkbox" id="ntfyNamesChk">
         </label>
       </div>
-      <div class="cfg-lbl" data-i18n="prices_label"></div>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="eyebrow" data-i18n="prices_label"></div>
+    <div class="cfg-form">
       <div class="btnrow">
         <span id="pricesMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
         <button id="pricesInfo" data-i18n-title="prices_info_tip">&#9432;</button>
         <button id="pricesNow" data-i18n="prices_refresh"></button>
       </div>
       <div id="pricesSources" hidden class="cfg-note" data-i18n-html="prices_sources"></div>
-      <div class="cfg-lbl" data-i18n="export_label"></div>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="eyebrow" data-i18n="export_label"></div>
+    <div class="cfg-form">
       <input id="exportDir" data-i18n-ph="export_dir_ph">
       <div class="btnrow">
         <!-- periodo PROPIO del export: mirar 1 día en pantalla y querer
@@ -1379,6 +1419,8 @@ en:{
   trend_title:"Daily trend",
   trend_q:"last 30 days",
   prefs_title:"Preferences",
+  prefs_general:"General",
+  prefs_alerts:"Alerts",
   budget_label:"Weekly budget in $ (0 = no alert)",
   notif_budget:(s,b)=>`Weekly spend $${s} exceeded your $${b} budget (API-equiv.).`,
   prices_label:"Model prices",
@@ -1651,6 +1693,8 @@ es:{
   trend_title:"Tendencia diaria",
   trend_q:"últimos 30 días",
   prefs_title:"Ajustes",
+  prefs_general:"General",
+  prefs_alerts:"Avisos",
   budget_label:"Presupuesto semanal en $ (0 = sin aviso)",
   notif_budget:(s,b)=>`El gasto semanal $${s} superó tu presupuesto de $${b} (equiv. API).`,
   prices_label:"Precios de modelos",
@@ -1923,6 +1967,8 @@ pt:{
   trend_title:"Tendência diária",
   trend_q:"últimos 30 dias",
   prefs_title:"Preferências",
+  prefs_general:"Geral",
+  prefs_alerts:"Avisos",
   budget_label:"Orçamento semanal em $ (0 = sem aviso)",
   notif_budget:(s,b)=>`O gasto semanal $${s} superou seu orçamento de $${b} (equiv. API).`,
   prices_label:"Preços dos modelos",
@@ -2195,6 +2241,8 @@ fr:{
   trend_title:"Tendance quotidienne",
   trend_q:"30 derniers jours",
   prefs_title:"Préférences",
+  prefs_general:"Général",
+  prefs_alerts:"Alertes",
   budget_label:"Budget hebdo en $ (0 = pas d'alerte)",
   notif_budget:(s,b)=>`La dépense hebdo $${s} a dépassé votre budget de $${b} (équiv. API).`,
   prices_label:"Prix des modèles",
@@ -2467,6 +2515,8 @@ de:{
   trend_title:"Täglicher Trend",
   trend_q:"letzte 30 Tage",
   prefs_title:"Einstellungen",
+  prefs_general:"Allgemein",
+  prefs_alerts:"Hinweise",
   budget_label:"Wochenbudget in $ (0 = kein Alarm)",
   notif_budget:(s,b)=>`Wochenausgaben $${s} haben dein Budget von $${b} überschritten (API-Äquiv.).`,
   prices_label:"Modellpreise",
@@ -2739,6 +2789,8 @@ ja:{
   trend_title:"日次トレンド",
   trend_q:"過去30日",
   prefs_title:"設定",
+  prefs_general:"一般",
+  prefs_alerts:"通知",
   budget_label:"週間予算 $（0 = 通知なし）",
   notif_budget:(s,b)=>`週間支出 $${s} が予算 $${b} を超えました（API換算）。`,
   prices_label:"モデルの料金",
@@ -3011,6 +3063,8 @@ ko:{
   trend_title:"일별 추세",
   trend_q:"최근 30일",
   prefs_title:"환경설정",
+  prefs_general:"일반",
+  prefs_alerts:"알림",
   budget_label:"주간 예산 $ (0 = 알림 없음)",
   notif_budget:(s,b)=>`주간 지출 $${s}이(가) 예산 $${b}을(를) 초과했습니다 (API 환산).`,
   prices_label:"모델 가격",
@@ -3283,6 +3337,8 @@ zh:{
   trend_title:"每日趋势",
   trend_q:"最近30天",
   prefs_title:"偏好设置",
+  prefs_general:"常规",
+  prefs_alerts:"提醒",
   budget_label:"每周预算 $（0 = 不提醒）",
   notif_budget:(s,b)=>`每周支出 $${s} 已超过你的预算 $${b}（API 等价）。`,
   prices_label:"模型价格",
@@ -5107,11 +5163,18 @@ function coachCount(){
   if(simFnd) return coachHits.length;
   return coachCardsStore().filter(c=>!c.v).length;
 }
+let tipsDotLast=0;
 function renderTipsDot(n){
   const d=$("tipsTabDot");
   const v=(n!=null?n:coachCount());
   d.hidden=!v;
   if(v) d.textContent=v>9?"9+":String(v);
+  // mismo rastro que el aviso de hallazgos: sin él, el post-it turquesa y
+  // el foco ámbar se encendían sin dejar constancia (Oscar 2026-08-05)
+  if(v!==tipsDotLast){
+    flog(v ? `tips: AVISO ENCENDIDO (${v} sin ver)` : "tips: aviso apagado");
+    tipsDotLast=v;
+  }
 }
 // "Tu agente terminó": la sesión que estuvo trabajando lleva 5 min callada.
 // Es el caso de dejar a Claude con una tarea larga e irse — por eso va al
@@ -5453,8 +5516,20 @@ function fndBadgeCalc(){
   const seen=fndSeen(), ign=fndIgnored();
   const fresh=saved.filter(x=>!seen.has(x.k)&&!ign.has(x.k));
   // misma escala de severidad que las tarjetas: rojo duele, ámbar avisa
+  const antes = fndBadge ? fndBadge.n : 0;
   fndBadge = fresh.length ? {n:fresh.length,
     sev: fresh.some(x=>x.c>=10)?"bad":fresh.some(x=>x.c>=1||x.mcp)?"warn":"acc"} : null;
+  // Rastro del AVISO en la bitácora (Oscar 2026-08-05: "no sé si funciona
+  // o si nunca se dan las condiciones"). Sin esto, el post-it y la campana
+  // eran los únicos avisos sin dejar huella y no había forma de saber si
+  // se encendieron mientras nadie miraba. Solo se anota el CAMBIO.
+  const ahora = fndBadge ? fndBadge.n : 0;
+  if(ahora!==antes){
+    flog(ahora ? `fnd: AVISO ENCENDIDO (${ahora} sin ver, de ${saved.length})`
+               : `fnd: aviso apagado (todo visto o ignorado)`);
+  }else if(!ahora && saved.length){
+    flog(`fnd: sin aviso — las ${saved.length} tarjetas ya estaban vistas`);
+  }
   renderFndDot();
   if(lastPillArgs) emitPill(...lastPillArgs);   // el widget lo ve al instante
 }

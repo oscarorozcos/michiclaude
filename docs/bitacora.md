@@ -2076,3 +2076,28 @@ ronda y los invariantes; el porqué de cada sección vive aquí.
   en el idioma activo; solo "ahora/min/h/ayer" van al diccionario.
 - El campo "Filtrar…" de Consejos llevaba el estilo del sistema y
   desentonaba con todo: ahora usa el mismo campo del rediseño.
+
+### S8 — Ajustes y rastro de los avisos (2026-08-05)
+
+- AJUSTES en tarjetas por tema (General · Avisos · Precios · Exportar ·
+  Ajustes compartidos · Acerca de) en vez de una lista corrida. Las filas
+  son "etiqueta a la izquierda, control a la derecha" separadas por una
+  línea tenue, y las CASILLAS se pintan como interruptores (el checkbox
+  nativo desentonaba con todo). Al invertir el orden hubo que mover el
+  <input> detrás del <span> en las 6 filas con casilla. "Avisos" agrupa
+  alarmas de %, presupuesto y celular: son el mismo tema ("cuándo quiero
+  que me avise") y estaban sueltos. Encabezados nuevos `prefs_general` y
+  `prefs_alerts` ×8 idiomas.
+- RASTRO DE LOS AVISOS en la bitácora del flujo (`flowLog`), a raíz de la
+  duda de Oscar ("no sé si los post-its funcionan o si nunca se dan las
+  condiciones"): `fndBadgeCalc` y `renderTipsDot` anotan cuando el aviso
+  se ENCIENDE o se apaga, y cuando no se enciende dicen por qué ("las N
+  tarjetas ya estaban vistas"). Eran los únicos avisos sin huella.
+  DIAGNÓSTICO de su caso, leído en su propia bitácora: el circuito está
+  intacto (el panel sigue mandando `fnd` y `coach` en quota:update y la
+  pastilla los pinta) — lo que pasa es que a las 14:54 hizo un escaneo
+  manual con la pestaña abierta (10 tarjetas → vistas) y la pasada diaria
+  de las 14:55 encontró esas mismas 10, ya vistas: badge nulo, sin
+  campana. Y no hubo ninguna pasada por cierre de sesión porque en
+  Windows no nació ningún recibo `sum` en todo el día. Trampa del
+  vigilante, cuarta aparición.
