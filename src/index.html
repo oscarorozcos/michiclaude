@@ -4,36 +4,51 @@
 <meta charset="utf-8">
 <title>MichiClaude</title>
 <style>
+  /* PALETA DEL REDISEÑO v5 (2026-08-05, maqueta de Oscar): azul-noche con
+     acento violeta y secundario turquesa. Se conservan los NOMBRES de las
+     variables viejas para que toda la app herede los colores sin tocar cada
+     regla; las nuevas (--card, --grad, --r-*) las van adoptando las
+     secciones conforme se rediseñan. Tipografía: sigue la del sistema — las
+     fuentes web de la maqueta violarían la CSP (decisión pendiente de
+     Oscar: embeberlas o quedarnos así). */
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
     /* fondo SÓLIDO: con alpha se transparenta lo que haya detrás del panel */
-    --mica:#1e2128;
-    --surface:rgba(255,255,255,.045);
-    --stroke:rgba(255,255,255,.09);
-    --stroke-soft:rgba(255,255,255,.055);
-    --txt:#e9ebef; --txt-mut:#969ba6; --txt-dim:#6c717c;
-    --brand:#d97757; --accent:#56c7d6;
-    /* texto SOBRE el acento (contador de Consejos): el blanco sobre #56c7d6
-       da ~2:1 y no se distingue (lo notó Oscar 2026-08-04); un tinta oscura
-       da >8:1. En claro el acento es profundo y ahí el blanco sí funciona. */
-    --accent-ink:#0c2f36;
-    --accent-weak:rgba(86,199,214,.14); --accent-line:rgba(86,199,214,.35);
-    --ok:#40b869; --warn:#e6a417; --bad:#f05a41;
-    --track:rgba(255,255,255,.08);
+    --mica:#0F1830;
+    --card:#151F3A; --card-hi:#1B2748;
+    --surface:rgba(148,170,255,.07);
+    --stroke:rgba(148,170,255,.16);
+    --stroke-soft:rgba(148,170,255,.08);
+    --txt:#EAF0FF; --txt-mut:#93A0C4; --txt-dim:#5E6B92;
+    --brand:#E08B63; --accent:#7C8CFF;
+    /* texto SOBRE el acento: blanco sobre #7C8CFF da ~3:1 — tinta oscura
+       (>5:1). En claro el acento es profundo y ahí el blanco sí funciona.
+       (Regla del 2026-08-04: el color del texto se elige según el fondo.) */
+    --accent-ink:#101736;
+    --accent-weak:rgba(124,140,255,.14); --accent-line:rgba(124,140,255,.38);
+    --grad:linear-gradient(135deg,#7C8CFF 0%,#A46BFF 100%);
+    --teal:#4FD1E0; --teal-weak:rgba(79,209,224,.13);
+    --ok:#3FD68F; --warn:#F2B443; --bad:#FF6B5E;
+    --track:rgba(148,170,255,.10);
+    --r-lg:20px; --r-md:14px; --r-sm:10px;
   }
   body.light{
-    --mica:#f3f4f7;
-    --surface:rgba(0,0,0,.035);
-    --stroke:rgba(0,0,0,.1);
-    --stroke-soft:rgba(0,0,0,.06);
-    --txt:#1b1e24; --txt-mut:#575d68; --txt-dim:#8a909b;
-    /* teal profundo: el #56c7d6 brillante queda lavado sobre blanco (contraste
-       ~1.7:1). Este da ~4.7:1 — legible en pestañas, enlaces y barras. */
-    --accent:#0b7c8c;
+    --mica:#F4F5FB;
+    --card:#FFFFFF; --card-hi:#EDEFF9;
+    --surface:rgba(30,40,90,.045);
+    --stroke:rgba(30,40,90,.13);
+    --stroke-soft:rgba(30,40,90,.07);
+    --txt:#1A1F33; --txt-mut:#525C7A; --txt-dim:#8890AC;
+    /* violeta profundo: el #7C8CFF brillante queda lavado sobre blanco;
+       este da ~5:1 — legible en pestañas, enlaces y barras. */
+    --accent:#5B5FE0;
     --accent-ink:#fff;
-    --accent-weak:rgba(11,124,140,.12); --accent-line:rgba(11,124,140,.30);
-    --track:rgba(0,0,0,.09);
+    --accent-weak:rgba(91,95,224,.10); --accent-line:rgba(91,95,224,.30);
+    --grad:linear-gradient(135deg,#6A74F2 0%,#9D5CF0 100%);
+    --teal:#0D8A9E; --teal-weak:rgba(13,138,158,.10);
+    --ok:#1FA968; --warn:#B57E09; --bad:#E04E3F;
+    --track:rgba(30,40,90,.10);
   }
   /* `hidden` gana SIEMPRE. El navegador lo aplica con display:none desde su
      hoja por defecto, así que cualquier regla nuestra con display propio
@@ -57,8 +72,8 @@
   .panel{max-height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
 
   .panel{
-    background:var(--mica);border-radius:14px;
-    box-shadow:0 24px 60px -12px rgba(0,0,0,.7),0 0 0 1px var(--stroke);
+    background:var(--mica);border-radius:var(--r-lg);
+    box-shadow:0 32px 80px -24px rgba(0,0,0,.8),0 0 0 1px var(--stroke);
     padding:0 15px 13px;   /* el relleno de arriba vive en .p-top (sticky) */
   }
   /* Encabezado + pestañas SIEMPRE a la vista: al hacer scroll dentro del panel
@@ -68,50 +83,62 @@
      dejaría una rendija transparente por donde se vería pasar el texto). */
   .p-top{position:sticky;top:0;z-index:5;background:var(--mica);
     margin:0 -15px;padding:15px 15px 12px}
-  body.light .panel{box-shadow:0 24px 60px -14px rgba(30,40,60,.35),0 0 0 1px var(--stroke)}
-  .p-head{display:flex;align-items:center;gap:10px;margin-bottom:13px;
+  body.light .panel{box-shadow:0 32px 80px -26px rgba(30,40,60,.4),0 0 0 1px var(--stroke)}
+  .p-head{display:flex;align-items:center;gap:11px;margin-bottom:13px;
     cursor:grab;user-select:none;-webkit-user-select:none}
   .p-head:active{cursor:grabbing}
   .p-head button{cursor:pointer}
-  .p-head .mark{width:22px;height:22px;flex:0 0 auto}
+  /* logo en cajita redondeada (maqueta v5); el SVG de siempre adentro */
+  .p-head .avatar{width:40px;height:40px;border-radius:13px;flex:0 0 auto;
+    background:radial-gradient(circle at 30% 30%,var(--card-hi),var(--card));
+    border:1px solid var(--stroke-soft);display:grid;place-items:center}
+  .p-head .mark{width:22px;height:22px;display:block}
   .p-htext{min-width:0;flex:1 1 auto}
-  .p-title{font-size:13.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .p-sub{font-size:11px;color:var(--txt-dim);font-family:var(--mono);margin-top:4px;
+  .p-hi{font-size:10.5px;color:var(--txt-mut);letter-spacing:.2px}
+  .p-title{font-size:15px;font-weight:700;letter-spacing:-.2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-sub{font-size:10.5px;color:var(--txt-dim);font-family:var(--mono);margin-top:3px;
     display:flex;align-items:center;gap:6px;transition:opacity .2s;
     min-width:0;white-space:normal;overflow-wrap:anywhere}
   .p-sub #syncTxt{min-width:0;overflow-wrap:anywhere}
   .p-sub .live{flex:0 0 auto}
   .live{width:7px;height:7px;border-radius:50%;background:var(--ok);
-    box-shadow:0 0 0 0 rgba(64,184,105,.6);animation:pulse 2.4s infinite}
+    box-shadow:0 0 0 0 rgba(63,214,143,.6);animation:pulse 2.4s infinite}
   .live.err{background:var(--bad);animation:none}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(64,184,105,.5)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
-  .plan{margin-left:auto;flex:0 0 auto;font-size:10.5px;font-weight:650;letter-spacing:.4px;
-    color:var(--accent);background:var(--accent-weak);
-    border:1px solid var(--accent-line);padding:3px 8px;border-radius:7px}
-  .xbtn{margin-left:8px;width:24px;height:24px;border-radius:6px;border:0;cursor:pointer;
-    background:transparent;color:var(--txt-mut);font-size:14px;line-height:1}
-  .xbtn:hover{background:var(--surface);color:var(--txt)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,214,143,.5)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  /* chip del plan: degradado violeta con texto blanco (maqueta v5). El
+     texto sigue siendo el que reporte el endpoint (invariante #7). */
+  .plan{margin-left:auto;flex:0 0 auto;font-size:10.5px;font-weight:700;letter-spacing:.4px;
+    color:#fff;background:var(--grad);border:0;padding:4px 10px;border-radius:999px;
+    box-shadow:0 6px 14px -6px rgba(124,140,255,.55)}
+  .xbtn{margin-left:8px;width:28px;height:28px;border-radius:10px;cursor:pointer;
+    border:1px solid var(--stroke-soft);background:var(--card);
+    color:var(--txt-mut);font-size:13px;line-height:1;transition:.15s}
+  .xbtn:hover{background:var(--card-hi);color:var(--txt)}
   .p-head .xbtn{margin-left:4px}
 
-  /* pestañas (subrayado activo, estilo navegación) */
-  /* Con 5 pestañas y 8 idiomas la fila no cabe siempre en 400 px: que PASE
-     A DOS LÍNEAS en vez de cortarse. Recortar la última (le pasó a
-     "Preferencias") deja una pestaña que no se ve ni se puede pulsar. */
-  .tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--stroke-soft)}
-  .tab{background:transparent;border:0;border-bottom:2px solid transparent;
-    color:var(--txt-mut);font-family:var(--font);font-size:12px;font-weight:600;
-    padding:7px 8px;cursor:pointer;letter-spacing:.2px}
+  /* pestañas píldora (maqueta v5): contenedor tipo cápsula y la activa con
+     degradado. Con 5 pestañas y 8 idiomas la fila no cabe siempre en 400 px:
+     que PASE A DOS LÍNEAS en vez de cortarse (red de seguridad conservada —
+     recortar la última deja una pestaña que no se ve ni se puede pulsar). */
+  .tabs{display:flex;flex-wrap:wrap;gap:2px;background:var(--card);
+    border:1px solid var(--stroke-soft);border-radius:14px;padding:4px}
+  .tab{flex:1 1 auto;min-width:0;background:transparent;border:0;
+    color:var(--txt-mut);font-family:var(--font);font-size:11px;font-weight:600;
+    padding:7px 6px;border-radius:10px;cursor:pointer;letter-spacing:0;
+    white-space:nowrap;transition:.18s}
   .tab:hover{color:var(--txt)}
-  .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab.on{color:#fff;background:var(--grad);
+    box-shadow:0 8px 18px -8px rgba(124,140,255,.6)}
   /* contador de hallazgos NUEVOS sin ver: lo enciende la pasada diaria y lo
      apaga abrir la pestaña. Cápsula ROJA flotando en la esquina superior
      derecha de la pestaña (maqueta de Oscar 2026-07-29), tope en 9+; el
      border-radius tipo cápsula la ensancha sola si el número crece. */
   .tab{position:relative}
-  .tab .tdot{position:absolute;top:0;right:-6px;min-width:16px;height:14px;
+  .tab .tdot{position:absolute;top:-3px;right:0;min-width:16px;height:15px;
     padding:0 4px;border-radius:999px;background:var(--bad);color:#fff;
-    font-size:9px;line-height:14px;font-weight:700;text-align:center;
-    box-shadow:0 1px 3px rgba(0,0,0,.35)}
+    font-size:9px;line-height:15px;font-weight:700;text-align:center;
+    box-shadow:0 2px 6px rgba(0,0,0,.4)}
 
   .sect{border-top:1px solid var(--stroke-soft);padding-top:11px;margin-top:11px}
   .sect:first-of-type{border-top:0;margin-top:0;padding-top:0}
@@ -375,8 +402,9 @@
     <button id="updBtn"></button>
   </div>
   <div class="p-head" id="pHead">
-    <span class="mark" id="mark"></span>
+    <span class="avatar"><span class="mark" id="mark"></span></span>
     <div class="p-htext">
+      <div class="p-hi" data-i18n="hd_hi"></div>
       <div class="p-title">MichiClaude</div>
       <div class="p-sub" id="syncLine"><span class="live" id="liveDot"></span><span id="syncTxt"></span></div>
     </div>
@@ -739,6 +767,7 @@ const I18N={
 en:{
   connecting:"Connecting…",
   live_ago:s=>`Live · updated ${s}s ago`,
+  hd_hi:"Welcome back,",
   quota_title:"How much you have left",
   session_cap:"SESSION · 5 H",
   reset_now:"Resets now",
@@ -980,6 +1009,7 @@ en:{
 es:{
   connecting:"Conectando…",
   live_ago:s=>`En vivo · actualizado hace ${s}s`,
+  hd_hi:"Hola de nuevo,",
   quota_title:"Cuánto te queda",
   session_cap:"SESIÓN · 5 H",
   reset_now:"Reset ya",
@@ -1221,6 +1251,7 @@ es:{
 pt:{
   connecting:"Conectando…",
   live_ago:s=>`Ao vivo · atualizado há ${s}s`,
+  hd_hi:"Olá de novo,",
   quota_title:"Quanto ainda resta",
   session_cap:"SESSÃO · 5 H",
   reset_now:"Reinicia agora",
@@ -1462,6 +1493,7 @@ pt:{
 fr:{
   connecting:"Connexion…",
   live_ago:s=>`En direct · mis à jour il y a ${s}s`,
+  hd_hi:"Re-bonjour,",
   quota_title:"Ce qu'il vous reste",
   session_cap:"SESSION · 5 H",
   reset_now:"Réinitialise maintenant",
@@ -1703,6 +1735,7 @@ fr:{
 de:{
   connecting:"Verbinde…",
   live_ago:s=>`Live · aktualisiert vor ${s}s`,
+  hd_hi:"Schön, dich wiederzusehen,",
   quota_title:"Wie viel dir bleibt",
   session_cap:"SITZUNG · 5 STD",
   reset_now:"Reset jetzt",
@@ -1944,6 +1977,7 @@ de:{
 ja:{
   connecting:"接続中…",
   live_ago:s=>`ライブ · ${s}秒前に更新`,
+  hd_hi:"おかえりなさい、",
   quota_title:"残りの使用量",
   session_cap:"セッション · 5時間",
   reset_now:"まもなくリセット",
@@ -2185,6 +2219,7 @@ ja:{
 ko:{
   connecting:"연결 중…",
   live_ago:s=>`실시간 · ${s}초 전 업데이트`,
+  hd_hi:"다시 만나서 반가워요,",
   quota_title:"남은 사용량",
   session_cap:"세션 · 5시간",
   reset_now:"곧 초기화",
@@ -2426,6 +2461,7 @@ ko:{
 zh:{
   connecting:"连接中…",
   live_ago:s=>`实时 · ${s}秒前更新`,
+  hd_hi:"欢迎回来，",
   quota_title:"剩余额度",
   session_cap:"会话 · 5小时",
   reset_now:"即将重置",
