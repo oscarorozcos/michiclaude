@@ -170,8 +170,14 @@
     font-size:9px;line-height:15px;font-weight:700;text-align:center;
     box-shadow:0 2px 6px rgba(0,0,0,.4)}
 
-  .sect{border-top:1px solid var(--stroke-soft);padding-top:11px;margin-top:11px}
-  .sect:first-of-type{border-top:0;margin-top:0;padding-top:0}
+  /* CONTENEDOR BASE del rediseño v5 (2026-08-05): cada sección es una
+     TARJETA con fondo propio en vez de un bloque separado por una línea.
+     Es transversal a propósito —igual que la paleta—: da el lenguaje
+     visual a todas las pestañas de una vez, y el CONTENIDO de cada una se
+     sigue rediseñando por turnos. */
+  .sect{background:var(--card);border:1px solid var(--stroke-soft);
+    border-radius:var(--r-lg);padding:14px;margin-top:10px}
+  .sect:first-of-type{margin-top:0}
   /* Tarjetas del analizador de fugas (pestaña Hallazgos). El borde
      izquierdo lleva la severidad, como el popover de avisos: se entiende
      sin leer. */
@@ -211,8 +217,9 @@
   .fnd-x{float:right;background:transparent;border:0;color:var(--txt-dim);
     font-size:10.5px;cursor:pointer;padding:2px 4px}
   .fnd-x:hover{color:var(--txt)}
-  .eyebrow{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt-dim);
-    font-weight:700;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
+  .eyebrow{font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--txt-dim);
+    font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;
+    align-items:center;gap:8px}
   .eyebrow .q{font-family:var(--mono);letter-spacing:0;text-transform:none;
     color:var(--txt-mut);font-weight:500;font-size:11px}
 
@@ -314,17 +321,36 @@
   .proj .ptxt{font-size:12px;line-height:1.45}
   .proj .rate{font-family:var(--mono);font-size:10.5px;color:var(--txt-mut);margin-top:3px}
 
-  .plist{display:flex;flex-direction:column;gap:8px}
-  .pitem{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
-  .pitem .pname{font-size:12px;display:flex;align-items:center;gap:7px;min-width:0}
-  .pitem .swatch{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
-  .pitem .pname span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pitem .pcost{font-family:var(--mono);font-size:12px;font-weight:600}
-  .pitem .pbar{grid-column:1/-1;height:5px;border-radius:4px;background:var(--track);overflow:hidden}
-  .pitem .pbar i{display:block;height:100%;border-radius:4px}
-  .pitem.other{margin-top:2px;padding-top:8px;border-top:1px dashed var(--stroke-soft);cursor:help}
-  .pitem.other .pname span:last-child{color:var(--txt-mut);font-style:italic}
-  .pitem.other .pcost{color:var(--txt-mut);font-weight:500}
+  /* LISTA DE PROYECTOS (rediseño v5, 2026-08-05): cada fila con su avatar
+     de iniciales, nombre + chip de origen, barrita debajo y el importe a
+     la derecha. El avatar hereda el MISMO color de la paleta que la barra,
+     así el color sigue identificando al proyecto. */
+  .plist{display:flex;flex-direction:column;gap:2px}
+  .pitem{display:grid;grid-template-columns:auto 1fr auto;gap:2px 11px;
+    align-items:center;padding:8px 6px;border-radius:var(--r-md);transition:background .15s}
+  .pitem:hover{background:var(--card-hi)}
+  /* El fondo del avatar es el color del proyecto atenuado. Se hace con una
+     CAPA a opacidad y no con color-mix(): esa función es reciente y no se
+     puede dar por segura en todos los WebView2 (invariante de compatibilidad
+     del panel). */
+  .pitem .pav{grid-row:1/3;position:relative;width:34px;height:34px;border-radius:11px;
+    flex:0 0 auto;display:grid;place-items:center;font-family:var(--disp);
+    font-weight:700;font-size:12px;letter-spacing:.3px;text-transform:uppercase}
+  .pitem .pav i{position:absolute;inset:0;border-radius:inherit;opacity:.16}
+  .pitem .pav{isolation:isolate}
+  .pitem .pav i{z-index:-1}
+  .pitem .pname{font-size:12.5px;font-weight:600;display:flex;align-items:center;min-width:0}
+  .pitem .pname span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pitem .pcost{grid-row:1/3;font-family:var(--mono);font-size:13px;font-weight:600}
+  .pitem .pbar{height:4px;border-radius:99px;background:var(--track);overflow:hidden;
+    max-width:180px;margin-top:5px}
+  .pitem .pbar i{display:block;height:100%;border-radius:99px}
+  /* fila de la cola: enlace, sin avatar ni barra (maqueta v5) */
+  .pitem.more{grid-template-columns:1fr auto;cursor:pointer;padding:7px 6px 2px}
+  .pitem.more .pname{font-size:11.5px;font-weight:600;color:var(--accent)}
+  .pitem.more:hover{background:transparent}
+  .pitem.more:hover .pname{text-decoration:underline}
+  .pitem.more .pcost{grid-row:auto;font-size:12px;color:var(--txt-mut);font-weight:500}
 
   .split{height:11px;border-radius:6px;overflow:hidden;display:flex;border:1px solid var(--stroke-soft)}
   .legend{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap}
@@ -414,20 +440,21 @@
   /* selector de periodo (1d/7d/30d) */
   /* Ventana del gasto: lista desplegable en vez de 1d·7d·30d sueltos. Con
      cuatro opciones la fila se llenaba de texto (2026-07-28). */
-  .dsel{font:inherit;font-size:10px;color:var(--accent);font-weight:700;
-    background:var(--mica);border:0;padding:0;cursor:pointer}
-  .dsel:focus{outline:none}
+  /* cajita con borde (maqueta v5): sobre el fondo de tarjeta, el selector
+     "plano" de antes se perdía */
+  .dsel{font-family:var(--mono);font-size:11px;color:var(--txt);font-weight:500;
+    background:var(--card-hi);border:1px solid var(--stroke);border-radius:9px;
+    padding:3px 6px;cursor:pointer}
+  .dsel:focus{outline:none;border-color:var(--accent-line)}
   /* La lista desplegada hereda el color del control, y el acento sobre el
      fondo del sistema no se leía en oscuro. Se le da el mismo par de
      colores que usan los demás desplegables del panel (2026-07-28). */
-  .dsel option{background:var(--mica);color:var(--txt);font-weight:600}
-  /* la fila de "más proyectos" se despliega al hacer clic */
-  .pitem.more{cursor:pointer}
-  .pitem.more:hover .pname span:not(.swatch){color:var(--accent)}
+  .dsel option{background:var(--card-hi);color:var(--txt);font-weight:500}
+  /* (el estilo de .pitem.more vive con la lista de proyectos, arriba) */
 
   /* etiqueta de origen del proyecto (local / wsl / servidor) */
-  .srctag{font-size:9px;color:var(--txt-dim);background:var(--surface);
-    border:1px solid var(--stroke-soft);padding:1px 6px;border-radius:5px;
+  .srctag{font-size:9px;font-weight:600;color:var(--txt-dim);background:var(--surface);
+    border:1px solid var(--stroke-soft);padding:1px 6px;border-radius:6px;
     margin-left:7px;flex:0 0 auto;letter-spacing:.3px}
 
   /* tendencia diaria: barras finas, un solo tono, hoy enfatizado por intensidad */
@@ -3679,6 +3706,19 @@ function modelTip(p){
 let projOpen=false;
 const PROJ_TOP=4;
 
+// Iniciales para el avatar de la fila (rediseño v5): primera letra de la
+// primera palabra + primera de la última ("claude-code-meter" -> CM,
+// "MichiClaude" -> MC). Con una sola palabra, sus dos primeras letras.
+// Sirve para cualquier alfabeto: si no hay letras latinas devuelve los dos
+// primeros caracteres tal cual, que es lo mejor que se puede hacer.
+function projInitials(name){
+  const parts=String(name).replace(/([a-z\d])([A-Z])/g,"$1 $2")
+    .split(/[\s._\-/\\]+/).filter(Boolean);
+  if(!parts.length) return "··";
+  if(parts.length===1) return parts[0].slice(0,2);
+  return parts[0][0]+parts[parts.length-1][0];
+}
+
 function renderLocal(s){
   lastLocalData=s;
   const all=s.projects.map(p=>({...p, ...splitSrc(p.name)}));
@@ -3686,19 +3726,20 @@ function renderLocal(s){
   const projs=projOpen?all:all.slice(0,PROJ_TOP);
   const max=Math.max(...all.map(p=>p.cost),0.01);
 
-  let rows = projs.map((p,i)=>`
-    <div class="pitem" title="${escapeHtml(modelTip(p))}">
-      <div class="pname"><span class="swatch" style="background:${PALETTE[i%PALETTE.length]}"></span><span>${escapeHtml(p.base)}</span>${p.src?`<span class="srctag">${escapeHtml(p.src)}</span>`:""}</div>
+  let rows = projs.map((p,i)=>{
+    const c=PALETTE[i%PALETTE.length];
+    return `<div class="pitem" title="${escapeHtml(modelTip(p))}">
+      <div class="pav" style="color:${c}"><i style="background:${c}"></i>${escapeHtml(projInitials(p.base))}</div>
+      <div class="pname"><span>${escapeHtml(p.base)}</span>${p.src?`<span class="srctag">${escapeHtml(p.src)}</span>`:""}</div>
       <div class="pcost">$${p.cost.toFixed(2)}</div>
-      <div class="pbar"><i style="width:${Math.round(p.cost/max*100)}%;background:${PALETTE[i%PALETTE.length]}"></i></div>
-    </div>`).join("");
+      <div class="pbar"><i style="width:${Math.round(p.cost/max*100)}%;background:${c}"></i></div>
+    </div>`;}).join("");
   // La cola se resume en una fila que se despliega al hacer clic: saber que
   // hay $39 repartidos no sirve de nada si no puedes ver en qué.
   if(rest.length) rows += `
     <div class="pitem more" id="plistMore">
-      <div class="pname"><span class="swatch" style="background:var(--txt-dim)"></span><span>${escapeHtml(projOpen?t("others_less"):t("others",rest.length))}</span></div>
+      <div class="pname"><span>${escapeHtml(projOpen?t("others_less"):t("others",rest.length))}</span></div>
       <div class="pcost">${projOpen?"":"$"+rest.reduce((a,p)=>a+p.cost,0).toFixed(2)}</div>
-      <div class="pbar"></div>
     </div>`;
   if(!rows) rows = `<div class="errbox" style="color:var(--txt-dim)">${t("no_activity")}</div>`;
 

@@ -447,6 +447,21 @@ hacer público el repo (o sus releases).
   respaldos de --font/--mono se conservan enteros. Se aplican SOLO donde
   Oscar lo indique, sección por sección (por ahora: todo el panel hereda
   Inter/JetBrains, y --disp está en el título y el % del medidor).
+- S3 GASTO POR PROYECTO (2026-08-05): filas con AVATAR de iniciales
+  (`projInitials`: primera letra de la primera palabra + primera de la
+  última — "claude-code-meter"→CM, "MichiClaude"→MC; con una sola palabra,
+  sus dos primeras letras), nombre + chip de origen, barrita bajo el
+  nombre e importe a la derecha. El avatar hereda el color de PALETTE de
+  su barra (el color sigue identificando al proyecto) y su fondo es una
+  CAPA a opacidad, NO `color-mix()` — esa función es demasiado reciente
+  para darla por segura en WebView2. "Más proyectos (N)" pasa a enlace:
+  ya existía y ya desplegaba (projOpen), solo cambió de aspecto.
+- CONTENEDOR BASE: `.sect` deja de ser un bloque separado por línea y pasa
+  a ser TARJETA con fondo (--card, radio r-lg). Es transversal a
+  propósito, como la paleta: da el lenguaje visual a todas las pestañas de
+  una vez y el contenido de cada una se sigue rediseñando por turnos. El
+  selector de periodo (.dsel) pasa a cajita con borde — plano sobre la
+  tarjeta se perdía.
 - ANCHO DEL PANEL 400 → 446 (2026-08-05): lo cazó Oscar comparando con la
   maqueta — a 400 px los textos se apretaban ("Semanal · todos los …"
   cortado con puntos suspensivos, el ritmo partido en dos líneas). 446 =
