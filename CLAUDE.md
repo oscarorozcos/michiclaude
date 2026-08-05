@@ -486,15 +486,31 @@ hacer público el repo (o sus releases).
   una vez y el contenido de cada una se sigue rediseñando por turnos. El
   selector de periodo (.dsel) pasa a cajita con borde — plano sobre la
   tarjeta se perdía.
-- S5 RANGO DE FECHAS con calendario propio (2026-08-05, pedido de Oscar
-  tras elegir "rango libre" + "calendario al estilo de la maqueta"):
-  botón 📅 junto al selector de periodo abre un calendario DIBUJADO A MANO
-  (invariante #4: sin dependencias). Dos clics = rango; si se elige al
-  revés se ordena solo; tope 90 días (el clamp del escáner) con aviso;
-  ni futuro ni más allá de esos 90 días. Botones Hoy (rango de un día) /
-  Borrar (vuelve al selector) / Aplicar. Estado en localStorage
-  `spendRange`; con rango, el selector de días queda inerte y la etiqueta
-  del total pasa a "12 ago – 18 ago".
+- S5 FILTROS DE LA TARJETA DE GASTO (2026-08-05, dos maquetas de Oscar).
+  El `<select>` de periodos DESAPARECIÓ: ahora hay dos disparadores
+  gemelos en el encabezado (embudo = proyectos, calendario = fechas) que
+  abren POPOVERS FLOTANTES con velo — `position:fixed` a propósito: el
+  panel tiene scroll propio y dentro de él se irían con el scroll.
+  Cancelar / ✕ / velo / Esc REVIERTEN (foto del estado al abrir); solo
+  Aplicar confirma.
+  · FECHAS: presets (Hoy/7/15/30) DENTRO del calendario — "Hoy" ES el
+    periodo de 1 día, no un botón aparte — más rango libre a dos clics
+    (si se elige al revés se ordena solo). Rejilla de 42 celdas con los
+    días vecinos en gris, punto turquesa en hoy, tope 90 días con aviso;
+    ni futuro ni más allá de esos 90. Calendario DIBUJADO A MANO
+    (invariante #4) y meses/días desde `Intl` con el idioma activo.
+    Estado: `curDays` (preset) o `spendRange` (rango libre) en
+    localStorage — nunca los dos a la vez.
+  · PROYECTOS: filtro solo de FRONTEND (la lista ya viene agregada; con
+    filtro el total pasa a ser la suma de los elegidos y por eso lleva
+    etiqueta "2 de 8 proyectos" — una cifra sin decir de qué es sería
+    justo lo que prohíbe el invariante #8). Conjunto VACÍO = todos, nunca
+    "ninguno" por accidente. Buscador, "Todos", contador en el botón y
+    CHIPS en la tarjeta para quitar uno a uno o todos. Persiste en
+    `projFilter`. Con filtro se enseñan todos los elegidos aunque
+    vinieran de la cola plegada.
+  · El pie "Hoy" se OCULTA cuando el periodo activo es exactamente hoy:
+    sería la misma cifra que el total de arriba, que ya lleva su etiqueta.
   TRADUCCIÓN SIN DICCIONARIO: los nombres de mes y día salen de
   `Intl.DateTimeFormat(lang)` — los 8 idiomas funcionan sin ampliar I18N
   (solo Hoy/Borrar/Aplicar/avisos están en el diccionario). El primer día

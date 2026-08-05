@@ -127,8 +127,10 @@
   .p-title{font-family:var(--disp);font-size:15px;font-weight:700;letter-spacing:-.2px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* A TODO EL ANCHO y sin recortes: los mensajes de error son largos y hay
-     que leerlos completos; si no caben, pasan a la línea siguiente. */
-  .p-sub{font-size:10.5px;color:var(--txt-dim);font-family:var(--mono);margin-top:9px;
+     que leerlos completos; si no caben, pasan a la línea siguiente. La
+     sangría iguala al avatar (40px) + su hueco (11px) para que el punto
+     verde caiga bajo la M de MichiClaude (Oscar 2026-08-05). */
+  .p-sub{font-size:10.5px;color:var(--txt-dim);font-family:var(--mono);margin:9px 0 0 51px;
     display:flex;align-items:flex-start;gap:7px;transition:opacity .2s;
     min-width:0;line-height:1.45}
   .p-sub .live{margin-top:4px}
@@ -374,48 +376,113 @@
     margin-top:10px;padding:14px;border-radius:var(--r-lg);
     background:linear-gradient(135deg,var(--card),var(--card-hi));
     border:1px solid var(--stroke-soft)}
-  /* ---- calendario de rango (gasto por proyecto) ---- */
-  .calbtn{margin-left:6px;width:26px;height:24px;border-radius:8px;cursor:pointer;
-    border:1px solid var(--stroke);background:var(--card-hi);color:var(--txt-mut);
-    display:inline-grid;place-items:center;vertical-align:middle;transition:.15s}
-  .calbtn:hover{color:var(--txt);border-color:var(--accent-line)}
-  .calbtn.on{color:#fff;background:var(--grad);border-color:transparent}
-  .calpop{background:var(--card-hi);border:1px solid var(--stroke);
-    border-radius:var(--r-md);padding:11px;margin-bottom:12px}
-  .cal-range{display:flex;align-items:center;justify-content:center;gap:9px;
-    font-family:var(--mono);font-size:11.5px;margin-bottom:9px;color:var(--txt)}
-  .cal-range b{color:var(--txt-dim);font-weight:400}
-  .cal-range span{background:var(--card);border:1px solid var(--stroke-soft);
-    border-radius:8px;padding:4px 9px;min-width:86px;text-align:center}
-  .cal-nav{display:flex;align-items:center;justify-content:space-between;
-    margin-bottom:7px}
-  .cal-nav span{font-size:12px;font-weight:600;text-transform:capitalize}
-  .cal-nav button{width:24px;height:24px;border-radius:7px;border:0;cursor:pointer;
-    background:transparent;color:var(--txt-mut);font-size:15px;line-height:1}
-  .cal-nav button:hover{background:var(--surface);color:var(--txt)}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-  .cal-grid .dow{font-size:9px;font-weight:700;letter-spacing:.4px;color:var(--txt-dim);
-    text-align:center;padding:3px 0;text-transform:uppercase}
-  .cal-grid button{aspect-ratio:1;border:0;border-radius:8px;cursor:pointer;
-    background:transparent;color:var(--txt);font-family:var(--mono);font-size:11px;
-    padding:0;transition:background .12s}
-  .cal-grid button:hover:not(:disabled){background:var(--surface)}
-  .cal-grid button:disabled{color:var(--txt-dim);opacity:.35;cursor:default}
-  /* el rango: extremos en degradado, el interior en violeta tenue */
-  .cal-grid button.in{background:var(--accent-weak);border-radius:0}
-  .cal-grid button.edge{background:var(--grad);color:#fff;font-weight:700}
-  .cal-grid button.edge.a{border-radius:8px 0 0 8px}
-  .cal-grid button.edge.b{border-radius:0 8px 8px 0}
-  .cal-grid button.edge.a.b{border-radius:8px}
-  .cal-grid button.today:not(.edge){box-shadow:inset 0 0 0 1px var(--accent-line)}
-  .cal-foot{display:flex;gap:7px;margin-top:10px}
-  .calx{flex:1 1 auto;border:1px solid var(--stroke);background:var(--card);
-    color:var(--txt-mut);border-radius:9px;padding:6px 8px;font-family:var(--font);
-    font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
-  .calx:hover{color:var(--txt);background:var(--surface)}
-  .calx.go{border:0;background:var(--grad);color:#fff}
-  .calx.go:hover{filter:brightness(1.1)}
-  .cal-note{font-size:10px;color:var(--warn);line-height:1.45;margin-top:8px}
+  /* ---- filtros de la tarjeta de gasto: fechas y proyectos ---- */
+  /* disparadores gemelos en el encabezado */
+  .trig{display:inline-flex;align-items:center;gap:6px;cursor:pointer;position:relative;
+    font-family:var(--mono);font-size:11px;font-weight:600;color:var(--txt);
+    background:var(--card-hi);border:1px solid var(--stroke);border-radius:10px;
+    padding:4px 8px;transition:.15s;margin-left:6px}
+  .trig:first-child{margin-left:0}
+  .trig:hover{border-color:var(--accent-line)}
+  .trig.on{border-color:var(--accent);background:var(--accent-weak)}
+  .trig svg{flex:0 0 auto;color:var(--accent)}
+  .trig .chev{color:var(--txt-dim);font-size:9px}
+  .trig .tbadge{position:absolute;top:-6px;right:-6px;min-width:15px;height:15px;
+    padding:0 4px;border-radius:999px;background:var(--grad);color:#fff;
+    font-size:9px;line-height:15px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+  /* velo + popover flotante (fixed: el panel tiene scroll propio) */
+  .veil{position:fixed;inset:0;background:rgba(6,10,20,.6);z-index:40}
+  body.light .veil{background:rgba(20,26,50,.35)}
+  .pop{position:fixed;left:14px;right:14px;top:52px;z-index:50;max-height:calc(100vh - 74px);
+    overflow-y:auto;background:var(--card-hi);border:1px solid var(--accent-line);
+    border-radius:var(--r-lg);padding:14px;box-shadow:0 30px 70px -20px rgba(0,0,0,.85)}
+  .pop-x{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:9px;
+    border:1px solid var(--stroke);background:var(--card);color:var(--txt-mut);
+    cursor:pointer;font-size:11px;display:grid;place-items:center;transition:.15s}
+  .pop-x:hover{color:var(--txt);border-color:rgba(255,107,94,.5)}
+  .pop-tt{font-size:10.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
+    color:var(--txt-dim);margin-bottom:11px;padding-right:32px}
+  .pop-foot{display:flex;gap:8px;margin-top:12px}
+  .cbtn{border:0;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:700;
+    border-radius:11px;padding:9px 12px;transition:.15s}
+  .cbtn.ghost{background:var(--card);color:var(--txt-mut);border:1px solid var(--stroke)}
+  .cbtn.ghost:hover{color:var(--txt)}
+  .cbtn.go{flex:1;color:#fff;background:var(--grad);
+    box-shadow:0 10px 22px -10px rgba(124,140,255,.6)}
+  .cbtn.go:hover{filter:brightness(1.1)}
+  .cbtn.go:disabled{opacity:.45;cursor:default;filter:none}
+  .pop-hint{font-size:10px;color:var(--txt-dim);text-align:center;margin-top:9px;line-height:1.45}
+  .pop-hint.warn{color:var(--warn)}
+  /* presets de periodo, dentro del calendario */
+  .presets{display:flex;gap:6px;margin-bottom:12px;padding-right:32px}
+  .preset{flex:1;border:1px solid var(--stroke);background:var(--card);color:var(--txt-mut);
+    font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;
+    padding:7px 0;border-radius:10px;transition:.15s}
+  .preset:hover{color:var(--txt);border-color:var(--accent-line)}
+  .preset.on{background:var(--grad);border-color:transparent;color:#fff;
+    box-shadow:0 8px 16px -8px rgba(124,140,255,.6)}
+  /* extremos elegidos */
+  .range-io{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .range-io .cell{flex:1;text-align:center;font-family:var(--mono);font-size:11.5px;
+    background:var(--card);border:1px solid var(--stroke);border-radius:10px;
+    padding:7px 4px;color:var(--txt)}
+  .range-io .cell.empty{color:var(--txt-dim)}
+  .range-io .arrow{color:var(--txt-dim);flex:0 0 auto;font-size:12px}
+  /* cabecera de mes */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .cal-head b{font-family:var(--disp);font-size:13px;font-weight:700;text-transform:capitalize}
+  .nav{width:28px;height:28px;border-radius:9px;border:1px solid var(--stroke);
+    background:var(--card);color:var(--txt-mut);cursor:pointer;font-size:13px;
+    display:grid;place-items:center;transition:.15s}
+  .nav:hover{color:var(--txt);border-color:var(--accent-line)}
+  /* rejilla del mes */
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+  .cal-grid .dow{font-size:9.5px;font-weight:700;letter-spacing:.5px;color:var(--txt-dim);padding:5px 0}
+  .cal-grid .day{position:relative;border:0;background:transparent;color:var(--txt);
+    cursor:pointer;font-family:var(--mono);font-size:12px;padding:0;height:32px;
+    border-radius:10px;transition:.12s}
+  .cal-grid .day:hover:not(:disabled){background:var(--accent-weak)}
+  .cal-grid .day:disabled{color:var(--txt-dim);opacity:.4;cursor:default}
+  .cal-grid .day.out{color:var(--txt-dim);opacity:.45}
+  /* punto del día de hoy */
+  .cal-grid .day.today::after{content:"";position:absolute;left:50%;bottom:4px;
+    transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--teal)}
+  .cal-grid .day.in-range{background:var(--accent-weak);border-radius:0}
+  .cal-grid .day.r-start,.cal-grid .day.r-end{background:var(--grad);color:#fff;font-weight:600;
+    box-shadow:0 6px 14px -6px rgba(124,140,255,.7)}
+  .cal-grid .day.r-start{border-radius:10px 0 0 10px}
+  .cal-grid .day.r-end{border-radius:0 10px 10px 0}
+  .cal-grid .day.r-start.r-end{border-radius:10px}
+  /* buscador y lista del filtro de proyectos */
+  .psearch{width:100%;background:var(--card);border:1px solid var(--stroke-soft);
+    border-radius:12px;color:var(--txt);font-family:var(--font);font-size:12.5px;
+    padding:9px 12px;margin-bottom:10px}
+  .psearch::placeholder{color:var(--txt-dim)}
+  .psearch:focus{outline:none;border-color:var(--accent-line)}
+  .psel{max-height:210px;overflow-y:auto;margin:0 -4px;padding:0 4px}
+  .psel .pit{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:12px;
+    cursor:pointer;transition:.12s;user-select:none}
+  .psel .pit:hover{background:var(--card)}
+  .psel .pit .pav{width:30px;height:30px;border-radius:10px;font-size:11px}
+  .psel .pit .nm{flex:1 1 auto;min-width:0;font-size:12.5px;font-weight:600;
+    display:flex;align-items:center;overflow:hidden}
+  .psel .pit .nm span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .psel .pit .amt{font-family:var(--mono);font-size:11.5px;color:var(--txt-mut);flex:0 0 auto}
+  .ck{width:18px;height:18px;border-radius:6px;border:1.5px solid var(--txt-dim);
+    flex:0 0 auto;display:grid;place-items:center;transition:.12s;color:transparent;font-size:11px}
+  .psel .pit.sel .ck{background:var(--grad);border-color:transparent;color:#fff}
+  .no-match{font-size:12px;color:var(--txt-dim);text-align:center;padding:14px 0}
+  /* chips del filtro activo, en la tarjeta */
+  .fchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
+  .fchip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+    background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--txt);
+    padding:4px 9px;border-radius:999px;max-width:100%}
+  .fchip em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fchip s{text-decoration:none;color:var(--txt-mut);cursor:pointer;font-size:12px;
+    line-height:1;flex:0 0 auto}
+  .fchip s:hover{color:var(--bad)}
+  .fchip.clear{background:transparent;border-color:var(--stroke);color:var(--txt-dim);cursor:pointer}
+  .fchip.clear:hover{color:var(--bad);border-color:rgba(255,107,94,.4)}
   /* aviso de que las máquinas del hub no entran en un rango */
   .hubnote{font-size:10px;color:var(--warn);line-height:1.45;margin-top:8px}
 
@@ -684,35 +751,27 @@
 
   <div class="sect">
     <div class="eyebrow"><span data-i18n="spend_title"></span>
-      <span class="q"><select id="daysSel" class="dsel"><option value="1">1 d</option><option value="7">7 d</option><option value="15">15 d</option><option value="30">30 d</option></select><button id="calBtn" class="calbtn" data-i18n-title="cal_open">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-      </button> · <span data-i18n="spend_q" data-i18n-title="spend_tip" style="cursor:help;border-bottom:1px dotted var(--txt-dim)"></span><span id="priceWarn" hidden style="cursor:pointer;color:var(--warn);margin-left:5px">&#9888;</span></span></div>
-    <!-- Calendario de rango (Oscar 2026-08-05). Dibujado a mano: sin
-         dependencias (invariante #4) y a juego con el tema. Los nombres de
-         mes y día salen de Intl con el idioma activo, así los 8 idiomas
-         funcionan sin ampliar el diccionario. -->
-    <div class="calpop" id="calPop" hidden>
-      <div class="cal-range"><span id="calFrom">—</span><b>→</b><span id="calTo">—</span></div>
-      <div class="cal-nav">
-        <button id="calPrev" aria-label="‹">‹</button>
-        <span id="calTitle"></span>
-        <button id="calNext" aria-label="›">›</button>
-      </div>
-      <div class="cal-grid" id="calGrid"></div>
-      <div class="cal-foot">
-        <button class="calx" id="calToday" data-i18n="cal_today"></button>
-        <button class="calx" id="calClear" data-i18n="cal_clear"></button>
-        <button class="calx go" id="calApply" data-i18n="cal_apply"></button>
-      </div>
-      <div class="cal-note" id="calNote" hidden data-i18n="cal_max"></div>
-    </div>
-    <!-- Total de la VENTANA elegida, junto a su selector (Oscar 2026-08-05):
-         es la suma de la lista de abajo y cambia con el filtro, así que
-         estaba mal al final del panel — había que bajar hasta el pie para
-         ver el efecto de cambiar de periodo. Conserva los ids de siempre
-         (winTot/winLbl/costWeek): la lógica que lo llena y lo oculta con
-         ventana de 1 día no se toca. -->
+      <span class="q">
+        <!-- Filtro de PROYECTOS y filtro de FECHAS: dos disparadores
+             gemelos (maqueta de Oscar 2026-08-05). Sustituyen al antiguo
+             <select> de periodos, que ahora vive como "presets" dentro
+             del propio calendario: un solo sitio donde elegir cuándo. -->
+        <button class="trig" id="projBtn" data-i18n-title="pf_title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+          <span class="chev">⌄</span>
+          <span class="tbadge" id="projBadge" hidden>0</span>
+        </button>
+        <button class="trig" id="calBtn" data-i18n-title="cal_open">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span id="calLbl">—</span>
+          <span class="chev">⌄</span>
+        </button>
+        · <span data-i18n="spend_q" data-i18n-title="spend_tip" style="cursor:help;border-bottom:1px dotted var(--txt-dim)"></span><span id="priceWarn" hidden style="cursor:pointer;color:var(--warn);margin-left:5px">&#9888;</span>
+      </span></div>
     <div class="spendtot" id="winTot"><b id="costWeek">–</b><span id="winLbl"></span></div>
+    <!-- El filtro activo, desmontable pieza a pieza: quién está dentro se
+         ve sin abrir el popover (maqueta de Oscar 2026-08-05). -->
+    <div class="fchips" id="fchips" hidden></div>
     <div class="plist" id="plist"></div>
     <div class="cfg-note" style="margin:8px 0 0" data-i18n="spend_only_cc"></div>
     <!-- Con rango, las máquinas del hub quedan fuera (sus fotos son de
@@ -987,6 +1046,57 @@
   </div>
 </div>
 
+<!-- ===== Popovers de filtro (fechas y proyectos) =====
+     FLOTAN sobre el panel con un velo detrás en vez de empujar el
+     contenido (maqueta de Oscar 2026-08-05): así la lista no da saltos al
+     abrirlos. Van FUERA de .panel y en position:fixed a propósito — el
+     panel tiene scroll interno y dentro de él se irían con el scroll.
+     Cancelar / ✕ / velo / Esc REVIERTEN al estado guardado al abrir:
+     equivocarse no cuesta nada; solo Aplicar confirma. -->
+<div class="veil" id="fVeil" hidden></div>
+
+<div class="pop" id="calPop" hidden>
+  <button class="pop-x" id="calX" data-i18n-title="cal_cancel">✕</button>
+  <div class="pop-tt" data-i18n="cal_title"></div>
+  <!-- presets: "Hoy" ES el periodo de 1 día, no un botón aparte -->
+  <div class="presets" id="calPresets">
+    <button class="preset" data-d="1" data-i18n="cal_today"></button>
+    <button class="preset" data-d="7">7 d</button>
+    <button class="preset" data-d="15">15 d</button>
+    <button class="preset" data-d="30">30 d</button>
+  </div>
+  <div class="range-io">
+    <span class="cell" id="calFrom">—</span>
+    <span class="arrow">→</span>
+    <span class="cell" id="calTo">—</span>
+  </div>
+  <div class="cal-head">
+    <button class="nav" id="calPrev">‹</button>
+    <b id="calTitle"></b>
+    <button class="nav" id="calNext">›</button>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+  <div class="pop-foot">
+    <button class="cbtn ghost" id="calCancel" data-i18n="cal_cancel"></button>
+    <button class="cbtn ghost" id="calClear" data-i18n="cal_clear"></button>
+    <button class="cbtn go" id="calApply" data-i18n="cal_apply"></button>
+  </div>
+  <div class="pop-hint" id="calHint"></div>
+</div>
+
+<div class="pop" id="projPop" hidden>
+  <button class="pop-x" id="projX" data-i18n-title="cal_cancel">✕</button>
+  <div class="pop-tt" data-i18n="pf_title"></div>
+  <input class="psearch" id="projSearch" data-i18n-ph="pf_search">
+  <div class="psel" id="projList"></div>
+  <div class="pop-hint" id="projCount" style="text-align:left;margin-top:8px"></div>
+  <div class="pop-foot">
+    <button class="cbtn ghost" id="projCancel" data-i18n="cal_cancel"></button>
+    <button class="cbtn ghost" id="projAll" data-i18n="pf_all"></button>
+    <button class="cbtn go" id="projApply" data-i18n="cal_apply"></button>
+  </div>
+</div>
+
 <script>
 // ---------- helpers ----------
 const $=id=>document.getElementById(id);
@@ -1035,6 +1145,19 @@ en:{
   no_activity:"No Claude Code activity in the last 7 days.",
   others:n=>`More projects (${n})`,
   cal_open:"Pick a date range",
+  cal_title:"Period",
+  cal_cancel:"Cancel",
+  cal_pick_start:"Tap a day to start the range · a preset fills it in for you",
+  cal_pick_end:"Now tap the last day of the range",
+  cal_ready:"Ready — press Apply",
+  pf_title:"Filter projects",
+  pf_search:"Search project…",
+  pf_all:"All",
+  pf_all_note:"Nothing selected = all are shown",
+  pf_sel:n=>`${n} selected · the total will show only these`,
+  pf_of:(n,m)=>`${n} of ${m} projects`,
+  pf_clear:"Clear filters",
+  pf_none:q=>`No matches for «${q}»`,
   cal_today:"Today",
   cal_clear:"Clear",
   cal_apply:"Apply",
@@ -1282,6 +1405,19 @@ es:{
   no_activity:"Sin actividad de Claude Code en los últimos 7 días.",
   others:n=>`Más proyectos (${n})`,
   cal_open:"Elegir un rango de fechas",
+  cal_title:"Periodo",
+  cal_cancel:"Cancelar",
+  cal_pick_start:"Toca un día para empezar el rango · un preset lo llena por ti",
+  cal_pick_end:"Ahora toca el día final del rango",
+  cal_ready:"Listo — pulsa Aplicar",
+  pf_title:"Filtrar proyectos",
+  pf_search:"Buscar proyecto…",
+  pf_all:"Todos",
+  pf_all_note:"Nada seleccionado = se muestran todos",
+  pf_sel:n=>`${n} seleccionado${n>1?"s":""} · el total mostrará solo estos`,
+  pf_of:(n,m)=>`${n} de ${m} proyectos`,
+  pf_clear:"Quitar filtros",
+  pf_none:q=>`Sin coincidencias para «${q}»`,
   cal_today:"Hoy",
   cal_clear:"Borrar",
   cal_apply:"Aplicar",
@@ -1529,6 +1665,19 @@ pt:{
   no_activity:"Sem atividade do Claude Code nos últimos 7 dias.",
   others:n=>`Mais projetos (${n})`,
   cal_open:"Escolher um intervalo de datas",
+  cal_title:"Período",
+  cal_cancel:"Cancelar",
+  cal_pick_start:"Toque num dia para começar o intervalo · um preset preenche por você",
+  cal_pick_end:"Agora toque no dia final do intervalo",
+  cal_ready:"Pronto — toque em Aplicar",
+  pf_title:"Filtrar projetos",
+  pf_search:"Buscar projeto…",
+  pf_all:"Todos",
+  pf_all_note:"Nada selecionado = mostram-se todos",
+  pf_sel:n=>`${n} selecionado${n>1?"s":""} · o total mostrará só estes`,
+  pf_of:(n,m)=>`${n} de ${m} projetos`,
+  pf_clear:"Remover filtros",
+  pf_none:q=>`Sem resultados para «${q}»`,
   cal_today:"Hoje",
   cal_clear:"Limpar",
   cal_apply:"Aplicar",
@@ -1776,6 +1925,19 @@ fr:{
   no_activity:"Aucune activité Claude Code ces 7 derniers jours.",
   others:n=>`Autres projets (${n})`,
   cal_open:"Choisir une plage de dates",
+  cal_title:"Période",
+  cal_cancel:"Annuler",
+  cal_pick_start:"Touchez un jour pour commencer · un préréglage le remplit pour vous",
+  cal_pick_end:"Touchez maintenant le dernier jour",
+  cal_ready:"Prêt — appuyez sur Appliquer",
+  pf_title:"Filtrer les projets",
+  pf_search:"Rechercher un projet…",
+  pf_all:"Tous",
+  pf_all_note:"Rien de sélectionné = tout s’affiche",
+  pf_sel:n=>`${n} sélectionné${n>1?"s":""} · le total n’inclura que ceux-ci`,
+  pf_of:(n,m)=>`${n} sur ${m} projets`,
+  pf_clear:"Retirer les filtres",
+  pf_none:q=>`Aucun résultat pour «${q}»`,
   cal_today:"Aujourd’hui",
   cal_clear:"Effacer",
   cal_apply:"Appliquer",
@@ -2023,6 +2185,19 @@ de:{
   no_activity:"Keine Claude-Code-Aktivität in den letzten 7 Tagen.",
   others:n=>`Weitere Projekte (${n})`,
   cal_open:"Zeitraum wählen",
+  cal_title:"Zeitraum",
+  cal_cancel:"Abbrechen",
+  cal_pick_start:"Tippe einen Tag an, um zu beginnen · eine Voreinstellung füllt es aus",
+  cal_pick_end:"Jetzt den letzten Tag antippen",
+  cal_ready:"Fertig — auf Anwenden tippen",
+  pf_title:"Projekte filtern",
+  pf_search:"Projekt suchen…",
+  pf_all:"Alle",
+  pf_all_note:"Nichts ausgewählt = alle werden gezeigt",
+  pf_sel:n=>`${n} ausgewählt · die Summe zeigt nur diese`,
+  pf_of:(n,m)=>`${n} von ${m} Projekten`,
+  pf_clear:"Filter entfernen",
+  pf_none:q=>`Keine Treffer für «${q}»`,
   cal_today:"Heute",
   cal_clear:"Löschen",
   cal_apply:"Anwenden",
@@ -2270,6 +2445,19 @@ ja:{
   no_activity:"過去7日間に Claude Code の利用はありません。",
   others:n=>`他のプロジェクト (${n})`,
   cal_open:"期間を選ぶ",
+  cal_title:"期間",
+  cal_cancel:"キャンセル",
+  cal_pick_start:"日付をタップして開始 · プリセットでも入力できます",
+  cal_pick_end:"終わりの日をタップしてください",
+  cal_ready:"準備完了 — 適用を押してください",
+  pf_title:"プロジェクトを絞り込む",
+  pf_search:"プロジェクトを検索…",
+  pf_all:"すべて",
+  pf_all_note:"未選択 = すべて表示",
+  pf_sel:n=>`${n}件選択 · 合計はこれらだけになります`,
+  pf_of:(n,m)=>`${m}件中${n}件`,
+  pf_clear:"絞り込みを解除",
+  pf_none:q=>`「${q}」に一致なし`,
   cal_today:"今日",
   cal_clear:"クリア",
   cal_apply:"適用",
@@ -2517,6 +2705,19 @@ ko:{
   no_activity:"지난 7일간 Claude Code 활동이 없습니다.",
   others:n=>`기타 프로젝트 (${n})`,
   cal_open:"기간 선택",
+  cal_title:"기간",
+  cal_cancel:"취소",
+  cal_pick_start:"날짜를 눌러 기간을 시작하세요 · 프리셋으로도 채울 수 있어요",
+  cal_pick_end:"이제 마지막 날짜를 누르세요",
+  cal_ready:"준비 완료 — 적용을 누르세요",
+  pf_title:"프로젝트 필터",
+  pf_search:"프로젝트 검색…",
+  pf_all:"전체",
+  pf_all_note:"선택 없음 = 전체 표시",
+  pf_sel:n=>`${n}개 선택됨 · 합계는 이것만 표시됩니다`,
+  pf_of:(n,m)=>`${m}개 중 ${n}개`,
+  pf_clear:"필터 해제",
+  pf_none:q=>`«${q}» 검색 결과 없음`,
   cal_today:"오늘",
   cal_clear:"지우기",
   cal_apply:"적용",
@@ -2764,6 +2965,19 @@ zh:{
   no_activity:"过去7天没有 Claude Code 活动。",
   others:n=>`更多项目 (${n})`,
   cal_open:"选择日期范围",
+  cal_title:"时间范围",
+  cal_cancel:"取消",
+  cal_pick_start:"点一天开始选择 · 也可以直接用快捷选项",
+  cal_pick_end:"再点结束的那一天",
+  cal_ready:"就绪 — 点击应用",
+  pf_title:"筛选项目",
+  pf_search:"搜索项目…",
+  pf_all:"全部",
+  pf_all_note:"未选择 = 显示全部",
+  pf_sel:n=>`已选 ${n} 个 · 合计只统计这些`,
+  pf_of:(n,m)=>`${m} 个项目中的 ${n} 个`,
+  pf_clear:"清除筛选",
+  pf_none:q=>`没有匹配「${q}」的结果`,
   cal_today:"今天",
   cal_clear:"清除",
   cal_apply:"应用",
@@ -3874,10 +4088,18 @@ function projInitials(name){
 
 function renderLocal(s){
   lastLocalData=s;
-  const all=s.projects.map(p=>({...p, ...splitSrc(p.name)}));
-  const rest=all.slice(PROJ_TOP);
-  const projs=projOpen?all:all.slice(0,PROJ_TOP);
+  const every=s.projects.map(p=>({...p, ...splitSrc(p.name)}));
+  // FILTRO DE PROYECTOS (2026-08-05): conjunto vacío = todos. Con filtro se
+  // enseñan TODOS los elegidos aunque vinieran de la cola plegada, y el
+  // total de arriba pasa a ser la suma de SOLO esos — por eso lleva su
+  // propia etiqueta ("2 de 8 proyectos"): una cifra sin decir de qué es
+  // sería justo lo que prohíbe el invariante #8.
+  const filt=projFilter.size>0;
+  const all=filt?every.filter(p=>projFilter.has(p.name)):every;
+  const rest=filt?[]:every.slice(PROJ_TOP);
+  const projs=(filt||projOpen)?all:all.slice(0,PROJ_TOP);
   const max=Math.max(...all.map(p=>p.cost),0.01);
+  renderFchips(every);
 
   let rows = projs.map((p,i)=>{
     const c=PALETTE[i%PALETTE.length];
@@ -3926,7 +4148,15 @@ function renderLocal(s){
     $("modelQ").textContent=t("model_leads", prettyModel(models[0].m));
   }
   $("costToday").textContent="$"+s.cost_today.toFixed(2);
-  $("costWeek").textContent="$"+s.cost_week.toFixed(2);
+  // con filtro de proyectos el total es la suma de los ELEGIDOS, no el de
+  // la ventana entera: enseñar el total completo junto a una lista
+  // recortada sería mentir por omisión
+  $("costWeek").textContent="$"+(filt
+    ? all.reduce((a,p)=>a+p.cost,0) : s.cost_week).toFixed(2);
+  $("winLbl").textContent = filt
+    ? `${t("pf_of", all.length, every.length)} · ${periodLabel()}`
+    : (curRange ? periodLabel()
+       : (curDays===1 ? t("today") : curDays===7 ? t("week") : curDays+"d"));
   // el backend avisa cuando dejó fuera resúmenes del hub por haber pedido
   // un rango: sus fotos son de ventanas que terminan hoy y no se recortan
   $("hubNote").hidden=!s.hub_skipped;
@@ -4001,150 +4231,266 @@ function onQuotaFail(reason){
 let curDays=+(localStorage.getItem("days")||7);
 if(![1,7,15,30].includes(curDays)) curDays=7;
 
-// ---------- rango de fechas (calendario propio, Oscar 2026-08-05) ----------
+// ---------- filtro de FECHAS: presets + rango (Oscar 2026-08-05) ----------
 // El backend NO habla de fechas: entiende "ancho en días" + "final". Un rango
-// [A,B] se traduce a days=(B-A)+1 y end=fin del día B, así que no hizo falta
-// un camino paralelo en el motor. Tope 90 días, que es el clamp del escáner.
+// [A,B] se traduce a days=(B-A)+1 y end=fin del día B, así que los presets
+// (Hoy/7/15/30) y el rango libre son la MISMA consulta con distintos números.
+// Tope 90 días, que es el clamp del escáner.
 const CAL_MAX_DAYS=90;
-let curRange=null;      // {from:"YYYY-MM-DD", to:"YYYY-MM-DD"} o null
+let curRange=null;      // {from:"YYYY-MM-DD", to:"YYYY-MM-DD"} o null (= preset)
 try{ const r=JSON.parse(localStorage.getItem("spendRange")||"null");
   if(r&&r.from&&r.to) curRange=r; }catch(_){}
-let calMonth=null;      // primer día del mes que se está enseñando
-let calPick=null;       // primer extremo elegido mientras se compone el rango
+let calView=null;       // primer día del mes visible
+let calA=null, calB=null;   // extremos en edición (Date)
+let calPreset=null;     // preset activo dentro del popover
+let calSnap=null;       // foto para revertir con Cancelar
 
+const d0=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
 const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const fromYmd=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);};
-// días que abarca el rango, extremos incluidos
-function rangeDays(r){
-  return Math.round((fromYmd(r.to)-fromYmd(r.from))/864e5)+1;
-}
+const fromYmd=s2=>{const[y,m,d]=s2.split("-").map(Number);return new Date(y,m-1,d);};
+const fmtCalDay=x=>{
+  const d = typeof x==="string" ? fromYmd(x) : x;
+  return d ? d.toLocaleDateString(lang,{day:"2-digit",month:"short"}) : "—";
+};
+function rangeDays(r){ return Math.round((fromYmd(r.to)-fromYmd(r.from))/864e5)+1; }
 // epoch del ÚLTIMO instante del día final: el backend corta con "ts <= end",
-// así que sin esto se perdería el día entero elegido como fin
-function rangeEnd(r){
-  const d=fromYmd(r.to); d.setHours(23,59,59,999);
-  return Math.floor(d.getTime()/1000);
-}
-// lo que se manda al backend: con rango, su ancho y su final; sin él, la
-// ventana de siempre y `end` ausente (comportamiento idéntico al anterior)
+// así que sin esto se perdería el día elegido como fin
+function rangeEnd(r){ const d=fromYmd(r.to); d.setHours(23,59,59,999); return Math.floor(d.getTime()/1000); }
+// lo que se manda al backend
 function statsArgs(){
   return curRange ? {days:rangeDays(curRange), end:rangeEnd(curRange)}
                   : {days:curDays};
 }
-function fmtCalDay(s){
-  return s ? fromYmd(s).toLocaleDateString(lang,{day:"2-digit",month:"short"}) : "—";
+// ¿el periodo activo es exactamente el día de hoy?
+function isTodayPeriod(){
+  if(curRange) return curRange.from===curRange.to && curRange.to===ymd(new Date());
+  return curDays===1;
+}
+// etiqueta corta para el disparador y para el total
+function periodLabel(){
+  if(!curRange) return curDays===1 ? t("cal_today") : curDays+" d";
+  if(curRange.from===curRange.to) return fmtCalDay(curRange.from);
+  return `${fmtCalDay(curRange.from)} – ${fmtCalDay(curRange.to)}`;
+}
+function calHint(msg,warn){
+  const h=$("calHint"); h.textContent=msg; h.classList.toggle("warn",!!warn);
 }
 function renderCal(){
-  const today=new Date(); today.setHours(0,0,0,0);
-  if(!calMonth){
-    const base=curRange?fromYmd(curRange.to):today;
-    calMonth=new Date(base.getFullYear(),base.getMonth(),1);
-  }
-  $("calTitle").textContent=calMonth.toLocaleDateString(lang,{month:"long",year:"numeric"});
-  // primer día de la semana según el idioma: lunes en casi toda Europa y
-  // América Latina, domingo en EN/JA/KO/ZH. Sin listas: se deduce del propio
-  // formato corto que da Intl para una semana conocida.
+  const today=d0(new Date());
+  if(!calView) calView=new Date(today.getFullYear(),today.getMonth(),1);
+  $("calTitle").textContent=calView.toLocaleDateString(lang,{month:"long",year:"numeric"});
+  $("calPresets").querySelectorAll(".preset").forEach(p=>
+    p.classList.toggle("on", calPreset!=null && +p.dataset.d===calPreset));
+  $("calFrom").textContent=calA?fmtCalDay(calA):"—";
+  $("calFrom").classList.toggle("empty",!calA);
+  $("calTo").textContent=calB?fmtCalDay(calB):"—";
+  $("calTo").classList.toggle("empty",!calB);
+  $("calApply").disabled=!(calA&&calB);
+  // primer día de la semana: lunes salvo en los idiomas que empiezan en
+  // domingo. Los nombres salen de Intl, así que no hay que traducirlos.
   const wkStart=["en","ja","ko","zh"].includes(lang)?0:1;
   const dowFmt=new Intl.DateTimeFormat(lang,{weekday:"narrow"});
   let html="";
   for(let i=0;i<7;i++){
-    const d=new Date(2024,0,7+((wkStart+i)%7));   // 7/1/2024 fue domingo
+    const d=new Date(2024,0,7+((wkStart+i)%7));    // 7/1/2024 fue domingo
     html+=`<span class="dow">${escapeHtml(dowFmt.format(d))}</span>`;
   }
-  const first=new Date(calMonth.getFullYear(),calMonth.getMonth(),1);
-  const blanks=(first.getDay()-wkStart+7)%7;
-  for(let i=0;i<blanks;i++) html+="<span></span>";
-  const last=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,0).getDate();
-  // extremos provisionales: mientras se elige, el primer clic ya se pinta
-  const a=calPick||(curRange&&curRange.from), b=calPick?null:(curRange&&curRange.to);
+  const first=new Date(calView.getFullYear(),calView.getMonth(),1);
+  const start=(first.getDay()-wkStart+7)%7;
+  const daysIn=new Date(calView.getFullYear(),calView.getMonth()+1,0).getDate();
+  const prevDays=new Date(calView.getFullYear(),calView.getMonth(),0).getDate();
   const minDay=new Date(today); minDay.setDate(minDay.getDate()-(CAL_MAX_DAYS-1));
-  for(let n=1;n<=last;n++){
-    const d=new Date(calMonth.getFullYear(),calMonth.getMonth(),n);
-    const k=ymd(d);
-    // ni el futuro ni más allá del historial que el motor puede escanear
-    const off = d>today || d<minDay;
-    const isA=a&&k===a, isB=b&&k===b;
-    const inside=a&&b&&k>a&&k<b;
-    const cls=[off?"":"",isA||isB?"edge":"",isA?"a":"",isB?"b":"",
-      inside?"in":"", k===ymd(today)?"today":""].filter(Boolean).join(" ");
-    html+=`<button data-d="${k}"${off?" disabled":""} class="${cls}">${n}</button>`;
+  // 42 celdas: el mes siempre ocupa lo mismo y la ventana no da saltos
+  for(let i=0;i<42;i++){
+    let n,dt,out=false;
+    if(i<start){ n=prevDays-start+1+i; dt=new Date(calView.getFullYear(),calView.getMonth()-1,n); out=true; }
+    else if(i<start+daysIn){ n=i-start+1; dt=new Date(calView.getFullYear(),calView.getMonth(),n); }
+    else{ n=i-start-daysIn+1; dt=new Date(calView.getFullYear(),calView.getMonth()+1,n); out=true; }
+    const tt=dt.getTime();
+    const off = tt>today.getTime() || tt<minDay.getTime();   // futuro o sin historial
+    const cls=["day",out?"out":"",tt===today.getTime()?"today":""];
+    if(calA&&calB){
+      const a=d0(calA).getTime(), z=d0(calB).getTime();
+      if(tt>a&&tt<z) cls.push("in-range");
+      if(tt===a) cls.push("r-start");
+      if(tt===z) cls.push("r-end");
+    }else if(calA&&d0(calA).getTime()===tt) cls.push("r-start","r-end");
+    html+=`<button class="${cls.filter(Boolean).join(" ")}" data-t="${tt}"${off?" disabled":""}>${n}</button>`;
   }
   $("calGrid").innerHTML=html;
-  $("calFrom").textContent=fmtCalDay(calPick||(curRange&&curRange.from));
-  $("calTo").textContent=fmtCalDay(calPick?null:(curRange&&curRange.to));
-  $("calGrid").querySelectorAll("button[data-d]").forEach(b2=>
-    b2.addEventListener("click",()=>pickDay(b2.dataset.d)));
+  $("calGrid").querySelectorAll("button[data-t]").forEach(b2=>
+    b2.addEventListener("click",()=>calPick(new Date(+b2.dataset.t))));
 }
-function pickDay(k){
-  if(!calPick){ calPick=k; $("calNote").hidden=true; renderCal(); return; }
-  let from=calPick, to=k;
-  if(from>to) [from,to]=[to,from];       // elegido al revés: se ordena solo
-  const n=Math.round((fromYmd(to)-fromYmd(from))/864e5)+1;
-  if(n>CAL_MAX_DAYS){ $("calNote").hidden=false; return; }   // fuera de alcance
-  curRange={from,to}; calPick=null; $("calNote").hidden=true;
+// primer toque = inicio, segundo = fin (si va al revés, se ordena solo)
+function calPick(dt){
+  calPreset=null;
+  if(!calA||(calA&&calB)){ calA=d0(dt); calB=null; calHint(t("cal_pick_end")); }
+  else{
+    calB=d0(dt);
+    if(calB<calA){ const x=calA; calA=calB; calB=x; }
+    const n=Math.round((calB-calA)/864e5)+1;
+    if(n>CAL_MAX_DAYS){ calB=null; calHint(t("cal_max"),true); }
+    else calHint(t("cal_ready"));
+  }
   renderCal();
 }
+function calSetPreset(n){
+  calPreset=n;
+  calB=d0(new Date());
+  calA=new Date(calB); calA.setDate(calA.getDate()-(n-1));
+  calView=new Date(calB.getFullYear(),calB.getMonth(),1);
+  calHint(t("cal_ready"));
+  renderCal();
+}
+function openCal(){
+  calSnap={a:calA,b:calB,p:calPreset,v:calView};
+  // el popover abre reflejando lo que se está viendo ahora mismo
+  if(curRange){ calA=fromYmd(curRange.from); calB=fromYmd(curRange.to); calPreset=null; }
+  else calSetPreset(curDays);
+  calView=new Date((calB||new Date()).getFullYear(),(calB||new Date()).getMonth(),1);
+  calHint(curRange||curDays?t("cal_ready"):t("cal_pick_start"));
+  showPop("calPop");
+  renderCal();
+}
+function closeCal(revert){
+  if(revert&&calSnap){ calA=calSnap.a; calB=calSnap.b; calPreset=calSnap.p; calView=calSnap.v; }
+  hidePop("calPop");
+}
+function applyCal(){
+  if(!(calA&&calB)) return;
+  if(calPreset){                    // preset = ventana que termina hoy
+    curDays=calPreset; curRange=null;
+    localStorage.setItem("days",curDays);
+    localStorage.removeItem("spendRange");
+  }else{
+    curRange={from:ymd(calA),to:ymd(calB)};
+    localStorage.setItem("spendRange",JSON.stringify(curRange));
+  }
+  hidePop("calPop"); markDays(); spendBusy(); refresh();
+}
+function clearCal(){
+  calPreset=null; calA=calB=null; calHint(t("cal_pick_start"));
+  renderCal();
+}
+// ---------- filtro de PROYECTOS (misma familia que el de fechas) ----------
+// Vive SOLO en el frontend: la lista ya viene agregada del backend, así que
+// filtrar es quedarse con unos cuantos y volver a sumar. Conjunto vacío =
+// sin filtro = se muestran todos (nunca "ninguno" por accidente).
+let projFilter=new Set();
+try{ const a=JSON.parse(localStorage.getItem("projFilter")||"[]");
+  if(Array.isArray(a)) projFilter=new Set(a); }catch(_){}
+let projDraft=new Set();
+function saveProjFilter(){
+  localStorage.setItem("projFilter",JSON.stringify([...projFilter]));
+}
+function renderProjPop(){
+  const q=($("projSearch").value||"").trim().toLowerCase();
+  const all=(lastLocalData?.projects||[]).map(p=>({...p,...splitSrc(p.name)}))
+    .sort((a,b)=>b.cost-a.cost);
+  const match=all.filter(p=>p.base.toLowerCase().includes(q));
+  $("projList").innerHTML = match.length ? match.map((p,i)=>{
+    const c=PALETTE[i%PALETTE.length];
+    return `<div class="pit${projDraft.has(p.name)?" sel":""}" data-k="${escapeHtml(p.name)}">
+      <span class="ck">✓</span>
+      <span class="pav" style="color:${c}"><i style="background:${c}"></i>${escapeHtml(projInitials(p.base))}</span>
+      <span class="nm"><span>${escapeHtml(p.base)}</span>${p.src?`<span class="srctag">${escapeHtml(p.src)}</span>`:""}</span>
+      <span class="amt">$${p.cost.toFixed(2)}</span>
+    </div>`;}).join("") : `<div class="no-match">${t("pf_none",escapeHtml($("projSearch").value))}</div>`;
+  $("projCount").textContent = projDraft.size
+    ? t("pf_sel", projDraft.size) : t("pf_all_note");
+  $("projList").querySelectorAll(".pit").forEach(el=>el.addEventListener("click",()=>{
+    const k=el.dataset.k;
+    if(projDraft.has(k)) projDraft.delete(k); else projDraft.add(k);
+    renderProjPop();
+  }));
+}
+// chips del filtro activo: uno por proyecto elegido + "quitar filtros"
+function renderFchips(every){
+  const box=$("fchips");
+  if(!projFilter.size){ box.hidden=true; box.innerHTML=""; return; }
+  const byKey=new Map(every.map(p=>[p.name,p]));
+  box.hidden=false;
+  box.innerHTML=[...projFilter].map(k=>{
+    const p=byKey.get(k);
+    return `<span class="fchip"><em>${escapeHtml(p?p.base:k)}</em><s data-k="${escapeHtml(k)}">✕</s></span>`;
+  }).join("")+`<span class="fchip clear" id="fchipClear">${t("pf_clear")} ✕</span>`;
+  box.querySelectorAll("s[data-k]").forEach(x=>x.addEventListener("click",()=>{
+    projFilter.delete(x.dataset.k); saveProjFilter(); markDays();
+    if(lastLocalData) renderLocal(lastLocalData);
+  }));
+  const c=$("fchipClear");
+  if(c) c.addEventListener("click",()=>{
+    projFilter.clear(); saveProjFilter(); markDays();
+    if(lastLocalData) renderLocal(lastLocalData);
+  });
+}
+function openProj(){
+  projDraft=new Set(projFilter);
+  $("projSearch").value="";
+  renderProjPop();
+  showPop("projPop");
+  $("projSearch").focus();
+}
+// ---------- fontanería común de los dos popovers ----------
+function showPop(id){
+  $("fVeil").hidden=false; $(id).hidden=false;
+  $(id==="calPop"?"calBtn":"projBtn").classList.add("on");
+}
+function hidePop(id){
+  $(id).hidden=true; $("fVeil").hidden=true;
+  $("calBtn").classList.toggle("on",!!curRange);
+  $("projBtn").classList.toggle("on",projFilter.size>0);
+}
+function closeAllPops(revert){
+  if(!$("calPop").hidden) closeCal(revert);
+  if(!$("projPop").hidden) hidePop("projPop");
+}
+$("calBtn").addEventListener("click",()=>{ $("calPop").hidden?openCal():closeCal(true); });
+$("calX").addEventListener("click",()=>closeCal(true));
+$("calCancel").addEventListener("click",()=>closeCal(true));
+$("calClear").addEventListener("click",clearCal);
+$("calApply").addEventListener("click",applyCal);
+$("calPrev").addEventListener("click",()=>{
+  calView=new Date(calView.getFullYear(),calView.getMonth()-1,1); renderCal(); });
+$("calNext").addEventListener("click",()=>{
+  calView=new Date(calView.getFullYear(),calView.getMonth()+1,1); renderCal(); });
+$("calPresets").addEventListener("click",e=>{
+  const p=e.target.closest(".preset"); if(p) calSetPreset(+p.dataset.d); });
+$("projBtn").addEventListener("click",()=>{ $("projPop").hidden?openProj():hidePop("projPop"); });
+$("projX").addEventListener("click",()=>hidePop("projPop"));
+$("projCancel").addEventListener("click",()=>hidePop("projPop"));
+$("projSearch").addEventListener("input",renderProjPop);
+$("projAll").addEventListener("click",()=>{ projDraft.clear(); renderProjPop(); });
+$("projApply").addEventListener("click",()=>{
+  projFilter=new Set(projDraft); saveProjFilter();
+  hidePop("projPop");
+  if(lastLocalData) renderLocal(lastLocalData);
+});
+$("fVeil").addEventListener("click",()=>closeAllPops(true));
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeAllPops(true); });
+
 // feedback mientras recalcula: el escaneo (y el SSH) tardan 1-2 s
 function spendBusy(){
   projOpen=false;                        // otro periodo, otra lista
   $("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
   $("costWeek").textContent="–";
 }
-function applyRange(){
-  if(!curRange) return;
-  localStorage.setItem("spendRange",JSON.stringify(curRange));
-  $("calPop").hidden=true; $("calBtn").classList.add("on");
-  markDays(); spendBusy(); refresh();
-}
-function clearRange(){
-  curRange=null; calPick=null; calMonth=null;
-  localStorage.removeItem("spendRange");
-  $("calBtn").classList.remove("on");
-  renderCal(); markDays(); spendBusy(); refresh();
-}
-$("calBtn").addEventListener("click",()=>{
-  const p=$("calPop");
-  p.hidden=!p.hidden;
-  if(!p.hidden){ calPick=null; calMonth=null; renderCal(); }
-});
-$("calPrev").addEventListener("click",()=>{
-  calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1); renderCal(); });
-$("calNext").addEventListener("click",()=>{
-  calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1); renderCal(); });
-// "Hoy": vuelve al mes en curso y deja el día de hoy como rango de un día,
-// que es el atajo que se espera de ese botón
-$("calToday").addEventListener("click",()=>{
-  const k=ymd(new Date());
-  calMonth=null; calPick=null; curRange={from:k,to:k}; renderCal();
-});
-$("calClear").addEventListener("click",clearRange);
-$("calApply").addEventListener("click",applyRange);
-if(curRange) $("calBtn").classList.add("on");
 
 function markDays(){
-  $("daysSel").value=String(curDays);
-  // con rango activo, el selector de periodos queda inerte: manda el rango
-  $("daysSel").disabled=!!curRange;
-  // "Hoy" son las últimas 24 h y la ventana de 1 día también: enseñar la
-  // misma cifra dos veces con dos nombres parece un error de la app. Con
-  // 1 d se calla el total de la cabecera y queda el "Hoy" del pie, que
-  // dice exactamente lo mismo (invariante #8, ahora en su sitio nuevo).
-  // Con RANGO siempre se enseña: ahí el total es el del periodo elegido.
-  $("winTot").hidden = (!curRange && curDays===1);
-  // la etiqueta refleja lo que se está mirando: el rango, si lo hay
+  $("calLbl").textContent=periodLabel();
+  $("calBtn").classList.toggle("on",!!curRange);
+  $("projBtn").classList.toggle("on",projFilter.size>0);
+  $("projBadge").hidden=projFilter.size===0;
+  $("projBadge").textContent=projFilter.size;
+  // "Hoy" (pie) y un periodo de un día son la misma cifra con dos nombres:
+  // se enseña ARRIBA, con su etiqueta, y el pie se calla (invariante #8).
+  const hoy=isTodayPeriod();
+  $("pFoot").hidden = hoy;
+  $("winTot").hidden = false;
   const w=$("winLbl");
-  if(w) w.textContent = curRange
-    ? `${fmtCalDay(curRange.from)} – ${fmtCalDay(curRange.to)}`
-    : (curDays===7 ? t("week") : curDays+"d");
+  if(w) w.textContent = curRange ? periodLabel()
+    : (curDays===1 ? t("today") : curDays===7 ? t("week") : curDays+"d");
 }
-$("daysSel").addEventListener("change",()=>{
-  curDays=+$("daysSel").value; localStorage.setItem("days",curDays);
-  projOpen=false;                      // otra ventana, otra lista: se pliega
-  markDays();
-  // feedback inmediato mientras recalcula (el remoto por SSH tarda ~1-2 s)
-  $("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
-  $("costWeek").textContent="–";
-  refresh();
-});
 markDays();
 
 async function refresh(){
