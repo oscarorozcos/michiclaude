@@ -187,7 +187,13 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 1. `get_quota` y `get_local_stats`: no cambiar firmas (`days: Option<u32>`,
    clamp 1..90); no eliminar dedup ni exclusión de cache_read. Campo nuevo
    en LocalStats → replicar en `meter-export.py` y `#[serde(default)]`
-   (ExportRow.origin y Finding.ts ya mordieron por esto).
+   (ExportRow.origin y Finding.ts ya mordieron por esto). AMPLIACIÓN
+   ADITIVA 2026-08-05: `get_local_stats` acepta además `end: Option<i64>`
+   (epoch) y el exportador `--end EPOCH` — mueven el FINAL de la ventana
+   al pasado, que es como se sirve un rango de fechas: [end-days, end].
+   Sin ese argumento todo se comporta EXACTAMENTE igual que antes
+   (verificado con regresión byte a byte). NO añadir un camino paralelo
+   por fechas: el motor solo entiende ancho + final.
 2. `demo()` del frontend existe SOLO para abrir index.html suelto en un
    navegador. PROHIBIDO que datos de demo lleguen a la app real.
 3. Seguridad: el token nunca se loggea/muestra/viaja a otro dominio que
@@ -480,6 +486,29 @@ hacer público el repo (o sus releases).
   una vez y el contenido de cada una se sigue rediseñando por turnos. El
   selector de periodo (.dsel) pasa a cajita con borde — plano sobre la
   tarjeta se perdía.
+- S5 RANGO DE FECHAS con calendario propio (2026-08-05, pedido de Oscar
+  tras elegir "rango libre" + "calendario al estilo de la maqueta"):
+  botón 📅 junto al selector de periodo abre un calendario DIBUJADO A MANO
+  (invariante #4: sin dependencias). Dos clics = rango; si se elige al
+  revés se ordena solo; tope 90 días (el clamp del escáner) con aviso;
+  ni futuro ni más allá de esos 90 días. Botones Hoy (rango de un día) /
+  Borrar (vuelve al selector) / Aplicar. Estado en localStorage
+  `spendRange`; con rango, el selector de días queda inerte y la etiqueta
+  del total pasa a "12 ago – 18 ago".
+  TRADUCCIÓN SIN DICCIONARIO: los nombres de mes y día salen de
+  `Intl.DateTimeFormat(lang)` — los 8 idiomas funcionan sin ampliar I18N
+  (solo Hoy/Borrar/Aplicar/avisos están en el diccionario). El primer día
+  de la semana es lunes salvo en en/ja/ko/zh.
+  LÍMITE HONESTO: con rango, las máquinas del HUB quedan FUERA (sus fotos
+  son de ventanas que terminan hoy y nadie puede recortarlas); Rust lo
+  marca con `hub_skipped` y el panel lo dice en pantalla — callarlo sería
+  enseñar un total incompleto (invariante #8). Tampoco se SUBE foto al
+  hub mientras hay rango: envenenaría lo que leen las demás máquinas.
+  "Hoy" y la serie diaria de 30 días siguen ancladas a AHORA a propósito.
+  BUG cazado en la prueba: en Python faltaba el corte superior y el rango
+  devolvía todo hasta hoy. Verificación que lo destapó y que conviene
+  repetir si se toca esto: dos rangos contiguos de 7 días deben sumar
+  EXACTAMENTE la ventana de 14 (dio 0.0000 de diferencia).
 - ANCHO DEL PANEL 400 → 446 (2026-08-05): lo cazó Oscar comparando con la
   maqueta — a 400 px los textos se apretaban ("Semanal · todos los …"
   cortado con puntos suspensivos, el ritmo partido en dos líneas). 446 =

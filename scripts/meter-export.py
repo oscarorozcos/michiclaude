@@ -8,8 +8,11 @@ de trabajo, precios equivalente-API) y emite el JSON con la forma exacta de
 LocalStats: projects (con by_model), models, cost_today, cost_week (= ventana),
 tokens_week, daily (serie de 30 días).
 
-Uso:  meter-export.py [--days N] [--exclude-host ID]
+Uso:  meter-export.py [--days N] [--end EPOCH] [--exclude-host ID]
       --days N          ventana del gasto por proyecto (def. 7)
+      --end EPOCH       final de la ventana (def. ahora). Con él la ventana
+                        se desplaza al pasado y cubre [end - days, end]:
+                        así se pide un rango de fechas concreto.
       --exclude-host ID no devolver el resumen de esa máquina (modo hub)
 
 El meter en Windows lo invoca por SSH. Solo stdlib; sin dependencias.
@@ -802,6 +805,18 @@ def main():
         except IndexError:
             pass
 
+    # Final de la ventana (epoch). Sin él, "ahora" — el comportamiento de
+    # siempre. Con él, la ventana se desplaza al pasado y cubre
+    # [end - days, end]: así un RANGO DE FECHAS se pide con los dos datos de
+    # siempre (ancho + final). Mantener en sincronía con lib.rs (invariante
+    # #1): allí es el parámetro `end_ts` de collect_own_stats.
+    end_ts = None
+    if "--end" in args:
+        try:
+            end_ts = int(args[args.index("--end") + 1])
+        except (IndexError, ValueError):
+            end_ts = None
+
     # Filas del reporte (fecha × proyecto × modelo). Solo cuando se piden:
     # el panel no las necesita y engordarían cada consulta.
     want_rows = "--rows" in args
@@ -821,7 +836,12 @@ def main():
     claude_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
     projects_dir = claude_dir / "projects"
     now = datetime.now(timezone.utc)
-    window_ago = now - timedelta(days=days)
+    end = (datetime.fromtimestamp(end_ts, timezone.utc)
+           if end_ts is not None else now)
+    window_ago = end - timedelta(days=days)
+    # "hoy" y la serie de 30 días van con AHORA a propósito: no son la
+    # ventana elegida y moverlos convertiría "Hoy" en "el último día del
+    # rango", que no es lo que dice la etiqueta.
     day_ago = now - timedelta(hours=24)
     month_ago = now - timedelta(days=30)
 
@@ -838,8 +858,8 @@ def main():
 
     # La ventana más amplia de esta ejecución: la elegida o los 30 días de la
     # tendencia, lo que sea mayor. Nada anterior a eso entra en ningún cálculo.
-    span = max(days, 30) + SKIP_MARGIN_DAYS
-    keep_after = now - timedelta(days=span)
+    keep_after = min(now - timedelta(days=30 + SKIP_MARGIN_DAYS),
+                     end - timedelta(days=days + SKIP_MARGIN_DAYS))
     skip_before = keep_after.timestamp()
     cache_in = load_cache(keep_after.timestamp())
     cache_out = {}
@@ -885,7 +905,7 @@ def main():
                     ts = datetime.fromtimestamp(ts_s, timezone.utc)
                     pi, po, pcw, pcr = price_for(model)
                     cost = (inp * pi + out * po + cw * pcw + cr * pcr) / 1e6
-                    if ts >= window_ago:
+                    if ts >= window_ago and ts <= end:
                         cost_window += cost
                         tokens_window += inp + out + cw  # cache_read excluido
                         e = per_project.setdefault(raw, [0.0, 0, {}])

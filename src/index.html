@@ -374,6 +374,51 @@
     margin-top:10px;padding:14px;border-radius:var(--r-lg);
     background:linear-gradient(135deg,var(--card),var(--card-hi));
     border:1px solid var(--stroke-soft)}
+  /* ---- calendario de rango (gasto por proyecto) ---- */
+  .calbtn{margin-left:6px;width:26px;height:24px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--stroke);background:var(--card-hi);color:var(--txt-mut);
+    display:inline-grid;place-items:center;vertical-align:middle;transition:.15s}
+  .calbtn:hover{color:var(--txt);border-color:var(--accent-line)}
+  .calbtn.on{color:#fff;background:var(--grad);border-color:transparent}
+  .calpop{background:var(--card-hi);border:1px solid var(--stroke);
+    border-radius:var(--r-md);padding:11px;margin-bottom:12px}
+  .cal-range{display:flex;align-items:center;justify-content:center;gap:9px;
+    font-family:var(--mono);font-size:11.5px;margin-bottom:9px;color:var(--txt)}
+  .cal-range b{color:var(--txt-dim);font-weight:400}
+  .cal-range span{background:var(--card);border:1px solid var(--stroke-soft);
+    border-radius:8px;padding:4px 9px;min-width:86px;text-align:center}
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:7px}
+  .cal-nav span{font-size:12px;font-weight:600;text-transform:capitalize}
+  .cal-nav button{width:24px;height:24px;border-radius:7px;border:0;cursor:pointer;
+    background:transparent;color:var(--txt-mut);font-size:15px;line-height:1}
+  .cal-nav button:hover{background:var(--surface);color:var(--txt)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .cal-grid .dow{font-size:9px;font-weight:700;letter-spacing:.4px;color:var(--txt-dim);
+    text-align:center;padding:3px 0;text-transform:uppercase}
+  .cal-grid button{aspect-ratio:1;border:0;border-radius:8px;cursor:pointer;
+    background:transparent;color:var(--txt);font-family:var(--mono);font-size:11px;
+    padding:0;transition:background .12s}
+  .cal-grid button:hover:not(:disabled){background:var(--surface)}
+  .cal-grid button:disabled{color:var(--txt-dim);opacity:.35;cursor:default}
+  /* el rango: extremos en degradado, el interior en violeta tenue */
+  .cal-grid button.in{background:var(--accent-weak);border-radius:0}
+  .cal-grid button.edge{background:var(--grad);color:#fff;font-weight:700}
+  .cal-grid button.edge.a{border-radius:8px 0 0 8px}
+  .cal-grid button.edge.b{border-radius:0 8px 8px 0}
+  .cal-grid button.edge.a.b{border-radius:8px}
+  .cal-grid button.today:not(.edge){box-shadow:inset 0 0 0 1px var(--accent-line)}
+  .cal-foot{display:flex;gap:7px;margin-top:10px}
+  .calx{flex:1 1 auto;border:1px solid var(--stroke);background:var(--card);
+    color:var(--txt-mut);border-radius:9px;padding:6px 8px;font-family:var(--font);
+    font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+  .calx:hover{color:var(--txt);background:var(--surface)}
+  .calx.go{border:0;background:var(--grad);color:#fff}
+  .calx.go:hover{filter:brightness(1.1)}
+  .cal-note{font-size:10px;color:var(--warn);line-height:1.45;margin-top:8px}
+  /* aviso de que las máquinas del hub no entran en un rango */
+  .hubnote{font-size:10px;color:var(--warn);line-height:1.45;margin-top:8px}
+
   /* total de la ventana, bajo el encabezado de "gasto por proyecto" */
   .spendtot{display:flex;align-items:baseline;gap:9px;margin:-2px 0 13px}
   .spendtot b{font-family:var(--disp);font-size:22px;font-weight:800;
@@ -639,7 +684,28 @@
 
   <div class="sect">
     <div class="eyebrow"><span data-i18n="spend_title"></span>
-      <span class="q"><select id="daysSel" class="dsel"><option value="1">1 d</option><option value="7">7 d</option><option value="15">15 d</option><option value="30">30 d</option></select> · <span data-i18n="spend_q" data-i18n-title="spend_tip" style="cursor:help;border-bottom:1px dotted var(--txt-dim)"></span><span id="priceWarn" hidden style="cursor:pointer;color:var(--warn);margin-left:5px">&#9888;</span></span></div>
+      <span class="q"><select id="daysSel" class="dsel"><option value="1">1 d</option><option value="7">7 d</option><option value="15">15 d</option><option value="30">30 d</option></select><button id="calBtn" class="calbtn" data-i18n-title="cal_open">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      </button> · <span data-i18n="spend_q" data-i18n-title="spend_tip" style="cursor:help;border-bottom:1px dotted var(--txt-dim)"></span><span id="priceWarn" hidden style="cursor:pointer;color:var(--warn);margin-left:5px">&#9888;</span></span></div>
+    <!-- Calendario de rango (Oscar 2026-08-05). Dibujado a mano: sin
+         dependencias (invariante #4) y a juego con el tema. Los nombres de
+         mes y día salen de Intl con el idioma activo, así los 8 idiomas
+         funcionan sin ampliar el diccionario. -->
+    <div class="calpop" id="calPop" hidden>
+      <div class="cal-range"><span id="calFrom">—</span><b>→</b><span id="calTo">—</span></div>
+      <div class="cal-nav">
+        <button id="calPrev" aria-label="‹">‹</button>
+        <span id="calTitle"></span>
+        <button id="calNext" aria-label="›">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-foot">
+        <button class="calx" id="calToday" data-i18n="cal_today"></button>
+        <button class="calx" id="calClear" data-i18n="cal_clear"></button>
+        <button class="calx go" id="calApply" data-i18n="cal_apply"></button>
+      </div>
+      <div class="cal-note" id="calNote" hidden data-i18n="cal_max"></div>
+    </div>
     <!-- Total de la VENTANA elegida, junto a su selector (Oscar 2026-08-05):
          es la suma de la lista de abajo y cambia con el filtro, así que
          estaba mal al final del panel — había que bajar hasta el pie para
@@ -649,6 +715,10 @@
     <div class="spendtot" id="winTot"><b id="costWeek">–</b><span id="winLbl"></span></div>
     <div class="plist" id="plist"></div>
     <div class="cfg-note" style="margin:8px 0 0" data-i18n="spend_only_cc"></div>
+    <!-- Con rango, las máquinas del hub quedan fuera (sus fotos son de
+         ventanas que terminan hoy). Callarlo sería enseñar un total
+         incompleto sin avisar. -->
+    <div class="hubnote" id="hubNote" hidden data-i18n="hub_range_note"></div>
   </div>
 
   <div class="sect" id="trendSect" hidden>
@@ -964,6 +1034,12 @@ en:{
   reading:"Reading ~/.claude…",
   no_activity:"No Claude Code activity in the last 7 days.",
   others:n=>`More projects (${n})`,
+  cal_open:"Pick a date range",
+  cal_today:"Today",
+  cal_clear:"Clear",
+  cal_apply:"Apply",
+  cal_max:"At most 90 days: that is as far back as the scanner reads.",
+  hub_range_note:"With a date range, machines that leave their summary on the hub are left out: their snapshots cover windows ending today and cannot be trimmed to a past period.",
   others_less:"Show less",
   hub_cfg_label:"Shared settings",
   upd_found:v=>`New version ${v} available`,
@@ -1205,6 +1281,12 @@ es:{
   reading:"Leyendo ~/.claude…",
   no_activity:"Sin actividad de Claude Code en los últimos 7 días.",
   others:n=>`Más proyectos (${n})`,
+  cal_open:"Elegir un rango de fechas",
+  cal_today:"Hoy",
+  cal_clear:"Borrar",
+  cal_apply:"Aplicar",
+  cal_max:"Como mucho 90 días: es hasta donde lee el analizador.",
+  hub_range_note:"Con un rango de fechas quedan fuera las máquinas que dejan su resumen en el hub: sus fotos son de ventanas que terminan hoy y no se pueden recortar a un periodo pasado.",
   others_less:"Ver menos",
   hub_cfg_label:"Ajustes compartidos",
   upd_found:v=>`Versión ${v} disponible`,
@@ -1446,6 +1528,12 @@ pt:{
   reading:"Lendo ~/.claude…",
   no_activity:"Sem atividade do Claude Code nos últimos 7 dias.",
   others:n=>`Mais projetos (${n})`,
+  cal_open:"Escolher um intervalo de datas",
+  cal_today:"Hoje",
+  cal_clear:"Limpar",
+  cal_apply:"Aplicar",
+  cal_max:"No máximo 90 dias: é até onde o analisador lê.",
+  hub_range_note:"Com um intervalo de datas ficam de fora as máquinas que deixam o resumo no hub: as fotos delas são de janelas que terminam hoje e não dá para recortá-las para um período passado.",
   others_less:"Ver menos",
   hub_cfg_label:"Configurações compartilhadas",
   upd_found:v=>`Versão ${v} disponível`,
@@ -1687,6 +1775,12 @@ fr:{
   reading:"Lecture de ~/.claude…",
   no_activity:"Aucune activité Claude Code ces 7 derniers jours.",
   others:n=>`Autres projets (${n})`,
+  cal_open:"Choisir une plage de dates",
+  cal_today:"Aujourd’hui",
+  cal_clear:"Effacer",
+  cal_apply:"Appliquer",
+  cal_max:"90 jours maximum : c’est jusqu’où l’analyseur remonte.",
+  hub_range_note:"Avec une plage de dates, les machines qui déposent leur résumé sur le hub sont exclues : leurs instantanés couvrent des fenêtres qui se terminent aujourd’hui et ne peuvent pas être rognés sur une période passée.",
   others_less:"Voir moins",
   hub_cfg_label:"Réglages partagés",
   upd_found:v=>`Version ${v} disponible`,
@@ -1928,6 +2022,12 @@ de:{
   reading:"Lese ~/.claude…",
   no_activity:"Keine Claude-Code-Aktivität in den letzten 7 Tagen.",
   others:n=>`Weitere Projekte (${n})`,
+  cal_open:"Zeitraum wählen",
+  cal_today:"Heute",
+  cal_clear:"Löschen",
+  cal_apply:"Anwenden",
+  cal_max:"Höchstens 90 Tage: so weit liest der Analysator zurück.",
+  hub_range_note:"Bei einem Zeitraum bleiben Maschinen außen vor, die ihre Zusammenfassung im Hub ablegen: Ihre Aufnahmen umfassen Fenster, die heute enden, und lassen sich nicht auf einen vergangenen Zeitraum zuschneiden.",
   others_less:"Weniger anzeigen",
   hub_cfg_label:"Geteilte Einstellungen",
   upd_found:v=>`Version ${v} verfügbar`,
@@ -2169,6 +2269,12 @@ ja:{
   reading:"~/.claude を読み込み中…",
   no_activity:"過去7日間に Claude Code の利用はありません。",
   others:n=>`他のプロジェクト (${n})`,
+  cal_open:"期間を選ぶ",
+  cal_today:"今日",
+  cal_clear:"クリア",
+  cal_apply:"適用",
+  cal_max:"最大90日です。アナライザーが遡れる範囲です。",
+  hub_range_note:"期間を指定すると、ハブに要約を置く他のマシンは対象外になります。それらのデータは今日で終わる期間のもので、過去の期間に切り詰められません。",
   others_less:"閉じる",
   hub_cfg_label:"共有設定",
   upd_found:v=>`バージョン ${v} が利用できます`,
@@ -2410,6 +2516,12 @@ ko:{
   reading:"~/.claude 읽는 중…",
   no_activity:"지난 7일간 Claude Code 활동이 없습니다.",
   others:n=>`기타 프로젝트 (${n})`,
+  cal_open:"기간 선택",
+  cal_today:"오늘",
+  cal_clear:"지우기",
+  cal_apply:"적용",
+  cal_max:"최대 90일입니다. 분석기가 읽을 수 있는 범위예요.",
+  hub_range_note:"기간을 지정하면 허브에 요약을 올리는 다른 컴퓨터는 제외됩니다. 그 데이터는 오늘로 끝나는 구간이라 지난 기간으로 잘라낼 수 없어요.",
   others_less:"접기",
   hub_cfg_label:"공유 설정",
   upd_found:v=>`버전 ${v} 사용 가능`,
@@ -2651,6 +2763,12 @@ zh:{
   reading:"正在读取 ~/.claude…",
   no_activity:"过去7天没有 Claude Code 活动。",
   others:n=>`更多项目 (${n})`,
+  cal_open:"选择日期范围",
+  cal_today:"今天",
+  cal_clear:"清除",
+  cal_apply:"应用",
+  cal_max:"最多 90 天：这是分析器能回溯的范围。",
+  hub_range_note:"使用日期范围时，把摘要放在中心服务器上的其他机器不会计入：它们的快照是截至今天的时间窗，无法裁剪到过去的时段。",
   others_less:"收起",
   hub_cfg_label:"共享设置",
   upd_found:v=>`有新版本 ${v}`,
@@ -3809,6 +3927,9 @@ function renderLocal(s){
   }
   $("costToday").textContent="$"+s.cost_today.toFixed(2);
   $("costWeek").textContent="$"+s.cost_week.toFixed(2);
+  // el backend avisa cuando dejó fuera resúmenes del hub por haber pedido
+  // un rango: sus fotos son de ventanas que terminan hoy y no se recortan
+  $("hubNote").hidden=!s.hub_skipped;
 
   renderTrend(s.daily||[]);
   checkBudget(s.daily||[]);
@@ -3879,15 +4000,141 @@ function onQuotaFail(reason){
 // periodo del gasto por proyecto (1/7/30 días), persistido
 let curDays=+(localStorage.getItem("days")||7);
 if(![1,7,15,30].includes(curDays)) curDays=7;
+
+// ---------- rango de fechas (calendario propio, Oscar 2026-08-05) ----------
+// El backend NO habla de fechas: entiende "ancho en días" + "final". Un rango
+// [A,B] se traduce a days=(B-A)+1 y end=fin del día B, así que no hizo falta
+// un camino paralelo en el motor. Tope 90 días, que es el clamp del escáner.
+const CAL_MAX_DAYS=90;
+let curRange=null;      // {from:"YYYY-MM-DD", to:"YYYY-MM-DD"} o null
+try{ const r=JSON.parse(localStorage.getItem("spendRange")||"null");
+  if(r&&r.from&&r.to) curRange=r; }catch(_){}
+let calMonth=null;      // primer día del mes que se está enseñando
+let calPick=null;       // primer extremo elegido mientras se compone el rango
+
+const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const fromYmd=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);};
+// días que abarca el rango, extremos incluidos
+function rangeDays(r){
+  return Math.round((fromYmd(r.to)-fromYmd(r.from))/864e5)+1;
+}
+// epoch del ÚLTIMO instante del día final: el backend corta con "ts <= end",
+// así que sin esto se perdería el día entero elegido como fin
+function rangeEnd(r){
+  const d=fromYmd(r.to); d.setHours(23,59,59,999);
+  return Math.floor(d.getTime()/1000);
+}
+// lo que se manda al backend: con rango, su ancho y su final; sin él, la
+// ventana de siempre y `end` ausente (comportamiento idéntico al anterior)
+function statsArgs(){
+  return curRange ? {days:rangeDays(curRange), end:rangeEnd(curRange)}
+                  : {days:curDays};
+}
+function fmtCalDay(s){
+  return s ? fromYmd(s).toLocaleDateString(lang,{day:"2-digit",month:"short"}) : "—";
+}
+function renderCal(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  if(!calMonth){
+    const base=curRange?fromYmd(curRange.to):today;
+    calMonth=new Date(base.getFullYear(),base.getMonth(),1);
+  }
+  $("calTitle").textContent=calMonth.toLocaleDateString(lang,{month:"long",year:"numeric"});
+  // primer día de la semana según el idioma: lunes en casi toda Europa y
+  // América Latina, domingo en EN/JA/KO/ZH. Sin listas: se deduce del propio
+  // formato corto que da Intl para una semana conocida.
+  const wkStart=["en","ja","ko","zh"].includes(lang)?0:1;
+  const dowFmt=new Intl.DateTimeFormat(lang,{weekday:"narrow"});
+  let html="";
+  for(let i=0;i<7;i++){
+    const d=new Date(2024,0,7+((wkStart+i)%7));   // 7/1/2024 fue domingo
+    html+=`<span class="dow">${escapeHtml(dowFmt.format(d))}</span>`;
+  }
+  const first=new Date(calMonth.getFullYear(),calMonth.getMonth(),1);
+  const blanks=(first.getDay()-wkStart+7)%7;
+  for(let i=0;i<blanks;i++) html+="<span></span>";
+  const last=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,0).getDate();
+  // extremos provisionales: mientras se elige, el primer clic ya se pinta
+  const a=calPick||(curRange&&curRange.from), b=calPick?null:(curRange&&curRange.to);
+  const minDay=new Date(today); minDay.setDate(minDay.getDate()-(CAL_MAX_DAYS-1));
+  for(let n=1;n<=last;n++){
+    const d=new Date(calMonth.getFullYear(),calMonth.getMonth(),n);
+    const k=ymd(d);
+    // ni el futuro ni más allá del historial que el motor puede escanear
+    const off = d>today || d<minDay;
+    const isA=a&&k===a, isB=b&&k===b;
+    const inside=a&&b&&k>a&&k<b;
+    const cls=[off?"":"",isA||isB?"edge":"",isA?"a":"",isB?"b":"",
+      inside?"in":"", k===ymd(today)?"today":""].filter(Boolean).join(" ");
+    html+=`<button data-d="${k}"${off?" disabled":""} class="${cls}">${n}</button>`;
+  }
+  $("calGrid").innerHTML=html;
+  $("calFrom").textContent=fmtCalDay(calPick||(curRange&&curRange.from));
+  $("calTo").textContent=fmtCalDay(calPick?null:(curRange&&curRange.to));
+  $("calGrid").querySelectorAll("button[data-d]").forEach(b2=>
+    b2.addEventListener("click",()=>pickDay(b2.dataset.d)));
+}
+function pickDay(k){
+  if(!calPick){ calPick=k; $("calNote").hidden=true; renderCal(); return; }
+  let from=calPick, to=k;
+  if(from>to) [from,to]=[to,from];       // elegido al revés: se ordena solo
+  const n=Math.round((fromYmd(to)-fromYmd(from))/864e5)+1;
+  if(n>CAL_MAX_DAYS){ $("calNote").hidden=false; return; }   // fuera de alcance
+  curRange={from,to}; calPick=null; $("calNote").hidden=true;
+  renderCal();
+}
+// feedback mientras recalcula: el escaneo (y el SSH) tardan 1-2 s
+function spendBusy(){
+  projOpen=false;                        // otro periodo, otra lista
+  $("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
+  $("costWeek").textContent="–";
+}
+function applyRange(){
+  if(!curRange) return;
+  localStorage.setItem("spendRange",JSON.stringify(curRange));
+  $("calPop").hidden=true; $("calBtn").classList.add("on");
+  markDays(); spendBusy(); refresh();
+}
+function clearRange(){
+  curRange=null; calPick=null; calMonth=null;
+  localStorage.removeItem("spendRange");
+  $("calBtn").classList.remove("on");
+  renderCal(); markDays(); spendBusy(); refresh();
+}
+$("calBtn").addEventListener("click",()=>{
+  const p=$("calPop");
+  p.hidden=!p.hidden;
+  if(!p.hidden){ calPick=null; calMonth=null; renderCal(); }
+});
+$("calPrev").addEventListener("click",()=>{
+  calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1); renderCal(); });
+$("calNext").addEventListener("click",()=>{
+  calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1); renderCal(); });
+// "Hoy": vuelve al mes en curso y deja el día de hoy como rango de un día,
+// que es el atajo que se espera de ese botón
+$("calToday").addEventListener("click",()=>{
+  const k=ymd(new Date());
+  calMonth=null; calPick=null; curRange={from:k,to:k}; renderCal();
+});
+$("calClear").addEventListener("click",clearRange);
+$("calApply").addEventListener("click",applyRange);
+if(curRange) $("calBtn").classList.add("on");
+
 function markDays(){
   $("daysSel").value=String(curDays);
+  // con rango activo, el selector de periodos queda inerte: manda el rango
+  $("daysSel").disabled=!!curRange;
   // "Hoy" son las últimas 24 h y la ventana de 1 día también: enseñar la
   // misma cifra dos veces con dos nombres parece un error de la app. Con
   // 1 d se calla el total de la cabecera y queda el "Hoy" del pie, que
   // dice exactamente lo mismo (invariante #8, ahora en su sitio nuevo).
-  $("winTot").hidden = (curDays===1);
-  // la etiqueta refleja la ventana activa, no siempre "semana"
-  const w=$("winLbl"); if(w) w.textContent = curDays===7 ? t("week") : curDays+"d";
+  // Con RANGO siempre se enseña: ahí el total es el del periodo elegido.
+  $("winTot").hidden = (!curRange && curDays===1);
+  // la etiqueta refleja lo que se está mirando: el rango, si lo hay
+  const w=$("winLbl");
+  if(w) w.textContent = curRange
+    ? `${fmtCalDay(curRange.from)} – ${fmtCalDay(curRange.to)}`
+    : (curDays===7 ? t("week") : curDays+"d");
 }
 $("daysSel").addEventListener("change",()=>{
   curDays=+$("daysSel").value; localStorage.setItem("days",curDays);
@@ -3903,7 +4150,7 @@ markDays();
 async function refresh(){
   if(!invoke){ demo(); return; }
   try{
-    const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats",{days:curDays})]);
+    const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats",statsArgs())]);
     if(quota.status==="fulfilled"){
       renderQuota(quota.value); $("liveDot").classList.remove("err");
       lastSync=Date.now(); fails=0; rateLimited=false; hadQuota=true; lastErrCode=null;

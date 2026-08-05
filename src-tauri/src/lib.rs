@@ -248,6 +248,13 @@ struct LocalStats {
     /// misma mordida que ExportRow.origin el 2026-07-29).
     #[serde(default)]
     findings: Vec<Finding>,
+    /// true cuando había resúmenes de OTRAS máquinas del hub y se dejaron
+    /// fuera por haber pedido un rango de fechas: sus fotos son de ventanas
+    /// que terminan hoy y no se pueden recortar a un periodo pasado. El
+    /// panel lo dice en pantalla — callarlo sería enseñar un total
+    /// incompleto sin avisar (invariante #8).
+    #[serde(default)]
+    hub_skipped: bool,
 }
 
 /// Un hallazgo del analizador de fugas. Campos planos con default para que
@@ -1122,6 +1129,7 @@ fn fetch_remote(
     window_days: u32,
     want_rows: bool,
     want_findings: bool,
+    end_ts: Option<i64>,
 ) -> Option<LocalStats> {
     use std::io::Write;
     // Los precios frescos se le pasan al exportador por stdin: así hay UNA sola
@@ -1137,10 +1145,14 @@ fn fetch_remote(
     cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
         .arg(&r.host)
         .arg(format!(
-            "{} --days {} --exclude-host {}{}{}",
+            "{} --days {} --exclude-host {}{}{}{}",
             r.command,
             window_days,
             hub_identity().id,
+            // el exportador VIEJO ignora un flag que no conoce y sigue
+            // devolviendo su ventana de siempre: nunca rompe, como mucho
+            // manda datos hasta hoy en vez de hasta el fin del rango
+            end_ts.map(|t| format!(" --end {t}")).unwrap_or_default(),
             if prices.is_some() { " --prices-stdin" } else { "" },
             if want_rows { " --rows" } else { "" }
         ) + if want_findings { " --findings" } else { "" })
@@ -1439,19 +1451,23 @@ fn scan_projects_dir(
     projects_dir: &std::path::Path,
     suffix: Option<&str>,
     now: DateTime<Utc>,
+    end: DateTime<Utc>,
     window_days: u32,
     agg: &mut LocalAgg,
     cache_in: &HashMap<String, CachedFile>,
     cache_out: &mut HashMap<String, CachedFile>,
 ) {
+    // "hoy" y la tendencia van con AHORA; la ventana, con el final elegido
     let day_ago = now - Duration::hours(24);
-    let window_ago = now - Duration::days(window_days as i64);
+    let window_ago = end - Duration::days(window_days as i64);
     let month_ago = now - Duration::days(30); // serie diaria de la tendencia
-    // ventana más amplia de esta ejecución: la elegida o los 30 días de la
-    // tendencia. Nada anterior entra en ningún cálculo.
-    let keep_after = (now
-        - Duration::days(window_days.max(30) as i64 + SCAN_SKIP_MARGIN_DAYS))
-        .timestamp();
+    // ventana más amplia de esta ejecución: la elegida (que puede estar en el
+    // pasado) o los 30 días de la tendencia. Nada anterior entra en ningún
+    // cálculo.
+    let keep_after = std::cmp::min(
+        (now - Duration::days(30 + SCAN_SKIP_MARGIN_DAYS)).timestamp(),
+        (end - Duration::days(window_days as i64 + SCAN_SKIP_MARGIN_DAYS)).timestamp(),
+    );
     let Ok(entries) = fs::read_dir(projects_dir) else { return };
 
     for proj in entries.flatten() {
@@ -1517,7 +1533,7 @@ fn scan_projects_dir(
                 let Some(ts) = DateTime::from_timestamp(ts_s, 0) else { continue };
                 let cost = cost_of(&e.model, e.inp, e.out, e.cw, e.cr);
 
-                if ts >= window_ago {
+                if ts >= window_ago && ts <= end {
                     agg.cost_window += cost;
                     // tokens "de trabajo": excluimos cache_read (infla ~100x)
                     agg.tokens_window += e.inp + e.out + e.cw;
@@ -1568,21 +1584,38 @@ fn scan_projects_dir(
 /// una tirada: el hub las necesita todas, porque quien lee un resumen ajeno
 /// no puede recortarlo a otra ventana —el desglose por proyecto ya viene
 /// sumado— y enseñaría el número de otra semana sin avisar (2026-07-28).
-fn collect_own_stats(window_days: u32, want_rows: bool) -> (LocalStats, HashMap<String, f64>) {
+/// `end_ts` = final del periodo (epoch). None = ahora, que es el
+/// comportamiento de siempre ("últimos N días"). Con un valor, la ventana
+/// se desplaza al pasado y cubre [end - window_days, end]: así un RANGO DE
+/// FECHAS se expresa con los mismos dos datos de siempre (ancho + final) y
+/// no hace falta un camino paralelo por todo el motor (2026-08-05).
+/// OJO: "hoy" (cost_today) y la serie diaria de 30 días siguen anclados a
+/// AHORA a propósito — no son la ventana elegida, y moverlos convertiría
+/// "Hoy" en "el último día del rango", que no es lo que dice la etiqueta.
+fn collect_own_stats(
+    window_days: u32,
+    want_rows: bool,
+    end_ts: Option<i64>,
+) -> (LocalStats, HashMap<String, f64>) {
     let now = Utc::now();
+    let end = end_ts
+        .and_then(|t| DateTime::from_timestamp(t, 0))
+        .unwrap_or(now);
     let mut agg = LocalAgg { want_rows, ..Default::default() };
     // Caché de parseo compartido por todas las fuentes locales. Si esta
     // ejecución necesita más historial del guardado, load_scan_cache lo
-    // descarta y se reconstruye en vez de devolver de menos.
-    let keep_after = (now
-        - Duration::days(window_days.max(30) as i64 + SCAN_SKIP_MARGIN_DAYS))
-        .timestamp();
+    // descarta y se reconstruye en vez de devolver de menos. Con un rango
+    // antiguo hay que retroceder hasta SU principio, no solo 30 días.
+    let keep_after = std::cmp::min(
+        (now - Duration::days(30 + SCAN_SKIP_MARGIN_DAYS)).timestamp(),
+        (end - Duration::days(window_days as i64 + SCAN_SKIP_MARGIN_DAYS)).timestamp(),
+    );
     let cache_in = load_scan_cache(keep_after);
     let mut cache_out: HashMap<String, CachedFile> = HashMap::new();
 
     // 1) Este PC
     scan_projects_dir(
-        &claude_dir().join("projects"), None, now, window_days, &mut agg,
+        &claude_dir().join("projects"), None, now, end, window_days, &mut agg,
         &cache_in, &mut cache_out,
     );
     // 2) Distros WSL (si existen): misma máquina, cero configuración
@@ -1594,7 +1627,7 @@ fn collect_own_stats(window_days: u32, want_rows: bool) -> (LocalStats, HashMap<
     for (distro, d) in wsl_claude_dirs() {
         let tag = format!("wsl-{distro}");
         scan_projects_dir(
-            &d.join("projects"), Some(&tag), now, window_days, &mut agg,
+            &d.join("projects"), Some(&tag), now, end, window_days, &mut agg,
             &cache_in, &mut cache_out,
         );
     }
@@ -1641,6 +1674,7 @@ fn collect_own_stats(window_days: u32, want_rows: bool) -> (LocalStats, HashMap<
             .collect(),
         hosts: Vec::new(),   // se rellena al leer los servidores, más abajo
         findings: Vec::new(), // solo los llena get_findings, bajo demanda
+        hub_skipped: false,   // lo enciende collect_local_stats si toca
     };
     (stats, daily_map)
 }
@@ -1650,14 +1684,17 @@ fn collect_own_stats(window_days: u32, want_rows: bool) -> (LocalStats, HashMap<
 /// ajeno caería a otra y enseñaría un número que no es de esa ventana.
 const HUB_WINDOWS: [u32; 4] = [1, 7, 15, 30];
 
-fn collect_local_stats(window_days: u32) -> LocalStats {
-    let (mut stats, mut daily_map) = collect_own_stats(window_days, false);
+fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
+    let (mut stats, mut daily_map) = collect_own_stats(window_days, false, end_ts);
 
     // Subir la foto de ESTA máquina al hub, antes de fusionar nada. Tiene que
     // ser lo local a secas: si se subiera lo ya fusionado, las máquinas se
     // harían eco entre ellas y los totales se multiplicarían solos.
+    // CON RANGO DE FECHAS no se sube nada: las fotos del hub son de ventanas
+    // que TERMINAN HOY (HUB_WINDOWS) y subir ahí un periodo del pasado
+    // envenenaría lo que leen las demás máquinas.
     let remotes = load_remotes();
-    if !remotes.is_empty() {
+    if !remotes.is_empty() && end_ts.is_none() {
         let daily: Vec<DailyAgg> = {
             let mut d: Vec<DailyAgg> = daily_map
                 .iter()
@@ -1673,7 +1710,7 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
             let mut st = if w == window_days {
                 stats.clone()
             } else {
-                collect_own_stats(w, false).0
+                collect_own_stats(w, false, None).0
             };
             st.daily = daily.clone();
             windows.insert(w.to_string(), st);
@@ -1707,7 +1744,7 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
     // Fusionar fuentes remotas (si remotes.json existe): totales sumados,
     // proyectos etiquetados con su origen, modelos y serie diaria agregados.
     for r in remotes {
-        let Some(remote) = fetch_remote(&r, window_days, false, false) else { continue };
+        let Some(remote) = fetch_remote(&r, window_days, false, false, end_ts) else { continue };
         stats.cost_today += remote.cost_today;
         stats.cost_week += remote.cost_week;
         stats.tokens_week += remote.tokens_week;
@@ -1742,6 +1779,14 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
             // --exclude-host, pero si alguno viejo lo ignorase nos
             // devolvería lo nuestro y lo contaríamos dos veces.
             if !me.is_empty() && h.id == me {
+                continue;
+            }
+            // CON RANGO DE FECHAS estas fotos no valen: son ventanas que
+            // terminan HOY y nadie puede recortarlas a un periodo pasado.
+            // Sumarlas mezclaría dos periodos distintos en la misma cifra;
+            // el panel avisa de que faltan (hub_skipped).
+            if end_ts.is_some() {
+                stats.hub_skipped = true;
                 continue;
             }
             stats.cost_today += h.stats.cost_today;
@@ -1789,24 +1834,28 @@ fn collect_local_stats(window_days: u32) -> LocalStats {
 /// los comandos síncronos en el mismo hilo que dibuja la ventana, así que un
 /// SSH de dos segundos congelaba el panel entero — se notaba al cambiar de
 /// pestaña, que dispara este comando (2026-07-28).
+/// `end` (epoch, opcional) mueve el FINAL de la ventana al pasado para
+/// servir un rango de fechas; sin él, todo funciona como siempre. Es
+/// aditivo a propósito: las llamadas que solo mandan `days` no cambian
+/// (invariante #1).
 #[tauri::command]
-async fn get_local_stats(days: Option<u32>) -> Result<LocalStats, String> {
-    tauri::async_runtime::spawn_blocking(move || get_local_stats_impl(days))
+async fn get_local_stats(days: Option<u32>, end: Option<i64>) -> Result<LocalStats, String> {
+    tauri::async_runtime::spawn_blocking(move || get_local_stats_impl(days, end))
         .await
         .map_err(|e| e.to_string())?
 }
 
-fn get_local_stats_impl(days: Option<u32>) -> Result<LocalStats, String> {
-    Ok(collect_local_stats(days.unwrap_or(7).clamp(1, 90)))
+fn get_local_stats_impl(days: Option<u32>, end: Option<i64>) -> Result<LocalStats, String> {
+    Ok(collect_local_stats(days.unwrap_or(7).clamp(1, 90), end))
 }
 
 /// Filas del reporte de TODAS las fuentes. Solo la usa el export: el panel no
 /// necesita este detalle y calcularlo en cada ciclo sería trabajo tirado.
 fn collect_export_rows(window_days: u32) -> Vec<ExportRow> {
-    let (mine, _) = collect_own_stats(window_days, true);
+    let (mine, _) = collect_own_stats(window_days, true, None);
     let mut rows = mine.rows;
     for r in load_remotes() {
-        let Some(rem) = fetch_remote(&r, window_days, true, false) else { continue };
+        let Some(rem) = fetch_remote(&r, window_days, true, false, None) else { continue };
         // el origen lo pone quien lee, con el nombre que el usuario le dio al
         // servidor — el exportador remoto no sabe cómo se llama a sí mismo
         rows.extend(rem.rows.into_iter().map(|mut x| {
@@ -2684,7 +2733,7 @@ async fn get_findings(days: Option<u32>) -> Result<Vec<Finding>, String> {
         let window_days = days.unwrap_or(7).clamp(1, 90);
         let mut out = scan_local_findings(window_days);
         for r in load_remotes() {
-            let Some(rem) = fetch_remote(&r, window_days, false, true) else { continue };
+            let Some(rem) = fetch_remote(&r, window_days, false, true, None) else { continue };
             for mut f in rem.findings {
                 f.origin = r.name.clone();
                 out.push(f);
