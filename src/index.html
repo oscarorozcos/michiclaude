@@ -509,18 +509,25 @@
   /* ajustes (fuentes de datos) */
   .cfg-note{font-size:11px;color:var(--txt-mut);line-height:1.5;margin-bottom:9px}
   .cfg-note b{color:var(--txt);font-weight:600}
-  .cfg-form{display:flex;flex-direction:column;gap:6px;margin-top:9px}
-  .cfg-form input{background:var(--surface);border:1px solid var(--stroke);border-radius:7px;
-    padding:6px 9px;color:var(--txt);font-family:var(--mono);font-size:11px;outline:none}
-  .cfg-form input:focus{border-color:var(--accent)}
+  .cfg-form{display:flex;flex-direction:column;gap:11px;margin-top:2px}
+  /* campos del rediseño v5: más aire, esquinas suaves y foco en acento */
+  .cfg-form input{background:var(--card-hi);border:1px solid var(--stroke);border-radius:12px;
+    padding:10px 12px;color:var(--txt);font-family:var(--mono);font-size:12px;outline:none;
+    transition:border-color .15s}
+  .cfg-form input::placeholder{color:var(--txt-dim)}
+  .cfg-form input:focus{border-color:var(--accent-line)}
   /* Un solo aspecto para todos los botones del panel. Los de ajustes
      compartidos quedaron fuera de .cfg-form al moverlos a Fuentes de datos y
      salían sin estilo, con otro color que el resto (2026-07-28). */
-  .cfg-form button,.btnrow button{align-self:flex-start;background:var(--accent-weak);
-    color:var(--accent);border:1px solid var(--accent-line);border-radius:7px;
-    padding:6px 12px;font-size:11.5px;cursor:pointer;font-family:var(--font)}
-  .cfg-form button:hover,.btnrow button:hover{background:var(--accent-line)}
-  .cfg-form button:disabled:hover,.btnrow button:disabled:hover{background:var(--accent-weak)}
+  .cfg-form button,.btnrow button{align-self:flex-start;background:var(--grad);
+    color:#fff;border:0;border-radius:11px;
+    padding:9px 15px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);
+    box-shadow:0 10px 22px -10px rgba(124,140,255,.6);transition:filter .15s}
+  .cfg-form button:hover,.btnrow button:hover{filter:brightness(1.1)}
+  /* secundarios (los de ajustes compartidos y export) en tono apagado */
+  .btnrow button.sec,#hubSave,#hubLoad{background:var(--card-hi);color:var(--txt);
+    border:1px solid var(--stroke);box-shadow:none}
+  .btnrow button.sec:hover,#hubSave:hover,#hubLoad:hover{background:var(--surface);filter:none}
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
   /* La ruta de exportación era el único mensaje del panel sin estilo:
      heredaba el tamaño del texto normal y cantaba al lado de los demás,
@@ -634,16 +641,35 @@
   .setup-note{font-size:11.5px;color:var(--txt-dim);line-height:1.5;margin:0 0 6px}
 
   /* fuentes de datos: nota en lista + formulario etiquetado + filas de servidores */
-  .src-list{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:5px}
-  .src-list li{line-height:1.45}
-  .fld{display:flex;flex-direction:column;gap:4px}
-  .fld label{font-size:11.5px;font-weight:600}
-  .fhint{font-size:10.5px;color:var(--txt-dim);line-height:1.4}
+  /* las cuatro fuentes, en rejilla de tarjetas (rediseño v5) */
+  .srcgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+  .srccard{background:var(--card);border:1px solid var(--stroke-soft);
+    border-radius:var(--r-md);padding:12px}
+  .srccard .ic{position:relative;isolation:isolate;width:32px;height:32px;
+    border-radius:11px;display:grid;place-items:center;margin-bottom:9px}
+  /* el fondo del icono es su color al 14%: misma capa a opacidad que los
+     avatares de proyecto (color-mix es demasiado reciente para WebView2) */
+  .srccard .ic i{position:absolute;inset:0;border-radius:inherit;
+    background:var(--b);opacity:.14;z-index:-1}
+  .srccard b{font-size:12px;display:block}
+  .srccard p{font-size:10.5px;color:var(--txt-dim);line-height:1.45;margin:4px 0 0;
+    overflow-wrap:anywhere}
+  .srccard p code{font-family:var(--mono);font-size:9.5px}
+  .fld{display:flex;flex-direction:column;gap:6px}
+  .fld label{font-size:11px;font-weight:600;color:var(--txt-mut)}
+  .fhint{font-size:10px;color:var(--txt-dim);line-height:1.5}
   .cfg-form input.mono{font-family:var(--mono);font-size:11.5px}
   .cfg-form button:disabled{opacity:.5;cursor:default}
-  .srv-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;
-    padding:8px 0;border-bottom:1px solid var(--stroke-soft)}
-  .srv-row:last-child{border-bottom:0}
+  /* servidor guardado: tarjeta con icono, como la maqueta v5 (antes eran
+     filas separadas por una línea) */
+  .srv-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:11px;
+    align-items:center;background:var(--card-hi);border:1px solid var(--stroke-soft);
+    border-radius:var(--r-md);padding:11px 12px;margin-bottom:8px}
+  .srv-row:last-child{margin-bottom:0}
+  .srv-ic{position:relative;isolation:isolate;width:34px;height:34px;border-radius:11px;
+    display:grid;place-items:center;color:var(--teal)}
+  .srv-ic i{position:absolute;inset:0;border-radius:inherit;background:var(--teal);
+    opacity:.14;z-index:-1}
   .srv-name{font-size:12.5px;font-weight:650}
   .srv-meta{font-family:var(--mono);font-size:10.5px;color:var(--txt-dim);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
@@ -808,8 +834,34 @@
   </div><!-- /tab-main -->
 
   <div id="tab-sources" hidden>
-  <div class="sect" id="cfgSect">
-    <div class="cfg-note" data-i18n-html="cfg_note"></div>
+  <!-- Las cuatro fuentes como TARJETAS con icono (maqueta v5): la lista de
+       viñetas se leía como letra pequeña y estas se entienden de un vistazo.
+       Los textos salen del diccionario (src1..4), los iconos son fijos. -->
+  <div class="srcgrid" id="cfgSect">
+    <div class="srccard">
+      <span class="ic" style="color:var(--accent);--b:var(--accent)"><i></i>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
+      <b data-i18n="src1_t"></b>
+      <p data-i18n="src1_d"></p>
+    </div>
+    <div class="srccard">
+      <span class="ic" style="color:var(--teal);--b:var(--teal)"><i></i>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z"/></svg></span>
+      <b data-i18n="src2_t"></b>
+      <p data-i18n="src2_d"></p>
+    </div>
+    <div class="srccard">
+      <span class="ic" style="color:var(--warn);--b:var(--warn)"><i></i>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+      <b data-i18n="src3_t"></b>
+      <p data-i18n="src3_d"></p>
+    </div>
+    <div class="srccard">
+      <span class="ic" style="color:var(--ok);--b:var(--ok)"><i></i>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 6.5h.01M6 17.5h.01"/></svg></span>
+      <b data-i18n="src4_t"></b>
+      <p data-i18n="src4_d"></p>
+    </div>
   </div>
   <div class="sect">
     <div class="eyebrow" data-i18n="srv_add_title"></div>
@@ -842,18 +894,6 @@
   <div class="sect">
     <div class="eyebrow"><span data-i18n="srv_saved_title"></span> <span class="q" id="srvCount"></span></div>
     <div id="remList"></div>
-  </div>
-  <!-- Los ajustes compartidos viven aquí, y no en Preferencias, porque
-       dependen de tener un servidor: se leen después de la lista, cuando ya
-       sabes cuáles tienes (petición de Oscar 2026-07-28). -->
-  <div class="sect">
-    <div class="eyebrow"><span data-i18n="hub_cfg_label"></span></div>
-    <div class="cfg-note" data-i18n="hub_cfg_hint"></div>
-    <div class="btnrow">
-      <button id="hubSave" data-i18n="hub_cfg_save"></button>
-      <button id="hubLoad" data-i18n="hub_cfg_load"></button>
-      <span id="hubMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
-    </div>
   </div>
   </div><!-- /tab-sources -->
 
@@ -890,6 +930,20 @@
   </div>
 
   <div id="tab-prefs" hidden>
+  <!-- AJUSTES COMPARTIDOS: mudado desde "Fuentes de datos" el 2026-08-05
+       (petición de Oscar). Es un ajuste y aquí lo busca el usuario; solo
+       DEPENDE de un servidor, que es otra cosa. El aviso de abajo aparece
+       cuando no hay ninguno, para que los botones no fallen en silencio. -->
+  <div class="sect">
+    <div class="eyebrow"><span data-i18n="hub_cfg_label"></span></div>
+    <div class="cfg-note" data-i18n="hub_cfg_hint"></div>
+    <div class="cfg-note" id="hubNoSrv" hidden style="color:var(--warn)" data-i18n="hub_cfg_needsrv"></div>
+    <div class="btnrow">
+      <button id="hubSave" data-i18n="hub_cfg_save"></button>
+      <button id="hubLoad" data-i18n="hub_cfg_load"></button>
+      <span id="hubMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+    </div>
+  </div>
   <div class="sect" id="prefSect">
     <div class="cfg-form">
       <div class="cfg-row">
@@ -1181,6 +1235,7 @@ en:{
   upd_balloon:v=>`MichiClaude ${v} is available`,
   hub_cfg_hint:"Saves how you have MichiClaude set up — language, theme, alarms, budget and your servers — to get it back on another PC. It does not save keys or passwords.",
   hub_cfg_save:"Save to server",
+  hub_cfg_needsrv:"Needs a server — add one under “Data sources”. Without one, your settings stay on this PC.",
   hub_cfg_load:"Restore from server",
   rename_server:"Click to rename",
   hub_cfg_saved:n=>`Saved (${n})`,
@@ -1196,7 +1251,14 @@ en:{
   today:"Today", week:"Week",
   footnote:"Local data + real quota. Nothing leaves your machine except to api.anthropic.com",
   sources_title:"Data sources",
-  cfg_note:"<ul class='src-list'><li><b>This PC:</b> automatic — reads the Claude Code logs on this machine.</li><li><b>claude.ai:</b> automatic, via your account's real quota.</li><li><b>WSL:</b> automatic — its projects appear as “name · wsl”.</li><li><b>Servers:</b> add them below over SSH (the same key you already connect with); their projects appear as “name · server”.</li></ul>",
+  src1_t:"This PC",
+  src1_d:"automatic — reads the Claude Code logs on this machine.",
+  src2_t:"claude.ai",
+  src2_d:"automatic, via your account's real quota.",
+  src3_t:"WSL",
+  src3_d:"automatic — its projects appear as “name · wsl”.",
+  src4_t:"Servers",
+  src4_d:"add them below over SSH (the same key you already connect with); their projects appear as “name · server”.",
   ph_name:"vps",
   ph_host:"user@ip · or an ~/.ssh/config alias",
   btn_test:"Test & add",
@@ -1442,6 +1504,7 @@ es:{
   upd_balloon:v=>`MichiClaude ${v} ya está disponible`,
   hub_cfg_hint:"Guarda cómo tienes MichiClaude —idioma, tema, alarmas, presupuesto y tus servidores— para recuperarlo en otra PC. No guarda llaves ni contraseñas.",
   hub_cfg_save:"Guardar en el servidor",
+  hub_cfg_needsrv:"Necesita un servidor — agrégalo en «Fuentes de datos». Sin uno, tus ajustes se quedan en esta PC.",
   hub_cfg_load:"Restaurar desde el servidor",
   rename_server:"Clic para cambiar el nombre",
   hub_cfg_saved:n=>`Guardado (${n})`,
@@ -1457,7 +1520,14 @@ es:{
   today:"Hoy", week:"Semana",
   footnote:"Datos locales + cuota real. Nada sale de tu equipo salvo hacia api.anthropic.com",
   sources_title:"Fuentes de datos",
-  cfg_note:"<ul class='src-list'><li><b>Este PC:</b> automático — lee los logs de Claude Code de esta máquina.</li><li><b>claude.ai:</b> automático, vía la cuota real de tu cuenta.</li><li><b>WSL:</b> automático — sus proyectos aparecen como “nombre · wsl”.</li><li><b>Servidores:</b> agrégalos abajo por SSH (la misma llave con la que ya te conectas); sus proyectos aparecen como “nombre · servidor”.</li></ul>",
+  src1_t:"Este PC",
+  src1_d:"automático — lee los logs de Claude Code de esta máquina.",
+  src2_t:"claude.ai",
+  src2_d:"automático, vía la cuota real de tu cuenta.",
+  src3_t:"WSL",
+  src3_d:"automático — sus proyectos aparecen como “nombre · wsl”.",
+  src4_t:"Servidores",
+  src4_d:"agrégalos abajo por SSH (la misma llave con la que ya te conectas); sus proyectos aparecen como “nombre · servidor”.",
   ph_name:"vps",
   ph_host:"usuario@ip · o alias de ~/.ssh/config",
   btn_test:"Probar y agregar",
@@ -1703,6 +1773,7 @@ pt:{
   upd_balloon:v=>`MichiClaude ${v} já está disponível`,
   hub_cfg_hint:"Salva como você tem o MichiClaude —idioma, tema, alarmes, orçamento e seus servidores— para recuperar em outro PC. Não salva chaves nem senhas.",
   hub_cfg_save:"Salvar no servidor",
+  hub_cfg_needsrv:"Precisa de um servidor — adicione um em «Fontes de dados». Sem ele, seus ajustes ficam neste PC.",
   hub_cfg_load:"Restaurar do servidor",
   rename_server:"Clique para renomear",
   hub_cfg_saved:n=>`Salvo (${n})`,
@@ -1718,7 +1789,14 @@ pt:{
   today:"Hoje", week:"Semana",
   footnote:"Dados locais + cota real. Nada sai da sua máquina exceto para api.anthropic.com",
   sources_title:"Fontes de dados",
-  cfg_note:"<ul class='src-list'><li><b>Este PC:</b> automático — lê os logs do Claude Code desta máquina.</li><li><b>claude.ai:</b> automático, via a cota real da sua conta.</li><li><b>WSL:</b> automático — seus projetos aparecem como “nome · wsl”.</li><li><b>Servidores:</b> adicione-os abaixo via SSH (a mesma chave que você já usa para conectar); seus projetos aparecem como “nome · servidor”.</li></ul>",
+  src1_t:"Este PC",
+  src1_d:"automático — lê os logs do Claude Code desta máquina.",
+  src2_t:"claude.ai",
+  src2_d:"automático, via a cota real da sua conta.",
+  src3_t:"WSL",
+  src3_d:"automático — seus projetos aparecem como “nome · wsl”.",
+  src4_t:"Servidores",
+  src4_d:"adicione-os abaixo via SSH (a mesma chave que você já usa para conectar); seus projetos aparecem como “nome · servidor”.",
   ph_name:"vps",
   ph_host:"user@ip · ou alias de ~/.ssh/config",
   btn_test:"Testar e adicionar",
@@ -1964,6 +2042,7 @@ fr:{
   upd_balloon:v=>`MichiClaude ${v} est disponible`,
   hub_cfg_hint:"Enregistre votre configuration de MichiClaude —langue, thème, alertes, budget et vos serveurs— pour la retrouver sur un autre PC. N’enregistre ni clés ni mots de passe.",
   hub_cfg_save:"Enregistrer sur le serveur",
+  hub_cfg_needsrv:"Nécessite un serveur — ajoutez-en un dans « Sources de données ». Sans cela, vos réglages restent sur ce PC.",
   hub_cfg_load:"Restaurer depuis le serveur",
   rename_server:"Cliquer pour renommer",
   hub_cfg_saved:n=>`Enregistré (${n})`,
@@ -1979,7 +2058,14 @@ fr:{
   today:"Aujourd'hui", week:"Semaine",
   footnote:"Données locales + quota réel. Rien ne quitte votre machine sauf vers api.anthropic.com",
   sources_title:"Sources de données",
-  cfg_note:"<ul class='src-list'><li><b>Ce PC :</b> automatique — lit les journaux Claude Code de cette machine.</li><li><b>claude.ai :</b> automatique, via le quota réel de votre compte.</li><li><b>WSL :</b> automatique — ses projets apparaissent comme « nom · wsl ».</li><li><b>Serveurs :</b> ajoutez-les ci-dessous via SSH (la même clé que vous utilisez déjà) ; leurs projets apparaissent comme « nom · serveur ».</li></ul>",
+  src1_t:"Ce PC",
+  src1_d:"automatique — lit les journaux Claude Code de cette machine.",
+  src2_t:"claude.ai",
+  src2_d:"automatique, via le quota réel de votre compte.",
+  src3_t:"WSL",
+  src3_d:"automatique — ses projets apparaissent comme « nom · wsl ».",
+  src4_t:"Serveurs",
+  src4_d:"ajoutez-les ci-dessous via SSH (la même clé que vous utilisez déjà) ; leurs projets apparaissent comme « nom · serveur ».",
   ph_name:"vps",
   ph_host:"user@ip · ou alias ~/.ssh/config",
   btn_test:"Tester et ajouter",
@@ -2225,6 +2311,7 @@ de:{
   upd_balloon:v=>`MichiClaude ${v} ist verfügbar`,
   hub_cfg_hint:"Sichert deine MichiClaude-Einrichtung —Sprache, Thema, Alarme, Budget und deine Server— um sie auf einem anderen PC wiederherzustellen. Keine Schlüssel, keine Passwörter.",
   hub_cfg_save:"Auf Server sichern",
+  hub_cfg_needsrv:"Benötigt einen Server — füge einen unter „Datenquellen“ hinzu. Ohne ihn bleiben deine Einstellungen auf diesem PC.",
   hub_cfg_load:"Vom Server wiederherstellen",
   rename_server:"Zum Umbenennen klicken",
   hub_cfg_saved:n=>`Gesichert (${n})`,
@@ -2240,7 +2327,14 @@ de:{
   today:"Heute", week:"Woche",
   footnote:"Lokale Daten + echtes Kontingent. Nichts verlässt deinen Rechner außer zu api.anthropic.com",
   sources_title:"Datenquellen",
-  cfg_note:"<ul class='src-list'><li><b>Dieser PC:</b> automatisch — liest die Claude-Code-Logs dieser Maschine.</li><li><b>claude.ai:</b> automatisch, über das echte Kontingent deines Kontos.</li><li><b>WSL:</b> automatisch — Projekte erscheinen als „Name · wsl“.</li><li><b>Server:</b> unten per SSH hinzufügen (gleicher Schlüssel wie zum Verbinden); ihre Projekte erscheinen als „Name · Server“.</li></ul>",
+  src1_t:"Dieser PC",
+  src1_d:"automatisch — liest die Claude-Code-Logs dieser Maschine.",
+  src2_t:"claude.ai",
+  src2_d:"automatisch, über das echte Kontingent deines Kontos.",
+  src3_t:"WSL",
+  src3_d:"automatisch — Projekte erscheinen als „Name · wsl“.",
+  src4_t:"Server",
+  src4_d:"unten per SSH hinzufügen (gleicher Schlüssel wie zum Verbinden); ihre Projekte erscheinen als „Name · Server“.",
   ph_name:"vps",
   ph_host:"user@ip · oder ~/.ssh/config-Alias",
   btn_test:"Testen & hinzufügen",
@@ -2486,6 +2580,7 @@ ja:{
   upd_balloon:v=>`MichiClaude ${v} が公開されました`,
   hub_cfg_hint:"MichiClaude の設定（言語・テーマ・アラーム・予算・サーバー）を保存し、別のPCで復元できます。鍵やパスワードは保存しません。",
   hub_cfg_save:"サーバーに保存",
+  hub_cfg_needsrv:"サーバーが必要です。「データソース」で追加してください。ないと設定はこのPCだけに残ります。",
   hub_cfg_load:"サーバーから復元",
   rename_server:"クリックで名前を変更",
   hub_cfg_saved:n=>`保存しました (${n})`,
@@ -2501,7 +2596,14 @@ ja:{
   today:"今日", week:"週間",
   footnote:"ローカルデータ + 実クォータ。api.anthropic.com 以外にデータは送信されません",
   sources_title:"データソース",
-  cfg_note:"<ul class='src-list'><li><b>このPC:</b> 自動 — このマシンの Claude Code ログを読み取ります。</li><li><b>claude.ai:</b> アカウントの実際のクォータ経由で自動。</li><li><b>WSL:</b> 自動 — プロジェクトは「名前 · wsl」と表示されます。</li><li><b>サーバー:</b> 下で SSH で追加（接続に使う鍵と同じ）。プロジェクトは「名前 · サーバー」と表示されます。</li></ul>",
+  src1_t:"このPC",
+  src1_d:"自動 — このマシンの Claude Code ログを読み取ります。",
+  src2_t:"claude.ai",
+  src2_d:"アカウントの実際のクォータ経由で自動。",
+  src3_t:"WSL",
+  src3_d:"自動 — プロジェクトは「名前 · wsl」と表示されます。",
+  src4_t:"サーバー",
+  src4_d:"下で SSH で追加（接続に使う鍵と同じ）。プロジェクトは「名前 · サーバー」と表示されます。",
   ph_name:"vps",
   ph_host:"user@ip · または ~/.ssh/config のエイリアス",
   btn_test:"テストして追加",
@@ -2747,6 +2849,7 @@ ko:{
   upd_balloon:v=>`MichiClaude ${v} 가 나왔어요`,
   hub_cfg_hint:"MichiClaude 설정(언어, 테마, 알림, 예산, 서버)을 저장해 다른 PC에서 복원할 수 있어요. 키나 비밀번호는 저장하지 않아요.",
   hub_cfg_save:"서버에 저장",
+  hub_cfg_needsrv:"서버가 필요합니다 — «데이터 소스»에서 추가하세요. 없으면 설정은 이 PC에만 남습니다.",
   hub_cfg_load:"서버에서 복원",
   rename_server:"클릭해서 이름 변경",
   hub_cfg_saved:n=>`저장됨 (${n})`,
@@ -2762,7 +2865,14 @@ ko:{
   today:"오늘", week:"주간",
   footnote:"로컬 데이터 + 실제 쿼터. api.anthropic.com 외에는 아무것도 전송되지 않습니다",
   sources_title:"데이터 소스",
-  cfg_note:"<ul class='src-list'><li><b>이 PC:</b> 자동 — 이 컴퓨터의 Claude Code 로그를 읽습니다.</li><li><b>claude.ai:</b> 계정의 실제 쿼터를 통해 자동.</li><li><b>WSL:</b> 자동 — 프로젝트는 “이름 · wsl”로 표시됩니다.</li><li><b>서버:</b> 아래에서 SSH로 추가하세요 (접속에 쓰는 키와 동일). 프로젝트는 “이름 · 서버”로 표시됩니다.</li></ul>",
+  src1_t:"이 PC",
+  src1_d:"자동 — 이 컴퓨터의 Claude Code 로그를 읽습니다.",
+  src2_t:"claude.ai",
+  src2_d:"계정의 실제 쿼터를 통해 자동.",
+  src3_t:"WSL",
+  src3_d:"자동 — 프로젝트는 “이름 · wsl”로 표시됩니다.",
+  src4_t:"서버",
+  src4_d:"아래에서 SSH로 추가하세요 (접속에 쓰는 키와 동일). 프로젝트는 “이름 · 서버”로 표시됩니다.",
   ph_name:"vps",
   ph_host:"user@ip · 또는 ~/.ssh/config 별칭",
   btn_test:"테스트 후 추가",
@@ -3008,6 +3118,7 @@ zh:{
   upd_balloon:v=>`MichiClaude ${v} 已发布`,
   hub_cfg_hint:"保存你的 MichiClaude 设置（语言、主题、提醒、预算和服务器），以便在另一台电脑上恢复。不保存密钥或密码。",
   hub_cfg_save:"保存到服务器",
+  hub_cfg_needsrv:"需要一台服务器 — 在「数据源」中添加。没有服务器时，设置只会留在这台电脑上。",
   hub_cfg_load:"从服务器恢复",
   rename_server:"点击可重命名",
   hub_cfg_saved:n=>`已保存 (${n})`,
@@ -3023,7 +3134,14 @@ zh:{
   today:"今天", week:"本周",
   footnote:"本地数据 + 真实配额。除 api.anthropic.com 外，任何数据都不会离开你的电脑",
   sources_title:"数据源",
-  cfg_note:"<ul class='src-list'><li><b>本机:</b> 自动 — 读取本机的 Claude Code 日志。</li><li><b>claude.ai:</b> 通过账户的真实配额自动获取。</li><li><b>WSL:</b> 自动 — 项目显示为「名称 · wsl」。</li><li><b>服务器:</b> 在下方通过 SSH 添加（与你连接时相同的密钥）；项目显示为「名称 · 服务器」。</li></ul>",
+  src1_t:"本机",
+  src1_d:"自动 — 读取本机的 Claude Code 日志。",
+  src2_t:"claude.ai",
+  src2_d:"通过账户的真实配额自动获取。",
+  src3_t:"WSL",
+  src3_d:"自动 — 项目显示为「名称 · wsl」。",
+  src4_t:"服务器",
+  src4_d:"在下方通过 SSH 添加（与你连接时相同的密钥）；项目显示为「名称 · 服务器」。",
   ph_name:"vps",
   ph_host:"user@ip · 或 ~/.ssh/config 别名",
   btn_test:"测试并添加",
@@ -4601,8 +4719,12 @@ const PENCIL='<svg class="pen" width="11" height="11" viewBox="0 0 24 24" fill="
 const TRASH='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>';
 function renderRemotes(){
   $("srvCount").textContent = t("srv_count", remotes.length);
+  // los ajustes compartidos viven en Ajustes pero DEPENDEN de un servidor:
+  // sin ninguno, se avisa ahí en vez de dejar que los botones fallen solos
+  const ns=$("hubNoSrv"); if(ns) ns.hidden = remotes.length>0;
   $("remList").innerHTML = remotes.map((r,i)=>`
     <div class="srv-row">
+      <span class="srv-ic"><i></i><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 6.5h.01M6 17.5h.01"/></svg></span>
       <div style="min-width:0">
         <div class="srv-name" data-i="${i}" title="${escapeHtml(t("rename_server"))}">${escapeHtml(r.name)}${PENCIL}</div>
         <div class="srv-meta" title="${escapeHtml(r.host)} · ${escapeHtml(r.command||"")}">${escapeHtml(r.host)} · ${escapeHtml(r.command||"")}</div>

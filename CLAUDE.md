@@ -538,6 +538,17 @@ hacer público el repo (o sus releases).
   devolvía todo hasta hoy. Verificación que lo destapó y que conviene
   repetir si se toca esto: dos rangos contiguos de 7 días deben sumar
   EXACTAMENTE la ventana de 14 (dio 0.0000 de diferencia).
+- S6 FUENTES DE DATOS (2026-08-05): las cuatro fuentes pasan de lista de
+  viñetas a REJILLA DE TARJETAS con icono (se entienden de un vistazo).
+  Sus textos salieron del `cfg_note` viejo partiéndolo automáticamente en
+  `src1_t/src1_d`…`src4_t/src4_d` ×8 idiomas — sin reescribir traducciones
+  a mano. Formulario con campos más altos y foco en acento; botón primario
+  en degradado y secundarios (hub/export) en tono apagado. Servidor
+  guardado = tarjeta con icono, no fila con línea.
+  Y AJUSTES COMPARTIDOS SE MUDA a la pestaña Ajustes (petición de Oscar):
+  es un ajuste, no una fuente; solo DEPENDE de un servidor. Como allí no
+  se ve la lista, aparece un aviso ámbar (`hub_cfg_needsrv`) cuando no hay
+  ninguno — antes el contexto lo daba estar debajo de la lista.
 - ANCHO DEL PANEL 400 → 446 (2026-08-05): lo cazó Oscar comparando con la
   maqueta — a 400 px los textos se apretaban ("Semanal · todos los …"
   cortado con puntos suspensivos, el ritmo partido en dos líneas). 446 =
