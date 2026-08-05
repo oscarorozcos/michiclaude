@@ -90,7 +90,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 
 ## Ventanas
 
-- **Panel** (`main`): flyout sin decoraciones, transparente, alwaysOnTop,
+- **Panel** (`main`, 446x660): flyout sin decoraciones, transparente, alwaysOnTop,
   skipTaskbar. Clic en tray abre; se oculta al perder foco (salvo drag);
   ✕ oculta a bandeja; arrastrable desde el encabezado. 5 pestañas
   (Principal · Fuentes de datos · Hallazgos · Consejos · Preferencias),
@@ -445,6 +445,13 @@ hacer público el repo (o sus releases).
   respaldos de --font/--mono se conservan enteros. Se aplican SOLO donde
   Oscar lo indique, sección por sección (por ahora: todo el panel hereda
   Inter/JetBrains, y --disp está en el título y el % del medidor).
+- ANCHO DEL PANEL 400 → 446 (2026-08-05): lo cazó Oscar comparando con la
+  maqueta — a 400 px los textos se apretaban ("Semanal · todos los …"
+  cortado con puntos suspensivos, el ritmo partido en dos líneas). 446 =
+  los 430 de la maqueta + los 8 px de padding del body por lado.
+  `position_panel` usa `outer_size()`, así que el flyout se recoloca solo;
+  no hay ningún ancho hardcodeado en Rust. Cambia tauri.conf.json → hay
+  que RECOMPILAR para verlo.
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
       umbral, 100%, ventana nueva reconocida por trackResets/
       windowChanged), camino completo ntfy (push de alarma real, 100%, el
