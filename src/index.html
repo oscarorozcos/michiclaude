@@ -1164,6 +1164,7 @@ en:{
   pf_sel:n=>`${n} selected · the total will show only these`,
   pf_of:(n,m)=>`${n} of ${m} projects`,
   pf_clear:"Clear filters",
+  total_lbl:"Total",
   pf_none:q=>`No matches for «${q}»`,
   cal_today:"Today",
   cal_clear:"Clear",
@@ -1424,6 +1425,7 @@ es:{
   pf_sel:n=>`${n} seleccionado${n>1?"s":""} · el total mostrará solo estos`,
   pf_of:(n,m)=>`${n} de ${m} proyectos`,
   pf_clear:"Quitar filtros",
+  total_lbl:"Total",
   pf_none:q=>`Sin coincidencias para «${q}»`,
   cal_today:"Hoy",
   cal_clear:"Borrar",
@@ -1684,6 +1686,7 @@ pt:{
   pf_sel:n=>`${n} selecionado${n>1?"s":""} · o total mostrará só estes`,
   pf_of:(n,m)=>`${n} de ${m} projetos`,
   pf_clear:"Remover filtros",
+  total_lbl:"Total",
   pf_none:q=>`Sem resultados para «${q}»`,
   cal_today:"Hoje",
   cal_clear:"Limpar",
@@ -1944,6 +1947,7 @@ fr:{
   pf_sel:n=>`${n} sélectionné${n>1?"s":""} · le total n’inclura que ceux-ci`,
   pf_of:(n,m)=>`${n} sur ${m} projets`,
   pf_clear:"Retirer les filtres",
+  total_lbl:"Total",
   pf_none:q=>`Aucun résultat pour «${q}»`,
   cal_today:"Aujourd’hui",
   cal_clear:"Effacer",
@@ -2204,6 +2208,7 @@ de:{
   pf_sel:n=>`${n} ausgewählt · die Summe zeigt nur diese`,
   pf_of:(n,m)=>`${n} von ${m} Projekten`,
   pf_clear:"Filter entfernen",
+  total_lbl:"Gesamt",
   pf_none:q=>`Keine Treffer für «${q}»`,
   cal_today:"Heute",
   cal_clear:"Löschen",
@@ -2464,6 +2469,7 @@ ja:{
   pf_sel:n=>`${n}件選択 · 合計はこれらだけになります`,
   pf_of:(n,m)=>`${m}件中${n}件`,
   pf_clear:"絞り込みを解除",
+  total_lbl:"合計",
   pf_none:q=>`「${q}」に一致なし`,
   cal_today:"今日",
   cal_clear:"クリア",
@@ -2724,6 +2730,7 @@ ko:{
   pf_sel:n=>`${n}개 선택됨 · 합계는 이것만 표시됩니다`,
   pf_of:(n,m)=>`${m}개 중 ${n}개`,
   pf_clear:"필터 해제",
+  total_lbl:"합계",
   pf_none:q=>`«${q}» 검색 결과 없음`,
   cal_today:"오늘",
   cal_clear:"지우기",
@@ -2984,6 +2991,7 @@ zh:{
   pf_sel:n=>`已选 ${n} 个 · 合计只统计这些`,
   pf_of:(n,m)=>`${m} 个项目中的 ${n} 个`,
   pf_clear:"清除筛选",
+  total_lbl:"合计",
   pf_none:q=>`没有匹配「${q}」的结果`,
   cal_today:"今天",
   cal_clear:"清除",
@@ -4159,10 +4167,13 @@ function renderLocal(s){
   // recortada sería mentir por omisión
   $("costWeek").textContent="$"+(filt
     ? all.reduce((a,p)=>a+p.cost,0) : s.cost_week).toFixed(2);
+  // La etiqueta NO repite el periodo ni los proyectos: el botón de fechas
+  // y los chips, justo encima, ya lo dicen (Oscar 2026-08-05). Solo avisa
+  // cuando la cifra está recortada por el filtro — ahí callarlo sí sería
+  // enseñar un total que no es el del periodo (invariante #8).
   $("winLbl").textContent = filt
-    ? `${t("pf_of", all.length, every.length)} · ${periodLabel()}`
-    : (curRange ? periodLabel()
-       : (curDays===1 ? t("today") : curDays===7 ? t("week") : curDays+"d"));
+    ? `${t("total_lbl")} · ${t("pf_of", all.length, every.length)}`
+    : t("total_lbl");
   // el backend avisa cuando dejó fuera resúmenes del hub por haber pedido
   // un rango: sus fotos son de ventanas que terminan hoy y no se recortan
   $("hubNote").hidden=!s.hub_skipped;
@@ -4493,8 +4504,7 @@ function markDays(){
   // se enseña ARRIBA, con su etiqueta, y el pie se calla (invariante #8).
   $("winTot").hidden = false;
   const w=$("winLbl");
-  if(w) w.textContent = curRange ? periodLabel()
-    : (curDays===1 ? t("today") : curDays===7 ? t("week") : curDays+"d");
+  if(w) w.textContent = projFilter.size ? `${t("total_lbl")} · …` : t("total_lbl");
 }
 markDays();
 
