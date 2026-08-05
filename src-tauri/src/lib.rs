@@ -3191,6 +3191,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     turns: st.turns,
                     cost: st.cost,
                     leaks: coach_leaks(st),
+                    ..Default::default()
                 });
             }
             if !st.done
@@ -3211,6 +3212,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     turns: st.turns,
                     cost: st.cost,
                     leaks: coach_leaks(st),
+                    ..Default::default()
                 });
             }
             dbg.push(serde_json::json!({
