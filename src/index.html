@@ -92,7 +92,9 @@
   /* color-scheme: los controles nativos (desplegables, spinners, scrollbars)
      se pintan a juego con el tema — sin esto, la lista del idioma se ve mal
      en oscuro */
-  body{font-family:var(--font);color:var(--txt);padding:8px;overflow:hidden;color-scheme:dark}
+  /* 5px: el mínimo para que el halo lateral de la sombra no se corte en
+     seco (Oscar lo pidió más apretado, 2026-08-05) */
+  body{font-family:var(--font);color:var(--txt);padding:5px;overflow:hidden;color-scheme:dark}
   body.light{color-scheme:light}
   /* si el contenido crece (ajustes abiertos), el panel hace scroll interno */
   /* overflow-x HIDDEN a propósito: con solo overflow-y:auto el navegador
@@ -105,7 +107,7 @@
      "marco fantasma" que cambiaba con cada pestaña. Con height, el panel
      llena siempre la ventana con su fondo sólido y el hueco desaparece;
      el contenido largo sigue con scroll interno. */
-  .panel{height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+  .panel{height:calc(100vh - 10px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
 
   .panel{
     background:var(--mica);border-radius:var(--r-lg);
