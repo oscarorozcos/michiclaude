@@ -2156,3 +2156,19 @@ desde hoy fndBadgeCalc y renderTipsDot dejan rastro en flowLog al
 encenderse/apagarse. PRUEBA EN VIVO PARA WINDOWS: recompilar y esperar el
 primer sondeo (60 s) — esta sesión del VPS siempre está enorme, así que
 la ficha compact con origen VPS-EU y el post-it turquesa DEBEN aparecer.
+VALIDADO EN VIVO EN WINDOWS (2026-08-05, capturas + bitácora de Oscar,
+a la primera): el sondeo trajo los consejos del VPS — fichas "compact"
+(816k) y "attach" (26 lecturas) con su "michiclaude · VPS-EU", los
+comandos /clear y /compact resaltados en cajita, el POST-IT TURQUESA del
+gatito encendido con su contador (2, luego 1), el rastro nuevo en la
+bitácora ("tips: AVISO ENCENDIDO (2 sin ver)" → "vistas con foco — aviso
+apagado") y hasta el push de "Terminó tu sesión en michiclaude · VPS-EU"
+con el origen dentro. La campana ROJA no encendió y el rastro dijo por
+qué: "fnd: sin aviso — las 10 tarjetas ya estaban vistas" (trampa del
+vigilante, ya no muda: ahora se explica sola). Acerca de con su estilo y
+el bug rojo: validado.
+MATIZ CONOCIDO que salió en la prueba: el push de "terminó" saltó para la
+sesión del VPS aunque sigue viva (1727 min, 1041 turnos) — 5 minutos de
+silencio entre turnos disparan "done" una vez por sesión, igual que en
+local con una pausa larga. Semántica asumida del diseño, no bug: el
+banderín notified impide que se repita.
