@@ -456,6 +456,20 @@ hacer público el repo (o sus releases).
   CAPA a opacidad, NO `color-mix()` — esa función es demasiado reciente
   para darla por segura en WebView2. "Más proyectos (N)" pasa a enlace:
   ya existía y ya desplegaba (projOpen), solo cambió de aspecto.
+- S4 TENDENCIA + MODELOS + PIE (2026-08-05): barras de tendencia con
+  degradado, esquinas redondeadas y el DÍA MÁS CARO destacado en violeta
+  con halo (clase `top`, nueva; `today` y `zero` intactas — el día sin
+  actividad sigue siendo hueco, no barra de valor cero). Modelos: barra
+  segmentada en cápsula con separación entre tramos y leyenda en píldoras
+  (el nombre del modelo va en `<em>` para destacarlo del %; sigue saliendo
+  de prettyModel, invariante #6). Pie: tarjeta con degradado y las cifras
+  en --disp a 22px.
+- BUG DEL REDISEÑO (2026-08-05, lo vio Oscar en captura): la lista de
+  proyectos salió descuadrada —avatar e importe a la izquierda, nombre a
+  la derecha— porque en CSS Grid los hijos que fijan su fila se colocan
+  ANTES que los automáticos, y el nombre acababa en la 3ª columna. Se
+  rehízo con FLEX + envoltorio `.ptx`, como la maqueta. REGLA: en filas
+  con "algo que ocupa dos líneas" a los lados, flex antes que grid.
 - CONTENEDOR BASE: `.sect` deja de ser un bloque separado por línea y pasa
   a ser TARJETA con fondo (--card, radio r-lg). Es transversal a
   propósito, como la paleta: da el lenguaje visual a todas las pestañas de

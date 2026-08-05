@@ -124,13 +124,13 @@
     border:1px solid var(--stroke-soft);display:grid;place-items:center}
   .p-head .mark{width:22px;height:22px;display:block}
   .p-htext{min-width:0;flex:1 1 auto}
-  .p-hi{font-size:10.5px;color:var(--txt-mut);letter-spacing:.2px}
   .p-title{font-family:var(--disp);font-size:15px;font-weight:700;letter-spacing:-.2px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Una sola línea (Oscar 2026-08-05): se recorta con puntos suspensivos
+     antes que partirse en dos. El texto entero sigue en el title. */
   .p-sub{font-size:10.5px;color:var(--txt-dim);font-family:var(--mono);margin-top:3px;
-    display:flex;align-items:center;gap:6px;transition:opacity .2s;
-    min-width:0;white-space:normal;overflow-wrap:anywhere}
-  .p-sub #syncTxt{min-width:0;overflow-wrap:anywhere}
+    display:flex;align-items:center;gap:6px;transition:opacity .2s;min-width:0}
+  .p-sub #syncTxt{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .p-sub .live{flex:0 0 auto}
   .live{width:7px;height:7px;border-radius:50%;background:var(--ok);
     box-shadow:0 0 0 0 rgba(63,214,143,.6);animation:pulse 2.4s infinite}
@@ -326,43 +326,58 @@
      la derecha. El avatar hereda el MISMO color de la paleta que la barra,
      así el color sigue identificando al proyecto. */
   .plist{display:flex;flex-direction:column;gap:2px}
-  .pitem{display:grid;grid-template-columns:auto 1fr auto;gap:2px 11px;
-    align-items:center;padding:8px 6px;border-radius:var(--r-md);transition:background .15s}
+  /* FLEX y no grid: con grid, los hijos que fijan su fila (avatar e
+     importe, que ocupan las dos) se colocan ANTES que los automáticos y el
+     nombre acababa en la tercera columna — la lista salía descuadrada
+     (bug visto por Oscar 2026-08-05). Con flex + envoltorio de texto, el
+     orden es el del DOM y no hay sorpresas. */
+  .pitem{display:flex;align-items:center;gap:11px;
+    padding:8px 6px;border-radius:var(--r-md);transition:background .15s}
+  .pitem .ptx{flex:1 1 auto;min-width:0}
   .pitem:hover{background:var(--card-hi)}
   /* El fondo del avatar es el color del proyecto atenuado. Se hace con una
      CAPA a opacidad y no con color-mix(): esa función es reciente y no se
      puede dar por segura en todos los WebView2 (invariante de compatibilidad
      del panel). */
-  .pitem .pav{grid-row:1/3;position:relative;width:34px;height:34px;border-radius:11px;
+  .pitem .pav{position:relative;isolation:isolate;width:34px;height:34px;border-radius:11px;
     flex:0 0 auto;display:grid;place-items:center;font-family:var(--disp);
     font-weight:700;font-size:12px;letter-spacing:.3px;text-transform:uppercase}
-  .pitem .pav i{position:absolute;inset:0;border-radius:inherit;opacity:.16}
-  .pitem .pav{isolation:isolate}
-  .pitem .pav i{z-index:-1}
+  .pitem .pav i{position:absolute;inset:0;border-radius:inherit;opacity:.16;z-index:-1}
   .pitem .pname{font-size:12.5px;font-weight:600;display:flex;align-items:center;min-width:0}
   .pitem .pname span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pitem .pcost{grid-row:1/3;font-family:var(--mono);font-size:13px;font-weight:600}
+  .pitem .pcost{flex:0 0 auto;font-family:var(--mono);font-size:13px;font-weight:600}
   .pitem .pbar{height:4px;border-radius:99px;background:var(--track);overflow:hidden;
-    max-width:180px;margin-top:5px}
+    max-width:180px;margin-top:6px}
   .pitem .pbar i{display:block;height:100%;border-radius:99px}
   /* fila de la cola: enlace, sin avatar ni barra (maqueta v5) */
-  .pitem.more{grid-template-columns:1fr auto;cursor:pointer;padding:7px 6px 2px}
+  .pitem.more{cursor:pointer;padding:7px 6px 2px}
   .pitem.more .pname{font-size:11.5px;font-weight:600;color:var(--accent)}
   .pitem.more:hover{background:transparent}
   .pitem.more:hover .pname{text-decoration:underline}
-  .pitem.more .pcost{grid-row:auto;font-size:12px;color:var(--txt-mut);font-weight:500}
+  .pitem.more .pcost{font-size:12px;color:var(--txt-mut);font-weight:500}
 
-  .split{height:11px;border-radius:6px;overflow:hidden;display:flex;border:1px solid var(--stroke-soft)}
-  .legend{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap}
-  .legend span{font-size:11px;color:var(--txt-mut);display:flex;align-items:center;gap:6px}
-  .legend b{width:8px;height:8px;border-radius:2px;display:inline-block}
+  /* MODELOS (rediseño v5): barra segmentada en cápsula con separación entre
+     tramos, y la leyenda en píldoras en vez de texto suelto */
+  .split{height:10px;border-radius:999px;overflow:hidden;display:flex;gap:2px}
+  .split i{height:100%}
+  .legend{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+  .legend span{font-size:11px;color:var(--txt-mut);display:flex;align-items:center;gap:6px;
+    background:var(--card-hi);border:1px solid var(--stroke-soft);
+    padding:5px 10px;border-radius:999px}
+  .legend span em{font-style:normal;color:var(--txt);font-weight:600}
+  .legend b{width:8px;height:8px;border-radius:3px;display:inline-block;flex:0 0 auto}
 
-  .p-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;
-    padding-top:10px;border-top:1px solid var(--stroke-soft)}
-  .totals{display:flex;gap:16px}
-  .totals .t{font-size:10px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:.6px}
-  .totals .t b{display:block;font-family:var(--mono);font-size:15px;color:var(--txt);margin-top:2px}
-  .foot-note{font-size:10px;color:var(--txt-dim);max-width:160px;text-align:right;line-height:1.35}
+  /* pie de totales: tarjeta propia, como el resto del rediseño */
+  .p-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    margin-top:10px;padding:14px;border-radius:var(--r-lg);
+    background:linear-gradient(135deg,var(--card),var(--card-hi));
+    border:1px solid var(--stroke-soft)}
+  .totals{display:flex;gap:20px}
+  .totals .t{font-size:10px;color:var(--txt-dim);text-transform:uppercase;
+    letter-spacing:1.1px;font-weight:700}
+  .totals .t b{display:block;font-family:var(--disp);font-size:22px;font-weight:800;
+    letter-spacing:-.5px;color:var(--txt);margin-top:3px}
+  .foot-note{font-size:9.5px;color:var(--txt-dim);max-width:175px;text-align:right;line-height:1.5}
   .errbox{font-size:11.5px;color:var(--warn);line-height:1.4;padding:6px 0}
 
   /* ajustes (fuentes de datos) */
@@ -457,16 +472,23 @@
     border:1px solid var(--stroke-soft);padding:1px 6px;border-radius:6px;
     margin-left:7px;flex:0 0 auto;letter-spacing:.3px}
 
-  /* tendencia diaria: barras finas, un solo tono, hoy enfatizado por intensidad */
-  .tchart{display:flex;align-items:flex-end;gap:2px;height:56px;
-    border-bottom:1px solid var(--stroke-soft);padding-bottom:1px}
-  .tchart i{flex:1 1 0;background:var(--accent);opacity:.5;border-radius:3px 3px 0 0;
-    min-height:2px;cursor:default;transition:opacity .15s}
-  .tchart i:hover{opacity:1}
+  /* TENDENCIA DIARIA (rediseño v5): barras con degradado vertical, esquinas
+     redondeadas y el DÍA MÁS ALTO destacado en violeta con halo. Se
+     conservan las clases de siempre: `today` (el día en curso) y `zero`
+     (día sin actividad, que sigue pintándose como hueco y no como barra
+     de valor cero). */
+  .tchart{display:flex;align-items:flex-end;gap:3px;height:70px;padding-top:4px}
+  .tchart i{flex:1 1 0;border-radius:5px 5px 2px 2px;min-height:3px;cursor:default;
+    background:linear-gradient(180deg,var(--accent),#4A57B8);opacity:.75;
+    transition:opacity .15s,filter .15s}
+  body.light .tchart i{background:linear-gradient(180deg,var(--accent),#8E92F0)}
+  .tchart i:hover{opacity:1;filter:brightness(1.15)}
   .tchart i.today{opacity:1}
-  .tchart i.zero{background:var(--track);opacity:1}
-  .tspan{display:flex;justify-content:space-between;font-size:9px;color:var(--txt-dim);
-    font-family:var(--mono);margin-top:4px}
+  .tchart i.top{opacity:1;background:linear-gradient(180deg,#A46BFF,var(--accent));
+    box-shadow:0 0 12px rgba(164,107,255,.45)}
+  .tchart i.zero{background:var(--track);opacity:1;box-shadow:none}
+  .tspan{display:flex;justify-content:space-between;font-size:9.5px;color:var(--txt-dim);
+    font-family:var(--mono);margin-top:7px}
 
   /* bienvenida/guía adaptativa:
      - body.setup   (sin token Y sin datos locales = no hay Claude Code):
@@ -531,7 +553,6 @@
   <div class="p-head" id="pHead">
     <span class="avatar"><span class="mark" id="mark"></span></span>
     <div class="p-htext">
-      <div class="p-hi" data-i18n="hd_hi"></div>
       <div class="p-title">MichiClaude</div>
       <div class="p-sub" id="syncLine"><span class="live" id="liveDot"></span><span id="syncTxt"></span></div>
     </div>
@@ -897,7 +918,6 @@ const I18N={
 en:{
   connecting:"Connecting…",
   live_ago:s=>`Live · updated ${s}s ago`,
-  hd_hi:"Welcome back,",
   quota_title:"How much you have left",
   session_cap:"SESSION · 5 H",
   reset_now:"Resets now",
@@ -1139,7 +1159,6 @@ en:{
 es:{
   connecting:"Conectando…",
   live_ago:s=>`En vivo · actualizado hace ${s}s`,
-  hd_hi:"Hola de nuevo,",
   quota_title:"Cuánto te queda",
   session_cap:"SESIÓN · 5 H",
   reset_now:"Reset ya",
@@ -1381,7 +1400,6 @@ es:{
 pt:{
   connecting:"Conectando…",
   live_ago:s=>`Ao vivo · atualizado há ${s}s`,
-  hd_hi:"Olá de novo,",
   quota_title:"Quanto ainda resta",
   session_cap:"SESSÃO · 5 H",
   reset_now:"Reinicia agora",
@@ -1623,7 +1641,6 @@ pt:{
 fr:{
   connecting:"Connexion…",
   live_ago:s=>`En direct · mis à jour il y a ${s}s`,
-  hd_hi:"Re-bonjour,",
   quota_title:"Ce qu'il vous reste",
   session_cap:"SESSION · 5 H",
   reset_now:"Réinitialise maintenant",
@@ -1865,7 +1882,6 @@ fr:{
 de:{
   connecting:"Verbinde…",
   live_ago:s=>`Live · aktualisiert vor ${s}s`,
-  hd_hi:"Schön, dich wiederzusehen,",
   quota_title:"Wie viel dir bleibt",
   session_cap:"SITZUNG · 5 STD",
   reset_now:"Reset jetzt",
@@ -2107,7 +2123,6 @@ de:{
 ja:{
   connecting:"接続中…",
   live_ago:s=>`ライブ · ${s}秒前に更新`,
-  hd_hi:"おかえりなさい、",
   quota_title:"残りの使用量",
   session_cap:"セッション · 5時間",
   reset_now:"まもなくリセット",
@@ -2349,7 +2364,6 @@ ja:{
 ko:{
   connecting:"연결 중…",
   live_ago:s=>`실시간 · ${s}초 전 업데이트`,
-  hd_hi:"다시 만나서 반가워요,",
   quota_title:"남은 사용량",
   session_cap:"세션 · 5시간",
   reset_now:"곧 초기화",
@@ -2591,7 +2605,6 @@ ko:{
 zh:{
   connecting:"连接中…",
   live_ago:s=>`实时 · ${s}秒前更新`,
-  hd_hi:"欢迎回来，",
   quota_title:"剩余额度",
   session_cap:"会话 · 5小时",
   reset_now:"即将重置",
@@ -3730,15 +3743,17 @@ function renderLocal(s){
     const c=PALETTE[i%PALETTE.length];
     return `<div class="pitem" title="${escapeHtml(modelTip(p))}">
       <div class="pav" style="color:${c}"><i style="background:${c}"></i>${escapeHtml(projInitials(p.base))}</div>
-      <div class="pname"><span>${escapeHtml(p.base)}</span>${p.src?`<span class="srctag">${escapeHtml(p.src)}</span>`:""}</div>
+      <div class="ptx">
+        <div class="pname"><span>${escapeHtml(p.base)}</span>${p.src?`<span class="srctag">${escapeHtml(p.src)}</span>`:""}</div>
+        <div class="pbar"><i style="width:${Math.round(p.cost/max*100)}%;background:${c}"></i></div>
+      </div>
       <div class="pcost">$${p.cost.toFixed(2)}</div>
-      <div class="pbar"><i style="width:${Math.round(p.cost/max*100)}%;background:${c}"></i></div>
     </div>`;}).join("");
   // La cola se resume en una fila que se despliega al hacer clic: saber que
   // hay $39 repartidos no sirve de nada si no puedes ver en qué.
   if(rest.length) rows += `
     <div class="pitem more" id="plistMore">
-      <div class="pname"><span>${escapeHtml(projOpen?t("others_less"):t("others",rest.length))}</span></div>
+      <div class="ptx"><div class="pname"><span>${escapeHtml(projOpen?t("others_less"):t("others",rest.length))}</span></div></div>
       <div class="pcost">${projOpen?"":"$"+rest.reduce((a,p)=>a+p.cost,0).toFixed(2)}</div>
     </div>`;
   if(!rows) rows = `<div class="errbox" style="color:var(--txt-dim)">${t("no_activity")}</div>`;
@@ -3766,7 +3781,7 @@ function renderLocal(s){
       // "~" = el modelo no está en ninguna tabla de precios: su coste sale de
       // la tarifa por defecto, así que se avisa en vez de darlo por firme.
       const est=x.est?` <span title="${escapeHtml(t("est_tip"))}" style="cursor:help">~</span>`:"";
-      return `<span><b style="background:${PALETTE[i%PALETTE.length]}"></b>${escapeHtml(prettyModel(x.m))} ${pct<1?"<1":Math.round(pct)}%${est}</span>`;
+      return `<span><b style="background:${PALETTE[i%PALETTE.length]}"></b><em>${escapeHtml(prettyModel(x.m))}</em> ${pct<1?"<1":Math.round(pct)}%${est}</span>`;
     }).join("");
     $("modelQ").textContent=t("model_leads", prettyModel(models[0].m));
   }
@@ -3790,8 +3805,11 @@ function renderTrend(daily){
   }
   const max=Math.max(...days.map(d=>d.cost),0.01);
   $("tchart").innerHTML=days.map((d,i)=>{
-    const h=Math.max(2,Math.round(d.cost/max*54));
-    const cls=(i===days.length-1?"today":"")+(d.cost===0?" zero":"");
+    const h=Math.max(3,Math.round(d.cost/max*66));
+    // el día MÁS CARO se destaca (maqueta v5); si todo está a cero no hay
+    // pico que señalar y ninguna barra se marca
+    const cls=(i===days.length-1?"today":"")+(d.cost===0?" zero":"")
+      +(d.cost>0&&d.cost===max?" top":"");
     return `<i class="${cls.trim()}" style="height:${h}px" title="${fmtDate(d.key)} · $${d.cost.toFixed(2)}"></i>`;
   }).join("");
   $("tFrom").textContent=fmtDate(days[0].key);
