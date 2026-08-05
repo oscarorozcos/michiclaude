@@ -556,9 +556,10 @@
     box-shadow:0 10px 22px -10px rgba(124,140,255,.6);transition:filter .15s}
   .cfg-form button:hover,.btnrow button:hover{filter:brightness(1.1)}
   /* secundarios (los de ajustes compartidos y export) en tono apagado */
-  .btnrow button.sec,#hubSave,#hubLoad{background:var(--card-hi);color:var(--txt);
-    border:1px solid var(--stroke);box-shadow:none}
-  .btnrow button.sec:hover,#hubSave:hover,#hubLoad:hover{background:var(--surface);filter:none}
+  .btnrow button.sec,.ntfy-url button.sec,#hubSave,#hubLoad,#expCsv,#expJson,#pricesNow{
+    background:var(--card-hi);color:var(--txt);border:1px solid var(--stroke);box-shadow:none}
+  .btnrow button.sec:hover,.ntfy-url button.sec:hover,#hubSave:hover,#hubLoad:hover,
+  #expCsv:hover,#expJson:hover,#pricesNow:hover{background:var(--surface);filter:none}
   #rMsg{font-size:11px;color:var(--txt-mut);font-family:var(--mono)}
   /* La ruta de exportación era el único mensaje del panel sin estilo:
      heredaba el tamaño del texto normal y cantaba al lado de los demás,
@@ -628,6 +629,21 @@
   .rstat.ok{color:var(--ok)} .rstat.bad{color:var(--bad)}
 
   /* alarmas de uso (chips) */
+  /* fila del canal ntfy: el campo manda y los botones se colocan detrás,
+     saltando de línea si no caben (antes se encimaban) */
+  .ntfy-url{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .ntfy-url input{flex:1 1 180px;min-width:0;font-size:11.5px}
+  .ntfy-url button{flex:0 0 auto}
+
+  /* Acerca de */
+  .about-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .about-name{font-size:13px;font-weight:700}
+  .about-ver{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);
+    background:var(--accent-weak);padding:2px 8px;border-radius:999px;margin-left:5px}
+  .about-sub{font-size:10.5px;color:var(--txt-dim);margin-top:3px}
+  .about-link{font-size:11.5px;font-weight:600;color:var(--accent);text-decoration:none}
+  .about-link:hover{text-decoration:underline}
+
   .chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
   .chip{display:inline-flex;align-items:center;gap:6px;background:var(--card-hi);
     border:1px solid var(--stroke-soft);border-radius:999px;padding:5px 10px;
@@ -1149,18 +1165,20 @@
         <div class="cfg-note" data-i18n-html="ntfy_steps"></div>
         <canvas id="ntfyQr" width="180" height="180"
                 style="border-radius:8px;margin:6px 0;background:#fff"></canvas>
-        <div class="btnrow">
-          <input id="ntfyTopic" readonly style="max-width:190px;font-size:11px">
-          <button id="ntfyCopy" data-i18n="ntfy_copy"></button>
+        <!-- Canal + acciones: el campo ocupa la fila y los botones caben
+             debajo si no entran (antes se encimaban — Oscar 2026-08-05). -->
+        <div class="ntfy-url">
+          <input id="ntfyTopic" readonly>
+          <button id="ntfyCopy" class="sec" data-i18n="ntfy_copy"></button>
           <!-- El topic es la contraseña del canal: si se filtra (un QR en
                una captura basta), aquí se cambia. Dos clics a propósito:
                mata el canal viejo y hay que re-escanear en el teléfono. -->
-          <button id="ntfyRegen" data-i18n="ntfy_regen"></button>
-          <span id="ntfyRegenAsk" hidden style="display:none;align-items:center;gap:6px">
-            <span style="font-size:10.5px;color:var(--txt-mut)" data-i18n="ntfy_regen_sure"></span>
-            <button id="ntfyRegenYes" data-i18n="btn_yes"></button>
-            <button id="ntfyRegenNo" data-i18n="btn_no"></button>
-          </span>
+          <button id="ntfyRegen" class="sec" data-i18n="ntfy_regen"></button>
+        </div>
+        <div class="btnrow" id="ntfyRegenAsk" hidden>
+          <span style="font-size:10.5px;color:var(--txt-mut)" data-i18n="ntfy_regen_sure"></span>
+          <button id="ntfyRegenYes" data-i18n="btn_yes"></button>
+          <button id="ntfyRegenNo" class="sec" data-i18n="btn_no"></button>
         </div>
         <div class="btnrow">
           <button id="ntfyTest" data-i18n="ntfy_test"></button>
@@ -1220,6 +1238,26 @@
         <button class="exp-open" id="expOpen"></button>
         <button class="exp-x" id="expX" aria-label="✕">✕</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ACERCA DE (maqueta de Oscar 2026-08-05). Reúne cosas que ya existían
+       sueltas: la comprobación de versión que hasta ahora solo corría sola
+       al arrancar, y el atajo a GitHub. "Reportar un problema" abre el
+       formulario de issues con la versión ya escrita — quien reporta casi
+       nunca la incluye y sin ella el reporte no sirve. -->
+  <div class="sect">
+    <div class="eyebrow" data-i18n="about_label"></div>
+    <div class="about-row">
+      <div style="min-width:0">
+        <div class="about-name">MichiClaude <span class="about-ver" id="aboutVer">—</span></div>
+        <div class="about-sub" id="aboutState"></div>
+      </div>
+      <button id="aboutCheck" class="sec" data-i18n="about_check"></button>
+    </div>
+    <div class="btnrow" style="margin-top:12px">
+      <button id="aboutIssue" class="sec" data-i18n="about_issue"></button>
+      <a href="#" id="aboutReleases" class="about-link" data-i18n="about_releases"></a>
     </div>
   </div>
   </div><!-- /tab-prefs -->
@@ -1420,6 +1458,16 @@ en:{
   trend_q:"last 30 days",
   prefs_title:"Preferences",
   prefs_general:"General",
+  about_label:"About",
+  about_check:"Check for updates",
+  about_checking:"Checking…",
+  about_ok:"Up to date",
+  about_ok_at:w=>`Up to date · checked ${w}`,
+  about_new:v=>`Version ${v} available`,
+  about_issue:"Report a problem",
+  about_releases:"GitHub · release notes",
+  about_issue_title:"Problem report",
+  about_issue_body:(v,os)=>`**What happened?**\n\n\n**What did you expect?**\n\n\n---\nMichiClaude ${v} · ${os}`,
   prefs_alerts:"Alerts",
   budget_label:"Weekly budget in $ (0 = no alert)",
   notif_budget:(s,b)=>`Weekly spend $${s} exceeded your $${b} budget (API-equiv.).`,
@@ -1694,6 +1742,16 @@ es:{
   trend_q:"últimos 30 días",
   prefs_title:"Ajustes",
   prefs_general:"General",
+  about_label:"Acerca de",
+  about_check:"Buscar actualización",
+  about_checking:"Comprobando…",
+  about_ok:"Estás al día",
+  about_ok_at:w=>`Estás al día · revisado ${w}`,
+  about_new:v=>`Versión ${v} disponible`,
+  about_issue:"Reportar un problema",
+  about_releases:"GitHub · notas de la versión",
+  about_issue_title:"Reporte de problema",
+  about_issue_body:(v,os)=>`**¿Qué pasó?**\n\n\n**¿Qué esperabas?**\n\n\n---\nMichiClaude ${v} · ${os}`,
   prefs_alerts:"Avisos",
   budget_label:"Presupuesto semanal en $ (0 = sin aviso)",
   notif_budget:(s,b)=>`El gasto semanal $${s} superó tu presupuesto de $${b} (equiv. API).`,
@@ -1968,6 +2026,16 @@ pt:{
   trend_q:"últimos 30 dias",
   prefs_title:"Preferências",
   prefs_general:"Geral",
+  about_label:"Sobre",
+  about_check:"Buscar atualização",
+  about_checking:"Verificando…",
+  about_ok:"Você está em dia",
+  about_ok_at:w=>`Em dia · verificado ${w}`,
+  about_new:v=>`Versão ${v} disponível`,
+  about_issue:"Relatar um problema",
+  about_releases:"GitHub · notas da versão",
+  about_issue_title:"Relato de problema",
+  about_issue_body:(v,os)=>`**O que aconteceu?**\n\n\n**O que você esperava?**\n\n\n---\nMichiClaude ${v} · ${os}`,
   prefs_alerts:"Avisos",
   budget_label:"Orçamento semanal em $ (0 = sem aviso)",
   notif_budget:(s,b)=>`O gasto semanal $${s} superou seu orçamento de $${b} (equiv. API).`,
@@ -2242,6 +2310,16 @@ fr:{
   trend_q:"30 derniers jours",
   prefs_title:"Préférences",
   prefs_general:"Général",
+  about_label:"À propos",
+  about_check:"Rechercher une mise à jour",
+  about_checking:"Vérification…",
+  about_ok:"Vous êtes à jour",
+  about_ok_at:w=>`À jour · vérifié ${w}`,
+  about_new:v=>`Version ${v} disponible`,
+  about_issue:"Signaler un problème",
+  about_releases:"GitHub · notes de version",
+  about_issue_title:"Signalement de problème",
+  about_issue_body:(v,os)=>`**Que s’est-il passé ?**\n\n\n**À quoi vous attendiez-vous ?**\n\n\n---\nMichiClaude ${v} · ${os}`,
   prefs_alerts:"Alertes",
   budget_label:"Budget hebdo en $ (0 = pas d'alerte)",
   notif_budget:(s,b)=>`La dépense hebdo $${s} a dépassé votre budget de $${b} (équiv. API).`,
@@ -2516,6 +2594,16 @@ de:{
   trend_q:"letzte 30 Tage",
   prefs_title:"Einstellungen",
   prefs_general:"Allgemein",
+  about_label:"Über",
+  about_check:"Nach Update suchen",
+  about_checking:"Wird geprüft…",
+  about_ok:"Alles aktuell",
+  about_ok_at:w=>`Aktuell · geprüft ${w}`,
+  about_new:v=>`Version ${v} verfügbar`,
+  about_issue:"Problem melden",
+  about_releases:"GitHub · Versionshinweise",
+  about_issue_title:"Problemmeldung",
+  about_issue_body:(v,os)=>`**Was ist passiert?**\n\n\n**Was hast du erwartet?**\n\n\n---\nMichiClaude ${v} · ${os}`,
   prefs_alerts:"Hinweise",
   budget_label:"Wochenbudget in $ (0 = kein Alarm)",
   notif_budget:(s,b)=>`Wochenausgaben $${s} haben dein Budget von $${b} überschritten (API-Äquiv.).`,
@@ -2790,6 +2878,16 @@ ja:{
   trend_q:"過去30日",
   prefs_title:"設定",
   prefs_general:"一般",
+  about_label:"このアプリについて",
+  about_check:"更新を確認",
+  about_checking:"確認中…",
+  about_ok:"最新です",
+  about_ok_at:w=>`最新です · ${w}に確認`,
+  about_new:v=>`バージョン ${v} が利用できます`,
+  about_issue:"問題を報告",
+  about_releases:"GitHub · リリースノート",
+  about_issue_title:"問題の報告",
+  about_issue_body:(v,os)=>`**何が起きましたか？**\n\n\n**どうなると思っていましたか？**\n\n\n---\nMichiClaude ${v} · ${os}`,
   prefs_alerts:"通知",
   budget_label:"週間予算 $（0 = 通知なし）",
   notif_budget:(s,b)=>`週間支出 $${s} が予算 $${b} を超えました（API換算）。`,
@@ -3064,6 +3162,16 @@ ko:{
   trend_q:"최근 30일",
   prefs_title:"환경설정",
   prefs_general:"일반",
+  about_label:"정보",
+  about_check:"업데이트 확인",
+  about_checking:"확인 중…",
+  about_ok:"최신 상태입니다",
+  about_ok_at:w=>`최신 상태 · ${w} 확인`,
+  about_new:v=>`버전 ${v} 사용 가능`,
+  about_issue:"문제 신고",
+  about_releases:"GitHub · 릴리스 노트",
+  about_issue_title:"문제 신고",
+  about_issue_body:(v,os)=>`**무슨 일이 있었나요?**\n\n\n**어떻게 되길 기대했나요?**\n\n\n---\nMichiClaude ${v} · ${os}`,
   prefs_alerts:"알림",
   budget_label:"주간 예산 $ (0 = 알림 없음)",
   notif_budget:(s,b)=>`주간 지출 $${s}이(가) 예산 $${b}을(를) 초과했습니다 (API 환산).`,
@@ -3338,6 +3446,16 @@ zh:{
   trend_q:"最近30天",
   prefs_title:"偏好设置",
   prefs_general:"常规",
+  about_label:"关于",
+  about_check:"检查更新",
+  about_checking:"检查中…",
+  about_ok:"已是最新",
+  about_ok_at:w=>`已是最新 · ${w}检查`,
+  about_new:v=>`有新版本 ${v}`,
+  about_issue:"报告问题",
+  about_releases:"GitHub · 版本说明",
+  about_issue_title:"问题报告",
+  about_issue_body:(v,os)=>`**发生了什么？**\n\n\n**你期望的是什么？**\n\n\n---\nMichiClaude ${v} · ${os}`,
   prefs_alerts:"提醒",
   budget_label:"每周预算 $（0 = 不提醒）",
   notif_budget:(s,b)=>`每周支出 $${s} 已超过你的预算 $${b}（API 等价）。`,
@@ -3882,6 +4000,37 @@ async function updCheck(){
   showBalloon(t("upd_balloon",v), "update");
 }
 setTimeout(updCheck, 8000);   // sin competir con la primera carga del panel
+
+// ---------- Acerca de ----------
+// Reúne lo que ya existía suelto: la comprobación de versión (que solo
+// corría sola al arrancar) y los atajos a GitHub. La versión sale de Rust
+// (Cargo.toml): escribirla en el frontend sería una segunda verdad.
+let aboutChecked=null;
+async function aboutInit(){
+  if(!invoke) return;
+  try{ $("aboutVer").textContent="v"+await invoke("app_version"); }catch(_){}
+  aboutState();
+}
+function aboutState(){
+  $("aboutState").textContent = updVer ? t("about_new",updVer)
+    : aboutChecked ? t("about_ok_at", fmtWhen(aboutChecked)) : t("about_ok");
+}
+$("aboutCheck").addEventListener("click", async()=>{
+  const b=$("aboutCheck"); b.disabled=true;
+  $("aboutState").textContent=t("about_checking");
+  try{ await updCheck(); }catch(_){}
+  aboutChecked=Math.floor(Date.now()/1000);
+  aboutState(); b.disabled=false;
+});
+$("aboutReleases").addEventListener("click",e=>{ e.preventDefault(); invoke?.("open_releases"); });
+// el reporte lleva la VERSIÓN ya escrita: sin ella un issue no sirve de nada
+$("aboutIssue").addEventListener("click", async()=>{
+  let v="?"; try{ v=await invoke("app_version"); }catch(_){}
+  invoke?.("open_faq_issue",{
+    title:encodeURIComponent(t("about_issue_title")),
+    body:encodeURIComponent(t("about_issue_body", v, navigator.platform||"?"))});
+});
+aboutInit();
 
 if(invoke) invoke("is_dev").then(d=>{ if(d) $("devSimRow").hidden=false; }).catch(()=>{});
 $("simMin").value=localStorage.getItem("simMin")||"1";
@@ -5693,8 +5842,9 @@ $("ntfyTest").addEventListener("click", async ()=>{
 let ntfyRegenT=null;
 function ntfyRegenAsk(on){
   $("ntfyRegen").hidden=on;
-  const a=$("ntfyRegenAsk");
-  a.hidden=!on; a.style.display=on?"inline-flex":"none";
+  // la confirmación es ahora una FILA propia: basta con hidden, sin
+  // forzar display (que era lo que peleaba con [hidden], invariante 10bis)
+  $("ntfyRegenAsk").hidden=!on;
   clearTimeout(ntfyRegenT);
   if(on) ntfyRegenT=setTimeout(()=>ntfyRegenAsk(false), 12000);
 }

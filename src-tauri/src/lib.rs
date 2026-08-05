@@ -3475,6 +3475,7 @@ pub fn run() {
             open_releases,
             open_export,
             is_dev,
+            app_version,
             get_pill_layer,
             set_pill_layer,
             get_prices_status,
@@ -4365,6 +4366,14 @@ fn open_releases() {
 #[tauri::command]
 fn is_dev() -> bool {
     cfg!(debug_assertions)
+}
+
+/// Versión de la app, para "Acerca de" y para el reporte de problemas.
+/// Sale del Cargo.toml en compilación: escribirla a mano en el frontend
+/// sería una segunda verdad que se queda vieja sola.
+#[tauri::command]
+fn app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
 }
 
 #[tauri::command]

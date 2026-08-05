@@ -2101,3 +2101,19 @@ ronda y los invariantes; el porqué de cada sección vive aquí.
   campana. Y no hubo ninguna pasada por cierre de sesión porque en
   Windows no nació ningún recibo `sum` en todo el día. Trampa del
   vigilante, cuarta aparición.
+- ACERCA DE (2026-08-05, pedido de Oscar: "aunque sea estático"). NO quedó
+  estático: reúne cosas que ya existían sueltas — la comprobación de
+  versión (que hasta ahora solo corría sola a los 8 s del arranque) con su
+  botón, el atajo a Releases (`open_releases`, URL constante en Rust) y
+  "Reportar un problema", que abre el formulario de issues con la VERSIÓN
+  y el sistema ya escritos: quien reporta casi nunca los incluye y sin
+  ellos el reporte no sirve. La versión sale del comando nuevo
+  `app_version` (env!("CARGO_PKG_VERSION")): escribirla en el frontend
+  sería una segunda verdad que se queda vieja sola.
+- Botones de ntfy: "Canal nuevo" y "Enviar prueba" se encimaban. El campo
+  del canal manda ahora en su fila (.ntfy-url) y los botones saltan de
+  línea si no caben; la confirmación de "Canal nuevo" pasó a fila propia,
+  lo que de paso quitó un `style.display` que peleaba con [hidden]
+  (invariante 10bis). Los botones secundarios (Copiar, Canal nuevo, CSV,
+  JSON, Actualizar ahora, hub) van en tono apagado: el degradado es para
+  la acción principal de cada tarjeta.
