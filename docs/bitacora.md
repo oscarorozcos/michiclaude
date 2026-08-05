@@ -2040,3 +2040,29 @@ ronda y los invariantes; el porqué de cada sección vive aquí.
   `position_panel` usa `outer_size()`, así que el flyout se recoloca solo;
   no hay ningún ancho hardcodeado en Rust. Cambia tauri.conf.json → hay
   que RECOMPILAR para verlo.
+
+### Consejos y remates de Hallazgos (2026-08-05)
+
+- El "¿No encontraste lo que buscabas?" DEJA de ser un pie permanente y
+  pasa a ocupar el HUECO de la búsqueda sin resultados: aparece solo
+  mientras el filtro no encuentra nada y se va al borrarlo. Razón (mi
+  recomendación, aceptada por Oscar): un banner fijo se vuelve invisible a
+  los dos días, y el ofrecimiento significa algo justo en el momento en que
+  al usuario le falta un consejo. El registro LOCAL de búsquedas fallidas
+  del mes (faqMisses, cero telemetría) se mantiene: es lo que viaja en el
+  issue, para que la propuesta lleve todo lo buscado y no solo lo último; y
+  la búsqueda EN CURSO se añade siempre, porque el registro espera 1.5 s de
+  pausa y pulsar rápido no hacía nada. "Descartar" se retiró: ya no hay
+  nada permanente que cerrar (tips_dismiss fuera de los 8 idiomas).
+- Buscador con ✕ para vaciarlo (lo pidió Oscar señalándolo en captura).
+- COMANDOS resaltados en Hallazgos y Consejos con `withCmds()`: envuelve en
+  <code> los "/clear", "/compact"… y lo que va entre «comillas angulares»,
+  que en el diccionario son siempre órdenes de terminal. Escapa ANTES de
+  tocar (nada llega a innerHTML sin escapeHtml).
+- El botón de periodo no se parte en dos líneas (white-space:nowrap) y en
+  el encabezado el TÍTULO se encoge antes que el control: "03 ago – 05 ago"
+  cabía justo y saltaba de línea.
+- Copy del pie de Hallazgos reescrito en los 8 idiomas: de "~ = estimado;
+  el resto está medido de tus logs" a "Los importes con ~ son aproximados.
+  El resto está medido directamente de tus registros" — la abreviatura con
+  signo igual se leía como jerga.

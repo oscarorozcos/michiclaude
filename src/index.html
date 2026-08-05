@@ -211,6 +211,10 @@
   .fnd-c b{font-weight:600;color:var(--txt)}
   .fnd-f{font-size:12px;color:var(--txt-mut);line-height:1.55;margin-top:11px;
     border-top:1px dashed var(--stroke-soft);padding-top:10px}
+  /* comandos dentro del texto: se distinguen sin gritar */
+  .fnd-f code,.fnd-m code{font-family:var(--mono);font-size:.92em;color:var(--accent);
+    background:var(--accent-weak);border:1px solid var(--accent-line);
+    border-radius:6px;padding:1px 5px;white-space:nowrap}
   /* ficha de Consejos: mismo molde que la tarjeta de Hallazgos, variante
      tip — sin costo ni borde de severidad (una ficha con $0.00 devalúa el
      sistema); acordeón: el cuerpo se abre al tocar el título */
@@ -242,6 +246,10 @@
   .eyebrow{font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--txt-dim);
     font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;
     align-items:center;gap:8px}
+  /* el control de la derecha manda: el título se encoge antes que él, para
+     que un rango como "03 ago – 05 ago" no se parta en dos líneas */
+  .eyebrow>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .eyebrow .q{flex:0 0 auto}
   .eyebrow .q{font-family:var(--mono);letter-spacing:0;text-transform:none;
     color:var(--txt-mut);font-weight:500;font-size:11px}
 
@@ -397,6 +405,7 @@
   /* ---- filtros de la tarjeta de gasto: fechas y proyectos ---- */
   /* disparadores gemelos en el encabezado */
   .trig{display:inline-flex;align-items:center;gap:6px;cursor:pointer;position:relative;
+    white-space:nowrap;
     font-family:var(--mono);font-size:11px;font-weight:600;color:var(--txt);
     background:var(--card-hi);border:1px solid var(--stroke);border-radius:10px;
     padding:4px 8px;transition:.15s;margin-left:6px}
@@ -659,6 +668,26 @@
   .setup-note{font-size:11.5px;color:var(--txt-dim);line-height:1.5;margin:0 0 6px}
 
   /* fuentes de datos: nota en lista + formulario etiquetado + filas de servidores */
+  /* buscador de Consejos, con botón para vaciarlo */
+  .tipsearch{position:relative;margin:10px 0 0}
+  .tipsearch input{width:100%;box-sizing:border-box;padding-right:34px}
+  .tipsearch button{position:absolute;top:50%;right:8px;transform:translateY(-50%);
+    width:22px;height:22px;border-radius:7px;border:0;background:transparent;
+    color:var(--txt-dim);cursor:pointer;font-size:11px;line-height:1;
+    display:grid;place-items:center}
+  .tipsearch button:hover{color:var(--txt);background:var(--surface)}
+  /* "ningún consejo coincide": ocupa el hueco de los resultados, no un pie */
+  #tipFoot{display:flex;gap:11px;align-items:center;margin-top:12px;
+    background:var(--card);border:1px dashed var(--stroke);
+    border-radius:var(--r-md);padding:14px}
+  #tipFoot .tf-ico{flex:0 0 auto;width:34px;height:34px;border-radius:11px;
+    display:grid;place-items:center;color:var(--txt-dim);background:var(--surface)}
+  #tipFoot .tf-tx{min-width:0}
+  #tipFoot #tipMissTxt{font-size:12.5px;font-weight:600;overflow-wrap:anywhere}
+  #tipFoot a{display:inline-block;font-size:11.5px;font-weight:600;color:var(--accent);
+    text-decoration:none;margin-top:3px}
+  #tipFoot a:hover{text-decoration:underline}
+
   /* pie de Hallazgos: el enlace de recuperar arriba y destacado (como
      "Más proyectos"), la nota del "~" debajo en gris */
   .fnd-restore{display:inline-block;font-size:11.5px;font-weight:600;
@@ -948,14 +977,28 @@
     <div class="sect">
       <div class="eyebrow" data-i18n="tips_title"></div>
       <p style="font-size:11px;color:var(--txt-dim);margin:6px 0 2px" data-i18n="tips_intro"></p>
-      <input id="tipFilter" type="text" data-i18n-ph="tips_filter" style="width:100%;margin-top:6px;box-sizing:border-box">
+      <!-- buscador con ✕ para vaciarlo (Oscar 2026-08-05): borrar a mano
+           lo tecleado es de las cosas que más se piden -->
+      <div class="tipsearch">
+        <input id="tipFilter" type="text" data-i18n-ph="tips_filter">
+        <button id="tipClear" hidden data-i18n-title="tips_clear">✕</button>
+      </div>
       <div id="tipList"></div>
       <!-- faqMisses (doc §9): búsquedas que no encontraron ficha, contadas
            LOCALMENTE — cero telemetría. El botón abre un issue de GitHub
-           pre-llenado que el usuario revisa y envía él mismo. -->
-      <div id="tipFoot" hidden style="font-size:10.5px;color:var(--txt-dim);margin-top:8px">
-        <span id="tipMissTxt"></span> · <a href="#" id="tipPropose" data-i18n="tips_propose" style="color:var(--accent)"></a>
-        · <a href="#" id="tipDismiss" data-i18n="tips_dismiss" style="color:var(--txt-dim)"></a>
+           pre-llenado que el usuario revisa y envía él mismo.
+           DESDE 2026-08-05 vive en el HUECO de la búsqueda sin resultados,
+           no en un pie permanente: ahí es donde el ojo está mirando y donde
+           el ofrecimiento significa algo. Sin búsqueda fallida, no aparece
+           (un banner fijo se vuelve invisible a los dos días). -->
+      <div id="tipFoot" hidden>
+        <div class="tf-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        </div>
+        <div class="tf-tx">
+          <div id="tipMissTxt"></div>
+          <a href="#" id="tipPropose" data-i18n="tips_propose"></a>
+        </div>
       </div>
     </div>
   </div>
@@ -1379,9 +1422,9 @@ en:{
   tips_intro:"Short hand-written cards — no AI, no network. They update with each app release. Tap one to open it.",
   tips_filter:"Filter…",
   tips_none:"Nothing matches the filter.",
-  tips_miss:n=>n===1?"1 search with no card this month":`${n} searches with no card this month`,
+  tips_miss:q=>`No tip matches “${q}”`,
+  tips_clear:"Clear search",
   tips_propose:"Suggest them on GitHub",
-  tips_dismiss:"Dismiss",
   tips_issue_title:"Tips: searches with no card",
   tips_issue_intro:"These searches in the Tips tab matched no card. Ideas for new cards:",
   tip_clear_t:"Does /clear delete my work?",
@@ -1404,7 +1447,7 @@ en:{
   fnd_ignore:"Ignore",
   fnd_restore:n=>`Show the ${n} finding${n>1?"s":""} you hid`,
   fnd_turns:"turns",
-  fnd_est_note:"~ = estimated; the rest is measured from your logs.",
+  fnd_est_note:"Amounts marked ~ are approximate. The rest is measured straight from your logs.",
   fnd_badge_label:"Alert me on the widget (findings & tips)",
   fnd_badge_tip:n=>`New findings: ${n}`,
   pill_style_label:"Widget style",
@@ -1647,9 +1690,9 @@ es:{
   tips_intro:"Fichas cortas escritas a mano — sin IA, sin red. Se actualizan con cada versión de la app. Toca una para abrirla.",
   tips_filter:"Filtrar…",
   tips_none:"Nada coincide con el filtro.",
-  tips_miss:n=>n===1?"1 búsqueda sin ficha este mes":`${n} búsquedas sin ficha este mes`,
+  tips_miss:q=>`Ningún consejo coincide con «${q}»`,
+  tips_clear:"Borrar la búsqueda",
   tips_propose:"Proponerlas en GitHub",
-  tips_dismiss:"Descartar",
   tips_issue_title:"Consejos: búsquedas sin ficha",
   tips_issue_intro:"Estas búsquedas en la pestaña Consejos no encontraron ninguna ficha. Ideas para fichas nuevas:",
   tip_clear_t:"¿/clear borra mi trabajo?",
@@ -1672,7 +1715,7 @@ es:{
   fnd_ignore:"Ignorar",
   fnd_restore:n=>`Volver a mostrar ${n} hallazgo${n>1?"s":""} que ocultaste`,
   fnd_turns:"turnos",
-  fnd_est_note:"~ = estimado; el resto está medido de tus logs.",
+  fnd_est_note:"Los importes con ~ son aproximados. El resto está medido directamente de tus registros.",
   fnd_badge_label:"Avisarme en el widget (hallazgos y consejos)",
   fnd_badge_tip:n=>`Hallazgos nuevos: ${n}`,
   pill_style_label:"Estilo del widget",
@@ -1915,9 +1958,9 @@ pt:{
   tips_intro:"Fichas curtas escritas à mão — sem IA, sem rede. Atualizam com cada versão do app. Toque em uma para abrir.",
   tips_filter:"Filtrar…",
   tips_none:"Nada corresponde ao filtro.",
-  tips_miss:n=>n===1?"1 busca sem ficha neste mês":`${n} buscas sem ficha neste mês`,
+  tips_miss:q=>`Nenhuma dica corresponde a «${q}»`,
+  tips_clear:"Limpar a busca",
   tips_propose:"Sugerir no GitHub",
-  tips_dismiss:"Descartar",
   tips_issue_title:"Dicas: buscas sem ficha",
   tips_issue_intro:"Estas buscas na aba Dicas não encontraram nenhuma ficha. Ideias para fichas novas:",
   tip_clear_t:"O /clear apaga meu trabalho?",
@@ -1940,7 +1983,7 @@ pt:{
   fnd_ignore:"Ignorar",
   fnd_restore:n=>`Mostrar de novo ${n} achado${n>1?"s":""} que você ocultou`,
   fnd_turns:"turnos",
-  fnd_est_note:"~ = estimado; o resto foi medido dos seus logs.",
+  fnd_est_note:"Os valores com ~ são aproximados. O resto foi medido direto dos seus registros.",
   fnd_badge_label:"Avisar-me no widget (achados e dicas)",
   fnd_badge_tip:n=>`Achados novos: ${n}`,
   pill_style_label:"Estilo do widget",
@@ -2183,9 +2226,9 @@ fr:{
   tips_intro:"Fiches courtes écrites à la main — sans IA, sans réseau. Mises à jour à chaque version de l’app. Touchez-en une pour l’ouvrir.",
   tips_filter:"Filtrer…",
   tips_none:"Rien ne correspond au filtre.",
-  tips_miss:n=>n===1?"1 recherche sans fiche ce mois-ci":`${n} recherches sans fiche ce mois-ci`,
+  tips_miss:q=>`Aucun conseil ne correspond à «${q}»`,
+  tips_clear:"Effacer la recherche",
   tips_propose:"Les proposer sur GitHub",
-  tips_dismiss:"Ignorer",
   tips_issue_title:"Conseils : recherches sans fiche",
   tips_issue_intro:"Ces recherches dans l’onglet Conseils n’ont trouvé aucune fiche. Idées de nouvelles fiches :",
   tip_clear_t:"/clear efface-t-il mon travail ?",
@@ -2208,7 +2251,7 @@ fr:{
   fnd_ignore:"Ignorer",
   fnd_restore:n=>`Réafficher ${n} constat${n>1?"s":""} que vous avez masqué${n>1?"s":""}`,
   fnd_turns:"tours",
-  fnd_est_note:"~ = estimé ; le reste est mesuré depuis vos logs.",
+  fnd_est_note:"Les montants marqués ~ sont approximatifs. Le reste est mesuré directement depuis vos journaux.",
   fnd_badge_label:"M'avertir sur le widget (constats et conseils)",
   fnd_badge_tip:n=>`Nouveaux constats : ${n}`,
   pill_style_label:"Style du widget",
@@ -2451,9 +2494,9 @@ de:{
   tips_intro:"Kurze, handgeschriebene Karten — ohne KI, ohne Netz. Sie aktualisieren sich mit jeder App-Version. Zum Öffnen antippen.",
   tips_filter:"Filtern…",
   tips_none:"Nichts passt zum Filter.",
-  tips_miss:n=>n===1?"1 Suche ohne Karte in diesem Monat":`${n} Suchen ohne Karte in diesem Monat`,
+  tips_miss:q=>`Kein Tipp passt zu „${q}“`,
+  tips_clear:"Suche löschen",
   tips_propose:"Auf GitHub vorschlagen",
-  tips_dismiss:"Verwerfen",
   tips_issue_title:"Tipps: Suchen ohne Karte",
   tips_issue_intro:"Diese Suchen im Tipps-Tab fanden keine Karte. Ideen für neue Karten:",
   tip_clear_t:"Löscht /clear meine Arbeit?",
@@ -2476,7 +2519,7 @@ de:{
   fnd_ignore:"Ignorieren",
   fnd_restore:n=>`${n} ausgeblendete${n>1?" Befunde":"n Befund"} wieder anzeigen`,
   fnd_turns:"Züge",
-  fnd_est_note:"~ = geschätzt; der Rest ist aus deinen Logs gemessen.",
+  fnd_est_note:"Beträge mit ~ sind Schätzungen. Der Rest ist direkt aus deinen Logs gemessen.",
   fnd_badge_label:"Am Widget hinweisen (Befunde und Tipps)",
   fnd_badge_tip:n=>`Neue Befunde: ${n}`,
   pill_style_label:"Widget-Stil",
@@ -2719,9 +2762,9 @@ ja:{
   tips_intro:"手書きの短いカードです — AIもネットも使いません。アプリの更新ごとに新しくなります。タップで開きます。",
   tips_filter:"絞り込み…",
   tips_none:"フィルタに一致するものがありません。",
-  tips_miss:n=>`今月、カードが見つからなかった検索: ${n}件`,
+  tips_miss:q=>`「${q}」に合うヒントはありません`,
+  tips_clear:"検索を消す",
   tips_propose:"GitHubで提案する",
-  tips_dismiss:"破棄",
   tips_issue_title:"ヒント: カードのない検索",
   tips_issue_intro:"ヒントタブでの以下の検索には該当するカードがありませんでした。新しいカードの案:",
   tip_clear_t:"/clear で作業は消える？",
@@ -2744,7 +2787,7 @@ ja:{
   fnd_ignore:"無視",
   fnd_restore:n=>`非表示にした${n}件をもう一度表示`,
   fnd_turns:"ターン",
-  fnd_est_note:"~ = 推定値。それ以外はログからの実測値です。",
+  fnd_est_note:"~ が付いた金額は概算です。それ以外はログから実測した値です。",
   fnd_badge_label:"ウィジェットで知らせる（検出結果とヒント）",
   fnd_badge_tip:n=>`新しい検出結果: ${n}件`,
   pill_style_label:"ウィジェットのスタイル",
@@ -2987,9 +3030,9 @@ ko:{
   tips_intro:"손으로 쓴 짧은 카드입니다 — AI도 네트워크도 쓰지 않습니다. 앱 업데이트마다 갱신됩니다. 눌러서 여세요.",
   tips_filter:"필터…",
   tips_none:"필터와 일치하는 항목이 없습니다.",
-  tips_miss:n=>`이번 달 카드 없는 검색 ${n}건`,
+  tips_miss:q=>`«${q}»에 맞는 팁이 없어요`,
+  tips_clear:"검색 지우기",
   tips_propose:"GitHub에 제안하기",
-  tips_dismiss:"지우기",
   tips_issue_title:"팁: 카드 없는 검색",
   tips_issue_intro:"팁 탭에서 아래 검색에 해당하는 카드가 없었습니다. 새 카드 아이디어:",
   tip_clear_t:"/clear 하면 작업이 지워지나요?",
@@ -3012,7 +3055,7 @@ ko:{
   fnd_ignore:"무시",
   fnd_restore:n=>`숨긴 항목 ${n}개 다시 보기`,
   fnd_turns:"턴",
-  fnd_est_note:"~ = 추정치. 나머지는 로그에서 실측한 값입니다.",
+  fnd_est_note:"~ 표시가 있는 금액은 어림값입니다. 나머지는 로그에서 그대로 측정한 값이에요.",
   fnd_badge_label:"위젯에서 알림 (발견 항목과 팁)",
   fnd_badge_tip:n=>`새 발견 항목: ${n}개`,
   pill_style_label:"위젯 스타일",
@@ -3255,9 +3298,9 @@ zh:{
   tips_intro:"手写的简短卡片——不用 AI，不联网。随每个版本更新。点一下展开。",
   tips_filter:"筛选…",
   tips_none:"没有与筛选匹配的内容。",
-  tips_miss:n=>`本月有 ${n} 次搜索没有对应卡片`,
+  tips_miss:q=>`没有与「${q}」匹配的技巧`,
+  tips_clear:"清除搜索",
   tips_propose:"在 GitHub 上提议",
-  tips_dismiss:"忽略",
   tips_issue_title:"技巧: 无卡片的搜索",
   tips_issue_intro:"以下在技巧页的搜索没有找到对应卡片。新卡片的想法:",
   tip_clear_t:"/clear 会删掉我的工作吗？",
@@ -3280,7 +3323,7 @@ zh:{
   fnd_ignore:"忽略",
   fnd_restore:n=>`重新显示已隐藏的 ${n} 条`,
   fnd_turns:"轮",
-  fnd_est_note:"~ = 估算；其余均为日志实测。",
+  fnd_est_note:"带 ~ 的金额是估算值，其余都是直接从日志中实测得出的。",
   fnd_badge_label:"在小组件上提醒（发现与技巧）",
   fnd_badge_tip:n=>`新发现：${n} 项`,
   pill_style_label:"小组件样式",
@@ -4885,7 +4928,7 @@ function renderTips(){
       ${h?`<button class="tip-x" aria-label="✕">✕</button>`:""}
       <div class="fnd-t">${t("tip_"+id+"_t")}</div>
       ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value)} — ${donde}</div>`:""}
-      <div class="fnd-f">${t("tip_"+id+"_b")}</div>
+      <div class="fnd-f">${withCmds(t("tip_"+id+"_b"))}</div>
     </div>`;};
   for(const id of ids){ if(id in hot) live.push({born:hot[id].born||0, html:tipHtml(id)}); }
   live.sort((a,b)=>b.born-a.born);
@@ -4944,13 +4987,26 @@ $("tipFilter").addEventListener("input",renderTips);
 // compuerta del modelo-lector.
 function tipMisses(){ try{ return JSON.parse(localStorage.getItem("faqMisses")||"[]"); }catch(_){ return []; } }
 const tipMes=()=>new Date().toISOString().slice(0,7);
+// El ofrecimiento de proponer aparece cuando la búsqueda EN CURSO no
+// encuentra nada — el momento exacto en que al usuario le falta algo — y no
+// como pie permanente (Oscar 2026-08-05). El registro de búsquedas fallidas
+// del mes se mantiene: es lo que se manda en el issue, para que la propuesta
+// lleve todo lo que buscaste y no solo lo último.
 function renderTipFoot(){
-  const del=tipMisses().filter(x=>x.m===tipMes());
-  $("tipFoot").hidden=!del.length;
-  if(del.length) $("tipMissTxt").textContent=t("tips_miss",del.length);
+  const q=($("tipFilter").value||"").trim();
+  const ql=q.toLowerCase();
+  const hay = !q || TIPS.some(id=>(t("tip_"+id+"_t")+" "+t("tip_"+id+"_b")).toLowerCase().includes(ql));
+  $("tipFoot").hidden = hay;
+  if(!hay) $("tipMissTxt").textContent=t("tips_miss", q);
 }
 let missT=null;
+$("tipClear").addEventListener("click",()=>{
+  $("tipFilter").value=""; $("tipClear").hidden=true;
+  renderTips(); renderTipFoot(); $("tipFilter").focus();
+});
 $("tipFilter").addEventListener("input",()=>{
+  $("tipClear").hidden = !$("tipFilter").value;
+  renderTipFoot();
   clearTimeout(missT);
   missT=setTimeout(()=>{                       // pausa: la búsqueda terminó
     const q=($("tipFilter").value||"").trim();
@@ -4966,20 +5022,22 @@ $("tipFilter").addEventListener("input",()=>{
 });
 $("tipPropose").addEventListener("click",e=>{
   e.preventDefault();
-  const list=tipMisses().filter(x=>x.m===tipMes()).map(x=>"- "+x.q).join("\n");
+  // La búsqueda EN CURSO va siempre, aunque el registro (que espera 1.5 s
+  // de pausa) todavía no la haya guardado: si no, pulsar rápido no hacía
+  // nada. Las demás del mes la acompañan, sin repetir.
+  const now=($("tipFilter").value||"").trim();
+  const qs=[...new Set([now, ...tipMisses().filter(x=>x.m===tipMes()).map(x=>x.q)])]
+    .filter(Boolean);
+  const list=qs.map(q=>"- "+q).join("\n");
   if(!list) return;
   invoke?.("open_faq_issue",{
     title:encodeURIComponent(t("tips_issue_title")),
     body:encodeURIComponent(t("tips_issue_intro")+"\n\n"+list)});
 });
-// descartar (propuesta de Oscar 2026-07-31): quien no use GitHub cierra la
-// línea y en paz — se limpia lo del mes en curso y el pie se esconde
-$("tipDismiss").addEventListener("click",e=>{
-  e.preventDefault();
-  localStorage.setItem("faqMisses",
-    JSON.stringify(tipMisses().filter(x=>x.m!==tipMes())));
-  renderTipFoot();
-});
+// "Descartar" se retiró el 2026-08-05: el aviso ya no es un pie permanente
+// —aparece solo mientras la búsqueda no encuentra nada y se va al borrarla—,
+// así que no hay nada que cerrar. El registro de búsquedas fallidas del mes
+// sigue vivo para el issue.
 
 // ---------- motor de reglas de sesión activa (nivel 2 del doc) ----------
 // El backend sondea la COLA de los logs vivos (lectura incremental) y
@@ -5257,6 +5315,16 @@ function markFndPeriod(){
 markFndPeriod();
 function fndKey(f){ return [f.kind,f.file||f.server||f.session,f.origin||""].join("|"); }
 // título de una tarjeta — lo usan la pestaña Y el globo del día
+// Resalta los COMANDOS dentro de un texto ya traducido (Oscar 2026-08-05):
+// "/clear", "/compact"… y lo que va entre «comillas angulares», que en el
+// diccionario son siempre órdenes de terminal. El texto NO viene de fuera
+// (es del diccionario), pero se escapa igual antes de tocarlo: la regla es
+// que nada llegue a innerHTML sin pasar por escapeHtml.
+function withCmds(txt){
+  return escapeHtml(String(txt||""))
+    .replace(/(^|[\s(])(\/[a-z][a-z0-9-]*)/g, '$1<code>$2</code>')
+    .replace(/«([^»]{1,40})»/g, '<code>$1</code>');
+}
 // Icono por tipo de hallazgo (rediseño v5): se reconoce la clase de fuga
 // antes de leer el título. El COLOR lo pone la severidad, no el icono.
 const FND_ICON={
@@ -5588,7 +5656,7 @@ function renderFindings(){
             ${costHtml?`<div class="fnd-c">${costHtml}</div>`:""}
           </div>
         </div>
-        <div class="fnd-f">${t("fnd_"+f.kind.split("_")[0]+"_f")||""}</div>
+        <div class="fnd-f">${withCmds(t("fnd_"+f.kind.split("_")[0]+"_f")||"")}</div>
       </div>`;
     }).join("");
     // contraer/expandir con clic, como las fichas de Consejos (Oscar
