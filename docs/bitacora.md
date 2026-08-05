@@ -2172,3 +2172,14 @@ sesión del VPS aunque sigue viva (1727 min, 1041 turnos) — 5 minutos de
 silencio entre turnos disparan "done" una vez por sesión, igual que en
 local con una pausa larga. Semántica asumida del diseño, no bug: el
 banderín notified impide que se repita.
+- CAMPANA/POST-IT ROJO VALIDADOS EN VIVO (2026-08-05, tras re-armar
+  fndSeen/fndAutoLast por consola): post-it rojo "9+" en el gatito,
+  contador 5 en la pestaña, "fnd: AVISO ENCENDIDO" en la bitácora. Con
+  esto TODO el sistema de avisos (rojo y turquesa, gatito y pastilla,
+  panel y pushes) queda comprobado de punta a punta con datos reales.
+- MARCO FANTASMA del panel (lo vio Oscar): la ventana es fija (no puede
+  redimensionarse en vivo — regla de las transparentes) y el panel medía
+  su contenido: pestañas cortas dejaban un hueco TRANSPARENTE debajo que
+  enseñaba lo de atrás. Arreglo: .panel pasa de max-height a HEIGHT — 
+  llena siempre la ventana con fondo sólido; lo corto deja espacio vacío
+  interior (intencional) y lo largo sigue con scroll interno.

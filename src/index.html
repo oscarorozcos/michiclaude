@@ -99,7 +99,13 @@
      pone el eje X en "auto" también, y cualquier cosa un pelo más ancha
      —la fila de pestañas en un idioma largo— sacaba una barra horizontal
      al pie del panel (visto 2026-08-01). Nada del panel se lee de lado. */
-  .panel{max-height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+  /* ALTURA FIJA, no máxima (Oscar 2026-08-05): la ventana no puede
+     redimensionarse en vivo (regla de las transparentes) y con max-height
+     las pestañas cortas dejaban un hueco transparente por debajo — un
+     "marco fantasma" que cambiaba con cada pestaña. Con height, el panel
+     llena siempre la ventana con su fondo sólido y el hueco desaparece;
+     el contenido largo sigue con scroll interno. */
+  .panel{height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
 
   .panel{
     background:var(--mica);border-radius:var(--r-lg);
