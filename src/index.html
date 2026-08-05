@@ -194,7 +194,7 @@
   .sect.hero-sect{position:relative;overflow:hidden;
     background:linear-gradient(150deg,#232A55 0%,#33296A 55%,#1E2547 100%);
     border:1px solid rgba(164,140,255,.25);border-radius:var(--r-lg);
-    padding:14px;margin-top:0;
+    padding:14px 14px 16px;margin-top:0;
     /* Sobre el violeta, los grises de la app quedan apagados: el hero
        REDEFINE los tonos de texto y todo lo de dentro (barras, resets,
        etiquetas) los hereda sin tocar sus reglas. Subidos el 2026-08-05
@@ -204,11 +204,17 @@
     background:linear-gradient(150deg,#E9EBFB 0%,#EFE8FB 55%,#E6EAFA 100%);
     border-color:rgba(91,95,224,.28);
     --txt-mut:#333C63; --txt-dim:#4E5780}
-  /* etiquetas y cifras de las barras semanales, con más peso */
-  .hero-sect .bar-row .lbl{font-weight:600}
-  .hero-sect .bar-row .lbl b{font-weight:800;color:var(--txt)}
-  .hero-sect .bar-row .rst{font-size:11px}
-  .hero-sect .bar-row .rst.pctv{font-size:12px;font-weight:700;color:var(--txt)}
+  /* Jerarquía de las barras semanales (afinada con Oscar 2026-08-05): en
+     NEGRITA solo lo que la merece —el nombre del bucket y su %—; el ritmo
+     y los resets, en peso normal. Line-height holgado y wrap permitido:
+     "Reset en 47 h 52 min" se cortaba al no caber en una línea. */
+  .hero-sect .bar-row .lbl{font-weight:600;color:var(--txt)}
+  .hero-sect .bar-row .rst{font-size:10.5px;font-weight:400;line-height:1.55}
+  .hero-sect .bar-row .rst.pctv{font-size:11.5px;font-weight:600;color:var(--txt)}
+  /* la fila de abajo (ritmo + reset) puede repartirse en dos líneas en vez
+     de comprimirse hasta cortarse */
+  .hero-sect .bar-row .brow-top{flex-wrap:wrap;gap:0 8px}
+  .hero-sect .bar-row .brow-top .rst{white-space:normal;overflow-wrap:anywhere}
   .sect.hero-sect::before{content:"";position:absolute;top:-40%;right:-18%;
     width:240px;height:240px;pointer-events:none;
     background:radial-gradient(circle,rgba(164,107,255,.30),transparent 65%)}
@@ -240,7 +246,7 @@
     letter-spacing:1.1px;text-transform:uppercase;color:var(--txt-dim)}
   .g-reset{font-family:var(--mono);font-size:10px;color:var(--txt-mut);margin-top:3px}
 
-  .stack{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+  .stack{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
   .bar-row .brow-top{display:flex;justify-content:space-between;align-items:baseline;
     gap:8px;min-width:0;font-size:11.5px;margin-bottom:5px}
   .bar-row .brow-top.wrap{flex-wrap:wrap;gap:2px 8px}
