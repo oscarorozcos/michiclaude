@@ -209,8 +209,12 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
    No inventar "MAX 5×".
 8. NUNCA poner una cifra donde no se puede calcular. La fila "claude.ai /
    otros" se ELIMINÓ (el desglose no es calculable: gasto local en $ y
-   cuota en %); en su lugar la nota `spend_only_cc`. Con ventana de 1 día
-   el pie oculta la segunda cifra (sería el mismo número dos veces).
+   cuota en %); en su lugar la nota `spend_only_cc`. El total de la
+   VENTANA vive en la cabecera de "gasto por proyecto" desde 2026-08-05
+   (es la suma de esa lista y cambia con el selector; en el pie obligaba a
+   bajar hasta abajo para ver el efecto del filtro) y el pie queda solo
+   con "Hoy"; con ventana de 1 día ese total de la cabecera se OCULTA —
+   sería el mismo número que "Hoy" con otro nombre.
 9. No tocar `README.md`, `.github/workflows/release.yml` ni
    `app-icon.png` salvo petición explícita. (El token de este entorno no
    puede tocar workflows — eso lo hace Oscar desde la web.)

@@ -372,6 +372,13 @@
     margin-top:10px;padding:14px;border-radius:var(--r-lg);
     background:linear-gradient(135deg,var(--card),var(--card-hi));
     border:1px solid var(--stroke-soft)}
+  /* total de la ventana, bajo el encabezado de "gasto por proyecto" */
+  .spendtot{display:flex;align-items:baseline;gap:9px;margin:-2px 0 13px}
+  .spendtot b{font-family:var(--disp);font-size:22px;font-weight:800;
+    letter-spacing:-.5px;color:var(--txt)}
+  .spendtot span{font-size:10px;font-weight:700;letter-spacing:1.1px;
+    text-transform:uppercase;color:var(--txt-dim)}
+
   .totals{display:flex;gap:20px}
   .totals .t{font-size:10px;color:var(--txt-dim);text-transform:uppercase;
     letter-spacing:1.1px;font-weight:700}
@@ -624,6 +631,13 @@
   <div class="sect">
     <div class="eyebrow"><span data-i18n="spend_title"></span>
       <span class="q"><select id="daysSel" class="dsel"><option value="1">1 d</option><option value="7">7 d</option><option value="15">15 d</option><option value="30">30 d</option></select> · <span data-i18n="spend_q" data-i18n-title="spend_tip" style="cursor:help;border-bottom:1px dotted var(--txt-dim)"></span><span id="priceWarn" hidden style="cursor:pointer;color:var(--warn);margin-left:5px">&#9888;</span></span></div>
+    <!-- Total de la VENTANA elegida, junto a su selector (Oscar 2026-08-05):
+         es la suma de la lista de abajo y cambia con el filtro, así que
+         estaba mal al final del panel — había que bajar hasta el pie para
+         ver el efecto de cambiar de periodo. Conserva los ids de siempre
+         (winTot/winLbl/costWeek): la lógica que lo llena y lo oculta con
+         ventana de 1 día no se toca. -->
+    <div class="spendtot" id="winTot"><b id="costWeek">–</b><span id="winLbl"></span></div>
     <div class="plist" id="plist"></div>
     <div class="cfg-note" style="margin:8px 0 0" data-i18n="spend_only_cc"></div>
   </div>
@@ -889,7 +903,6 @@
   <div class="p-foot" id="pFoot">
     <div class="totals">
       <div class="t"><span data-i18n="today"></span><b id="costToday">–</b></div>
-      <div class="t" id="winTot"><span id="winLbl"></span><b id="costWeek">–</b></div>
     </div>
     <div class="foot-note" data-i18n="footnote"></div>
   </div>
@@ -3860,9 +3873,11 @@ if(![1,7,15,30].includes(curDays)) curDays=7;
 function markDays(){
   $("daysSel").value=String(curDays);
   // "Hoy" son las últimas 24 h y la ventana de 1 día también: enseñar la
-  // misma cifra dos veces con dos nombres parece un error de la app.
+  // misma cifra dos veces con dos nombres parece un error de la app. Con
+  // 1 d se calla el total de la cabecera y queda el "Hoy" del pie, que
+  // dice exactamente lo mismo (invariante #8, ahora en su sitio nuevo).
   $("winTot").hidden = (curDays===1);
-  // la etiqueta del pie refleja la ventana activa, no siempre "semana"
+  // la etiqueta refleja la ventana activa, no siempre "semana"
   const w=$("winLbl"); if(w) w.textContent = curDays===7 ? t("week") : curDays+"d";
 }
 $("daysSel").addEventListener("change",()=>{
