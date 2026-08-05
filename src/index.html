@@ -114,9 +114,9 @@
   .p-top{position:sticky;top:0;z-index:5;background:var(--mica);
     margin:0 -15px;padding:15px 15px 12px}
   body.light .panel{box-shadow:0 32px 80px -26px rgba(30,40,60,.4),0 0 0 1px var(--stroke)}
-  .p-head{display:flex;align-items:center;gap:11px;margin-bottom:13px;
-    cursor:grab;user-select:none;-webkit-user-select:none}
-  .p-head:active{cursor:grabbing}
+  #pHead{cursor:grab;user-select:none;-webkit-user-select:none;margin-bottom:12px}
+  #pHead:active{cursor:grabbing}
+  .p-head{display:flex;align-items:center;gap:11px}
   .p-head button{cursor:pointer}
   /* logo en cajita redondeada (maqueta v5); el SVG de siempre adentro */
   .p-head .avatar{width:40px;height:40px;border-radius:13px;flex:0 0 auto;
@@ -126,11 +126,13 @@
   .p-htext{min-width:0;flex:1 1 auto}
   .p-title{font-family:var(--disp);font-size:15px;font-weight:700;letter-spacing:-.2px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  /* Una sola línea (Oscar 2026-08-05): se recorta con puntos suspensivos
-     antes que partirse en dos. El texto entero sigue en el title. */
-  .p-sub{font-size:10.5px;color:var(--txt-dim);font-family:var(--mono);margin-top:3px;
-    display:flex;align-items:center;gap:6px;transition:opacity .2s;min-width:0}
-  .p-sub #syncTxt{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* A TODO EL ANCHO y sin recortes: los mensajes de error son largos y hay
+     que leerlos completos; si no caben, pasan a la línea siguiente. */
+  .p-sub{font-size:10.5px;color:var(--txt-dim);font-family:var(--mono);margin-top:9px;
+    display:flex;align-items:flex-start;gap:7px;transition:opacity .2s;
+    min-width:0;line-height:1.45}
+  .p-sub .live{margin-top:4px}
+  .p-sub #syncTxt{min-width:0;white-space:normal;overflow-wrap:anywhere}
   .p-sub .live{flex:0 0 auto}
   .live{width:7px;height:7px;border-radius:50%;background:var(--ok);
     box-shadow:0 0 0 0 rgba(63,214,143,.6);animation:pulse 2.4s infinite}
@@ -557,15 +559,22 @@
     <span id="updMsg" style="flex:1 1 auto;min-width:0"></span>
     <button id="updBtn"></button>
   </div>
-  <div class="p-head" id="pHead">
-    <span class="avatar"><span class="mark" id="mark"></span></span>
-    <div class="p-htext">
-      <div class="p-title">MichiClaude</div>
-      <div class="p-sub" id="syncLine"><span class="live" id="liveDot"></span><span id="syncTxt"></span></div>
+  <!-- El estado va en su PROPIA línea, a todo el ancho (Oscar 2026-08-05):
+       encajado junto al título se recortaba, y los mensajes de error largos
+       ("La API limitó las peticiones…") son justo los que hay que leer
+       enteros. El id de arrastre pasa al envoltorio para no perder la zona
+       de agarre. -->
+  <div id="pHead">
+    <div class="p-head">
+      <span class="avatar"><span class="mark" id="mark"></span></span>
+      <div class="p-htext">
+        <div class="p-title">MichiClaude</div>
+      </div>
+      <span class="plan" id="planTag">—</span>
+      <button class="xbtn" id="themeBtn">◐</button>
+      <button class="xbtn" id="hideBtn">✕</button>
     </div>
-    <span class="plan" id="planTag">—</span>
-    <button class="xbtn" id="themeBtn">◐</button>
-    <button class="xbtn" id="hideBtn">✕</button>
+    <div class="p-sub" id="syncLine"><span class="live" id="liveDot"></span><span id="syncTxt"></span></div>
   </div>
 
   <div class="tabs">
