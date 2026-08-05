@@ -423,7 +423,14 @@ hacer público el repo (o sus releases).
       pantalla). S2 hero de Principal implementada (anillo con el mismo
       truco pathLength=100 — JS del medidor intacto salvo la clase warn
       de remQ —, ritmo unificado dentro del hero, eyebrow "A este ritmo"
-      retirado a propósito por la maqueta): POR VALIDAR con captura.
+      retirado a propósito por la maqueta). AJUSTES pedidos por Oscar
+      sobre S2 (2026-08-05, con capturas): el anillo COMPLETO se encimaba
+      con el reset → vuelve al MEDIO anillo de siempre (misma geometría y
+      pathLength); y el texto de las barras se veía apagado sobre el
+      violeta → el hero REDEFINE --txt-mut/--txt-dim localmente (todo lo
+      de dentro hereda sin repintar reglas) y el % lleva clase `pctv` con
+      más peso. REGLA NUEVA del rediseño: toda tarjeta con fondo propio
+      redefine esos dos tonos en vez de tocar sus hijos uno por uno.
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
       umbral, 100%, ventana nueva reconocida por trackResets/
       windowChanged), camino completo ntfy (push de alarma real, 100%, el

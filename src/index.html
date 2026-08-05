@@ -194,10 +194,21 @@
   .sect.hero-sect{position:relative;overflow:hidden;
     background:linear-gradient(150deg,#232A55 0%,#33296A 55%,#1E2547 100%);
     border:1px solid rgba(164,140,255,.25);border-radius:var(--r-lg);
-    padding:14px;margin-top:0}
+    padding:14px;margin-top:0;
+    /* Sobre el violeta, los grises de la app quedan apagados: el hero
+       REDEFINE los tonos de texto y todo lo de dentro (barras, resets,
+       etiquetas) los hereda sin tocar sus reglas. Subidos el 2026-08-05
+       a petición de Oscar. */
+    --txt-mut:rgba(234,240,255,.90); --txt-dim:rgba(234,240,255,.70)}
   body.light .sect.hero-sect{
     background:linear-gradient(150deg,#E9EBFB 0%,#EFE8FB 55%,#E6EAFA 100%);
-    border-color:rgba(91,95,224,.28)}
+    border-color:rgba(91,95,224,.28);
+    --txt-mut:#333C63; --txt-dim:#4E5780}
+  /* etiquetas y cifras de las barras semanales, con más peso */
+  .hero-sect .bar-row .lbl{font-weight:600}
+  .hero-sect .bar-row .lbl b{font-weight:800;color:var(--txt)}
+  .hero-sect .bar-row .rst{font-size:11px}
+  .hero-sect .bar-row .rst.pctv{font-size:12px;font-weight:700;color:var(--txt)}
   .sect.hero-sect::before{content:"";position:absolute;top:-40%;right:-18%;
     width:240px;height:240px;pointer-events:none;
     background:radial-gradient(circle,rgba(164,107,255,.30),transparent 65%)}
@@ -217,15 +228,17 @@
     border-color:rgba(181,126,9,.32)}
 
   .hero{display:flex;gap:14px;align-items:center;position:relative}
-  .gauge{width:118px;flex:0 0 auto;position:relative}
-  .gauge svg{width:118px;height:118px;display:block;transform:rotate(-90deg)}
+  /* MEDIO anillo, no completo: el círculo entero se encimaba con el reset
+     (Oscar 2026-08-05). Se conserva la geometría original del semicírculo
+     —y con ella el truco pathLength=100 del JS—, con la tipografía nueva. */
+  .gauge{width:132px;flex:0 0 auto;position:relative;text-align:center}
+  .gauge svg{width:132px;height:78px;display:block}
   #gFill{transition:stroke-dashoffset .6s,stroke .3s}
-  .g-c{position:absolute;inset:0;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;text-align:center}
-  .g-val{font-weight:800;font-size:25px;letter-spacing:-.5px;line-height:1}
-  .g-cap{font-size:8.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
-    color:var(--txt-dim);margin-top:3px}
-  .g-reset{font-family:var(--mono);font-size:9.5px;color:var(--txt-mut);margin-top:4px}
+  .g-val{position:absolute;left:0;right:0;top:36px;font-weight:800;
+    font-size:26px;letter-spacing:-.5px;line-height:1}
+  .g-cap{position:absolute;left:0;right:0;top:64px;font-size:8.5px;font-weight:700;
+    letter-spacing:1.1px;text-transform:uppercase;color:var(--txt-dim)}
+  .g-reset{font-family:var(--mono);font-size:10px;color:var(--txt-mut);margin-top:3px}
 
   .stack{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
   .bar-row .brow-top{display:flex;justify-content:space-between;align-items:baseline;
@@ -487,16 +500,14 @@
     <div class="eyebrow"><span data-i18n="quota_title"></span> <span class="q" id="remQ"></span></div>
     <div class="hero">
       <div class="gauge">
-        <svg viewBox="0 0 118 118">
-          <circle cx="59" cy="59" r="50" fill="none" stroke="var(--track)" stroke-width="10"/>
-          <circle id="gFill" cx="59" cy="59" r="50" fill="none" stroke="var(--ok)" stroke-width="10"
+        <svg viewBox="0 0 132 78">
+          <path d="M 14 72 A 52 52 0 0 1 118 72" fill="none" stroke="var(--track)" stroke-width="11" stroke-linecap="round"/>
+          <path id="gFill" d="M 14 72 A 52 52 0 0 1 118 72" fill="none" stroke="var(--ok)" stroke-width="11"
                 stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
         </svg>
-        <div class="g-c">
-          <div class="g-val" id="sesVal">–</div>
-          <div class="g-cap" data-i18n="session_cap"></div>
-          <div class="g-reset" id="sesReset"></div>
-        </div>
+        <div class="g-val" id="sesVal">–</div>
+        <div class="g-cap" data-i18n="session_cap"></div>
+        <div class="g-reset" id="sesReset"></div>
       </div>
       <div class="stack" id="weekStack"><!-- barras semanales dinámicas --></div>
     </div>
@@ -3313,7 +3324,7 @@ function renderQuota(data){
     const pace=elapsedPct(b.resets,168), c=col(b.pct,pace);
     return `<div class="bar-row ${hero?'':'mini'}">
       <div class="brow-top"><span class="lbl">${escapeHtml(b.label)}</span>
-        <span class="rst">${b.pct}%</span></div>
+        <span class="rst pctv">${b.pct}%</span></div>
       <div class="track"><div class="fill" style="width:${b.pct}%;background:${c}"></div>
         ${pace!=null?`<div class="pace" style="left:${pace}%"></div>`:""}</div>
       ${hero?`<div class="brow-top wrap" style="margin-top:4px;margin-bottom:0">
