@@ -1856,3 +1856,187 @@ de idioma no los repinta — la UI cambió a alemán y el error siguió en
 español. Arreglo: applyI18n limpia rMsg al cambiar idioma (un transitorio
 en el idioma viejo confunde más de lo que informa). Contenedor y llaves de
 prueba eliminados al cerrar.
+
+
+---
+
+## Ronda de rediseño UX/UI (2026-08-05) — detalle completo
+
+Se movió aquí desde CLAUDE.md el mismo día, al pasar ese archivo de los
+40k caracteres que Claude Code carga (la regla que vigila el detector 10;
+nos volvió a pasar en carne propia). En CLAUDE.md queda el contrato de la
+ronda y los invariantes; el porqué de cada sección vive aquí.
+
+- [ ] EN CURSO (desde 2026-08-05): ronda de REDISEÑO UX/UI sobre la
+      maqueta de Oscar (docs/rediseno-v5.html). RESPALDO COMPLETO del
+      estado anterior en el tag `pre-rediseno-20260805` (recuperar:
+      `git checkout pre-rediseno-20260805`; comparar: `git diff`).
+      CONTRATO DEL REDISEÑO (pedido de Oscar): (1) SOLO reacomodo y
+      estética — cero pérdida de funcionalidad, textos, mensajes de
+      error, confirmaciones, campos o iconos; (2) sección por sección
+      del menú, nunca todo a la vez; (3) toda NOVEDAD funcional de la
+      maqueta se consulta con Oscar ANTES de implementarla; (4) si algo
+      del diseño choca con un invariante, avisar antes. CHOQUES YA
+      DETECTADOS en la maqueta (resolver al portar): fuentes de Google
+      (viola CSP/privacidad — van embebidas o tipografía del sistema),
+      textos hardcodeados en español (todo pasa por t(), invariante
+      #10), buckets y modelos hardcodeados (render dinámico, invariante
+      #6), selector de idiomas con Italiano y sin 中文 (son 8 fijos), el
+      GATITO desaparecido del selector de estilo y sin sus selectores de
+      arte/globos, capa sin la opción "Detrás", Consejos sin las
+      tarjetas VIVAS del coach, Hallazgos sin "volver a mostrar", pie
+      sin la cifra Semana, ntfy sin interruptor maestro opt-in, y
+      "Simular estados" ausente. Después del rediseño: el resto de
+      pendientes en orden.
+      AVANCE: S1 encabezado+pestañas+paleta base VALIDADA por Oscar
+      (capturas 2026-08-05; decisiones: tipografía del SISTEMA se queda —
+      sin fuentes web —, y el contraste del degradado aprobado en
+      pantalla). S2 hero de Principal implementada (anillo con el mismo
+      truco pathLength=100 — JS del medidor intacto salvo la clase warn
+      de remQ —, ritmo unificado dentro del hero, eyebrow "A este ritmo"
+      retirado a propósito por la maqueta). AJUSTES pedidos por Oscar
+      sobre S2 (2026-08-05, con capturas): el anillo COMPLETO se encimaba
+      con el reset → vuelve al MEDIO anillo de siempre (misma geometría y
+      pathLength); y el texto de las barras se veía apagado sobre el
+      violeta → el hero REDEFINE --txt-mut/--txt-dim localmente (todo lo
+      de dentro hereda sin repintar reglas) y el % lleva clase `pctv` con
+      más peso. REGLA NUEVA del rediseño: toda tarjeta con fondo propio
+      redefine esos dos tonos en vez de tocar sus hijos uno por uno.
+      Y el acomodo definitivo de las barras (Oscar 2026-08-05): nombre +
+      % en UNA línea, y debajo `.bmeta` con un dato por línea TODOS a la
+      izquierda — el reset de las filas mini se iba a la derecha y
+      rompía la alineación.
+- TIPOGRAFÍA (2026-08-05, Oscar la pidió embebida): Inter (texto), Sora
+  (`--disp`: títulos y cifras grandes) y JetBrains Mono (`--mono`) viven
+  en `src/fonts/` — woff2 variable, subconjuntos latin y latin-ext, 238 KB,
+  licencia OFL con su copia en `fonts/LICENSES.md` (obligatoria al
+  redistribuir). NUNCA se piden a un CDN: rompería la CSP y la promesa de
+  privacidad, y un fallo del servidor dejaría la app sin tipografía. Sin
+  glifos CJK: en ja/ko/zh la pila cae sola al sistema — por eso los
+  respaldos de --font/--mono se conservan enteros. Se aplican SOLO donde
+  Oscar lo indique, sección por sección (por ahora: todo el panel hereda
+  Inter/JetBrains, y --disp está en el título y el % del medidor).
+- S3 GASTO POR PROYECTO (2026-08-05): filas con AVATAR de iniciales
+  (`projInitials`: primera letra de la primera palabra + primera de la
+  última — "claude-code-meter"→CM, "MichiClaude"→MC; con una sola palabra,
+  sus dos primeras letras), nombre + chip de origen, barrita bajo el
+  nombre e importe a la derecha. El avatar hereda el color de PALETTE de
+  su barra (el color sigue identificando al proyecto) y su fondo es una
+  CAPA a opacidad, NO `color-mix()` — esa función es demasiado reciente
+  para darla por segura en WebView2. "Más proyectos (N)" pasa a enlace:
+  ya existía y ya desplegaba (projOpen), solo cambió de aspecto.
+- S4 TENDENCIA + MODELOS + PIE (2026-08-05): barras de tendencia con
+  degradado, esquinas redondeadas y el DÍA MÁS CARO destacado en violeta
+  con halo (clase `top`, nueva; `today` y `zero` intactas — el día sin
+  actividad sigue siendo hueco, no barra de valor cero). Modelos: barra
+  segmentada en cápsula con separación entre tramos y leyenda en píldoras
+  (el nombre del modelo va en `<em>` para destacarlo del %; sigue saliendo
+  de prettyModel, invariante #6). Pie: tarjeta con degradado y las cifras
+  en --disp a 22px.
+- BUG DEL REDISEÑO (2026-08-05, lo vio Oscar en captura): la lista de
+  proyectos salió descuadrada —avatar e importe a la izquierda, nombre a
+  la derecha— porque en CSS Grid los hijos que fijan su fila se colocan
+  ANTES que los automáticos, y el nombre acababa en la 3ª columna. Se
+  rehízo con FLEX + envoltorio `.ptx`, como la maqueta. REGLA: en filas
+  con "algo que ocupa dos líneas" a los lados, flex antes que grid.
+- CONTENEDOR BASE: `.sect` deja de ser un bloque separado por línea y pasa
+  a ser TARJETA con fondo (--card, radio r-lg). Es transversal a
+  propósito, como la paleta: da el lenguaje visual a todas las pestañas de
+  una vez y el contenido de cada una se sigue rediseñando por turnos. El
+  selector de periodo (.dsel) pasa a cajita con borde — plano sobre la
+  tarjeta se perdía.
+- S5 FILTROS DE LA TARJETA DE GASTO (2026-08-05, dos maquetas de Oscar).
+  El `<select>` de periodos DESAPARECIÓ: ahora hay dos disparadores
+  gemelos en el encabezado (embudo = proyectos, calendario = fechas) que
+  abren POPOVERS FLOTANTES con velo — `position:fixed` a propósito: el
+  panel tiene scroll propio y dentro de él se irían con el scroll.
+  Cancelar / ✕ / velo / Esc REVIERTEN (foto del estado al abrir); solo
+  Aplicar confirma.
+  · FECHAS: presets (Hoy/7/15/30) DENTRO del calendario — "Hoy" ES el
+    periodo de 1 día, no un botón aparte — más rango libre a dos clics
+    (si se elige al revés se ordena solo). Rejilla de 42 celdas con los
+    días vecinos en gris, punto turquesa en hoy, tope 90 días con aviso;
+    ni futuro ni más allá de esos 90. Calendario DIBUJADO A MANO
+    (invariante #4) y meses/días desde `Intl` con el idioma activo.
+    Estado: `curDays` (preset) o `spendRange` (rango libre) en
+    localStorage — nunca los dos a la vez.
+  · PROYECTOS: filtro solo de FRONTEND (la lista ya viene agregada; con
+    filtro el total pasa a ser la suma de los elegidos y por eso lleva
+    etiqueta "2 de 8 proyectos" — una cifra sin decir de qué es sería
+    justo lo que prohíbe el invariante #8). Conjunto VACÍO = todos, nunca
+    "ninguno" por accidente. Buscador, "Todos", contador en el botón y
+    CHIPS en la tarjeta para quitar uno a uno o todos. Persiste en
+    `projFilter`. Con filtro se enseñan todos los elegidos aunque
+    vinieran de la cola plegada.
+  · El PIE "Hoy" del final del panel se ELIMINÓ (Oscar 2026-08-05): decía
+    lo mismo que el total de arriba en cuanto el periodo era hoy. Su
+    contenido —la cifra grande y la nota de privacidad— vive ahora en la
+    caja del total, dentro de la tarjeta de gasto. CONSECUENCIA ASUMIDA:
+    con un periodo que no sea hoy ya no se ve el gasto del día suelto; la
+    cifra que manda es la del periodo elegido, que es lo que se está
+    mirando (`cost_today` sigue llegando del backend por si vuelve a
+    hacer falta).
+  · "Borrar" del calendario vuelve al valor por DEFECTO (hoy) y CIERRA:
+    dejarlo vacío obligaba a elegir algo para poder salir, y cerrar sin
+    elegir mantenía el periodo anterior — justo el que se quería borrar.
+  · Los controles viven en su PROPIA fila alineada a la izquierda: colgados
+    del título se descolocaban al pasar el título a dos líneas.
+  · Orden de Principal: cuota → gasto → MODELO MÁS USADO → tendencia
+    (intercambiadas las dos últimas a petición de Oscar).
+  TRADUCCIÓN SIN DICCIONARIO: los nombres de mes y día salen de
+  `Intl.DateTimeFormat(lang)` — los 8 idiomas funcionan sin ampliar I18N
+  (solo Hoy/Borrar/Aplicar/avisos están en el diccionario). El primer día
+  de la semana es lunes salvo en en/ja/ko/zh.
+  LÍMITE HONESTO: con rango, las máquinas del HUB quedan FUERA (sus fotos
+  son de ventanas que terminan hoy y nadie puede recortarlas); Rust lo
+  marca con `hub_skipped` y el panel lo dice en pantalla — callarlo sería
+  enseñar un total incompleto (invariante #8). Tampoco se SUBE foto al
+  hub mientras hay rango: envenenaría lo que leen las demás máquinas.
+  "Hoy" y la serie diaria de 30 días siguen ancladas a AHORA a propósito.
+  BUG cazado en la prueba: en Python faltaba el corte superior y el rango
+  devolvía todo hasta hoy. Verificación que lo destapó y que conviene
+  repetir si se toca esto: dos rangos contiguos de 7 días deben sumar
+  EXACTAMENTE la ventana de 14 (dio 0.0000 de diferencia).
+- S6 FUENTES DE DATOS (2026-08-05): las cuatro fuentes pasan de lista de
+  viñetas a REJILLA DE TARJETAS con icono (se entienden de un vistazo).
+  Sus textos salieron del `cfg_note` viejo partiéndolo automáticamente en
+  `src1_t/src1_d`…`src4_t/src4_d` ×8 idiomas — sin reescribir traducciones
+  a mano. Formulario con campos más altos y foco en acento; botón primario
+  en degradado y secundarios (hub/export) en tono apagado. Servidor
+  guardado = tarjeta con icono, no fila con línea.
+  Y AJUSTES COMPARTIDOS SE MUDA a la pestaña Ajustes (petición de Oscar):
+  es un ajuste, no una fuente; solo DEPENDE de un servidor. Como allí no
+  se ve la lista, aparece un aviso ámbar (`hub_cfg_needsrv`) cuando no hay
+  ninguno — antes el contexto lo daba estar debajo de la lista.
+- S7 HALLAZGOS (2026-08-05): el encabezado del analizador queda en su
+  tarjeta y las tarjetas de hallazgo van SUELTAS debajo (una tarjeta
+  dentro de otra se leía como un cajón). Cada hallazgo estrena ICONO por
+  tipo (`FND_ICON`: rayo=cachebreak, gráfico=inflate, hoja=reread,
+  terminal=mech, nodos=subagents, enchufe=mcp…) en cuadrito con el color
+  de la SEVERIDAD, importe destacado y unidades apagadas, e "Ignorar"
+  como píldora en la esquina. El borde izquierdo de color se retiró: con
+  fondo de tarjeta y el icono ya coloreado, sobraba.
+  OJO al tocar esto: las fichas de CONSEJOS comparten el molde `.fnd`
+  (variante `.tip`) — cualquier cambio en .fnd/.fnd-t/.fnd-f les llega
+  también, y por eso tienen sus propios overrides.
+  · El SELECTOR de Hallazgos pasa al MISMO calendario del gasto: el
+    popover es UNO SOLO y `calTarget` ("spend"/"fnd") decide a quién
+    aplica lo elegido; Hallazgos guarda su par en `fndDays`/`fndRange`.
+    Para que el rango sea de verdad, `get_findings` acepta `end` y el
+    analizador (Rust Y Python, invariante #1) gana CORTE SUPERIOR en sus
+    tres filtros de ventana — sin él el rango devolvía todo hasta hoy,
+    la misma mordida que ya pasó en el gasto. "Borrar" vuelve a HOY en el
+    destino que esté abierto. Regresión verificada: sin rango, hallazgos
+    y costes idénticos a la versión anterior.
+  · PIE en dos piezas: el enlace de recuperar lo ignorado ARRIBA y
+    destacado en acento (antes se perdía dentro de una línea gris), con
+    el número dentro de la frase ("Volver a mostrar 2 hallazgos que
+    ocultaste" — `fnd_restore` pasa a función; `fnd_hidden` se retiró) y
+    la nota del "~" debajo en gris.
+- ANCHO DEL PANEL 400 → 446 (2026-08-05): lo cazó Oscar comparando con la
+  maqueta — a 400 px los textos se apretaban ("Semanal · todos los …"
+  cortado con puntos suspensivos, el ritmo partido en dos líneas). 446 =
+  los 430 de la maqueta + los 8 px de padding del body por lado.
+  `position_panel` usa `outer_size()`, así que el flyout se recoloca solo;
+  no hay ningún ancho hardcodeado en Rust. Cambia tauri.conf.json → hay
+  que RECOMPILAR para verlo.
