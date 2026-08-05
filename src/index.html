@@ -486,18 +486,23 @@
   /* aviso de que las máquinas del hub no entran en un rango */
   .hubnote{font-size:10px;color:var(--warn);line-height:1.45;margin-top:8px}
 
-  /* total de la ventana, bajo el encabezado de "gasto por proyecto" */
-  .spendtot{display:flex;align-items:baseline;gap:9px;margin:-2px 0 13px}
-  .spendtot b{font-family:var(--disp);font-size:22px;font-weight:800;
-    letter-spacing:-.5px;color:var(--txt)}
-  .spendtot span{font-size:10px;font-weight:700;letter-spacing:1.1px;
-    text-transform:uppercase;color:var(--txt-dim)}
+  /* fila de controles del gasto: alineada a la IZQUIERDA y con salto
+     limpio si no cabe (antes colgaban del título y se descolocaban) */
+  .spendbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:11px}
+  .spendbar .sb-est{font-family:var(--mono);font-size:11px;color:var(--txt-mut)}
+  /* caja del TOTAL del periodo, con la nota de privacidad al lado */
+  .spendtot{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:linear-gradient(135deg,var(--card-hi),var(--card));
+    border:1px solid var(--stroke-soft);border-radius:var(--r-md);
+    padding:12px 14px;margin-bottom:12px}
+  .spendtot .st-l{min-width:0}
+  .spendtot .st-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.1px;
+    text-transform:uppercase;color:var(--txt-dim);margin-bottom:3px;
+    overflow-wrap:anywhere}
+  .spendtot b{font-family:var(--disp);font-size:23px;font-weight:800;
+    letter-spacing:-.5px;color:var(--txt);display:block}
+  .spendtot .foot-note{margin:0;flex:0 1 auto}
 
-  .totals{display:flex;gap:20px}
-  .totals .t{font-size:10px;color:var(--txt-dim);text-transform:uppercase;
-    letter-spacing:1.1px;font-weight:700}
-  .totals .t b{display:block;font-family:var(--disp);font-size:22px;font-weight:800;
-    letter-spacing:-.5px;color:var(--txt);margin-top:3px}
   .foot-note{font-size:9.5px;color:var(--txt-dim);max-width:175px;text-align:right;line-height:1.5}
   .errbox{font-size:11.5px;color:var(--warn);line-height:1.4;padding:6px 0}
 
@@ -750,25 +755,33 @@
   </div>
 
   <div class="sect">
-    <div class="eyebrow"><span data-i18n="spend_title"></span>
-      <span class="q">
-        <!-- Filtro de PROYECTOS y filtro de FECHAS: dos disparadores
-             gemelos (maqueta de Oscar 2026-08-05). Sustituyen al antiguo
-             <select> de periodos, que ahora vive como "presets" dentro
-             del propio calendario: un solo sitio donde elegir cuándo. -->
-        <button class="trig" id="projBtn" data-i18n-title="pf_title">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
-          <span class="chev">⌄</span>
-          <span class="tbadge" id="projBadge" hidden>0</span>
-        </button>
-        <button class="trig" id="calBtn" data-i18n-title="cal_open">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          <span id="calLbl">—</span>
-          <span class="chev">⌄</span>
-        </button>
-        · <span data-i18n="spend_q" data-i18n-title="spend_tip" style="cursor:help;border-bottom:1px dotted var(--txt-dim)"></span><span id="priceWarn" hidden style="cursor:pointer;color:var(--warn);margin-left:5px">&#9888;</span>
-      </span></div>
-    <div class="spendtot" id="winTot"><b id="costWeek">–</b><span id="winLbl"></span></div>
+    <div class="eyebrow"><span data-i18n="spend_title"></span></div>
+    <!-- Controles en su PROPIA fila y alineados a la izquierda (Oscar
+         2026-08-05): colgados del título se descolocaban al pasar a dos
+         líneas y "costo estimado" quedaba flotando a media altura. -->
+    <div class="spendbar">
+      <button class="trig" id="projBtn" data-i18n-title="pf_title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        <span class="chev">⌄</span>
+        <span class="tbadge" id="projBadge" hidden>0</span>
+      </button>
+      <button class="trig" id="calBtn" data-i18n-title="cal_open">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span id="calLbl">—</span>
+        <span class="chev">⌄</span>
+      </button>
+      <span class="sb-est">· <span data-i18n="spend_q" data-i18n-title="spend_tip" style="cursor:help;border-bottom:1px dotted var(--txt-dim)"></span><span id="priceWarn" hidden style="cursor:pointer;color:var(--warn);margin-left:5px">&#9888;</span></span>
+    </div>
+    <!-- TOTAL del periodo: caja propia con la nota de privacidad al lado
+         (maqueta de Oscar). Sustituye al pie "Hoy" del final del panel,
+         que decía lo mismo cuando el periodo ya era hoy. -->
+    <div class="spendtot" id="winTot">
+      <div class="st-l">
+        <div class="st-lbl" id="winLbl"></div>
+        <b id="costWeek">–</b>
+      </div>
+      <div class="foot-note" data-i18n="footnote"></div>
+    </div>
     <!-- El filtro activo, desmontable pieza a pieza: quién está dentro se
          ve sin abrir el popover (maqueta de Oscar 2026-08-05). -->
     <div class="fchips" id="fchips" hidden></div>
@@ -780,16 +793,16 @@
     <div class="hubnote" id="hubNote" hidden data-i18n="hub_range_note"></div>
   </div>
 
-  <div class="sect" id="trendSect" hidden>
-    <div class="eyebrow"><span data-i18n="trend_title"></span> <span class="q" data-i18n="trend_q"></span></div>
-    <div class="tchart" id="tchart"></div>
-    <div class="tspan"><span id="tFrom"></span><span id="tTo"></span></div>
-  </div>
-
   <div class="sect" id="modelSect" hidden>
     <div class="eyebrow"><span data-i18n="model_title"></span> <span class="q" id="modelQ"></span></div>
     <div class="split" id="split"></div>
     <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="sect" id="trendSect" hidden>
+    <div class="eyebrow"><span data-i18n="trend_title"></span> <span class="q" data-i18n="trend_q"></span></div>
+    <div class="tchart" id="tchart"></div>
+    <div class="tspan"><span id="tFrom"></span><span id="tTo"></span></div>
   </div>
 
   </div><!-- /tab-main -->
@@ -1038,12 +1051,6 @@
        showTab() lo esconde; el `hidden` funciona porque existe la regla
        [hidden]{display:none !important} (invariante 10bis: .p-foot es flex
        y sin esa regla el hidden no haría nada). -->
-  <div class="p-foot" id="pFoot">
-    <div class="totals">
-      <div class="t"><span data-i18n="today"></span><b id="costToday">–</b></div>
-    </div>
-    <div class="foot-note" data-i18n="footnote"></div>
-  </div>
 </div>
 
 <!-- ===== Popovers de filtro (fechas y proyectos) =====
@@ -4147,7 +4154,6 @@ function renderLocal(s){
     }).join("");
     $("modelQ").textContent=t("model_leads", prettyModel(models[0].m));
   }
-  $("costToday").textContent="$"+s.cost_today.toFixed(2);
   // con filtro de proyectos el total es la suma de los ELEGIDOS, no el de
   // la ventana entera: enseñar el total completo junto a una lista
   // recortada sería mentir por omisión
@@ -4261,11 +4267,6 @@ function statsArgs(){
   return curRange ? {days:rangeDays(curRange), end:rangeEnd(curRange)}
                   : {days:curDays};
 }
-// ¿el periodo activo es exactamente el día de hoy?
-function isTodayPeriod(){
-  if(curRange) return curRange.from===curRange.to && curRange.to===ymd(new Date());
-  return curDays===1;
-}
 // etiqueta corta para el disparador y para el total
 function periodLabel(){
   if(!curRange) return curDays===1 ? t("cal_today") : curDays+" d";
@@ -4368,9 +4369,15 @@ function applyCal(){
   }
   hidePop("calPop"); markDays(); spendBusy(); refresh();
 }
+// Borrar = volver al valor por DEFECTO (hoy) y cerrar (Oscar 2026-08-05):
+// dejar el calendario vacío obligaba a elegir algo para poder salir, y si
+// cerrabas se quedaba el periodo anterior — justo lo que querías borrar.
 function clearCal(){
-  calPreset=null; calA=calB=null; calHint(t("cal_pick_start"));
-  renderCal();
+  curDays=1; curRange=null;
+  localStorage.setItem("days","1");
+  localStorage.removeItem("spendRange");
+  calPreset=1; calA=calB=d0(new Date());
+  hidePop("calPop"); markDays(); spendBusy(); refresh();
 }
 // ---------- filtro de PROYECTOS (misma familia que el de fechas) ----------
 // Vive SOLO en el frontend: la lista ya viene agregada del backend, así que
@@ -4484,8 +4491,6 @@ function markDays(){
   $("projBadge").textContent=projFilter.size;
   // "Hoy" (pie) y un periodo de un día son la misma cifra con dos nombres:
   // se enseña ARRIBA, con su etiqueta, y el pie se calla (invariante #8).
-  const hoy=isTodayPeriod();
-  $("pFoot").hidden = hoy;
   $("winTot").hidden = false;
   const w=$("winLbl");
   if(w) w.textContent = curRange ? periodLabel()
@@ -5031,7 +5036,6 @@ $("flowBtn").addEventListener("click", async e=>{
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
 function showTab(name){
   for(const k of ["main","sources","findings","tips","prefs"]) $("tab-"+k).hidden = (k!==name);
-  $("pFoot").hidden = (name!=="main");            // el gasto acompaña a Principal
   $("expBox").hidden = true;                      // el aviso era de ese momento
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
   if(name==="sources") loadRemotes();             // refresca estado de servidores

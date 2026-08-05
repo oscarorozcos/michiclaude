@@ -509,8 +509,21 @@ hacer público el repo (o sus releases).
     CHIPS en la tarjeta para quitar uno a uno o todos. Persiste en
     `projFilter`. Con filtro se enseñan todos los elegidos aunque
     vinieran de la cola plegada.
-  · El pie "Hoy" se OCULTA cuando el periodo activo es exactamente hoy:
-    sería la misma cifra que el total de arriba, que ya lleva su etiqueta.
+  · El PIE "Hoy" del final del panel se ELIMINÓ (Oscar 2026-08-05): decía
+    lo mismo que el total de arriba en cuanto el periodo era hoy. Su
+    contenido —la cifra grande y la nota de privacidad— vive ahora en la
+    caja del total, dentro de la tarjeta de gasto. CONSECUENCIA ASUMIDA:
+    con un periodo que no sea hoy ya no se ve el gasto del día suelto; la
+    cifra que manda es la del periodo elegido, que es lo que se está
+    mirando (`cost_today` sigue llegando del backend por si vuelve a
+    hacer falta).
+  · "Borrar" del calendario vuelve al valor por DEFECTO (hoy) y CIERRA:
+    dejarlo vacío obligaba a elegir algo para poder salir, y cerrar sin
+    elegir mantenía el periodo anterior — justo el que se quería borrar.
+  · Los controles viven en su PROPIA fila alineada a la izquierda: colgados
+    del título se descolocaban al pasar el título a dos líneas.
+  · Orden de Principal: cuota → gasto → MODELO MÁS USADO → tendencia
+    (intercambiadas las dos últimas a petición de Oscar).
   TRADUCCIÓN SIN DICCIONARIO: los nombres de mes y día salen de
   `Intl.DateTimeFormat(lang)` — los 8 idiomas funcionan sin ampliar I18N
   (solo Hoy/Borrar/Aplicar/avisos están en el diccionario). El primer día
