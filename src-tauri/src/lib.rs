@@ -2157,9 +2157,15 @@ struct SessFindings {
 /// Corre los detectores sobre las fuentes locales (este PC + WSL) en la
 /// ventana pedida. Los hallazgos de servidores llegan aparte, por
 /// fetch_remote con --findings, y el origen lo etiqueta quien lee.
-fn scan_local_findings(window_days: u32) -> Vec<Finding> {
+/// `end_ts` = final del periodo (epoch). None = ahora. Igual que en
+/// collect_own_stats: con él la ventana se desplaza al pasado y cubre
+/// [end - window_days, end], que es como se sirve un rango de fechas.
+fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> Vec<Finding> {
     let now = Utc::now();
-    let window_ago = now - Duration::days(window_days as i64);
+    let end = end_ts
+        .and_then(|t| DateTime::from_timestamp(t, 0))
+        .unwrap_or(now);
+    let window_ago = end - Duration::days(window_days as i64);
     let skip_before = (window_ago - Duration::days(2)).timestamp();
 
     let mut sessions: HashMap<String, SessFindings> = HashMap::new();
@@ -2279,7 +2285,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                         let in_window = v["timestamp"]
                             .as_str()
                             .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-                            .map(|d| d.with_timezone(&Utc) >= window_ago)
+                            .map(|d| { let x=d.with_timezone(&Utc); x >= window_ago && x <= end })
                             .unwrap_or(false);
                         if in_window {
                             if let Some(s) = v["message"]["content"].as_str() {
@@ -2304,7 +2310,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                             let in_window = v["timestamp"]
                                 .as_str()
                                 .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-                                .map(|d| d.with_timezone(&Utc) >= window_ago)
+                                .map(|d| { let x=d.with_timezone(&Utc); x >= window_ago && x <= end })
                                 .unwrap_or(false);
                             let uuid = v["uuid"].as_str().unwrap_or("");
                             if in_window && !uuid.is_empty() && seen.insert(uuid.to_string())
@@ -2367,7 +2373,7 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
                     else {
                         continue;
                     };
-                    if ts < window_ago {
+                    if ts < window_ago || ts > end {
                         continue;
                     }
                     let inp = usage["input_tokens"].as_u64().unwrap_or(0);
@@ -2728,12 +2734,12 @@ fn scan_local_findings(window_days: u32) -> Vec<Finding> {
 /// servidor vía --findings, con el origen etiquetado por quien lee. Async +
 /// spawn_blocking obligatorio (invariante 10ter: SSH y escaneo de disco).
 #[tauri::command]
-async fn get_findings(days: Option<u32>) -> Result<Vec<Finding>, String> {
+async fn get_findings(days: Option<u32>, end: Option<i64>) -> Result<Vec<Finding>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let window_days = days.unwrap_or(7).clamp(1, 90);
-        let mut out = scan_local_findings(window_days);
+        let mut out = scan_local_findings(window_days, end);
         for r in load_remotes() {
-            let Some(rem) = fetch_remote(&r, window_days, false, true, None) else { continue };
+            let Some(rem) = fetch_remote(&r, window_days, false, true, end) else { continue };
             for mut f in rem.findings {
                 f.origin = r.name.clone();
                 out.push(f);

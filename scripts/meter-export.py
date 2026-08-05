@@ -390,7 +390,7 @@ def project_jsonls(proj):
     return sorted(proj.glob("*.jsonl")) + sorted(proj.glob("*/subagents/*.jsonl"))
 
 
-def scan_findings(projects_dir, window_ago, days):
+def scan_findings(projects_dir, window_ago, days, end):
     """Corre los detectores sobre la ventana pedida y devuelve la lista de
     hallazgos, la más cara primero. Relee los .jsonl (sin caché): solo corre
     bajo --findings y tarda ~1 s por cada 50 MB de logs."""
@@ -488,7 +488,7 @@ def scan_findings(projects_dir, window_ago, days):
                     # mensaje (estas líneas no traen usage, va antes del filtro)
                     if "<command-name>" in line:
                         cts = parse_ts(v.get("timestamp"))
-                        if cts and cts >= window_ago:
+                        if cts and window_ago <= cts <= end:
                             texts = ([content] if isinstance(content, str) else
                                      [b.get("text") or "" for b in blocks
                                       if isinstance(b, dict)])
@@ -506,7 +506,7 @@ def scan_findings(projects_dir, window_ago, days):
                         if a.get("type") == "hook_success":
                             cts = parse_ts(v.get("timestamp"))
                             u = v.get("uuid") or ""
-                            if cts and cts >= window_ago and u and u not in seen:
+                            if cts and window_ago <= cts <= end and u and u not in seen:
                                 seen.add(u)
                                 hk = S["hooks"].setdefault(
                                     a.get("hookName") or "?", [0, 0])
@@ -538,7 +538,7 @@ def scan_findings(projects_dir, window_ago, days):
                     if model == "<synthetic>":
                         continue
                     ts = parse_ts(v.get("timestamp"))
-                    if ts is None or ts < window_ago:
+                    if ts is None or ts < window_ago or ts > end:
                         continue
                     inp = usage.get("input_tokens") or 0
                     out_t = usage.get("output_tokens") or 0
@@ -963,7 +963,7 @@ def main():
         ],
         # Analizador de fugas: solo bajo --findings, para que ni el ciclo del
         # panel ni las fotos del hub paguen la pasada extra.
-        "findings": scan_findings(projects_dir, window_ago, days)
+        "findings": scan_findings(projects_dir, window_ago, days, end)
         if want_findings else [],
     }))
 

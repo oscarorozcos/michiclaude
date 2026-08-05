@@ -408,6 +408,22 @@ hacer público el repo (o sus releases).
 
 ## Estado / pendientes
 
+- [ ] HUB + RANGOS DE FECHA (diseño ya pensado, 2026-08-05; NO hacer hasta
+      que Oscar tenga una segunda máquina con MichiClaude — hoy no aporta
+      nada y el aviso ni aparece). Problema: la foto del hub son cuatro
+      TOTALES ya cocinados (HUB_WINDOWS 1/7/15/30) y un total no se puede
+      descomponer, así que con rango esas máquinas quedan fuera
+      (`hub_skipped`). Solución: que la foto incluya el DESGLOSE POR DÍA
+      (fecha × proyecto × modelo), que ya existe — es lo que genera el
+      export CSV (`want_rows`/ExportRow) —; con eso cualquier rango se
+      calcula sumando los días que caen dentro, igual que en local.
+      Coste: la foto pasa de pocos KB a 50-150 KB, así que habría que
+      subirla SOLO cuando cambie y no en cada ciclo de 3 min. Tocar las
+      tres piezas en sincronía (Rust, meter-export.py, panel) y verificar
+      con la misma prueba de los rangos: dos periodos contiguos deben
+      sumar exactamente el total. Límite que quedaría: solo dentro de los
+      30 (o 90) días que se suban.
+
 - [ ] EN CURSO (desde 2026-08-05): ronda de REDISEÑO UX/UI sobre la
       maqueta de Oscar (docs/rediseno-v5.html). RESPALDO COMPLETO del
       estado anterior en el tag `pre-rediseno-20260805` (recuperar:
@@ -560,6 +576,20 @@ hacer público el repo (o sus releases).
   OJO al tocar esto: las fichas de CONSEJOS comparten el molde `.fnd`
   (variante `.tip`) — cualquier cambio en .fnd/.fnd-t/.fnd-f les llega
   también, y por eso tienen sus propios overrides.
+  · El SELECTOR de Hallazgos pasa al MISMO calendario del gasto: el
+    popover es UNO SOLO y `calTarget` ("spend"/"fnd") decide a quién
+    aplica lo elegido; Hallazgos guarda su par en `fndDays`/`fndRange`.
+    Para que el rango sea de verdad, `get_findings` acepta `end` y el
+    analizador (Rust Y Python, invariante #1) gana CORTE SUPERIOR en sus
+    tres filtros de ventana — sin él el rango devolvía todo hasta hoy,
+    la misma mordida que ya pasó en el gasto. "Borrar" vuelve a HOY en el
+    destino que esté abierto. Regresión verificada: sin rango, hallazgos
+    y costes idénticos a la versión anterior.
+  · PIE en dos piezas: el enlace de recuperar lo ignorado ARRIBA y
+    destacado en acento (antes se perdía dentro de una línea gris), con
+    el número dentro de la frase ("Volver a mostrar 2 hallazgos que
+    ocultaste" — `fnd_restore` pasa a función; `fnd_hidden` se retiró) y
+    la nota del "~" debajo en gris.
 - ANCHO DEL PANEL 400 → 446 (2026-08-05): lo cazó Oscar comparando con la
   maqueta — a 400 px los textos se apretaban ("Semanal · todos los …"
   cortado con puntos suspensivos, el ritmo partido en dos líneas). 446 =
