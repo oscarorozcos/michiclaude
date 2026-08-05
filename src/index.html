@@ -206,7 +206,11 @@
   .fnd.min .fnd-f{display:none}
   .fnd-t{font-size:12.5px;font-weight:600;line-height:1.35;padding-right:60px}
   .fnd-m{font-size:10.5px;color:var(--txt-dim);font-family:var(--mono);margin-top:3px;
-    overflow-wrap:anywhere}
+    overflow-wrap:anywhere;display:flex;align-items:baseline;gap:8px;
+    justify-content:space-between}
+  .fnd-m>span{min-width:0;overflow-wrap:anywhere}
+  /* cuándo pasó: a la derecha de la fuente, apagado pero legible */
+  .fnd-when{font-style:normal;flex:0 0 auto;color:var(--txt-mut);white-space:nowrap}
   .fnd-c{font-family:var(--mono);font-size:11.5px;margin-top:5px;color:var(--txt-dim)}
   .fnd-c b{font-weight:600;color:var(--txt)}
   .fnd-f{font-size:12px;color:var(--txt-mut);line-height:1.55;margin-top:11px;
@@ -669,8 +673,15 @@
 
   /* fuentes de datos: nota en lista + formulario etiquetado + filas de servidores */
   /* buscador de Consejos, con botón para vaciarlo */
-  .tipsearch{position:relative;margin:10px 0 0}
-  .tipsearch input{width:100%;box-sizing:border-box;padding-right:34px}
+  .tipsearch{position:relative;margin:12px 0 0}
+  /* mismo campo que el resto del rediseño (antes heredaba el del sistema y
+     desentonaba con todo — lo vio Oscar 2026-08-05) */
+  .tipsearch input{width:100%;box-sizing:border-box;padding:10px 34px 10px 12px;
+    background:var(--card-hi);border:1px solid var(--stroke);border-radius:12px;
+    color:var(--txt);font-family:var(--font);font-size:12.5px;outline:none;
+    transition:border-color .15s}
+  .tipsearch input::placeholder{color:var(--txt-dim)}
+  .tipsearch input:focus{border-color:var(--accent-line)}
   .tipsearch button{position:absolute;top:50%;right:8px;transform:translateY(-50%);
     width:22px;height:22px;border-radius:7px;border:0;background:transparent;
     color:var(--txt-dim);cursor:pointer;font-size:11px;line-height:1;
@@ -1448,6 +1459,10 @@ en:{
   fnd_restore:n=>`Show the ${n} finding${n>1?"s":""} you hid`,
   fnd_turns:"turns",
   fnd_est_note:"Amounts marked ~ are approximate. The rest is measured straight from your logs.",
+  when_now:"just now",
+  when_min:n=>`${n} min ago`,
+  when_hour:n=>`${n} h ago`,
+  when_yday:"yesterday",
   fnd_badge_label:"Alert me on the widget (findings & tips)",
   fnd_badge_tip:n=>`New findings: ${n}`,
   pill_style_label:"Widget style",
@@ -1716,6 +1731,10 @@ es:{
   fnd_restore:n=>`Volver a mostrar ${n} hallazgo${n>1?"s":""} que ocultaste`,
   fnd_turns:"turnos",
   fnd_est_note:"Los importes con ~ son aproximados. El resto está medido directamente de tus registros.",
+  when_now:"ahora mismo",
+  when_min:n=>`hace ${n} min`,
+  when_hour:n=>`hace ${n} h`,
+  when_yday:"ayer",
   fnd_badge_label:"Avisarme en el widget (hallazgos y consejos)",
   fnd_badge_tip:n=>`Hallazgos nuevos: ${n}`,
   pill_style_label:"Estilo del widget",
@@ -1984,6 +2003,10 @@ pt:{
   fnd_restore:n=>`Mostrar de novo ${n} achado${n>1?"s":""} que você ocultou`,
   fnd_turns:"turnos",
   fnd_est_note:"Os valores com ~ são aproximados. O resto foi medido direto dos seus registros.",
+  when_now:"agora mesmo",
+  when_min:n=>`há ${n} min`,
+  when_hour:n=>`há ${n} h`,
+  when_yday:"ontem",
   fnd_badge_label:"Avisar-me no widget (achados e dicas)",
   fnd_badge_tip:n=>`Achados novos: ${n}`,
   pill_style_label:"Estilo do widget",
@@ -2252,6 +2275,10 @@ fr:{
   fnd_restore:n=>`Réafficher ${n} constat${n>1?"s":""} que vous avez masqué${n>1?"s":""}`,
   fnd_turns:"tours",
   fnd_est_note:"Les montants marqués ~ sont approximatifs. Le reste est mesuré directement depuis vos journaux.",
+  when_now:"à l’instant",
+  when_min:n=>`il y a ${n} min`,
+  when_hour:n=>`il y a ${n} h`,
+  when_yday:"hier",
   fnd_badge_label:"M'avertir sur le widget (constats et conseils)",
   fnd_badge_tip:n=>`Nouveaux constats : ${n}`,
   pill_style_label:"Style du widget",
@@ -2520,6 +2547,10 @@ de:{
   fnd_restore:n=>`${n} ausgeblendete${n>1?" Befunde":"n Befund"} wieder anzeigen`,
   fnd_turns:"Züge",
   fnd_est_note:"Beträge mit ~ sind Schätzungen. Der Rest ist direkt aus deinen Logs gemessen.",
+  when_now:"gerade eben",
+  when_min:n=>`vor ${n} Min.`,
+  when_hour:n=>`vor ${n} Std.`,
+  when_yday:"gestern",
   fnd_badge_label:"Am Widget hinweisen (Befunde und Tipps)",
   fnd_badge_tip:n=>`Neue Befunde: ${n}`,
   pill_style_label:"Widget-Stil",
@@ -2788,6 +2819,10 @@ ja:{
   fnd_restore:n=>`非表示にした${n}件をもう一度表示`,
   fnd_turns:"ターン",
   fnd_est_note:"~ が付いた金額は概算です。それ以外はログから実測した値です。",
+  when_now:"たった今",
+  when_min:n=>`${n}分前`,
+  when_hour:n=>`${n}時間前`,
+  when_yday:"昨日",
   fnd_badge_label:"ウィジェットで知らせる（検出結果とヒント）",
   fnd_badge_tip:n=>`新しい検出結果: ${n}件`,
   pill_style_label:"ウィジェットのスタイル",
@@ -3056,6 +3091,10 @@ ko:{
   fnd_restore:n=>`숨긴 항목 ${n}개 다시 보기`,
   fnd_turns:"턴",
   fnd_est_note:"~ 표시가 있는 금액은 어림값입니다. 나머지는 로그에서 그대로 측정한 값이에요.",
+  when_now:"방금",
+  when_min:n=>`${n}분 전`,
+  when_hour:n=>`${n}시간 전`,
+  when_yday:"어제",
   fnd_badge_label:"위젯에서 알림 (발견 항목과 팁)",
   fnd_badge_tip:n=>`새 발견 항목: ${n}개`,
   pill_style_label:"위젯 스타일",
@@ -3324,6 +3363,10 @@ zh:{
   fnd_restore:n=>`重新显示已隐藏的 ${n} 条`,
   fnd_turns:"轮",
   fnd_est_note:"带 ~ 的金额是估算值，其余都是直接从日志中实测得出的。",
+  when_now:"刚刚",
+  when_min:n=>`${n} 分钟前`,
+  when_hour:n=>`${n} 小时前`,
+  when_yday:"昨天",
   fnd_badge_label:"在小组件上提醒（发现与技巧）",
   fnd_badge_tip:n=>`新发现：${n} 项`,
   pill_style_label:"小组件样式",
@@ -5315,6 +5358,27 @@ function markFndPeriod(){
 markFndPeriod();
 function fndKey(f){ return [f.kind,f.file||f.server||f.session,f.origin||""].join("|"); }
 // título de una tarjeta — lo usan la pestaña Y el globo del día
+// Cuándo ocurrió el hallazgo (Oscar 2026-08-05): reciente en relativo
+// ("hace 20 min") y a partir de ahí con su día, para no perder de vista cuál
+// es de cuándo cuando hay varios. Los detectores de ESTADO PURO (mcp,
+// skills, claudemd) no llevan `ts` y no enseñan nada — no describen un
+// momento, sino una configuración.
+function fmtWhen(ts){
+  if(!ts) return "";
+  const d=new Date(ts*1000), now=new Date();
+  const min=Math.floor((now-d)/6e4);   // floor: 30 s son "ahora", no "1 min"
+  if(min<1) return t("when_now");
+  if(min<60) return t("when_min",min);
+  const hoy=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const hora=d.toLocaleTimeString(lang,{hour:"2-digit",minute:"2-digit"});
+  if(d>=hoy){
+    const h=Math.round(min/60);
+    return h<6 ? t("when_hour",h) : hora;
+  }
+  const ayer=new Date(hoy); ayer.setDate(ayer.getDate()-1);
+  if(d>=ayer) return t("when_yday")+" "+hora;
+  return d.toLocaleDateString(lang,{day:"2-digit",month:"short"})+" "+hora;
+}
 // Resalta los COMANDOS dentro de un texto ya traducido (Oscar 2026-08-05):
 // "/clear", "/compact"… y lo que va entre «comillas angulares», que en el
 // diccionario son siempre órdenes de terminal. El texto NO viene de fuera
@@ -5652,7 +5716,8 @@ function renderFindings(){
           <span class="fnd-sev"><i></i>${FND_ICON[f.kind]||FND_ICON._}</span>
           <div class="fnd-body">
             <div class="fnd-t">${title}</div>
-            <div class="fnd-m">${meta}</div>
+            <div class="fnd-m"><span>${meta}</span>${
+              f.ts?`<em class="fnd-when">${escapeHtml(fmtWhen(f.ts))}</em>`:""}</div>
             ${costHtml?`<div class="fnd-c">${costHtml}</div>`:""}
           </div>
         </div>

@@ -2066,3 +2066,13 @@ ronda y los invariantes; el porqué de cada sección vive aquí.
   el resto está medido de tus logs" a "Los importes con ~ son aproximados.
   El resto está medido directamente de tus registros" — la abreviatura con
   signo igual se leía como jerga.
+- Los hallazgos enseñan CUÁNDO pasaron (`fmtWhen`, a la derecha de la
+  fuente): "ahora mismo" / "hace 20 min" / "hace 3 h" hasta las 6 h, luego
+  la hora, "ayer HH:MM" y por fin "31 jul 20:38". Con varios hallazgos en
+  pantalla, saber cuál es de cuándo era imposible (petición de Oscar
+  2026-08-05, con la línea marcada en su captura). Los detectores de
+  ESTADO PURO (mcp, skills, claudemd) NO llevan ts y no enseñan nada: no
+  describen un momento sino una configuración. Fechas y horas con `Intl`
+  en el idioma activo; solo "ahora/min/h/ayer" van al diccionario.
+- El campo "Filtrar…" de Consejos llevaba el estilo del sistema y
+  desentonaba con todo: ahora usa el mismo campo del rediseño.
