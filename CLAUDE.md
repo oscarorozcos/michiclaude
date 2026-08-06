@@ -320,11 +320,14 @@ la pestaña si tiene >5 min. Precarga de fondo a los 15 s.
 **Avisos (sin globo — se eliminó 2026-08-04):** post-it rojo / campana /
 contador de pestaña encienden cada vez que hay hallazgos NO VISTOS.
 Pasada ligera 1d compartida `fndPass()`: al NACER UN RECIBO (cierre de
-sesión local; freno 15 min `fndEventLast`, marcado ANTES) y diaria de
-20 h como respaldo (VPS). "Visto" = la tarjeta se pintó con la pestaña
-VISIBLE y el panel CON FOCO (pintar en pestaña oculta no marca — mataría
-el aviso). TRAMPA DEL VIGILANTE (mordió 3 veces): si miras la pestaña
-cuando nace, nace vista y no hay aviso — es lo correcto. Los hallazgos
+sesión local; freno 15 min `fndEventLast`, marcado ANTES) y periódica
+cada 3 h como respaldo (era 20 h; a 20 h los hallazgos nacidos en el VPS
+—que no disparan cierre local— quedaban invisibles hasta un día entero y
+Oscar los veía antes de que el aviso existiera, 2026-08-06). "Visto" = la
+tarjeta se pintó con la pestaña VISIBLE y el panel CON FOCO (pintar en
+pestaña oculta no marca — mataría el aviso). TRAMPA DEL VIGILANTE (mordió
+4 veces, la 4.ª el 2026-08-06 con "nunca vi el post-it rojo"): si miras
+la pestaña cuando nace, nace vista y no hay aviso — es lo correcto. Los hallazgos
 NUNCA van al celular (privacidad ntfy). El interruptor de Preferencias
 ("Avisarme en el widget — hallazgos y consejos") apaga SOLO el widget;
 los contadores de pestaña quedan siempre. Para re-armar en pruebas:
@@ -439,7 +442,8 @@ hacer público el repo (o sus releases).
       Hallazgos, filtro de proyectos, "cuándo pasó" en los hallazgos,
       comandos resaltados, Acerca de con versión real, rastro de los
       avisos en flowLog, y el panel llenando siempre su ventana (margen de
-      sombra 5 px). DECISIONES VIGENTES de la ronda: tipografía EMBEBIDA
+      sombra 3 px desde 2026-08-06 — era 5; scrollbar fina redondeada
+      estilo overlay, global vía ::-webkit-scrollbar). DECISIONES VIGENTES de la ronda: tipografía EMBEBIDA
       (`src/fonts/`, OFL, sin CDN — una fuente remota rompería CSP y
       privacidad); `.sect` es TARJETA con fondo; toda tarjeta con fondo
       propio redefine `--txt-mut`/`--txt-dim` en vez de repintar hijos;
@@ -488,9 +492,19 @@ hacer público el repo (o sus releases).
       terminando donde empieza el actual; umbral 10% o $0.50) y "qué lo
       encareció" SOLO de hallazgos reales, marcas con antes/después
       (mínimo 5 días de datos tras el arreglo o dice "midiendo"), y
-      "para los días que vienen" (top 2 fugas por costo). Sin candado de
-      carga: peticiones con sello (repStamp), la tardía se descarta.
-      ~44 claves i18n ×8 (paridad verificada por script). FALTA: fase 3
+      "para los días que vienen" (top 2 fugas por costo, cada una CON su
+      recomendación `fnd_<kind>_f` y una intro que dice qué es — lista de
+      tareas de ahorro, no alarma). Ronda de ajustes 2026-08-06 tras
+      capturas de Oscar: caché en memoria POR PERIODO + render PROGRESIVO
+      (stats primero, hallazgos re-pintan sus 2 secciones al llegar; el
+      cambio de chip ya no se siente lento), tokens del periodo en el
+      héroe (delta % NEUTRO sin verde/rojo — menos tokens puede ser menos
+      trabajo, el juicio vive solo en tokens/mensaje) + día más pesado +
+      tokens por proyecto y por semana en la gráfica, y re-render del
+      reporte al cambiar idioma (la gráfica se quedaba en el idioma
+      anterior). Sin candado de carga: peticiones con sello (repStamp),
+      la tardía se descarta. ~56 claves i18n ×8 (paridad por script).
+      FALTA: fase 3
       export HTML del mockup A. También en el doc y sin arrancar:
       manómetro de contexto en pastilla/gatito, detector de
       auto-compacts, detector de pegado masivo. DESCARTADO con porqué en

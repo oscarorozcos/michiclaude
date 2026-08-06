@@ -92,9 +92,9 @@
   /* color-scheme: los controles nativos (desplegables, spinners, scrollbars)
      se pintan a juego con el tema — sin esto, la lista del idioma se ve mal
      en oscuro */
-  /* 5px: el mínimo para que el halo lateral de la sombra no se corte en
-     seco (Oscar lo pidió más apretado, 2026-08-05) */
-  body{font-family:var(--font);color:var(--txt);padding:5px;overflow:hidden;color-scheme:dark}
+  /* 3px: Oscar lo pidió aún más apretado (2026-08-06); la sombra pierde su
+     halo lateral pero el marco transparente casi desaparece */
+  body{font-family:var(--font);color:var(--txt);padding:3px;overflow:hidden;color-scheme:dark}
   body.light{color-scheme:light}
   /* si el contenido crece (ajustes abiertos), el panel hace scroll interno */
   /* overflow-x HIDDEN a propósito: con solo overflow-y:auto el navegador
@@ -107,7 +107,22 @@
      "marco fantasma" que cambiaba con cada pestaña. Con height, el panel
      llena siempre la ventana con su fondo sólido y el hueco desaparece;
      el contenido largo sigue con scroll interno. */
-  .panel{height:calc(100vh - 10px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+  .panel{height:calc(100vh - 6px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+  /* Scrollbar FINA y redondeada, estilo overlay (Oscar 2026-08-06, con
+     captura de referencia): riel invisible y pastilla delgada. El truco
+     del borde transparente + background-clip deja la pastilla de ~4px
+     visibles dentro de un carril de 10 y separada del borde redondeado. */
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-corner{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(148,170,255,.28);border-radius:20px;
+    border:3px solid transparent;background-clip:padding-box}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(148,170,255,.5);
+    border:3px solid transparent;background-clip:padding-box}
+  body.light ::-webkit-scrollbar-thumb{background:rgba(40,55,110,.3);
+    border:3px solid transparent;background-clip:padding-box}
+  body.light ::-webkit-scrollbar-thumb:hover{background:rgba(40,55,110,.5);
+    border:3px solid transparent;background-clip:padding-box}
 
   .panel{
     background:var(--mica);border-radius:var(--r-lg);
@@ -165,9 +180,12 @@
      recortar la última deja una pestaña que no se ve ni se puede pulsar). */
   .tabs{display:flex;flex-wrap:wrap;gap:2px;background:var(--card);
     border:1px solid var(--stroke-soft);border-radius:14px;padding:4px}
+  /* 6 pestañas en UNA fila a 446px (Oscar 2026-08-06: con "Reporte",
+     "Ajustes" se caía a una segunda fila a lo ancho) — letra y aire
+     apenas más apretados; el flex-wrap queda de red para idiomas largos */
   .tab{flex:1 1 auto;min-width:0;background:transparent;border:0;
-    color:var(--txt-mut);font-family:var(--font);font-size:11px;font-weight:600;
-    padding:7px 6px;border-radius:10px;cursor:pointer;letter-spacing:0;
+    color:var(--txt-mut);font-family:var(--font);font-size:10.5px;font-weight:600;
+    padding:7px 4px;border-radius:10px;cursor:pointer;letter-spacing:-.1px;
     white-space:nowrap;transition:.18s}
   .tab:hover{color:var(--txt)}
   .tab.on{color:#fff;background:var(--grad);
@@ -823,6 +841,10 @@
   .rp-plain{font-size:12px;font-weight:600;line-height:1.5;margin-top:10px;
     background:var(--surface);border:1px solid var(--stroke-soft);
     border-radius:12px;padding:9px 12px}
+  /* tokens del periodo: informativo y NEUTRO (sin verde/rojo) — el juicio
+     de valor vive solo en el rendimiento */
+  .rp-stats{font-size:10.5px;color:var(--txt-dim);line-height:1.7;margin-top:9px}
+  .rp-stats b{color:var(--txt-mut);font-family:var(--mono);font-weight:600}
   /* filas de "¿te duró más o menos?" */
   .rp-row{display:flex;gap:11px;align-items:flex-start;padding:9px 2px}
   .rp-row + .rp-row{border-top:1px solid var(--stroke-soft)}
@@ -844,6 +866,7 @@
   .rp-pj .pname{font-size:12px;font-weight:600;display:flex;align-items:center;min-width:0}
   .rp-pj .pname>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rp-pj .ptx{flex:1 1 auto;min-width:0}
+  .rp-pj .ptok{font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);flex:0 0 auto}
   .rp-pj .amt{font-family:var(--mono);font-size:12px;font-weight:600;flex:0 0 auto}
   .rp-trend{flex:0 0 auto;min-width:24px;height:24px;border-radius:8px;display:grid;
     place-items:center;font-size:11px;font-weight:800;padding:0 5px}
@@ -878,8 +901,9 @@
     place-items:center;background:var(--grad);color:var(--accent-ink);
     font-size:11px;font-weight:800}
   .rp-act .t{font-size:12px;font-weight:650;line-height:1.45}
-  .rp-act .t small{display:block;font-size:10.5px;font-weight:500;color:var(--txt-dim);
-    margin-top:3px;line-height:1.5}
+  .rp-act .t small{display:block;font-size:10.5px;font-weight:500;color:var(--txt-mut);
+    margin-top:4px;line-height:1.5}
+  .rp-act .t small.meta{font-size:9.5px;color:var(--txt-dim)}
   .rp-empty{font-size:11px;color:var(--txt-dim);line-height:1.55;padding:4px 2px}
   #repChart svg{display:block;width:100%;height:auto}
 </style>
@@ -1177,6 +1201,7 @@
     </div>
     <div class="sect">
       <div class="eyebrow" data-i18n="rep_next_t"></div>
+      <p class="rep-note" style="margin:0 0 8px" data-i18n="rep_next_intro"></p>
       <div id="repNext"></div>
     </div>
     <div class="fnd-note" style="margin:2px 4px 0" data-i18n="rep_foot"></div>
@@ -1626,6 +1651,12 @@ en:{
   tray_open:"Open panel", tray_widget:"Floating widget", tray_quit:"Quit",
   fnd_tab:"Findings",
   rep_tab:"Report",
+  rep_tok_less:(n,p)=>`<b>${n}</b> working tokens — ${p}% less than the previous period`,
+  rep_tok_more:(n,p)=>`<b>${n}</b> working tokens — ${p}% more than the previous period`,
+  rep_tok_flat:n=>`<b>${n}</b> working tokens — about the same as the previous period`,
+  rep_tok_only:n=>`<b>${n}</b> working tokens this period`,
+  rep_topday:(d,n)=>`Heaviest day: ${d} (${n} tokens)`,
+  rep_next_intro:"Not an alarm — your savings to-do list: the most expensive leaks of this period, with what to do about each. Fix #1 first.",
   rep_week:"Week", rep_month:"Month", rep_custom:"Custom",
   rep_perf:"Your efficiency", rep_perf_unit:"tokens per message you send",
   rep_before:"before", rep_better:"improved", rep_worse:"worse", rep_flat:"steady",
@@ -1947,6 +1978,12 @@ es:{
   tray_open:"Abrir panel", tray_widget:"Widget flotante", tray_quit:"Salir",
   fnd_tab:"Hallazgos",
   rep_tab:"Reporte",
+  rep_tok_less:(n,p)=>`<b>${n}</b> tokens de trabajo — ${p}% menos que el periodo anterior`,
+  rep_tok_more:(n,p)=>`<b>${n}</b> tokens de trabajo — ${p}% más que el periodo anterior`,
+  rep_tok_flat:n=>`<b>${n}</b> tokens de trabajo — como el periodo anterior`,
+  rep_tok_only:n=>`<b>${n}</b> tokens de trabajo en el periodo`,
+  rep_topday:(d,n)=>`Tu día más pesado: ${d} (${n} tokens)`,
+  rep_next_intro:"No es una alarma — es tu lista de tareas de ahorro: las fugas más caras del periodo, con qué hacer en cada una. Empieza por la 1.",
   rep_week:"Semana", rep_month:"Mes", rep_custom:"Personalizado",
   rep_perf:"Tu rendimiento", rep_perf_unit:"tokens por mensaje tuyo",
   rep_before:"antes", rep_better:"mejoró", rep_worse:"empeoró", rep_flat:"igual",
@@ -2268,6 +2305,12 @@ pt:{
   tray_open:"Abrir painel", tray_widget:"Widget flutuante", tray_quit:"Sair",
   fnd_tab:"Achados",
   rep_tab:"Relatório",
+  rep_tok_less:(n,p)=>`<b>${n}</b> tokens de trabalho — ${p}% menos que o período anterior`,
+  rep_tok_more:(n,p)=>`<b>${n}</b> tokens de trabalho — ${p}% mais que o período anterior`,
+  rep_tok_flat:n=>`<b>${n}</b> tokens de trabalho — como o período anterior`,
+  rep_tok_only:n=>`<b>${n}</b> tokens de trabalho no período`,
+  rep_topday:(d,n)=>`Seu dia mais pesado: ${d} (${n} tokens)`,
+  rep_next_intro:"Não é um alarme — é sua lista de tarefas de economia: os vazamentos mais caros do período, com o que fazer em cada um. Comece pelo 1.",
   rep_week:"Semana", rep_month:"Mês", rep_custom:"Personalizado",
   rep_perf:"Seu rendimento", rep_perf_unit:"tokens por mensagem sua",
   rep_before:"antes", rep_better:"melhorou", rep_worse:"piorou", rep_flat:"igual",
@@ -2589,6 +2632,12 @@ fr:{
   tray_open:"Ouvrir le panneau", tray_widget:"Widget flottant", tray_quit:"Quitter",
   fnd_tab:"Constats",
   rep_tab:"Rapport",
+  rep_tok_less:(n,p)=>`<b>${n}</b> tokens de travail — ${p}% de moins que la période précédente`,
+  rep_tok_more:(n,p)=>`<b>${n}</b> tokens de travail — ${p}% de plus que la période précédente`,
+  rep_tok_flat:n=>`<b>${n}</b> tokens de travail — comme la période précédente`,
+  rep_tok_only:n=>`<b>${n}</b> tokens de travail sur la période`,
+  rep_topday:(d,n)=>`Votre jour le plus chargé : ${d} (${n} tokens)`,
+  rep_next_intro:"Pas une alarme — votre liste de tâches d'économie : les fuites les plus chères de la période, avec quoi faire pour chacune. Commencez par la 1.",
   rep_week:"Semaine", rep_month:"Mois", rep_custom:"Personnalisé",
   rep_perf:"Votre rendement", rep_perf_unit:"tokens par message envoyé",
   rep_before:"avant", rep_better:"amélioré", rep_worse:"dégradé", rep_flat:"stable",
@@ -2910,6 +2959,12 @@ de:{
   tray_open:"Panel öffnen", tray_widget:"Schwebendes Widget", tray_quit:"Beenden",
   fnd_tab:"Befunde",
   rep_tab:"Bericht",
+  rep_tok_less:(n,p)=>`<b>${n}</b> Arbeits-Tokens — ${p}% weniger als im Vorzeitraum`,
+  rep_tok_more:(n,p)=>`<b>${n}</b> Arbeits-Tokens — ${p}% mehr als im Vorzeitraum`,
+  rep_tok_flat:n=>`<b>${n}</b> Arbeits-Tokens — ungefähr wie im Vorzeitraum`,
+  rep_tok_only:n=>`<b>${n}</b> Arbeits-Tokens in diesem Zeitraum`,
+  rep_topday:(d,n)=>`Dein schwerster Tag: ${d} (${n} Tokens)`,
+  rep_next_intro:"Kein Alarm — deine Spar-Aufgabenliste: die teuersten Lecks des Zeitraums, mit dem, was jeweils zu tun ist. Fang mit Nr. 1 an.",
   rep_week:"Woche", rep_month:"Monat", rep_custom:"Benutzerdefiniert",
   rep_perf:"Deine Effizienz", rep_perf_unit:"Tokens pro Nachricht von dir",
   rep_before:"vorher", rep_better:"besser", rep_worse:"schlechter", rep_flat:"stabil",
@@ -3231,6 +3286,12 @@ ja:{
   tray_open:"パネルを開く", tray_widget:"フローティングウィジェット", tray_quit:"終了",
   fnd_tab:"検出結果",
   rep_tab:"レポート",
+  rep_tok_less:(n,p)=>`作業トークン<b>${n}</b> — 前の期間より${p}%少ない`,
+  rep_tok_more:(n,p)=>`作業トークン<b>${n}</b> — 前の期間より${p}%多い`,
+  rep_tok_flat:n=>`作業トークン<b>${n}</b> — 前の期間とほぼ同じ`,
+  rep_tok_only:n=>`この期間の作業トークン<b>${n}</b>`,
+  rep_topday:(d,n)=>`最も重かった日：${d}（${n}トークン）`,
+  rep_next_intro:"警報ではありません — 節約のためのやることリストです。この期間で最も高くついたリークと、その対処法。まずは1番から。",
   rep_week:"週", rep_month:"月", rep_custom:"カスタム",
   rep_perf:"あなたの効率", rep_perf_unit:"あなたの1メッセージあたりのトークン",
   rep_before:"以前", rep_better:"改善", rep_worse:"悪化", rep_flat:"横ばい",
@@ -3552,6 +3613,12 @@ ko:{
   tray_open:"패널 열기", tray_widget:"플로팅 위젯", tray_quit:"종료",
   fnd_tab:"발견 항목",
   rep_tab:"리포트",
+  rep_tok_less:(n,p)=>`작업 토큰 <b>${n}</b> — 이전 기간보다 ${p}% 적음`,
+  rep_tok_more:(n,p)=>`작업 토큰 <b>${n}</b> — 이전 기간보다 ${p}% 많음`,
+  rep_tok_flat:n=>`작업 토큰 <b>${n}</b> — 이전 기간과 비슷`,
+  rep_tok_only:n=>`이 기간 작업 토큰 <b>${n}</b>`,
+  rep_topday:(d,n)=>`가장 무거웠던 날: ${d} (${n} 토큰)`,
+  rep_next_intro:"경보가 아닙니다 — 절약 할 일 목록입니다. 이 기간 가장 비쌌던 누수와 각각의 대처법. 1번부터 시작하세요.",
   rep_week:"주간", rep_month:"월간", rep_custom:"사용자 지정",
   rep_perf:"나의 효율", rep_perf_unit:"내 메시지당 토큰",
   rep_before:"이전", rep_better:"개선", rep_worse:"악화", rep_flat:"비슷",
@@ -3873,6 +3940,12 @@ zh:{
   tray_open:"打开面板", tray_widget:"浮动小组件", tray_quit:"退出",
   fnd_tab:"发现",
   rep_tab:"报告",
+  rep_tok_less:(n,p)=>`工作 token <b>${n}</b> — 比上一时段少 ${p}%`,
+  rep_tok_more:(n,p)=>`工作 token <b>${n}</b> — 比上一时段多 ${p}%`,
+  rep_tok_flat:n=>`工作 token <b>${n}</b> — 与上一时段差不多`,
+  rep_tok_only:n=>`本时段工作 token <b>${n}</b>`,
+  rep_topday:(d,n)=>`最重的一天：${d}（${n} token）`,
+  rep_next_intro:"这不是警报 — 是你的省钱待办清单：本时段最贵的泄漏及各自的处理办法。先从第 1 条开始。",
   rep_week:"周", rep_month:"月", rep_custom:"自定义",
   rep_perf:"你的效率", rep_perf_unit:"你每条消息消耗的 token",
   rep_before:"之前", rep_better:"进步", rep_worse:"退步", rep_flat:"持平",
@@ -6006,7 +6079,7 @@ if(![7,30].includes(repDays)) repDays=7;
 let repRange=null;
 try{ const r=JSON.parse(localStorage.getItem("repRange")||"null");
   if(r&&r.from&&r.to) repRange=r; }catch(_){}
-let repStamp=0, repAt=0, repData=null;
+let repStamp=0, repData=null;
 
 function repArgs(){
   return repRange ? {days:rangeDays(repRange), end:rangeEnd(repRange)}
@@ -6035,33 +6108,49 @@ document.querySelectorAll(".rchip").forEach(b=>b.addEventListener("click",()=>{
 
 // Sin candado de "ocupado": cada petición lleva su sello y la que llegue
 // TARDE se descarta — así cambiar de periodo a media carga nunca se traba
-// ni pinta datos del periodo anterior.
+// ni pinta datos del periodo anterior. VELOCIDAD (Oscar 2026-08-06):
+// (1) caché en memoria POR PERIODO — volver a un chip ya visitado es
+// instantáneo; (2) render PROGRESIVO — las estadísticas (rápidas) pintan
+// primero y los hallazgos (SSH incluido) llegan después y solo re-pintan
+// sus dos secciones, sin bloquear el resto.
+const repCache={};
 async function loadReport(force){
   if(!invoke) return;
-  if(repData && !force && Date.now()-repAt<5*60*1000){ renderReport(); return; }
+  const key=JSON.stringify(repArgs());
+  const hit=repCache[key];
+  if(hit && !force && Date.now()-hit.at<5*60*1000){
+    repData=hit; renderReport(); return;
+  }
   const stamp=++repStamp;
   markRepChips();
   const wait=`<div class="rp-empty">${t("fnd_scanning")}</div>`;
   for(const id of ["repHero","repLast","repProj","repFix","repNext"]) $(id).innerHTML=wait;
   const W=repWidth(), endE=repEnd();
+  // los hallazgos arrancan YA, en paralelo, pero no se les espera aún
+  const pFnd=invoke("get_findings",repArgs()).catch(()=>[]);
   // el periodo ANTERIOR es la misma anchura terminando donde empieza este:
   // así "¿mejoré?" compara peras con peras aunque el periodo sea un rango
-  const [cur,prev,hist,fnd]=await Promise.allSettled([
+  const [cur,prev,hist]=await Promise.allSettled([
     invoke("get_local_stats",repArgs()),
     invoke("get_local_stats",{days:W, end:endE-W*86400}),
     invoke("get_quota_history",{days:90}),
-    invoke("get_findings",repArgs()),
   ]);
   if(stamp!==repStamp) return;
   repData={
     cur: cur.status==="fulfilled"?cur.value:null,
     prev:prev.status==="fulfilled"?prev.value:null,
     hist:hist.status==="fulfilled"?hist.value:[],
-    fnd: fnd.status==="fulfilled"?fnd.value:[],
-    W, endE,
+    fnd: null,   // null = "analizando"; [] = "sin fugas" — no es lo mismo
+    W, endE, at:Date.now(),
   };
-  repAt=Date.now();
   renderReport();
+  const fndList=await pFnd;
+  if(stamp!==repStamp) return;
+  repData.fnd=fndList||[];
+  repData.at=Date.now();
+  repCache[key]=repData;
+  renderRepProj(repData);
+  renderRepNext(repData);
 }
 function repPerfOf(s){ return s && s.uturns_week>0 ? s.tokens_week/s.uturns_week : null; }
 function repFmtN(n){ return Math.round(n).toLocaleString(lang); }
@@ -6089,10 +6178,37 @@ function renderRepHero(d){
     else{ plain=t("rep_verd_flat");
       delta=`<span class="rp-delta flat">= ${t("rep_flat")}</span>`; }
   }
+  // tokens del periodo: dato NEUTRO a propósito (sin verde/rojo) — menos
+  // tokens puede ser eficiencia o simplemente menos trabajo; el juicio de
+  // valor vive solo en el rendimiento (tokens POR mensaje), que sí compara
+  // peras con peras. Pedido por Oscar 2026-08-06.
+  const tk=d.cur.tokens_week, qtk=d.prev?d.prev.tokens_week:0;
+  let stats="";
+  if(tk>0){
+    let line;
+    if(qtk>0){
+      const ch=Math.round((tk-qtk)/qtk*100);
+      line = ch<=-3?t("rep_tok_less",fmtTok(tk),Math.abs(ch))
+           : ch>=3?t("rep_tok_more",fmtTok(tk),ch)
+           : t("rep_tok_flat",fmtTok(tk));
+    }else line=t("rep_tok_only",fmtTok(tk));
+    // el día más pesado, si la serie diaria cubre el periodo
+    const from=d.endE-d.W*86400;
+    const inP=(d.cur.daily||[]).filter(x=>{
+      const ts=Math.floor(fromYmd(x.date).getTime()/1000);
+      return ts>=from&&ts<d.endE&&(x.tokens||0)>0; });
+    let top="";
+    if(inP.length){
+      const mx=inP.reduce((a,x)=>x.tokens>a.tokens?x:a);
+      top=`<div>${escapeHtml(t("rep_topday",fmtDate(mx.date,false),fmtTok(mx.tokens)))}</div>`;
+    }
+    stats=`<div class="rp-stats"><div>${line}</div>${top}</div>`;
+  }
   $("repHero").innerHTML=`
     <div class="rp-big">${repFmtN(p)} ${delta}</div>
     <div class="rp-nums">${escapeHtml(t("rep_perf_unit"))}${q!=null?` · ${escapeHtml(t("rep_before"))} <s>${repFmtN(q)}</s>`:""}</div>
     <div class="rp-plain">${withCmds(plain)}</div>
+    ${stats}
     ${d.prev&&d.prev.hub_skipped?`<div class="rep-note" style="margin-top:7px">${escapeHtml(t("hub_range_note"))}</div>`:""}`;
 }
 
@@ -6156,7 +6272,7 @@ function renderRepLast(d){
 function renderRepChart(d){
   const daily=(d.cur&&d.cur.daily)||[];
   const map=Object.fromEntries(daily.map(x=>[x.date,x]));
-  const vals=[];
+  const vals=[], wkTok=[];
   for(let b=3;b>=0;b--){
     let tok=0,ut=0;
     for(let i=0;i<7;i++){
@@ -6165,6 +6281,7 @@ function renderRepChart(d){
       if(c){ tok+=c.tokens||0; ut+=c.uturns||0; }
     }
     vals.push(ut>0?tok/ut:null);
+    wkTok.push(tok);
   }
   if(vals.filter(v=>v!=null).length<2){ $("repChartSect").hidden=true; return; }
   $("repChartSect").hidden=false;
@@ -6177,7 +6294,7 @@ function renderRepChart(d){
   const area=line+` L ${pts[pts.length-1][0].toFixed(1)} 132 L ${pts[0][0].toFixed(1)} 132 Z`;
   const labels=[t("rep_w3"),t("rep_w2"),t("rep_w1"),t("rep_w0")];
   const last=pts[pts.length-1];
-  $("repChart").innerHTML=`<svg viewBox="0 0 446 152" xmlns="http://www.w3.org/2000/svg">
+  $("repChart").innerHTML=`<svg viewBox="0 0 446 164" xmlns="http://www.w3.org/2000/svg">
     <defs><linearGradient id="rpArea" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="var(--accent)" stop-opacity=".25"/>
       <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
@@ -6189,8 +6306,10 @@ function renderRepChart(d){
     ${pts.map(p=>`<text x="${p[0].toFixed(1)}" y="${(p[1]-11).toFixed(1)}" text-anchor="middle"
       font-family="var(--mono)" font-size="10" font-weight="700"
       fill="${p===last?"var(--teal)":"var(--txt-mut)"}">${repFmtN(p[2])}</text>`).join("")}
-    ${vals.map((v,i)=>`<text x="${X(i).toFixed(1)}" y="147" text-anchor="middle" font-size="9.5"
+    ${vals.map((v,i)=>`<text x="${X(i).toFixed(1)}" y="145" text-anchor="middle" font-size="9.5"
       fill="${i===3?"var(--txt)":"var(--txt-dim)"}"${i===3?' font-weight="700"':""}>${escapeHtml(labels[i])}</text>`).join("")}
+    ${wkTok.map((tok,i)=>tok>0?`<text x="${X(i).toFixed(1)}" y="158" text-anchor="middle"
+      font-family="var(--mono)" font-size="8.5" fill="var(--txt-dim)">${fmtTok(tok)} tok</text>`:"").join("")}
   </svg>`;
 }
 
@@ -6221,6 +6340,7 @@ function renderRepProj(d){
     return `<div class="rp-pj">
       <div class="pav" style="color:${c}"><i style="background:${c}"></i>${escapeHtml(projInitials(p.base))}</div>
       <div class="ptx"><div class="pname"><span>${escapeHtml(p.base)}</span>${p.src?`<span class="srctag">${escapeHtml(p.src)}</span>`:""}</div></div>
+      <span class="ptok">${fmtTok(p.tokens)} tok</span>
       <span class="amt">$${p.cost.toFixed(2)}</span>
       <span class="rp-trend ${cls}" title="${escapeHtml(tip)}">${sym}</span>
     </div>${w?`<div class="rp-why"><b>${escapeHtml(t("rep_why"))}</b> ${withCmds(fndTitle(w))}</div>`:""}`;
@@ -6267,8 +6387,15 @@ function renderRepFix(d){
   }).join("");
 }
 
-// 6 · para los días que vienen: las 2 fugas más caras, en imperativo
+// 6 · para los días que vienen: tu lista de tareas de AHORRO — las 2 fugas
+// más caras del periodo con su qué-hacer. No es alarma: es a qué dedicarle
+// cinco minutos primero (Oscar 2026-08-06: "¿me aconseja, me avisa o qué?"
+// — le faltaba el consejo; ahora cada una lleva su recomendación).
 function renderRepNext(d){
+  if(d.fnd===null){
+    $("repNext").innerHTML=`<div class="rp-empty">${t("fnd_scanning")}</div>`;
+    return;
+  }
   const ign=fndIgnored();
   const top=(d.fnd||[]).filter(f=>!ign.has(fndKey(f)))
     .sort((a,b)=>b.cost-a.cost).slice(0,2);
@@ -6279,10 +6406,14 @@ function renderRepNext(d){
   $("repNext").innerHTML=top.map((f,i)=>{
     const est=f.estimated?"~":"";
     const cost=f.cost>0?t("rep_next_cost",est+"$"+f.cost.toFixed(2)):"";
+    // la recomendación de la tarjeta de Hallazgos, aquí mismo: el "qué
+    // hago" sin cambiar de pestaña (misma clave fnd_<kind>_f)
+    const rec=t("fnd_"+f.kind.split("_")[0]+"_f")||"";
     return `<div class="rp-act">
       <span class="n">${i+1}</span>
       <span class="t">${withCmds(fndTitle(f))}
-        <small>${escapeHtml([fndProj(f.project||""),cost].filter(Boolean).join(" · "))}</small>
+        <small>${withCmds(rec)}</small>
+        <small class="meta">${escapeHtml([fndProj(f.project||""),f.origin||t("src_local"),cost].filter(Boolean).join(" · "))}</small>
       </span>
     </div>`;
   }).join("");
@@ -6425,7 +6556,13 @@ function fndProj(raw){
 // su clave se guarda y el aviso se apaga — mismo espíritu que el globo: se
 // despacha una vez, no persigue. El resultado de la pasada se guarda
 // (fndAuto) para que reiniciar la app no apague un aviso que nadie vio.
-const FND_SCAN_MS=20*3600*1000;   // ~diaria, con margen para no ir derivando
+// Cada 3 h (antes 20 h, 2026-08-06): los hallazgos que nacen en el VPS no
+// disparan el cierre-de-sesión LOCAL, y con la pasada casi diaria podían
+// pasar hasta 20 h invisibles — para entonces Oscar ya había abierto la
+// pestaña y nacían vistos (por eso "nunca vi el post-it rojo"). A 3 h el
+// respaldo cubre lo remoto a tiempo; sigue siendo barato (escaneo 1d con
+// caché incremental, SSH incluido, ~2-5 s cada 3 h).
+const FND_SCAN_MS=3*3600*1000;
 let fndBadge=null;                // {n, sev} o null
 function fndSeen(){ try{ return new Set(JSON.parse(localStorage.getItem("fndSeen")||"[]")); }catch(_){ return new Set(); } }
 function fndBadgeOn(){ return localStorage.getItem("fndBadgeOff")!=="1"; }
@@ -6479,7 +6616,7 @@ async function fndPass(tag){
 }
 async function fndAutoScan(){
   if(Date.now()-(+localStorage.getItem("fndAutoLast")||0)<FND_SCAN_MS) return;
-  await fndPass("diaria");
+  await fndPass("periódica");
 }
 // al nacer un recibo (sesión local terminada) — el momento en que suelen
 // nacer hallazgos. Freno propio: máx. una cada 15 min aunque cierren varias
@@ -7019,6 +7156,10 @@ $("langSel").addEventListener("change",()=>{
   if(lastLocalData) renderLocal(lastLocalData);
   if(lastErrCode) $("syncTxt").textContent=errText(lastErrCode);
   renderRemotes(); markDays(); markFndPeriod();
+  // el reporte pinta sus textos con t() al renderizar: sin esto, la gráfica
+  // y las tarjetas se quedaban en el idioma anterior (visto por Oscar en la
+  // captura en japonés con "hace 3 sem" en español, 2026-08-06)
+  if(repData) renderReport();
 });
 
 // ---------- modo demo (SOLO al abrir index.html suelto en un navegador, sin Tauri) ----------
