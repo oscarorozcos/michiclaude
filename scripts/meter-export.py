@@ -97,7 +97,9 @@ def parse_ts(s):
 # Se cachean tokens y timestamp, nunca el coste: así un cambio de precios se
 # aplica a todo el historial al instante. El caché es reconstruible: si se
 # borra o no se entiende, se recalcula desde los logs.
-CACHE_VERSION = 1
+# v2 (2026-08-06): el caché guarda también los turnos de usuario (uturns);
+# un caché v1 devolvería 0 en silencio para archivos sin cambios.
+CACHE_VERSION = 2
 # Margen sobre la ventana más amplia que pida esta ejecución (la tendencia son
 # 30 días, pero --days admite hasta 90): 2 días de colchón por relojes
 # desajustados y zonas horarias.
@@ -134,25 +136,63 @@ def save_cache(files, retained_from):
         pass  # el caché es un lujo: si no se puede escribir, no pasa nada
 
 
+def is_user_turn(v, msg):
+    """¿Turno ÚTIL del usuario? Un mensaje HUMANO real: fuera los meta, los
+    de subagente, los resultados de herramienta (llegan con rol user pero
+    los escribe la máquina) y los envoltorios de comandos locales. Es el
+    denominador de "tokens por turno útil" — réplica EXACTA del Rust
+    (is_user_turn en lib.rs, invariante #1)."""
+    if v.get("type") != "user":
+        return False
+    if v.get("isSidechain") or v.get("isMeta"):
+        return False
+    if v.get("toolUseResult") is not None:
+        return False
+    if (msg.get("role") or "") != "user":
+        return False
+    c = msg.get("content")
+    if isinstance(c, str):
+        txt = c
+    elif isinstance(c, list):
+        for b in c:
+            if isinstance(b, dict) and b.get("type") == "tool_result":
+                return False
+        txt = " ".join(b.get("text") or "" for b in c
+                       if isinstance(b, dict) and b.get("type") == "text")
+    else:
+        return False
+    t = txt.strip()
+    # envoltorios que Claude Code o el IDE inyectan con rol user sin marcar
+    # isMeta (el <ide_... se vio en logs reales del VPS, 2026-08-06). Lista
+    # explícita y conservadora — réplica exacta del Rust.
+    if (not t or t.startswith("<command-") or t.startswith("<local-command")
+            or t.startswith("<ide_") or t.startswith("<system-reminder")
+            or t.startswith("[Request interrupted")):
+        return False
+    return True
+
+
 def parse_file(path, keep_after):
     """Parsea un .jsonl a entradas compactas, deduplicando dentro del archivo.
 
-    Devuelve (display, [[ts|None, model, inp, out, cw, cr, key], ...], dups).
-    Solo se conservan las entradas dentro de `keep_after` (o sin timestamp,
-    que no suman en ninguna ventana pero sí ocupan su turno en la dedup).
-    `dups` son los duplicados internos, para que el contador de diagnóstico
-    siga dando lo mismo que el escaneo completo. OJO: los duplicados TAMBIÉN
-    cruzan archivos (365 medidos en los logs reales), así que la dedup global
-    al fusionar es imprescindible, no un lujo.
+    Devuelve (display, [[ts|None, model, inp, out, cw, cr, key], ...],
+    [[ts, uuid], ...], dups). Solo se conservan las entradas dentro de
+    `keep_after` (o sin timestamp, que no suman en ninguna ventana pero sí
+    ocupan su turno en la dedup). `dups` son los duplicados internos, para
+    que el contador de diagnóstico siga dando lo mismo que el escaneo
+    completo. OJO: los duplicados TAMBIÉN cruzan archivos (365 medidos en
+    los logs reales), así que la dedup global al fusionar es imprescindible,
+    no un lujo.
     """
     display = None
     entries = []
+    uturns = []
     seen = set()
     dups = 0
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
-        return (None, [], 0)
+        return (None, [], [], 0)
     for line in lines:
         try:
             v = json.loads(line)
@@ -166,6 +206,12 @@ def parse_file(path, keep_after):
             if base:
                 display = base
         msg = v.get("message") or {}
+        # turnos de usuario: no traen usage, se recogen aparte ANTES del filtro
+        if is_user_turn(v, msg):
+            ts = parse_ts(v.get("timestamp"))
+            if ts is not None and ts >= keep_after:
+                uturns.append([ts.timestamp(), v.get("uuid") or ""])
+            continue
         usage = msg.get("usage")
         if not isinstance(usage, dict):
             continue
@@ -187,7 +233,7 @@ def parse_file(path, keep_after):
             usage.get("cache_creation_input_tokens") or 0,
             usage.get("cache_read_input_tokens") or 0, key,
         ])
-    return (display, entries, dups)
+    return (display, entries, uturns, dups)
 
 
 def is_estimated(model):
@@ -1090,13 +1136,15 @@ def main():
     month_ago = now - timedelta(days=30)
 
     seen = set()
+    useen = set()      # dedup global de turnos de usuario (uuid)
     display = {}
-    per_project = {}   # raw -> [cost, tokens, {model: cost}]
+    per_project = {}   # raw -> [cost, tokens, {model: cost}, uturns]
     rows = {}          # (fecha, proyecto, modelo) -> [cost, tokens]
     models = {}
-    daily = {}
+    daily = {}         # fecha -> [cost, tokens, uturns]
     cost_today = cost_window = 0.0
     tokens_window = 0
+    uturns_window = 0
     files_scanned = 0
     deduped = 0
 
@@ -1128,12 +1176,13 @@ def main():
                         and hit.get("mtime") == int(st.st_mtime)):
                     disp = hit.get("display")
                     entries = hit.get("entries") or []
+                    futurns = hit.get("uturns") or []
                     fdups = hit.get("dups") or 0
                 else:
-                    disp, entries, fdups = parse_file(f, keep_after)
+                    disp, entries, futurns, fdups = parse_file(f, keep_after)
                 cache_out[fk] = {"len": st.st_size, "mtime": int(st.st_mtime),
                                  "display": disp, "entries": entries,
-                                 "dups": fdups}
+                                 "uturns": futurns, "dups": fdups}
                 deduped += fdups   # los internos; los cruzados se cuentan abajo
                 if disp and raw not in display:
                     display[raw] = disp
@@ -1152,7 +1201,7 @@ def main():
                     if ts >= window_ago and ts <= end:
                         cost_window += cost
                         tokens_window += inp + out + cw  # cache_read excluido
-                        e = per_project.setdefault(raw, [0.0, 0, {}])
+                        e = per_project.setdefault(raw, [0.0, 0, {}, 0])
                         e[0] += cost
                         e[1] += inp + out + cw
                         e[2][model] = e[2].get(model, 0.0) + cost
@@ -1174,14 +1223,32 @@ def main():
                         cost_today += cost
                     if ts >= month_ago:
                         d = ts.strftime("%Y-%m-%d")
-                        daily[d] = daily.get(d, 0.0) + cost
+                        cell = daily.setdefault(d, [0.0, 0, 0])
+                        cell[0] += cost
+                        cell[1] += inp + out + cw  # mismo criterio: sin cache_read
+                # turnos útiles del usuario: dedup global por uuid (también
+                # cruzan archivos) y las MISMAS ventanas que el resto
+                for uts, uid in futurns:
+                    if uid:
+                        if uid in useen:
+                            continue
+                        useen.add(uid)
+                    if uts is None:
+                        continue
+                    ts = datetime.fromtimestamp(uts, timezone.utc)
+                    if ts >= window_ago and ts <= end:
+                        uturns_window += 1
+                        per_project.setdefault(raw, [0.0, 0, {}, 0])[3] += 1
+                    if ts >= month_ago:
+                        daily.setdefault(ts.strftime("%Y-%m-%d"), [0.0, 0, 0])[2] += 1
 
     save_cache(cache_out, keep_after.timestamp())  # solo lo visto: se autopurga
 
     projects = [
         {"name": display.get(raw) or raw.rsplit("-", 1)[-1] or raw,
-         "cost": cost, "tokens": tokens, "by_model": by_model}
-        for raw, (cost, tokens, by_model) in per_project.items()
+         "cost": cost, "tokens": tokens, "by_model": by_model,
+         "uturns": uturns}
+        for raw, (cost, tokens, by_model, uturns) in per_project.items()
     ]
     projects.sort(key=lambda p: -p["cost"])
 
@@ -1191,9 +1258,11 @@ def main():
         "cost_today": cost_today,
         "cost_week": cost_window,
         "tokens_week": tokens_window,
+        "uturns_week": uturns_window,
         "files_scanned": files_scanned,
         "entries_deduped": deduped,
-        "daily": [{"date": d, "cost": c} for d, c in sorted(daily.items())],
+        "daily": [{"date": d, "cost": c[0], "tokens": c[1], "uturns": c[2]}
+                  for d, c in sorted(daily.items())],
         # Modo hub: lo que dejaron las OTRAS máquinas. Un MichiClaude viejo
         # ignora esta clave y sigue viendo solo los datos de este servidor.
         "hosts": read_hosts(exclude_id, days),

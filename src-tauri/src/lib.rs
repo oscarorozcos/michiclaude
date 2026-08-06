@@ -190,12 +190,26 @@ struct ProjectAgg {
     /// Coste por modelo dentro del proyecto (id de modelo -> USD equiv.)
     #[serde(default)]
     by_model: HashMap<String, f64>,
+    /// Turnos ÚTILES del usuario (mensajes humanos reales) en la ventana.
+    /// Motor del reporte: tokens ÷ uturns = rendimiento. 0 = "sin datos"
+    /// (exportador viejo o proyecto sin turnos): la UI NUNCA divide entre 0
+    /// ni pinta un rendimiento con esto vacío (invariante #8).
+    #[serde(default)]
+    uturns: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 struct DailyAgg {
     date: String, // YYYY-MM-DD (UTC)
     cost: f64,
+    /// Tokens "de trabajo" del día (input+output+cache_write, cache_read
+    /// fuera — el mismo criterio de siempre). Con `default` un exportador
+    /// viejo manda solo cost y estos quedan honestamente en 0.
+    #[serde(default)]
+    tokens: u64,
+    /// Turnos útiles del usuario ese día (ver ProjectAgg::uturns).
+    #[serde(default)]
+    uturns: u64,
 }
 
 /// Una fila del reporte: un hecho por fila, y todas las columnas aplican a
@@ -227,6 +241,11 @@ struct LocalStats {
     /// por compatibilidad con el exportador remoto).
     cost_week: f64,
     tokens_week: u64,
+    /// Turnos útiles del usuario en la ventana (suma de todas las fuentes).
+    /// tokens_week ÷ uturns_week = tokens por turno útil, la métrica del
+    /// reporte. 0 = sin datos, nunca dividir (invariante #8).
+    #[serde(default)]
+    uturns_week: u64,
     files_scanned: usize,
     entries_deduped: usize,
     /// Serie diaria de los últimos 30 días (para la gráfica de tendencia).
@@ -1250,20 +1269,30 @@ struct ProjSlot {
     cost: f64,
     tokens: u64,
     by_model: HashMap<String, f64>,
+    uturns: u64,
 }
+
+/// Valor de un día en la serie de tendencia: (USD, tokens de trabajo,
+/// turnos útiles). Antes era solo el USD; el reporte necesita los tres
+/// para calcular rendimiento por periodo sin re-escanear.
+type DayCell = (f64, u64, u64);
 
 #[derive(Default)]
 struct LocalAgg {
     seen: HashSet<String>,
+    /// Dedup de turnos de usuario por uuid: igual que los de usage, un
+    /// turno puede repetirse entre archivos (continuaciones de sesión).
+    useen: HashSet<String>,
     projects: HashMap<String, ProjSlot>, // clave: ruta única de la carpeta
     models: HashMap<String, ModelAgg>,
-    daily: HashMap<String, f64>, // YYYY-MM-DD -> USD (últimos 30 días)
+    daily: HashMap<String, DayCell>, // YYYY-MM-DD -> (USD, tok, uturns), 30 días
     /// (fecha, proyecto, modelo, origen) -> (USD, tokens). Solo si want_rows.
     rows: HashMap<(String, String, String, String), (f64, u64)>,
     want_rows: bool,
     cost_today: f64,
     cost_window: f64,
     tokens_window: u64,
+    uturns_window: u64,
     files: usize,
     deduped: usize,
 }
@@ -1282,7 +1311,11 @@ struct LocalAgg {
 // Se guardan tokens y timestamp, nunca el coste: así un cambio de precios se
 // aplica a todo el historial al instante. Es un caché reconstruible — si se
 // borra o no se entiende, se recalcula desde los logs.
-const SCAN_CACHE_VERSION: u32 = 1;
+/// v2 (2026-08-06): el caché guarda también los turnos de usuario (uturns).
+/// Un caché v1 no los trae y devolvería 0 EN SILENCIO para archivos sin
+/// cambios — el bump fuerza una reconstrucción completa única, que es
+/// exactamente para lo que el caché es reconstruible por diseño.
+const SCAN_CACHE_VERSION: u32 = 2;
 const SCAN_SKIP_MARGIN_DAYS: i64 = 2;
 
 /// Entrada ya parseada. Nombres cortos: se serializan miles.
@@ -1304,12 +1337,25 @@ struct CachedEntry {
     key: String,
 }
 
+/// Turno de usuario ya parseado: cuándo y su uuid (para la dedup global).
+#[derive(Serialize, Deserialize, Clone)]
+struct CachedUTurn {
+    #[serde(rename = "t")]
+    ts: i64,
+    #[serde(rename = "u", default)]
+    id: String,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 struct CachedFile {
     len: u64,
     mtime: i64,
     display: Option<String>,
     entries: Vec<CachedEntry>,
+    /// Turnos ÚTILES del usuario (mensajes humanos reales; fuera meta,
+    /// sidechain, resultados de herramienta y comandos locales).
+    #[serde(default)]
+    uturns: Vec<CachedUTurn>,
     /// Duplicados internos ya descartados, para que el contador de
     /// diagnóstico siga cuadrando con el escaneo completo.
     #[serde(default)]
@@ -1352,17 +1398,63 @@ fn save_scan_cache(files: HashMap<String, CachedFile>, retained_from: i64) {
     }
 }
 
+/// ¿Es un turno ÚTIL del usuario? Un mensaje HUMANO real: fuera los meta,
+/// los de subagente, los resultados de herramienta (llegan con rol user
+/// pero los escribe la máquina) y los envoltorios de comandos locales.
+/// Es el denominador de "tokens por turno útil" — sesgo aquí = métrica
+/// mentirosa, por eso los filtros son deliberadamente conservadores.
+fn is_user_turn(v: &serde_json::Value) -> bool {
+    if v["type"].as_str() != Some("user")
+        || v["isSidechain"].as_bool().unwrap_or(false)
+        || v["isMeta"].as_bool().unwrap_or(false)
+        || v.get("toolUseResult").map_or(false, |x| !x.is_null())
+    {
+        return false;
+    }
+    let msg = &v["message"];
+    if msg["role"].as_str() != Some("user") {
+        return false;
+    }
+    let text: String = match &msg["content"] {
+        serde_json::Value::String(s) => s.clone(),
+        serde_json::Value::Array(a) => {
+            // un turno con tool_result en el content también es maquinal
+            if a.iter().any(|b| b["type"].as_str() == Some("tool_result")) {
+                return false;
+            }
+            a.iter()
+                .filter(|b| b["type"].as_str() == Some("text"))
+                .filter_map(|b| b["text"].as_str())
+                .collect::<Vec<_>>()
+                .join(" ")
+        }
+        _ => return false,
+    };
+    let t = text.trim();
+    // envoltorios que Claude Code o el IDE inyectan con rol user sin marcar
+    // isMeta (el <ide_… se vio en logs reales del VPS, 2026-08-06). Lista
+    // explícita y conservadora: ante la duda, mejor contar de menos que
+    // inflar el denominador y abaratar el rendimiento en falso.
+    !t.is_empty()
+        && !t.starts_with("<command-")
+        && !t.starts_with("<local-command")
+        && !t.starts_with("<ide_")
+        && !t.starts_with("<system-reminder")
+        && !t.starts_with("[Request interrupted")
+}
+
 /// Parsea un .jsonl a entradas compactas, deduplicando dentro del archivo.
-/// Devuelve (nombre del cwd, entradas, duplicados internos).
+/// Devuelve (nombre del cwd, entradas, turnos de usuario, duplicados internos).
 fn parse_jsonl_file(
     path: &std::path::Path,
     keep_after: i64,
-) -> (Option<String>, Vec<CachedEntry>, usize) {
+) -> (Option<String>, Vec<CachedEntry>, Vec<CachedUTurn>, usize) {
     let Ok(content) = fs::read_to_string(path) else {
-        return (None, Vec::new(), 0);
+        return (None, Vec::new(), Vec::new(), 0);
     };
     let mut display: Option<String> = None;
     let mut entries = Vec::new();
+    let mut uturns: Vec<CachedUTurn> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
     let mut dups = 0usize;
 
@@ -1379,6 +1471,23 @@ fn parse_jsonl_file(
             }) {
                 display = Some(base);
             }
+        }
+        // turnos de usuario: no traen usage, se recogen aparte ANTES del
+        // filtro. La ventana se aplica igual que a las entradas con costo.
+        if is_user_turn(&v) {
+            if let Some(ts) = v["timestamp"]
+                .as_str()
+                .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                .map(|d| d.with_timezone(&Utc).timestamp())
+            {
+                if ts >= keep_after {
+                    uturns.push(CachedUTurn {
+                        ts,
+                        id: v["uuid"].as_str().unwrap_or("").to_string(),
+                    });
+                }
+            }
+            continue;
         }
         let msg = &v["message"];
         let usage = &msg["usage"];
@@ -1418,7 +1527,7 @@ fn parse_jsonl_file(
             key,
         });
     }
-    (display, entries, dups)
+    (display, entries, uturns, dups)
 }
 
 /// Los .jsonl de una carpeta de proyecto: los planos MÁS los transcripts de
@@ -1485,6 +1594,7 @@ fn scan_projects_dir(
             cost: 0.0,
             tokens: 0,
             by_model: HashMap::new(),
+            uturns: 0,
         });
 
         for path in project_jsonls(&proj.path()) {
@@ -1510,8 +1620,8 @@ fn scan_projects_dir(
             let entry = match cached {
                 Some(c) => c,
                 None => {
-                    let (display, entries, dups) = parse_jsonl_file(&path, keep_after);
-                    CachedFile { len: meta.len(), mtime, display, entries, dups }
+                    let (display, entries, uturns, dups) = parse_jsonl_file(&path, keep_after);
+                    CachedFile { len: meta.len(), mtime, display, entries, uturns, dups }
                 }
             };
 
@@ -1570,7 +1680,32 @@ fn scan_projects_dir(
                 }
                 // serie diaria (30 días), independiente de la ventana elegida
                 if ts >= month_ago {
-                    *agg.daily.entry(ts.format("%Y-%m-%d").to_string()).or_insert(0.0) += cost;
+                    let c = agg
+                        .daily
+                        .entry(ts.format("%Y-%m-%d").to_string())
+                        .or_insert((0.0, 0, 0));
+                    c.0 += cost;
+                    c.1 += e.inp + e.out + e.cw; // mismo criterio: cache_read fuera
+                }
+            }
+            // turnos útiles del usuario: dedup global por uuid (también
+            // cruzan archivos, como las entradas con usage) y las MISMAS
+            // ventanas que el resto — elegida para el total, 30 días para
+            // la serie del reporte.
+            for u in &entry.uturns {
+                if !u.id.is_empty() && !agg.useen.insert(u.id.clone()) {
+                    continue;
+                }
+                let Some(ts) = DateTime::from_timestamp(u.ts, 0) else { continue };
+                if ts >= window_ago && ts <= end {
+                    agg.uturns_window += 1;
+                    agg.projects.get_mut(&slot_key).unwrap().uturns += 1;
+                }
+                if ts >= month_ago {
+                    agg.daily
+                        .entry(ts.format("%Y-%m-%d").to_string())
+                        .or_insert((0.0, 0, 0))
+                        .2 += 1;
                 }
             }
             cache_out.insert(fkey, entry);
@@ -1596,7 +1731,7 @@ fn collect_own_stats(
     window_days: u32,
     want_rows: bool,
     end_ts: Option<i64>,
-) -> (LocalStats, HashMap<String, f64>) {
+) -> (LocalStats, HashMap<String, DayCell>) {
     let now = Utc::now();
     let end = end_ts
         .and_then(|t| DateTime::from_timestamp(t, 0))
@@ -1638,7 +1773,7 @@ fn collect_own_stats(
     let projects: Vec<ProjectAgg> = agg
         .projects
         .into_values()
-        .filter(|s| s.cost > 0.0 || s.tokens > 0)
+        .filter(|s| s.cost > 0.0 || s.tokens > 0 || s.uturns > 0)
         .map(|s| {
             let base = s.display.unwrap_or(s.fallback);
             ProjectAgg {
@@ -1649,6 +1784,7 @@ fn collect_own_stats(
                 cost: s.cost,
                 tokens: s.tokens,
                 by_model: s.by_model,
+                uturns: s.uturns,
             }
         })
         .collect();
@@ -1662,6 +1798,7 @@ fn collect_own_stats(
         cost_today: agg.cost_today,
         cost_week: agg.cost_window,
         tokens_week: agg.tokens_window,
+        uturns_week: agg.uturns_window,
         files_scanned: agg.files,
         entries_deduped: agg.deduped,
         daily: Vec::new(),
@@ -1698,7 +1835,12 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
         let daily: Vec<DailyAgg> = {
             let mut d: Vec<DailyAgg> = daily_map
                 .iter()
-                .map(|(date, cost)| DailyAgg { date: date.clone(), cost: *cost })
+                .map(|(date, c)| DailyAgg {
+                    date: date.clone(),
+                    cost: c.0,
+                    tokens: c.1,
+                    uturns: c.2,
+                })
                 .collect();
             d.sort_by(|a, b| a.date.cmp(&b.date));
             d
@@ -1748,6 +1890,7 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
         stats.cost_today += remote.cost_today;
         stats.cost_week += remote.cost_week;
         stats.tokens_week += remote.tokens_week;
+        stats.uturns_week += remote.uturns_week;
         stats.files_scanned += remote.files_scanned;
         stats.entries_deduped += remote.entries_deduped;
         for p in remote.projects {
@@ -1756,6 +1899,7 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
                 cost: p.cost,
                 tokens: p.tokens,
                 by_model: p.by_model,
+                uturns: p.uturns,
             });
         }
         for (m, a) in remote.models {
@@ -1768,7 +1912,10 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
             e.estimated = e.estimated || a.estimated;
         }
         for d in remote.daily {
-            *daily_map.entry(d.date).or_insert(0.0) += d.cost;
+            let c = daily_map.entry(d.date).or_insert((0.0, 0, 0));
+            c.0 += d.cost;
+            c.1 += d.tokens;
+            c.2 += d.uturns;
         }
         // Modo hub: las demás máquinas que dejaron su resumen en ese
         // servidor. Cada una se etiqueta con SU nombre, no con el del
@@ -1792,6 +1939,7 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
             stats.cost_today += h.stats.cost_today;
             stats.cost_week += h.stats.cost_week;
             stats.tokens_week += h.stats.tokens_week;
+            stats.uturns_week += h.stats.uturns_week;
             stats.files_scanned += h.stats.files_scanned;
             stats.entries_deduped += h.stats.entries_deduped;
             for p in h.stats.projects {
@@ -1800,6 +1948,7 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
                     cost: p.cost,
                     tokens: p.tokens,
                     by_model: p.by_model,
+                    uturns: p.uturns,
                 });
             }
             for (m, a) in h.stats.models {
@@ -1812,7 +1961,10 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
                 e.estimated = e.estimated || a.estimated;
             }
             for d in h.stats.daily {
-                *daily_map.entry(d.date).or_insert(0.0) += d.cost;
+                let c = daily_map.entry(d.date).or_insert((0.0, 0, 0));
+                c.0 += d.cost;
+                c.1 += d.tokens;
+                c.2 += d.uturns;
             }
         }
     }
@@ -1822,7 +1974,7 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
 
     let mut daily: Vec<DailyAgg> = daily_map
         .into_iter()
-        .map(|(date, cost)| DailyAgg { date, cost })
+        .map(|(date, c)| DailyAgg { date, cost: c.0, tokens: c.1, uturns: c.2 })
         .collect();
     daily.sort_by(|a, b| a.date.cmp(&b.date));
     stats.daily = daily;
@@ -3506,6 +3658,85 @@ mod win_taskbar {
     }
 }
 
+// ---------- histórico de cuota (motor del reporte) ----------
+// El panel sondea la cuota cada 3 min y hasta hoy la TIRABA. El reporte
+// ("¿te duró más o menos?") necesita memoria: cuántas veces se topó el
+// límite y cuándo se acabó el semanal. Guardadito local y PRIVADO —
+// solo porcentajes y horas de reset; nunca sale de la máquina, no viaja
+// por ntfy ni en las fotos del hub (misma regla de privacidad de siempre).
+
+const QUOTA_HIST_DAYS: i64 = 90;
+/// Una foto por ciclo: el ciclo normal es de 180 s; el margen absorbe
+/// re-renders (cambio de idioma) y dobles llamadas sin ensuciar la serie.
+const QUOTA_HIST_MIN_GAP: i64 = 150;
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct QuotaSnap {
+    t: i64, // epoch de la foto
+    #[serde(default)]
+    s: Option<u32>, // % de la sesión de 5 h (None = el endpoint no lo trajo)
+    #[serde(default)]
+    w: Option<u32>, // % del semanal global
+    #[serde(default)]
+    sr: Option<i64>, // reset de sesión (epoch)
+    #[serde(default)]
+    wr: Option<i64>, // reset semanal (epoch)
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct QuotaHist {
+    #[serde(default)]
+    version: u32,
+    #[serde(default)]
+    snaps: Vec<QuotaSnap>,
+}
+
+fn quota_hist_path() -> PathBuf {
+    app_data_dir().join("quota_history.json")
+}
+
+fn log_quota_impl(s: Option<u32>, w: Option<u32>, sr: Option<i64>, wr: Option<i64>) {
+    let now = Utc::now().timestamp();
+    let mut h: QuotaHist = fs::read_to_string(quota_hist_path())
+        .ok()
+        .and_then(|x| serde_json::from_str(&x).ok())
+        .unwrap_or_default();
+    if h.snaps.last().map_or(false, |l| now - l.t < QUOTA_HIST_MIN_GAP) {
+        return;
+    }
+    h.version = 1;
+    h.snaps.push(QuotaSnap { t: now, s, w, sr, wr });
+    let cutoff = now - QUOTA_HIST_DAYS * 86_400;
+    h.snaps.retain(|x| x.t >= cutoff);
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(x) = serde_json::to_string(&h) {
+        let _ = fs::write(quota_hist_path(), x);
+    }
+}
+
+/// Lo llama el panel tras cada lectura BUENA del endpoint (nunca con datos
+/// simulados ni de error). Fallar en silencio es correcto: el histórico es
+/// un lujo del reporte, jamás debe estorbar al ciclo de cuota.
+#[tauri::command]
+async fn log_quota(s: Option<u32>, w: Option<u32>, sr: Option<i64>, wr: Option<i64>) {
+    let _ = tauri::async_runtime::spawn_blocking(move || log_quota_impl(s, w, sr, wr)).await;
+}
+
+#[tauri::command]
+async fn get_quota_history(days: Option<u32>) -> Result<Vec<QuotaSnap>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let d = i64::from(days.unwrap_or(90).clamp(1, 90));
+        let cutoff = Utc::now().timestamp() - d * 86_400;
+        let h: QuotaHist = fs::read_to_string(quota_hist_path())
+            .ok()
+            .and_then(|x| serde_json::from_str(&x).ok())
+            .unwrap_or_default();
+        Ok(h.snaps.into_iter().filter(|x| x.t >= cutoff).collect())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 // ---------- app + tray ----------
 
 pub fn run() {
@@ -3563,6 +3794,8 @@ pub fn run() {
             set_notif_visible,
             set_tray_menu,
             get_findings,
+            log_quota,
+            get_quota_history,
             pill_moved,
             get_ntfy,
             save_ntfy,

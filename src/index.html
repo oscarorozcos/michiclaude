@@ -4188,6 +4188,27 @@ function parseQuota(data){
 const WRANK={session:0,weekly_all:1,weekly_scoped:2};
 let weeklyAllPct=null;   // % semanal global: lo usa la barrita del icono de bandeja
 
+// ---- histórico de cuota (motor del reporte) ----
+// Cada lectura BUENA del endpoint deja una foto local (quota_history.json)
+// vía log_quota. Se llama desde refresh() con el dato fresco — NUNCA desde
+// renderQuota, que también re-pinta al cambiar de idioma con datos viejos
+// y duplicaría fotos. Los simuladores no pasan por aquí (guard simRunning
+// aparte, cinturón y tirantes). Fallar es gratis: el histórico es un lujo.
+function logQuota(data){
+  if(!invoke || simRunning) return;
+  try{
+    const bs=parseQuota(data);
+    const ses=bs.find(b=>b.kind==="session");
+    const wk=bs.find(b=>b.kind==="weekly_all");
+    if(!ses && !wk) return;
+    const ep=r=>r?Math.floor(new Date(r).getTime()/1000):null;
+    invoke("log_quota",{
+      s:ses?ses.pct:null, sr:ses?ep(ses.resets):null,
+      w:wk?wk.pct:null,  wr:wk?ep(wk.resets):null,
+    }).catch(()=>{});
+  }catch(_){}
+}
+
 // marcador de ritmo: % del periodo ya transcurrido
 function elapsedPct(resets,hours){ if(!resets) return null;
   const left=(new Date(resets)-Date.now())/3.6e6;
@@ -4979,7 +5000,8 @@ async function refresh(){
   try{
     const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats",statsArgs())]);
     if(quota.status==="fulfilled"){
-      renderQuota(quota.value); $("liveDot").classList.remove("err");
+      renderQuota(quota.value); logQuota(quota.value);
+      $("liveDot").classList.remove("err");
       lastSync=Date.now(); fails=0; rateLimited=false; hadQuota=true; lastErrCode=null;
     }else{
       onQuotaFail(quota.reason);
@@ -5879,6 +5901,44 @@ $("ntfyRegenYes").addEventListener("click", async ()=>{
 });
 ntfyLoad();
 
+// ---- marcas de arreglo (motor del reporte) ----
+// Historial de hallazgos "de estado": si uno llevaba días saliendo y deja
+// de salir, el usuario lo arregló — se clava la fecha como MARCA para el
+// antes/después del reporte. Solo con escaneos completos que terminan HOY
+// (ventana ≥7 días, sin rango al pasado) y NUNCA con el simulador. Los de
+// sesión (reread/inflate/cachebreak) quedan fuera a propósito: van y
+// vienen con cada sesión y las marcas serían puro ruido.
+const FND_MARK_KINDS=new Set(["mcp_unused","skills_unused","claudemd",
+  "claudemdsize","hooks_noise","mech","subagents"]);
+const FND_MARK_MIN_SEEN=3*864e5;  // visto al menos 3 días…
+const FND_MARK_GONE=2*864e5;      // …y desaparecido hace 2+ = arreglado
+function fndTrackHist(list){
+  if(simFnd || fndRange || fndDays<7) return;
+  let hist,marks;
+  try{ hist=JSON.parse(localStorage.getItem("fndHist")||"{}"); }catch(_){ hist={}; }
+  try{ marks=JSON.parse(localStorage.getItem("fndMarks")||"[]"); }catch(_){ marks=[]; }
+  const now=Date.now(), cur=new Set();
+  for(const f of list||[]){
+    if(!FND_MARK_KINDS.has(f.kind)) continue;
+    const k=fndKey(f); cur.add(k);
+    const h=hist[k]||(hist[k]={f:now,kind:f.kind});
+    h.l=now; h.t=fndTitle(f);   // el título (ya traducido) es solo para ENSEÑAR la marca
+  }
+  for(const [k,h] of Object.entries(hist)){
+    if(cur.has(k)) continue;
+    if((h.l-h.f)>=FND_MARK_MIN_SEEN && (now-h.l)>=FND_MARK_GONE){
+      if(!marks.some(m=>m.k===k)){
+        marks.push({k, kind:h.kind||k.split("|")[0], t:h.t||"", date:h.l});
+        flog("marca: hallazgo arreglado — "+(h.t||k));
+      }
+      delete hist[k];
+    }else if((now-h.l)>=30*864e5){ delete hist[k]; } // fantasma: ni marca ni ruido
+  }
+  while(marks.length>20) marks.shift();
+  try{ localStorage.setItem("fndHist",JSON.stringify(hist));
+       localStorage.setItem("fndMarks",JSON.stringify(marks)); }catch(_){}
+}
+
 async function loadFindings(force){
   if(!invoke) return;
   if(fndBusy) return;
@@ -5911,6 +5971,7 @@ async function loadFindings(force){
   try{
     fndCache=await invoke("get_findings",fndArgs());
     fndCacheAt=Date.now();
+    fndTrackHist(fndCache);   // marcas de arreglo: solo con resultado FRESCO
     flog("fnd: escaneo ok, "+fndCache.length+" tarjetas ("+fndDays+"d)");
     try{ localStorage.setItem("fndCacheSaved",
       JSON.stringify({days:fndDays,list:fndCache})); }catch(_){}

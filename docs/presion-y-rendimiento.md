@@ -191,10 +191,51 @@ existen:
 - La columna "qué lo encareció" con proyecto sano dice "nada que señalar" —
   eso sí, nunca inventar una causa cuando no hay hallazgo.
 
-**Orden de obra cuando se arranque** (sigue siendo pendiente, no iniciado):
-1) motor de datos (tokens/turno en la agregación + histórico de cuota local
-   + marcas de arreglo) — 3 piezas en sincronía; 2) pestaña Reporte en el
-   panel; 3) export HTML. La pestaña sin el motor sería una maqueta vacía.
+**Orden de obra**: 1) motor de datos (tokens/turno en la agregación +
+histórico de cuota local + marcas de arreglo) — 3 piezas en sincronía;
+2) pestaña Reporte en el panel; 3) export HTML. La pestaña sin el motor
+sería una maqueta vacía.
+
+### Fase 1 — motor de datos: IMPLEMENTADA (2026-08-06)
+
+Todo ADITIVO (campos con `#[serde(default)]`, comandos nuevos, colectores
+que solo escuchan). Pendiente de `cargo check` en el Windows de Oscar.
+
+- **Turnos útiles (`uturns`)**: `is_user_turn` (Rust y Python, réplica
+  exacta) cuenta mensajes HUMANOS reales — fuera `isMeta`, `isSidechain`,
+  `toolUseResult`, contenidos con `tool_result`, envoltorios `<command-`,
+  `<local-command`, `<ide_…`, `<system-reminder` y `[Request interrupted`
+  (el `<ide_…` se cazó en logs reales del VPS: el IDE inyecta avisos con
+  rol user sin marcar meta). Dedup global por `uuid` (también cruzan
+  archivos). Viven en: `LocalStats.uturns_week`, `ProjectAgg.uturns` y la
+  serie `daily` (que ahora lleva `cost`+`tokens`+`uturns` por día — los
+  tokens de trabajo por día también hacían falta para el rendimiento
+  semanal). Caché de escaneo v2 en AMBOS lados (un caché v1 devolvería 0
+  en silencio; el bump fuerza una reconstrucción única). Fusión remota/hub
+  suma los tres campos; exportador viejo manda 0 = "sin datos" y la UI
+  NUNCA divide entre 0 (invariante #8).
+- **Verificación hecha en el VPS** (sin toolchain Rust — `cargo check`
+  queda para Windows): regresión con logs CONGELADOS y `--end` fijo →
+  campos viejos IDÉNTICOS byte a byte; coherencia de rangos → 7d+7d
+  contiguos = 14d exacto en tokens y uturns; muestreo manual de turnos
+  detectados → 0 falsos tras el filtro `<ide_`.
+- **Histórico de cuota**: `quota_history.json` en el appdata (90 días,
+  poda automática, una foto por ciclo con freno de 150 s). Comandos
+  `log_quota` (lo llama `refresh()` SOLO con lectura buena del endpoint —
+  nunca desde renderQuota, que re-pinta al cambiar idioma y duplicaría;
+  nunca con simulador) y `get_quota_history(days)` (clamp 1..90). Campos
+  por foto: t, s (% sesión), w (% semanal), sr/wr (resets epoch). LOCAL Y
+  PRIVADO: no viaja a hub ni ntfy.
+- **Marcas de arreglo**: localStorage `fndHist` (clave→{f: primera vez,
+  l: última, t: título}) y `fndMarks` (tope 20). Solo hallazgos de ESTADO
+  (mcp_unused, skills_unused, claudemd, claudemdsize, hooks_noise, mech,
+  subagents — los de sesión van y vienen y serían ruido). Solo escaneos
+  frescos con ventana ≥7 días SIN rango al pasado y sin simulador. Regla:
+  visto ≥3 días Y desaparecido ≥2 → marca con la fecha de la última vez
+  visto; huella en flowLog ("marca: hallazgo arreglado"). Limitación
+  documentada: arreglos ANTERIORES a esta implementación no tienen marca.
+
+Fases 2 (pestaña) y 3 (export) sin arrancar.
 
 ## Lo descartado (y su porqué, para no rediscutir)
 

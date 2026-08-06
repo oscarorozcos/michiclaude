@@ -459,21 +459,29 @@ hacer público el repo (o sus releases).
       solo verlo nacer natural, con una fuga nueva y el panel cerrado).
 - [ ] Updater: decidir repo público + publicar tag v* y probar completo.
 - [ ] Capturas para el README (las hace Oscar).
-- [ ] MÉTRICAS DE RENDIMIENTO Y PRESIÓN DE CONTEXTO (analizado 2026-08-05,
-      sin arrancar): diseño y tabla comparativa completa en
-      `docs/presion-y-rendimiento.md` — LEERLO antes de tocar. En corto:
-      del documento de estrategia de Oscar, el Nivel 1 ya lo cubrimos casi
-      entero; lo NUEVO viable es (1) tokens por turno útil + antes/después
-      anclado a cada arreglo (la joya — alimenta la APUESTA #2), (2)
-      manómetro de contexto en pastilla/gatito (el coach ya calcula ctx,
-      solo falta pintarlo vía quota:update), (3) detector de auto-compacts
-      frecuentes, (4) REPORTE EJECUTIVO configurable semanal/mensual en
-      lenguaje llano (diseño de 7 secciones en el doc, 2026-08-06; requiere
-      empezar a persistir histórico de cuota local — hoy se tira).
-      DESCARTADO con porqué en el doc: sesión contaminada
-      (falsos positivos), score único, modelo local, telemetría colectiva
-      (choca con invariante #3). Cada métrica nueva = 3 piezas en
-      sincronía (invariante #1).
+- [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
+      `docs/presion-y-rendimiento.md` — LEERLO antes de tocar). EN OBRA:
+      la fase 1 (motor de datos) se implementó el 2026-08-06, pendiente de
+      `cargo check` en Windows y de validación en vivo. Qué existe ya:
+      (a) TURNOS ÚTILES `uturns` en LocalStats/proyectos/daily (mensajes
+      HUMANOS: fuera meta, sidechain, tool_result, comandos locales e
+      inyecciones `<ide_…` — `is_user_turn` réplica exacta en Rust y
+      Python, invariante #1; caché de escaneo v2, se reconstruye solo;
+      regresión congelada byte a byte OK y coherencia de rangos contiguos
+      OK con logs reales del VPS); 0 turnos = "sin datos", NUNCA dividir
+      (invariante #8). Un exportador viejo manda uturns 0 y se degrada
+      honesto. (b) HISTÓRICO DE CUOTA `quota_history.json` (90 días, una
+      foto por ciclo, comandos `log_quota`/`get_quota_history`; solo
+      lecturas BUENAS del endpoint, nunca simulador; local y privado,
+      no viaja a hub ni ntfy). (c) MARCAS DE ARREGLO en localStorage
+      (`fndHist`/`fndMarks`, solo hallazgos de estado, escaneos ≥7d sin
+      rango; visto ≥3 días + desaparecido ≥2 = arreglado, rastro en
+      flowLog). FALTA: fase 2 pestaña Reporte (mockup A elegido como base,
+      chips Semana/Mes/Personalizado) y fase 3 export HTML. También en el
+      doc y sin arrancar: manómetro de contexto en pastilla/gatito,
+      detector de auto-compacts, detector de pegado masivo. DESCARTADO con
+      porqué en el doc: sesión contaminada, score único, modelo local,
+      telemetría colectiva (choca con invariante #3).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
