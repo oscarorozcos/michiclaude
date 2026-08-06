@@ -102,6 +102,63 @@ para el copy — "presión de contexto", "fuga", "purgar la línea", manómetro.
 El plomero no dice "context rot"; dice "la presión está en zona roja". Solo
 texto en el diccionario `I18N`, alinea toda la narrativa de la app.
 
+## Qué pasa HOY al arreglar algo (el hueco que esto cierra)
+
+Pregunta de Oscar (2026-08-06): "¿cómo veo si aplicar los consejos funcionó?"
+Respuesta honesta: hoy la única recompensa es POR AUSENCIA — el hallazgo deja
+de aparecer cuando el gasto viejo sale de la ventana de días (no al instante),
+el coach deja de regañar, y el gasto baja (pero eso no prueba nada: quizá
+trabajó menos). La app nunca dice "funcionó, mejoraste X". Ese silencio es
+exactamente lo que el antes/después viene a llenar.
+
+**Dato clave: la métrica de rendimiento es RETROACTIVA.** Tokens por turno
+útil sale de los mismos JSONL ya parseados — el día que se implemente, el
+primer reporte ya enseña la curva de los 30 días anteriores completos. Lo
+único que necesita tiempo real son las MARCAS de arreglo (ver que un hallazgo
+llevaba días saliendo y dejó de salir → clavar la fecha); arreglos previos a
+la implementación se pueden anotar a mano.
+
+## Reporte ejecutivo periódico (diseño de producto, 2026-08-06)
+
+Petición de Oscar: reporte configurable (semanal/mensual) para un usuario que
+está EMPEZANDO y no entiende mucho — lenguaje llano, sin jerga. Estructura
+acordada (7 pisos, del más gordo al más fino):
+
+1. **Portada — EL número:** rendimiento (tokens/turno útil) con veredicto en
+   palabras: "esta semana tus tokens te rindieron 18% más que la anterior".
+   Un número grande, una frase, una flecha. Nada más.
+2. **Tu periodo en corto:** 3-4 frases llanas ("trabajaste 12 días, tu
+   proyecto más caro fue X, cerraste 2 fugas, se abrió 1 nueva").
+3. **La sensación, medida:** los usuarios dicen "esta semana me duró menos" /
+   "se me duplicó" — es una sensación Y SE PUEDE MEDIR: (a) turnos antes de
+   topar el límite por ventana de 5 h, (b) cuántas veces llegó al 100%
+   (sesión y semanal), (c) a qué hora/día se le acabó el semanal. Comparado
+   con el periodo anterior: "topaste el límite 2 veces (la semana pasada
+   fueron 5)". REQUISITO TÉCNICO NUEVO: hoy NO se persiste histórico de
+   cuota (se sondea cada 3 min y se tira) — hace falta un histórico local
+   chiquito (JSON con % por ventana; privado, nunca sale de la máquina).
+4. **Proyectos de mayor a menor:** costo + tokens por proyecto, y POR QUÉ
+   quemó: sus hallazgos y avisos del coach son la explicación ("aquí se te
+   fue el 40% en releer archivos"). Cada proyecto con su delta vs periodo
+   anterior (mejoró/igual/empeoró).
+5. **Marcas de arreglo (antes/después):** qué arregló, cuándo, y el efecto
+   medido — con las reglas de honestidad (estimado, mínimo de días).
+6. **Hallazgos y consejos del periodo:** cerrados / nuevos / ignorados, por
+   proyecto.
+7. **Qué mirar el periodo que entra:** 1-3 acciones concretas (la fuga más
+   cara primero), en imperativo llano.
+
+**Formatos (decisión pendiente, propuesta):** (a) sección/vista "Reporte" en
+el panel; (b) EXPORT HTML autocontenido (como el CSV: una foto, imprimible y
+compartible — sinergia con APUESTA #2); (c) push ntfy "tu reporte está listo"
+SIN números (privacidad). Texto + tabla de proyectos + gráfica comparativa de
+RENDIMIENTO (razón, nunca consumo crudo — el consumo ya tiene su gráfica en
+Tendencia diaria y ahí se queda).
+
+**Regla de copy:** cada cifra lleva su frase en llano al lado. El usuario
+principiante lee la frase; el avanzado lee el número. Nunca una métrica sin
+su "qué significa para ti".
+
 ## Lo descartado (y su porqué, para no rediscutir)
 
 - **Sesión contaminada:** mayor riesgo de falsos positivos del doc entero; la

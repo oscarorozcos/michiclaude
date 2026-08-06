@@ -467,7 +467,10 @@ hacer público el repo (o sus releases).
       anclado a cada arreglo (la joya — alimenta la APUESTA #2), (2)
       manómetro de contexto en pastilla/gatito (el coach ya calcula ctx,
       solo falta pintarlo vía quota:update), (3) detector de auto-compacts
-      frecuentes. DESCARTADO con porqué en el doc: sesión contaminada
+      frecuentes, (4) REPORTE EJECUTIVO configurable semanal/mensual en
+      lenguaje llano (diseño de 7 secciones en el doc, 2026-08-06; requiere
+      empezar a persistir histórico de cuota local — hoy se tira).
+      DESCARTADO con porqué en el doc: sesión contaminada
       (falsos positivos), score único, modelo local, telemetría colectiva
       (choca con invariante #3). Cada métrica nueva = 3 piezas en
       sincronía (invariante #1).
