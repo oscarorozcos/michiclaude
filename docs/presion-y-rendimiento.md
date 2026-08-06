@@ -159,6 +159,43 @@ Tendencia diaria y ahí se queda).
 principiante lee la frase; el avanzado lee el número. Nunca una métrica sin
 su "qué significa para ti".
 
+### Decisión de diseño (2026-08-06, con mockups revisados por Oscar)
+
+Se generaron dos mockups con IA externa (prompts en la bitácora de la
+conversación): A = reporte tipo documento ejecutivo (820 px, lenguaje muy
+llano, tabla de proyectos con "qué lo encareció", tarjetas antes/después,
+analogías de gasolina/maleta) y B = pestaña dentro del panel de 446 px.
+**Oscar eligió la A como base** — más completa y más entendible para un
+usuario común. Plan: adaptar el CONTENIDO de la A a la columna del panel
+(pestaña "Reporte" con chips Semana/Mes/Personalizado — el selector
+Personalizado reutiliza el calendario de rangos ya existente), y la A casi
+tal cual como salida del botón "Exportar reporte (HTML)" — dos vistas del
+mismo dato, como ya pasa con el CSV. Los archivos de referencia los tiene
+Oscar (opcion a/b michiclaude-reporte-*.html).
+
+**Auditoría de honestidad del mockup A (invariante #8)** — qué datos de la
+maqueta son calculables hoy, cuáles necesitan la obra nueva y cuáles NO
+existen:
+- Calculables ya (retroactivo): tokens por turno útil, días trabajados,
+  proyectos de mayor a menor con costo/tokens, hallazgos cerrados/nuevos,
+  marcas de arreglo (hacia adelante).
+- Necesitan el histórico de cuota (obra nueva ya anotada): "veces que
+  topaste el límite de 5 h", "cuándo se acabó el semanal", "mensajes por
+  sesión de 5 h".
+- NO existe el detector: "pegaste archivos completos 9 veces" (pegar texto
+  masivo en el prompt). Detector NUEVO posible — input tokens de usuario
+  anormalmente altos por turno — pero hasta no diseñarlo y validarlo, esa
+  fila no puede aparecer. El reporte solo enseña "qué lo encareció" con
+  frases que salgan de detectores REALES (reread, inflate, mcp_unused,
+  claudemd, cachebreak, mech, subagents, hooks_noise, claudemdsize).
+- La columna "qué lo encareció" con proyecto sano dice "nada que señalar" —
+  eso sí, nunca inventar una causa cuando no hay hallazgo.
+
+**Orden de obra cuando se arranque** (sigue siendo pendiente, no iniciado):
+1) motor de datos (tokens/turno en la agregación + histórico de cuota local
+   + marcas de arreglo) — 3 piezas en sincronía; 2) pestaña Reporte en el
+   panel; 3) export HTML. La pestaña sin el motor sería una maqueta vacía.
+
 ## Lo descartado (y su porqué, para no rediscutir)
 
 - **Sesión contaminada:** mayor riesgo de falsos positivos del doc entero; la
