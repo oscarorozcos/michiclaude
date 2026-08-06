@@ -802,6 +802,86 @@
     font-size:10.5px;font-weight:700}
   #srvCount{background:var(--surface);border:1px solid var(--stroke);border-radius:20px;
     padding:2px 9px;font-size:10px}
+
+  /* ---------- pestaña Reporte (mockup A adaptado a la columna) ---------- */
+  .repchips{display:flex;gap:7px;margin-bottom:10px}
+  .rchip{flex:1;border:1px solid var(--stroke);background:var(--card);color:var(--txt-mut);
+    font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:8px 4px;
+    border-radius:12px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:4px}
+  .rchip:hover{color:var(--txt);border-color:var(--accent)}
+  .rchip.on{background:var(--grad);border-color:transparent;color:var(--accent-ink)}
+  .rchip .chev{font-size:9px;opacity:.7}
+  /* héroe: el número grande con su veredicto en llano */
+  .rp-big{font-size:34px;font-weight:800;letter-spacing:-1.2px;line-height:1.05;
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:2px}
+  .rp-delta{font-size:12px;font-weight:700;padding:3px 11px;border-radius:20px}
+  .rp-delta.good{background:rgba(64,184,105,.16);color:var(--ok)}
+  .rp-delta.bad{background:rgba(240,90,65,.13);color:var(--bad)}
+  .rp-delta.flat{background:var(--surface);color:var(--txt-dim)}
+  .rp-nums{font-family:var(--mono);font-size:11.5px;color:var(--txt-mut);margin-top:8px}
+  .rp-nums s{color:var(--txt-dim)}
+  .rp-plain{font-size:12px;font-weight:600;line-height:1.5;margin-top:10px;
+    background:var(--surface);border:1px solid var(--stroke-soft);
+    border-radius:12px;padding:9px 12px}
+  /* filas de "¿te duró más o menos?" */
+  .rp-row{display:flex;gap:11px;align-items:flex-start;padding:9px 2px}
+  .rp-row + .rp-row{border-top:1px solid var(--stroke-soft)}
+  .rp-row .ic{position:relative;isolation:isolate;width:30px;height:30px;border-radius:10px;
+    flex:0 0 auto;display:grid;place-items:center;color:var(--c)}
+  .rp-row .ic i{position:absolute;inset:0;border-radius:inherit;background:var(--c);
+    opacity:.14;z-index:-1}
+  .rp-row .val{font-size:13px;font-weight:700}
+  .rp-row .val em{font-style:normal;color:var(--teal)}
+  .rp-row .was{font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);margin-left:6px}
+  .rp-row .say{font-size:10.5px;color:var(--txt-dim);line-height:1.5;margin-top:2px}
+  .rep-note{font-size:10.5px;color:var(--txt-dim);margin:2px 0 6px}
+  /* proyectos con flecha de tendencia (avatar/nombre: espejo de .pitem,
+     que vive scoped y no llega hasta aquí) */
+  .rp-pj{display:flex;align-items:center;gap:10px;padding:7px 2px}
+  .rp-pj .pav{position:relative;isolation:isolate;width:30px;height:30px;border-radius:10px;
+    display:grid;place-items:center;font-size:10.5px;font-weight:700;flex:0 0 auto}
+  .rp-pj .pav i{position:absolute;inset:0;border-radius:inherit;opacity:.16;z-index:-1}
+  .rp-pj .pname{font-size:12px;font-weight:600;display:flex;align-items:center;min-width:0}
+  .rp-pj .pname>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rp-pj .ptx{flex:1 1 auto;min-width:0}
+  .rp-pj .amt{font-family:var(--mono);font-size:12px;font-weight:600;flex:0 0 auto}
+  .rp-trend{flex:0 0 auto;min-width:24px;height:24px;border-radius:8px;display:grid;
+    place-items:center;font-size:11px;font-weight:800;padding:0 5px}
+  .rp-trend.up{color:var(--warn);background:rgba(240,170,60,.14)}
+  .rp-trend.down{color:var(--ok);background:rgba(64,184,105,.14)}
+  .rp-trend.flat{color:var(--txt-dim);background:var(--surface)}
+  .rp-why{margin:0 2px 7px 42px;font-size:10.5px;color:var(--txt-mut);line-height:1.5;
+    background:var(--surface);border:1px solid var(--stroke-soft);border-radius:10px;
+    padding:7px 10px}
+  /* antes/después de las marcas */
+  .rp-fix{background:var(--card-hi);border:1px solid var(--stroke-soft);
+    border-radius:var(--r-md);padding:12px;margin-bottom:8px}
+  .rp-fix:last-child{margin-bottom:0}
+  .rp-fix .when{font-family:var(--mono);font-size:9.5px;color:var(--txt-dim)}
+  .rp-fix .did{font-size:12px;font-weight:700;line-height:1.4;margin:3px 0 9px}
+  .rp-ba{display:flex;align-items:center;gap:8px}
+  .rp-ba .cell{flex:1;text-align:center;border-radius:10px;padding:8px 4px;
+    background:var(--surface);border:1px solid var(--stroke-soft)}
+  .rp-ba .cell .n{font-family:var(--mono);font-size:13.5px;font-weight:700}
+  .rp-ba .cell .l{font-size:8.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--txt-dim);margin-top:2px}
+  .rp-ba .after{background:rgba(64,184,105,.10);border-color:rgba(64,184,105,.3)}
+  .rp-ba .after .n{color:var(--ok)}
+  .rp-ba .arr{color:var(--txt-dim);flex:0 0 auto}
+  .rp-fix .est{font-size:10px;color:var(--txt-dim);line-height:1.5;margin-top:8px}
+  /* acciones de "para los días que vienen" */
+  .rp-act{display:flex;gap:11px;align-items:flex-start;background:var(--surface);
+    border:1px solid var(--stroke-soft);border-radius:var(--r-md);
+    padding:11px 12px;margin-bottom:8px}
+  .rp-act:last-child{margin-bottom:0}
+  .rp-act .n{width:22px;height:22px;border-radius:8px;flex:0 0 auto;display:grid;
+    place-items:center;background:var(--grad);color:var(--accent-ink);
+    font-size:11px;font-weight:800}
+  .rp-act .t{font-size:12px;font-weight:650;line-height:1.45}
+  .rp-act .t small{display:block;font-size:10.5px;font-weight:500;color:var(--txt-dim);
+    margin-top:3px;line-height:1.5}
+  .rp-empty{font-size:11px;color:var(--txt-dim);line-height:1.55;padding:4px 2px}
+  #repChart svg{display:block;width:100%;height:auto}
 </style>
 </head>
 <body>
@@ -838,6 +918,7 @@
     <button class="tab" data-tab="sources" data-i18n="sources_title"></button>
     <button class="tab" data-tab="findings"><span data-i18n="fnd_tab"></span><span class="tdot" id="fndTabDot" hidden></span></button>
     <button class="tab" data-tab="tips"><span data-i18n="tips_tab"></span><span class="tdot acc" id="tipsTabDot" hidden></span></button>
+    <button class="tab" data-tab="report" data-i18n="rep_tab"></button>
     <button class="tab" data-tab="prefs" data-i18n="prefs_title"></button>
   </div>
   </div><!-- /p-top -->
@@ -1060,6 +1141,45 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Reporte ejecutivo (docs/presion-y-rendimiento.md): el "cómo voy" en
+       lenguaje llano. Base visual: mockup A elegido por Oscar 2026-08-06,
+       adaptado a la columna del panel. REGLA DE ORO heredada del diseño:
+       cada cifra lleva su frase en llano al lado, y NUNCA se pinta un
+       rendimiento sin turnos (uturns=0 = "sin datos", invariante #8). -->
+  <div id="tab-report" hidden>
+    <div class="repchips">
+      <button class="rchip" data-rep="7" data-i18n="rep_week"></button>
+      <button class="rchip" data-rep="30" data-i18n="rep_month"></button>
+      <button class="rchip" data-rep="custom" id="repCalBtn"><span data-i18n="rep_custom"></span> <span class="chev">⌄</span></button>
+    </div>
+    <div class="sect hero-sect">
+      <div class="eyebrow"><span data-i18n="rep_perf"></span> <span class="q" id="repRangeLbl"></span></div>
+      <div id="repHero"></div>
+    </div>
+    <div class="sect">
+      <div class="eyebrow"><span data-i18n="rep_last_t"></span> <span class="q" data-i18n="rep_last_q"></span></div>
+      <div id="repLast"></div>
+    </div>
+    <div class="sect" id="repChartSect" hidden>
+      <div class="eyebrow"><span data-i18n="rep_chart_t"></span> <span class="q" data-i18n="rep_chart_q"></span></div>
+      <div class="rep-note"><b style="color:var(--ok)">↓</b> <span data-i18n="rep_lower_better"></span></div>
+      <div id="repChart"></div>
+    </div>
+    <div class="sect">
+      <div class="eyebrow"><span data-i18n="rep_proj_t"></span> <span class="q" data-i18n="rep_proj_q"></span></div>
+      <div id="repProj"></div>
+    </div>
+    <div class="sect">
+      <div class="eyebrow" data-i18n="rep_fix_t"></div>
+      <div id="repFix"></div>
+    </div>
+    <div class="sect">
+      <div class="eyebrow" data-i18n="rep_next_t"></div>
+      <div id="repNext"></div>
+    </div>
+    <div class="fnd-note" style="margin:2px 4px 0" data-i18n="rep_foot"></div>
   </div>
 
   <div id="tab-prefs" hidden>
@@ -1505,6 +1625,43 @@ en:{
   pill_label:"Floating widget above the taskbar",
   tray_open:"Open panel", tray_widget:"Floating widget", tray_quit:"Quit",
   fnd_tab:"Findings",
+  rep_tab:"Report",
+  rep_week:"Week", rep_month:"Month", rep_custom:"Custom",
+  rep_perf:"Your efficiency", rep_perf_unit:"tokens per message you send",
+  rep_before:"before", rep_better:"improved", rep_worse:"worse", rep_flat:"steady",
+  rep_verd_first:"Your first measurement. Once there's a previous period to compare against, you'll see here whether you're improving.",
+  rep_verd_good:"Your tokens are going further: you did the same work spending less per message.",
+  rep_verd_bad:"Each message is costing you more tokens than before. Below you'll see where it goes and what to do.",
+  rep_verd_flat:"Steady efficiency: each message costs about the same as before.",
+  rep_nodata:"No messages from you in this period — nothing to measure.",
+  rep_last_t:"Did it last longer?", rep_last_q:"your quota, measured",
+  rep_gathering:"The meter just started keeping history. In a few days this section will tell you how often you hit the limit and how long your week lasted — automatically.",
+  rep_hits_v:n=>`You hit the 5-hour limit <b>${n===1?"once":n+" times"}</b>`,
+  rep_hits_say:"Times you ran out of quota mid-session.",
+  rep_wk_yes:s=>`Your weekly limit ran out on <b>${s}</b>`,
+  rep_wk_no:"Your weekly limit never ran out",
+  rep_wk_no_short:"didn't run out",
+  rep_wk_say:"The later it happens, the longer your week lasted.",
+  rep_msgs_v:(n,d)=>`<b>${n} messages</b> per active day (${d} days)`,
+  rep_msgs_say:"Your average on the days you actually used Claude.",
+  rep_chart_t:"Efficiency", rep_chart_q:"last 4 weeks",
+  rep_lower_better:"Lower is better: each of your messages costs fewer tokens.",
+  rep_w3:"3 wk ago", rep_w2:"2 wk ago", rep_w1:"last wk", rep_w0:"this wk",
+  rep_proj_t:"Your projects", rep_proj_q:"highest spend first",
+  rep_why:"What made it expensive:",
+  rep_t_up:"Spent more than the previous period",
+  rep_t_down:"Spent less than the previous period",
+  rep_t_flat:"About the same as the previous period",
+  rep_t_new:"No activity in the previous period",
+  rep_fix_t:"What you fixed",
+  rep_fix_none:"No fixes recorded yet. When a leak from Findings keeps showing up for days and then disappears (because you closed it), the date is recorded here and the effect gets measured.",
+  rep_fix_wait:n=>`Measuring the effect — at least ${n} days of data after the fix are needed for an honest comparison.`,
+  rep_ba_before:"tok/msg before", rep_ba_after:"tok/msg now",
+  rep_est_days:n=>`Estimated, with ${n} days of data after the fix.`,
+  rep_next_t:"For the days ahead",
+  rep_next_none:"Nothing urgent: no active leaks in this period. Keep it up.",
+  rep_next_cost:c=>`costs ${c} this period`,
+  rep_foot:"Generated by MichiClaude from your local data. $ amounts are estimates at API-equivalent prices — on a subscription you don't pay per token. Nothing leaves your machine.",
   fnd_title:"Token leak analyzer",
   fnd_intro:"Structural leaks found in your logs, with their measured cost. Nothing is applied automatically — you decide.",
   fnd_scanning:"Analyzing your logs…",
@@ -1789,6 +1946,43 @@ es:{
   pill_label:"Widget flotante sobre la barra de tareas",
   tray_open:"Abrir panel", tray_widget:"Widget flotante", tray_quit:"Salir",
   fnd_tab:"Hallazgos",
+  rep_tab:"Reporte",
+  rep_week:"Semana", rep_month:"Mes", rep_custom:"Personalizado",
+  rep_perf:"Tu rendimiento", rep_perf_unit:"tokens por mensaje tuyo",
+  rep_before:"antes", rep_better:"mejoró", rep_worse:"empeoró", rep_flat:"igual",
+  rep_verd_first:"Tu primera medición. Cuando haya un periodo anterior con qué comparar, aquí sabrás si vas mejorando.",
+  rep_verd_good:"Tus tokens te están rindiendo más: hiciste lo mismo gastando menos por mensaje.",
+  rep_verd_bad:"Cada mensaje te está costando más tokens que antes. Abajo está dónde se va y qué hacer.",
+  rep_verd_flat:"Rendimiento estable: cada mensaje te cuesta más o menos lo mismo que antes.",
+  rep_nodata:"Sin mensajes tuyos en este periodo — no hay rendimiento que medir.",
+  rep_last_t:"¿Te duró más o menos?", rep_last_q:"tu cuota, medida",
+  rep_gathering:"El medidor empezó a guardar historia hace poco. En unos días aquí sabrás cuántas veces topaste el límite y cuánto te duró el semanal — solo, sin configurar nada.",
+  rep_hits_v:n=>`Topaste el límite de 5 h <b>${n===1?"1 vez":n+" veces"}</b>`,
+  rep_hits_say:"Las veces que te quedaste sin cuota a media sesión.",
+  rep_wk_yes:s=>`El semanal se te acabó el <b>${s}</b>`,
+  rep_wk_no:"Tu límite semanal no se agotó",
+  rep_wk_no_short:"no se agotó",
+  rep_wk_say:"Mientras más tarde llegue, más te duró la semana.",
+  rep_msgs_v:(n,d)=>`<b>${n} mensajes</b> por día trabajado (${d} días)`,
+  rep_msgs_say:"Tu promedio en los días que sí usaste Claude.",
+  rep_chart_t:"Rendimiento", rep_chart_q:"últimas 4 semanas",
+  rep_lower_better:"Bajar es mejor: cada mensaje tuyo cuesta menos tokens.",
+  rep_w3:"hace 3 sem", rep_w2:"hace 2", rep_w1:"pasada", rep_w0:"esta",
+  rep_proj_t:"Tus proyectos", rep_proj_q:"de mayor a menor gasto",
+  rep_why:"Qué lo encareció:",
+  rep_t_up:"Gastó más que el periodo anterior",
+  rep_t_down:"Gastó menos que el periodo anterior",
+  rep_t_flat:"Más o menos igual que el periodo anterior",
+  rep_t_new:"Sin actividad en el periodo anterior",
+  rep_fix_t:"Lo que arreglaste",
+  rep_fix_none:"Aún no hay arreglos registrados. Cuando una fuga de Hallazgos lleve días saliendo y deje de aparecer (porque la cerraste), aquí se anota la fecha y se mide si sirvió.",
+  rep_fix_wait:n=>`Midiendo el efecto — se necesitan al menos ${n} días de datos después del arreglo para comparar sin engañarte.`,
+  rep_ba_before:"tok/msj antes", rep_ba_after:"tok/msj ahora",
+  rep_est_days:n=>`Estimado, con ${n} días de datos después del arreglo.`,
+  rep_next_t:"Para los días que vienen",
+  rep_next_none:"Nada urgente: no hay fugas activas en este periodo. Sigue así.",
+  rep_next_cost:c=>`cuesta ${c} en este periodo`,
+  rep_foot:"Generado por MichiClaude con tus datos locales. Los $ son estimados al equivalente de precios de API — con suscripción no pagas por token. Nada sale de tu equipo.",
   fnd_title:"Analizador de fugas de tokens",
   fnd_intro:"Fugas estructurales encontradas en tus logs, con su costo medido. Nada se aplica solo — tú decides.",
   fnd_scanning:"Analizando tus logs…",
@@ -2073,6 +2267,43 @@ pt:{
   pill_label:"Widget flutuante sobre a barra de tarefas",
   tray_open:"Abrir painel", tray_widget:"Widget flutuante", tray_quit:"Sair",
   fnd_tab:"Achados",
+  rep_tab:"Relatório",
+  rep_week:"Semana", rep_month:"Mês", rep_custom:"Personalizado",
+  rep_perf:"Seu rendimento", rep_perf_unit:"tokens por mensagem sua",
+  rep_before:"antes", rep_better:"melhorou", rep_worse:"piorou", rep_flat:"igual",
+  rep_verd_first:"Sua primeira medição. Quando houver um período anterior para comparar, aqui você saberá se está melhorando.",
+  rep_verd_good:"Seus tokens estão rendendo mais: você fez o mesmo gastando menos por mensagem.",
+  rep_verd_bad:"Cada mensagem está custando mais tokens do que antes. Abaixo está para onde vai e o que fazer.",
+  rep_verd_flat:"Rendimento estável: cada mensagem custa mais ou menos o mesmo de antes.",
+  rep_nodata:"Sem mensagens suas neste período — nada para medir.",
+  rep_last_t:"Durou mais ou menos?", rep_last_q:"sua cota, medida",
+  rep_gathering:"O medidor começou a guardar histórico há pouco. Em alguns dias esta seção dirá quantas vezes você bateu no limite e quanto durou sua semana — sozinha.",
+  rep_hits_v:n=>`Você bateu no limite de 5 h <b>${n===1?"1 vez":n+" vezes"}</b>`,
+  rep_hits_say:"As vezes em que a cota acabou no meio da sessão.",
+  rep_wk_yes:s=>`O semanal acabou <b>${s}</b>`,
+  rep_wk_no:"Seu limite semanal não se esgotou",
+  rep_wk_no_short:"não se esgotou",
+  rep_wk_say:"Quanto mais tarde acontecer, mais durou a sua semana.",
+  rep_msgs_v:(n,d)=>`<b>${n} mensagens</b> por dia trabalhado (${d} dias)`,
+  rep_msgs_say:"Sua média nos dias em que realmente usou o Claude.",
+  rep_chart_t:"Rendimento", rep_chart_q:"últimas 4 semanas",
+  rep_lower_better:"Descer é melhor: cada mensagem sua custa menos tokens.",
+  rep_w3:"há 3 sem", rep_w2:"há 2", rep_w1:"passada", rep_w0:"esta",
+  rep_proj_t:"Seus projetos", rep_proj_q:"do maior ao menor gasto",
+  rep_why:"O que encareceu:",
+  rep_t_up:"Gastou mais que o período anterior",
+  rep_t_down:"Gastou menos que o período anterior",
+  rep_t_flat:"Mais ou menos igual ao período anterior",
+  rep_t_new:"Sem atividade no período anterior",
+  rep_fix_t:"O que você consertou",
+  rep_fix_none:"Ainda não há consertos registrados. Quando um vazamento de Achados aparecer por dias e depois sumir (porque você o fechou), a data fica anotada aqui e o efeito é medido.",
+  rep_fix_wait:n=>`Medindo o efeito — são necessários pelo menos ${n} dias de dados após o conserto para uma comparação honesta.`,
+  rep_ba_before:"tok/msg antes", rep_ba_after:"tok/msg agora",
+  rep_est_days:n=>`Estimado, com ${n} dias de dados após o conserto.`,
+  rep_next_t:"Para os próximos dias",
+  rep_next_none:"Nada urgente: sem vazamentos ativos neste período. Continue assim.",
+  rep_next_cost:c=>`custa ${c} neste período`,
+  rep_foot:"Gerado pelo MichiClaude com seus dados locais. Os $ são estimativas no equivalente de preços de API — na assinatura você não paga por token. Nada sai da sua máquina.",
   fnd_title:"Analisador de fugas de tokens",
   fnd_intro:"Fugas estruturais encontradas nos seus logs, com o custo medido. Nada se aplica sozinho — você decide.",
   fnd_scanning:"Analisando seus logs…",
@@ -2357,6 +2588,43 @@ fr:{
   pill_label:"Widget flottant au-dessus de la barre des tâches",
   tray_open:"Ouvrir le panneau", tray_widget:"Widget flottant", tray_quit:"Quitter",
   fnd_tab:"Constats",
+  rep_tab:"Rapport",
+  rep_week:"Semaine", rep_month:"Mois", rep_custom:"Personnalisé",
+  rep_perf:"Votre rendement", rep_perf_unit:"tokens par message envoyé",
+  rep_before:"avant", rep_better:"amélioré", rep_worse:"dégradé", rep_flat:"stable",
+  rep_verd_first:"Votre première mesure. Dès qu'il y aura une période précédente à comparer, vous saurez ici si vous vous améliorez.",
+  rep_verd_good:"Vos tokens rendent davantage : même travail, moins de dépense par message.",
+  rep_verd_bad:"Chaque message vous coûte plus de tokens qu'avant. Ci-dessous : où ça part et quoi faire.",
+  rep_verd_flat:"Rendement stable : chaque message coûte à peu près comme avant.",
+  rep_nodata:"Aucun message de votre part sur cette période — rien à mesurer.",
+  rep_last_t:"Ça a duré plus longtemps ?", rep_last_q:"votre quota, mesuré",
+  rep_gathering:"Le compteur vient de commencer à garder l'historique. Dans quelques jours, cette section dira combien de fois vous avez atteint la limite et combien votre semaine a duré — automatiquement.",
+  rep_hits_v:n=>`Vous avez atteint la limite de 5 h <b>${n===1?"1 fois":n+" fois"}</b>`,
+  rep_hits_say:"Les fois où le quota s'est épuisé en pleine session.",
+  rep_wk_yes:s=>`Le quota hebdo s'est épuisé <b>${s}</b>`,
+  rep_wk_no:"Votre quota hebdo ne s'est pas épuisé",
+  rep_wk_no_short:"pas épuisé",
+  rep_wk_say:"Plus c'est tard, plus votre semaine a duré.",
+  rep_msgs_v:(n,d)=>`<b>${n} messages</b> par jour actif (${d} jours)`,
+  rep_msgs_say:"Votre moyenne les jours où vous avez vraiment utilisé Claude.",
+  rep_chart_t:"Rendement", rep_chart_q:"4 dernières semaines",
+  rep_lower_better:"Plus bas = mieux : chaque message coûte moins de tokens.",
+  rep_w3:"il y a 3 sem", rep_w2:"il y a 2", rep_w1:"dernière", rep_w0:"celle-ci",
+  rep_proj_t:"Vos projets", rep_proj_q:"de la plus grosse dépense à la plus petite",
+  rep_why:"Ce qui a coûté cher :",
+  rep_t_up:"A dépensé plus que la période précédente",
+  rep_t_down:"A dépensé moins que la période précédente",
+  rep_t_flat:"À peu près comme la période précédente",
+  rep_t_new:"Aucune activité sur la période précédente",
+  rep_fix_t:"Ce que vous avez corrigé",
+  rep_fix_none:"Aucune correction enregistrée pour l'instant. Quand une fuite de Constats apparaît pendant des jours puis disparaît (parce que vous l'avez réglée), la date est notée ici et l'effet est mesuré.",
+  rep_fix_wait:n=>`Mesure en cours — il faut au moins ${n} jours de données après la correction pour comparer honnêtement.`,
+  rep_ba_before:"tok/msg avant", rep_ba_after:"tok/msg maintenant",
+  rep_est_days:n=>`Estimation, avec ${n} jours de données après la correction.`,
+  rep_next_t:"Pour les jours à venir",
+  rep_next_none:"Rien d'urgent : aucune fuite active sur cette période. Continuez ainsi.",
+  rep_next_cost:c=>`coûte ${c} sur la période`,
+  rep_foot:"Généré par MichiClaude à partir de vos données locales. Les $ sont des estimations à l'équivalent des prix API — avec l'abonnement vous ne payez pas au token. Rien ne quitte votre machine.",
   fnd_title:"Analyseur de fuites de tokens",
   fnd_intro:"Fuites structurelles trouvées dans vos logs, avec leur coût mesuré. Rien ne s'applique tout seul — c'est vous qui décidez.",
   fnd_scanning:"Analyse de vos logs…",
@@ -2641,6 +2909,43 @@ de:{
   pill_label:"Schwebendes Widget über der Taskleiste",
   tray_open:"Panel öffnen", tray_widget:"Schwebendes Widget", tray_quit:"Beenden",
   fnd_tab:"Befunde",
+  rep_tab:"Bericht",
+  rep_week:"Woche", rep_month:"Monat", rep_custom:"Benutzerdefiniert",
+  rep_perf:"Deine Effizienz", rep_perf_unit:"Tokens pro Nachricht von dir",
+  rep_before:"vorher", rep_better:"besser", rep_worse:"schlechter", rep_flat:"stabil",
+  rep_verd_first:"Deine erste Messung. Sobald es einen Vorzeitraum zum Vergleichen gibt, siehst du hier, ob du dich verbesserst.",
+  rep_verd_good:"Deine Tokens reichen weiter: gleiche Arbeit, weniger Verbrauch pro Nachricht.",
+  rep_verd_bad:"Jede Nachricht kostet dich mehr Tokens als vorher. Unten steht, wohin es geht und was zu tun ist.",
+  rep_verd_flat:"Stabile Effizienz: jede Nachricht kostet ungefähr so viel wie vorher.",
+  rep_nodata:"Keine Nachrichten von dir in diesem Zeitraum — nichts zu messen.",
+  rep_last_t:"Hat es länger gereicht?", rep_last_q:"dein Kontingent, gemessen",
+  rep_gathering:"Der Zähler hat gerade erst angefangen, Verlauf zu speichern. In ein paar Tagen zeigt dieser Abschnitt automatisch, wie oft du ans Limit kamst und wie lange deine Woche reichte.",
+  rep_hits_v:n=>`Du hast das 5-h-Limit <b>${n===1?"1-mal":n+"-mal"}</b> erreicht`,
+  rep_hits_say:"Wie oft das Kontingent mitten in der Sitzung ausging.",
+  rep_wk_yes:s=>`Dein Wochenlimit war <b>${s}</b> aufgebraucht`,
+  rep_wk_no:"Dein Wochenlimit wurde nicht aufgebraucht",
+  rep_wk_no_short:"nicht aufgebraucht",
+  rep_wk_say:"Je später, desto länger hat deine Woche gereicht.",
+  rep_msgs_v:(n,d)=>`<b>${n} Nachrichten</b> pro aktivem Tag (${d} Tage)`,
+  rep_msgs_say:"Dein Durchschnitt an den Tagen, an denen du Claude wirklich genutzt hast.",
+  rep_chart_t:"Effizienz", rep_chart_q:"letzte 4 Wochen",
+  rep_lower_better:"Niedriger ist besser: jede Nachricht kostet weniger Tokens.",
+  rep_w3:"vor 3 Wo", rep_w2:"vor 2", rep_w1:"letzte", rep_w0:"diese",
+  rep_proj_t:"Deine Projekte", rep_proj_q:"nach Ausgaben sortiert",
+  rep_why:"Was es teuer machte:",
+  rep_t_up:"Mehr ausgegeben als im Vorzeitraum",
+  rep_t_down:"Weniger ausgegeben als im Vorzeitraum",
+  rep_t_flat:"Ungefähr wie im Vorzeitraum",
+  rep_t_new:"Keine Aktivität im Vorzeitraum",
+  rep_fix_t:"Was du behoben hast",
+  rep_fix_none:"Noch keine Korrekturen erfasst. Wenn ein Leck aus Befunde tagelang erscheint und dann verschwindet (weil du es geschlossen hast), wird hier das Datum notiert und die Wirkung gemessen.",
+  rep_fix_wait:n=>`Wirkung wird gemessen — mindestens ${n} Tage Daten nach der Korrektur sind für einen ehrlichen Vergleich nötig.`,
+  rep_ba_before:"Tok/Nachr. vorher", rep_ba_after:"Tok/Nachr. jetzt",
+  rep_est_days:n=>`Geschätzt, mit ${n} Tagen Daten nach der Korrektur.`,
+  rep_next_t:"Für die nächsten Tage",
+  rep_next_none:"Nichts Dringendes: keine aktiven Lecks in diesem Zeitraum. Weiter so.",
+  rep_next_cost:c=>`kostet ${c} in diesem Zeitraum`,
+  rep_foot:"Von MichiClaude aus deinen lokalen Daten erzeugt. $-Beträge sind Schätzungen zu API-Preisen — im Abo zahlst du nicht pro Token. Nichts verlässt deinen Rechner.",
   fnd_title:"Token-Leck-Analyse",
   fnd_intro:"Strukturelle Lecks aus deinen Logs, mit gemessenen Kosten. Nichts wird automatisch angewendet — du entscheidest.",
   fnd_scanning:"Logs werden analysiert…",
@@ -2925,6 +3230,43 @@ ja:{
   pill_label:"タスクバー上のフローティングウィジェット",
   tray_open:"パネルを開く", tray_widget:"フローティングウィジェット", tray_quit:"終了",
   fnd_tab:"検出結果",
+  rep_tab:"レポート",
+  rep_week:"週", rep_month:"月", rep_custom:"カスタム",
+  rep_perf:"あなたの効率", rep_perf_unit:"あなたの1メッセージあたりのトークン",
+  rep_before:"以前", rep_better:"改善", rep_worse:"悪化", rep_flat:"横ばい",
+  rep_verd_first:"初めての計測です。比較できる前の期間ができると、改善しているかどうかがここに表示されます。",
+  rep_verd_good:"トークンの持ちが良くなりました。同じ作業を、1メッセージあたりより少ない消費でこなしています。",
+  rep_verd_bad:"1メッセージあたりのトークン消費が以前より増えています。下にどこで消えているか、どうすべきかが出ています。",
+  rep_verd_flat:"効率は安定：1メッセージのコストは以前とほぼ同じです。",
+  rep_nodata:"この期間にあなたのメッセージがありません — 計測できるものがありません。",
+  rep_last_t:"長持ちしましたか？", rep_last_q:"クォータを数字で",
+  rep_gathering:"履歴の記録を始めたばかりです。数日後には、上限に達した回数や週の持ち具合をここで自動的に確認できます。",
+  rep_hits_v:n=>`5時間の上限に<b>${n}回</b>到達`,
+  rep_hits_say:"セッション中にクォータが尽きた回数。",
+  rep_wk_yes:s=>`週の上限は<b>${s}</b>に尽きました`,
+  rep_wk_no:"週の上限は尽きませんでした",
+  rep_wk_no_short:"尽きず",
+  rep_wk_say:"遅いほど、その週は長持ちしたということです。",
+  rep_msgs_v:(n,d)=>`稼働日あたり<b>${n}メッセージ</b>（${d}日）`,
+  rep_msgs_say:"実際にClaudeを使った日の平均です。",
+  rep_chart_t:"効率", rep_chart_q:"直近4週間",
+  rep_lower_better:"低いほど良い：1メッセージのトークン消費が少ないということ。",
+  rep_w3:"3週前", rep_w2:"2週前", rep_w1:"先週", rep_w0:"今週",
+  rep_proj_t:"プロジェクト", rep_proj_q:"支出の多い順",
+  rep_why:"高くついた原因：",
+  rep_t_up:"前の期間より支出が増加",
+  rep_t_down:"前の期間より支出が減少",
+  rep_t_flat:"前の期間とほぼ同じ",
+  rep_t_new:"前の期間は活動なし",
+  rep_fix_t:"あなたが直したこと",
+  rep_fix_none:"まだ記録された修正はありません。「検出結果」のリークが何日も表示され続けた後に消えたら（＝あなたが直したら）、ここに日付が記録され効果が計測されます。",
+  rep_fix_wait:n=>`効果を計測中 — 正直な比較には修正後${n}日分以上のデータが必要です。`,
+  rep_ba_before:"修正前 tok/msg", rep_ba_after:"現在 tok/msg",
+  rep_est_days:n=>`推定値（修正後${n}日分のデータ）。`,
+  rep_next_t:"これからの数日へ",
+  rep_next_none:"急ぎはありません：この期間にアクティブなリークはありません。その調子です。",
+  rep_next_cost:c=>`この期間で${c}のコスト`,
+  rep_foot:"MichiClaudeがローカルデータから生成。$はAPI価格換算の推定値 — サブスクではトークン単位の支払いはありません。データは端末の外に出ません。",
   fnd_title:"トークンリーク分析",
   fnd_intro:"ログから見つかった構造的なリークと、その実測コストです。自動では何も適用されません — 判断はあなたに委ねられます。",
   fnd_scanning:"ログを分析中…",
@@ -3209,6 +3551,43 @@ ko:{
   pill_label:"작업 표시줄 위 플로팅 위젯",
   tray_open:"패널 열기", tray_widget:"플로팅 위젯", tray_quit:"종료",
   fnd_tab:"발견 항목",
+  rep_tab:"리포트",
+  rep_week:"주간", rep_month:"월간", rep_custom:"사용자 지정",
+  rep_perf:"나의 효율", rep_perf_unit:"내 메시지당 토큰",
+  rep_before:"이전", rep_better:"개선", rep_worse:"악화", rep_flat:"비슷",
+  rep_verd_first:"첫 측정입니다. 비교할 이전 기간이 생기면 개선 여부를 여기서 확인할 수 있습니다.",
+  rep_verd_good:"토큰 효율이 좋아졌습니다. 같은 작업을 메시지당 더 적게 쓰며 해냈습니다.",
+  rep_verd_bad:"메시지당 토큰 소비가 이전보다 늘었습니다. 어디서 새는지, 무엇을 해야 하는지 아래에 있습니다.",
+  rep_verd_flat:"효율 유지: 메시지당 비용이 이전과 거의 같습니다.",
+  rep_nodata:"이 기간에 보낸 메시지가 없습니다 — 측정할 것이 없습니다.",
+  rep_last_t:"더 오래 갔나요?", rep_last_q:"쿼터를 숫자로",
+  rep_gathering:"기록을 막 시작했습니다. 며칠 뒤에는 한도에 몇 번 도달했는지, 한 주가 얼마나 갔는지 여기서 자동으로 볼 수 있습니다.",
+  rep_hits_v:n=>`5시간 한도에 <b>${n}번</b> 도달`,
+  rep_hits_say:"세션 중에 쿼터가 바닥난 횟수.",
+  rep_wk_yes:s=>`주간 한도가 <b>${s}</b>에 소진됨`,
+  rep_wk_no:"주간 한도가 소진되지 않음",
+  rep_wk_no_short:"소진 안 됨",
+  rep_wk_say:"늦게 소진될수록 한 주가 오래 간 것입니다.",
+  rep_msgs_v:(n,d)=>`활동일당 <b>${n}개 메시지</b> (${d}일)`,
+  rep_msgs_say:"실제로 Claude를 쓴 날들의 평균입니다.",
+  rep_chart_t:"효율", rep_chart_q:"최근 4주",
+  rep_lower_better:"낮을수록 좋음: 메시지당 토큰이 적게 듭니다.",
+  rep_w3:"3주 전", rep_w2:"2주 전", rep_w1:"지난주", rep_w0:"이번 주",
+  rep_proj_t:"내 프로젝트", rep_proj_q:"지출 많은 순",
+  rep_why:"비용이 커진 이유:",
+  rep_t_up:"이전 기간보다 지출 증가",
+  rep_t_down:"이전 기간보다 지출 감소",
+  rep_t_flat:"이전 기간과 비슷",
+  rep_t_new:"이전 기간엔 활동 없음",
+  rep_fix_t:"고친 것들",
+  rep_fix_none:"아직 기록된 수리가 없습니다. '발견 항목'의 누수가 며칠간 나타나다 사라지면(=고쳤다면) 날짜가 기록되고 효과가 측정됩니다.",
+  rep_fix_wait:n=>`효과 측정 중 — 정직한 비교에는 수리 후 최소 ${n}일의 데이터가 필요합니다.`,
+  rep_ba_before:"수리 전 tok/msg", rep_ba_after:"현재 tok/msg",
+  rep_est_days:n=>`추정치 (수리 후 ${n}일 데이터 기준).`,
+  rep_next_t:"앞으로 며칠을 위해",
+  rep_next_none:"급한 것 없음: 이 기간에 활성 누수가 없습니다. 잘하고 있어요.",
+  rep_next_cost:c=>`이 기간 비용 ${c}`,
+  rep_foot:"MichiClaude가 로컬 데이터로 생성했습니다. $는 API 가격 환산 추정치 — 구독은 토큰당 과금이 아닙니다. 어떤 데이터도 기기를 떠나지 않습니다.",
   fnd_title:"토큰 누수 분석",
   fnd_intro:"로그에서 발견된 구조적 누수와 실측 비용입니다. 자동으로 적용되는 것은 없습니다 — 결정은 사용자의 몫입니다.",
   fnd_scanning:"로그 분석 중…",
@@ -3493,6 +3872,43 @@ zh:{
   pill_label:"任务栏上方的浮动小组件",
   tray_open:"打开面板", tray_widget:"浮动小组件", tray_quit:"退出",
   fnd_tab:"发现",
+  rep_tab:"报告",
+  rep_week:"周", rep_month:"月", rep_custom:"自定义",
+  rep_perf:"你的效率", rep_perf_unit:"你每条消息消耗的 token",
+  rep_before:"之前", rep_better:"进步", rep_worse:"退步", rep_flat:"持平",
+  rep_verd_first:"这是首次测量。等有了可对比的上一时段，这里就能看出你是否在进步。",
+  rep_verd_good:"token 更耐用了：同样的工作，每条消息花得更少。",
+  rep_verd_bad:"每条消息消耗的 token 比以前多了。下面列出了钱花在哪、该怎么做。",
+  rep_verd_flat:"效率稳定：每条消息的成本和之前差不多。",
+  rep_nodata:"这段时间没有你的消息 — 无从测量。",
+  rep_last_t:"这次撑得更久吗？", rep_last_q:"用数字看配额",
+  rep_gathering:"计量器刚开始记录历史。几天后这里会自动告诉你触顶了几次、一周撑了多久。",
+  rep_hits_v:n=>`触到 5 小时上限 <b>${n} 次</b>`,
+  rep_hits_say:"会话进行到一半配额耗尽的次数。",
+  rep_wk_yes:s=>`每周上限于<b>${s}</b>耗尽`,
+  rep_wk_no:"每周上限未耗尽",
+  rep_wk_no_short:"未耗尽",
+  rep_wk_say:"耗尽得越晚，这一周就撑得越久。",
+  rep_msgs_v:(n,d)=>`每个活跃日 <b>${n} 条消息</b>（${d} 天）`,
+  rep_msgs_say:"实际使用 Claude 那些天的平均值。",
+  rep_chart_t:"效率", rep_chart_q:"最近 4 周",
+  rep_lower_better:"越低越好：你每条消息消耗的 token 更少。",
+  rep_w3:"3周前", rep_w2:"2周前", rep_w1:"上周", rep_w0:"本周",
+  rep_proj_t:"你的项目", rep_proj_q:"按花费从高到低",
+  rep_why:"花费大的原因：",
+  rep_t_up:"比上一时段花得多",
+  rep_t_down:"比上一时段花得少",
+  rep_t_flat:"与上一时段差不多",
+  rep_t_new:"上一时段没有活动",
+  rep_fix_t:"你修好的问题",
+  rep_fix_none:"还没有记录的修复。当“发现”里的泄漏连续出现几天后消失（说明你修好了），这里会记下日期并测量效果。",
+  rep_fix_wait:n=>`正在测量效果 — 诚实的对比至少需要修复后 ${n} 天的数据。`,
+  rep_ba_before:"修复前 tok/msg", rep_ba_after:"现在 tok/msg",
+  rep_est_days:n=>`估计值（基于修复后 ${n} 天的数据）。`,
+  rep_next_t:"接下来几天",
+  rep_next_none:"没有急事：这段时间没有活跃的泄漏。继续保持。",
+  rep_next_cost:c=>`本时段花费 ${c}`,
+  rep_foot:"由 MichiClaude 从你的本地数据生成。$ 为按 API 价格折算的估计值 — 订阅制不按 token 收费。任何数据都不会离开你的电脑。",
   fnd_title:"Token 泄漏分析",
   fnd_intro:"从你的日志中找到的结构性泄漏及其实测成本。不会自动应用任何更改 — 由你决定。",
   fnd_scanning:"正在分析日志…",
@@ -4825,7 +5241,8 @@ function openCal(target){
   calTarget=target||"spend";
   calSnap={a:calA,b:calB,p:calPreset,v:calView};
   // el popover abre reflejando lo que se está viendo ahora mismo
-  const R=calTarget==="fnd"?fndRange:curRange, D=calTarget==="fnd"?fndDays:curDays;
+  const R=calTarget==="fnd"?fndRange:calTarget==="rep"?repRange:curRange,
+        D=calTarget==="fnd"?fndDays:calTarget==="rep"?repDays:curDays;
   if(R){ calA=fromYmd(R.from); calB=fromYmd(R.to); calPreset=null; }
   else calSetPreset(D);
   calView=new Date((calB||new Date()).getFullYear(),(calB||new Date()).getMonth(),1);
@@ -4840,6 +5257,16 @@ function closeCal(revert){
 function applyCal(){
   if(!(calA&&calB)) return;
   const preset=calPreset, rng={from:ymd(calA),to:ymd(calB)};
+  if(calTarget==="rep"){
+    // el reporte solo tiene presets 7/30 (sus chips); cualquier otro preset
+    // del popover se trata como rango normal
+    if(preset===7||preset===30){ repDays=preset; repRange=null;
+      localStorage.setItem("repDays",String(repDays));
+      localStorage.removeItem("repRange");
+    }else{ repRange=rng; localStorage.setItem("repRange",JSON.stringify(rng)); }
+    hidePop("calPop"); loadReport(true);
+    return;
+  }
   if(calTarget==="fnd"){
     if(preset){ fndDays=preset; fndRange=null;
       localStorage.setItem("fndDays",String(fndDays));
@@ -4863,6 +5290,14 @@ function applyCal(){
 // cerrabas se quedaba el periodo anterior — justo lo que querías borrar.
 function clearCal(){
   calPreset=1; calA=calB=d0(new Date());
+  if(calTarget==="rep"){
+    // Borrar en el reporte = volver a su valor por defecto: Semana
+    repDays=7; repRange=null;
+    localStorage.setItem("repDays","7");
+    localStorage.removeItem("repRange");
+    hidePop("calPop"); loadReport(true);
+    return;
+  }
   if(calTarget==="fnd"){
     fndDays=1; fndRange=null;
     localStorage.setItem("fndDays","1");
@@ -5560,8 +5995,301 @@ $("flowBtn").addEventListener("click", async e=>{
 });
 
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
+// ---------- pestaña Reporte (docs/presion-y-rendimiento.md) ----------
+// El "cómo voy" en llano. TODO sale de datos ya medidos: get_local_stats
+// (con uturns), get_quota_history, get_findings y las marcas de arreglo
+// (fndMarks). REGLAS DE ORO: nunca dividir con uturns=0 ("sin datos"),
+// nunca inventar la causa de un gasto (solo detectores reales), y toda
+// estimación se dice ("estimado, con N días"). Invariante #8 en todo.
+let repDays=+(localStorage.getItem("repDays")||7);
+if(![7,30].includes(repDays)) repDays=7;
+let repRange=null;
+try{ const r=JSON.parse(localStorage.getItem("repRange")||"null");
+  if(r&&r.from&&r.to) repRange=r; }catch(_){}
+let repStamp=0, repAt=0, repData=null;
+
+function repArgs(){
+  return repRange ? {days:rangeDays(repRange), end:rangeEnd(repRange)}
+                  : {days:repDays};
+}
+function repWidth(){ return repRange ? rangeDays(repRange) : repDays; }
+function repEnd(){ return repRange ? rangeEnd(repRange) : Math.floor(Date.now()/1000); }
+function repPeriodLabel(){
+  if(!repRange) return repDays===7 ? t("rep_week") : t("rep_month");
+  if(repRange.from===repRange.to) return fmtCalDay(repRange.from);
+  return `${fmtCalDay(repRange.from)} – ${fmtCalDay(repRange.to)}`;
+}
+function markRepChips(){
+  document.querySelectorAll(".rchip").forEach(b=>
+    b.classList.toggle("on", repRange ? b.dataset.rep==="custom"
+                                      : b.dataset.rep===String(repDays)));
+  $("repRangeLbl").textContent=repPeriodLabel();
+}
+document.querySelectorAll(".rchip").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.rep==="custom"){ openCal("rep"); return; }
+  repDays=+b.dataset.rep; repRange=null;
+  localStorage.setItem("repDays",String(repDays));
+  localStorage.removeItem("repRange");
+  loadReport(true);
+}));
+
+// Sin candado de "ocupado": cada petición lleva su sello y la que llegue
+// TARDE se descarta — así cambiar de periodo a media carga nunca se traba
+// ni pinta datos del periodo anterior.
+async function loadReport(force){
+  if(!invoke) return;
+  if(repData && !force && Date.now()-repAt<5*60*1000){ renderReport(); return; }
+  const stamp=++repStamp;
+  markRepChips();
+  const wait=`<div class="rp-empty">${t("fnd_scanning")}</div>`;
+  for(const id of ["repHero","repLast","repProj","repFix","repNext"]) $(id).innerHTML=wait;
+  const W=repWidth(), endE=repEnd();
+  // el periodo ANTERIOR es la misma anchura terminando donde empieza este:
+  // así "¿mejoré?" compara peras con peras aunque el periodo sea un rango
+  const [cur,prev,hist,fnd]=await Promise.allSettled([
+    invoke("get_local_stats",repArgs()),
+    invoke("get_local_stats",{days:W, end:endE-W*86400}),
+    invoke("get_quota_history",{days:90}),
+    invoke("get_findings",repArgs()),
+  ]);
+  if(stamp!==repStamp) return;
+  repData={
+    cur: cur.status==="fulfilled"?cur.value:null,
+    prev:prev.status==="fulfilled"?prev.value:null,
+    hist:hist.status==="fulfilled"?hist.value:[],
+    fnd: fnd.status==="fulfilled"?fnd.value:[],
+    W, endE,
+  };
+  repAt=Date.now();
+  renderReport();
+}
+function repPerfOf(s){ return s && s.uturns_week>0 ? s.tokens_week/s.uturns_week : null; }
+function repFmtN(n){ return Math.round(n).toLocaleString(lang); }
+
+function renderReport(){
+  const d=repData; if(!d) return;
+  markRepChips();
+  renderRepHero(d); renderRepLast(d); renderRepChart(d);
+  renderRepProj(d); renderRepFix(d); renderRepNext(d);
+}
+
+// 1 · héroe: EL número con su veredicto en llano
+function renderRepHero(d){
+  if(!d.cur){ $("repHero").innerHTML=`<div class="rp-empty">${t("fnd_err")}</div>`; return; }
+  const p=repPerfOf(d.cur);
+  if(p==null){ $("repHero").innerHTML=`<div class="rp-empty">${t("rep_nodata")}</div>`; return; }
+  const q=repPerfOf(d.prev);
+  let delta="", plain=t("rep_verd_first");
+  if(q!=null){
+    const ch=(p-q)/q*100;      // + = más tokens por mensaje = peor
+    if(ch<=-3){ plain=t("rep_verd_good");
+      delta=`<span class="rp-delta good">↓ ${t("rep_better")} ${Math.abs(Math.round(ch))}%</span>`; }
+    else if(ch>=3){ plain=t("rep_verd_bad");
+      delta=`<span class="rp-delta bad">↑ ${t("rep_worse")} ${Math.round(ch)}%</span>`; }
+    else{ plain=t("rep_verd_flat");
+      delta=`<span class="rp-delta flat">= ${t("rep_flat")}</span>`; }
+  }
+  $("repHero").innerHTML=`
+    <div class="rp-big">${repFmtN(p)} ${delta}</div>
+    <div class="rp-nums">${escapeHtml(t("rep_perf_unit"))}${q!=null?` · ${escapeHtml(t("rep_before"))} <s>${repFmtN(q)}</s>`:""}</div>
+    <div class="rp-plain">${withCmds(plain)}</div>
+    ${d.prev&&d.prev.hub_skipped?`<div class="rep-note" style="margin-top:7px">${escapeHtml(t("hub_range_note"))}</div>`:""}`;
+}
+
+// 2 · ¿te duró más o menos? — del histórico de cuota (quota_history.json)
+function repHistStats(hist,from,to){
+  const snaps=(hist||[]).filter(x=>x.t>=from&&x.t<to);
+  if(!snaps.length) return null;
+  // ventanas de sesión agrupadas por su reset CON TOLERANCIA (el resets_at
+  // trae jitter — mismo criterio de 10 min que windowChanged)
+  const wins=[];
+  for(const x of snaps){
+    if(x.s==null||x.sr==null) continue;
+    const w=wins[wins.length-1];
+    if(w && Math.abs(x.sr-w.sr)<=600){ w.max=Math.max(w.max,x.s); w.sr=x.sr; }
+    else wins.push({sr:x.sr,max:x.s});
+  }
+  const wkHit=snaps.find(x=>(x.w??0)>=100);
+  return {n:snaps.length, hits:wins.filter(w=>w.max>=100).length,
+          wkHit:wkHit?wkHit.t:null};
+}
+function renderRepLast(d){
+  const from=d.endE-d.W*86400;
+  const cur=repHistStats(d.hist,from,d.endE);
+  const prev=repHistStats(d.hist,from-d.W*86400,from);
+  // cobertura mínima: ~1 h de fotos (20 a ciclo de 3 min). Sin eso, la
+  // sección lo dice tal cual en vez de enseñar ceros que parecen datos.
+  if(!cur || cur.n<20){
+    $("repLast").innerHTML=`<div class="rp-empty">${escapeHtml(t("rep_gathering"))}</div>`;
+    return;
+  }
+  const was=v=>v!=null?`<span class="was">${escapeHtml(t("rep_before"))}: ${v}</span>`:"";
+  const wkFmt=ts=>new Date(ts*1000).toLocaleString(lang,
+    {weekday:"long",hour:"2-digit",minute:"2-digit"});
+  const rows=[];
+  rows.push({c:"var(--bad)",
+    ic:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2L4.9 12.5H11L9.5 22 19 10.5h-6L13 2z"/></svg>`,
+    val:t("rep_hits_v",cur.hits)+(prev?was(prev.hits):""),
+    say:t("rep_hits_say")});
+  rows.push({c:"var(--accent)",
+    ic:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+    val:(cur.wkHit?t("rep_wk_yes",wkFmt(cur.wkHit)):t("rep_wk_no"))
+        +(prev?was(prev.wkHit?wkFmt(prev.wkHit):t("rep_wk_no_short")):""),
+    say:t("rep_wk_say")});
+  // mensajes por día trabajado: de la serie diaria (solo si cubre el periodo)
+  const days=(d.cur&&d.cur.daily||[]).filter(x=>{
+    const ts=Math.floor(fromYmd(x.date).getTime()/1000);
+    return ts>=from&&ts<d.endE&&x.uturns>0; });
+  if(days.length){
+    const avg=Math.round(days.reduce((a,x)=>a+x.uturns,0)/days.length);
+    rows.push({c:"var(--ok)",
+      ic:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 8.5-8.5 8.38 8.38 0 0 1 8.5 8.5z"/></svg>`,
+      val:t("rep_msgs_v",avg,days.length), say:t("rep_msgs_say")});
+  }
+  $("repLast").innerHTML=rows.map(r=>`<div class="rp-row" style="--c:${r.c}">
+    <span class="ic"><i></i>${r.ic}</span>
+    <div><div class="val">${r.val}</div><div class="say">${escapeHtml(r.say)}</div></div>
+  </div>`).join("");
+}
+
+// 3 · rendimiento semanal (4 semanas de la serie diaria, anclada a HOY)
+function renderRepChart(d){
+  const daily=(d.cur&&d.cur.daily)||[];
+  const map=Object.fromEntries(daily.map(x=>[x.date,x]));
+  const vals=[];
+  for(let b=3;b>=0;b--){
+    let tok=0,ut=0;
+    for(let i=0;i<7;i++){
+      const dt=new Date(Date.now()-(b*7+i)*864e5);
+      const c=map[dt.toISOString().slice(0,10)];
+      if(c){ tok+=c.tokens||0; ut+=c.uturns||0; }
+    }
+    vals.push(ut>0?tok/ut:null);
+  }
+  if(vals.filter(v=>v!=null).length<2){ $("repChartSect").hidden=true; return; }
+  $("repChartSect").hidden=false;
+  const nums=vals.filter(v=>v!=null);
+  const max=Math.max(...nums), min=Math.min(...nums);
+  const span=Math.max(max-min, max*0.15, 1);
+  const X=i=>46+i*(354/3), Y=v=>26+(max-v)/span*88;
+  const pts=vals.map((v,i)=>v==null?null:[X(i),Y(v),v]).filter(Boolean);
+  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const area=line+` L ${pts[pts.length-1][0].toFixed(1)} 132 L ${pts[0][0].toFixed(1)} 132 Z`;
+  const labels=[t("rep_w3"),t("rep_w2"),t("rep_w1"),t("rep_w0")];
+  const last=pts[pts.length-1];
+  $("repChart").innerHTML=`<svg viewBox="0 0 446 152" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="rpArea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--accent)" stop-opacity=".25"/>
+      <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#rpArea)"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5"
+      stroke-linecap="round" stroke-linejoin="round"/>
+    ${pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${p===last?5:3.5}"
+      fill="${p===last?"var(--teal)":"var(--card)"}" stroke="${p===last?"var(--teal)":"var(--accent)"}" stroke-width="2"/>`).join("")}
+    ${pts.map(p=>`<text x="${p[0].toFixed(1)}" y="${(p[1]-11).toFixed(1)}" text-anchor="middle"
+      font-family="var(--mono)" font-size="10" font-weight="700"
+      fill="${p===last?"var(--teal)":"var(--txt-mut)"}">${repFmtN(p[2])}</text>`).join("")}
+    ${vals.map((v,i)=>`<text x="${X(i).toFixed(1)}" y="147" text-anchor="middle" font-size="9.5"
+      fill="${i===3?"var(--txt)":"var(--txt-dim)"}"${i===3?' font-weight="700"':""}>${escapeHtml(labels[i])}</text>`).join("")}
+  </svg>`;
+}
+
+// 4 · proyectos con su delta y su "por qué" (SOLO de detectores reales)
+function renderRepProj(d){
+  if(!d.cur){ $("repProj").innerHTML=`<div class="rp-empty">${t("fnd_err")}</div>`; return; }
+  const projs=(d.cur.projects||[]).slice(0,6).map(p=>({...p,...splitSrc(p.name)}));
+  if(!projs.length){ $("repProj").innerHTML=`<div class="rp-empty">${escapeHtml(t("no_activity"))}</div>`; return; }
+  const prevMap={}; ((d.prev&&d.prev.projects)||[]).forEach(p=>prevMap[p.name]=p);
+  // el hallazgo MÁS CARO de cada proyecto explica "qué lo encareció";
+  // sin hallazgo no se inventa causa (invariante #8: mejor callar)
+  const ign=fndIgnored(), worst={};
+  for(const f of d.fnd||[]){
+    if(ign.has(fndKey(f))) continue;
+    const k=fndProj(f.project||"");
+    if(!worst[k]||f.cost>worst[k].cost) worst[k]=f;
+  }
+  $("repProj").innerHTML=projs.map((p,i)=>{
+    const q=prevMap[p.name];
+    let cls="flat",sym="=",tip=t("rep_t_flat");
+    if(q){
+      const dd=p.cost-q.cost, thr=Math.max(q.cost*0.1,0.5);
+      if(dd<=-thr){ cls="down"; sym="↓"; tip=t("rep_t_down"); }
+      else if(dd>=thr){ cls="up"; sym="↑"; tip=t("rep_t_up"); }
+    }else if(p.cost>=0.5){ cls="up"; sym="↑"; tip=t("rep_t_new"); }
+    const c=PALETTE[i%PALETTE.length];
+    const w=worst[p.base];
+    return `<div class="rp-pj">
+      <div class="pav" style="color:${c}"><i style="background:${c}"></i>${escapeHtml(projInitials(p.base))}</div>
+      <div class="ptx"><div class="pname"><span>${escapeHtml(p.base)}</span>${p.src?`<span class="srctag">${escapeHtml(p.src)}</span>`:""}</div></div>
+      <span class="amt">$${p.cost.toFixed(2)}</span>
+      <span class="rp-trend ${cls}" title="${escapeHtml(tip)}">${sym}</span>
+    </div>${w?`<div class="rp-why"><b>${escapeHtml(t("rep_why"))}</b> ${withCmds(fndTitle(w))}</div>`:""}`;
+  }).join("");
+}
+
+// 5 · lo que arreglaste (marcas de fndTrackHist) con su efecto medido
+function renderRepFix(d){
+  let marks=[]; try{ marks=JSON.parse(localStorage.getItem("fndMarks")||"[]"); }catch(_){}
+  if(!marks.length){
+    $("repFix").innerHTML=`<div class="rp-empty">${withCmds(t("rep_fix_none"))}</div>`;
+    return;
+  }
+  const daily=(d.cur&&d.cur.daily)||[];
+  const perfBetween=(a,b)=>{ // [a,b) en ms; null si no hay turnos
+    let tok=0,ut=0;
+    for(const x of daily){
+      const ts=fromYmd(x.date).getTime();
+      if(ts>=a&&ts<b){ tok+=x.tokens||0; ut+=x.uturns||0; }
+    }
+    return ut>0?{p:tok/ut,days:new Set(daily.filter(x=>{const ts=fromYmd(x.date).getTime();
+      return ts>=a&&ts<b&&x.uturns>0;}).map(x=>x.date)).size}:null;
+  };
+  const MIN_AFTER=5; // días de datos antes de afirmar nada (regla del doc)
+  $("repFix").innerHTML=marks.slice(-4).reverse().map(m=>{
+    const before=perfBetween(m.date-14*864e5, m.date);
+    const after=perfBetween(m.date, Date.now());
+    const when=new Date(m.date).toLocaleDateString(lang,{day:"2-digit",month:"short"});
+    let body;
+    if(before&&after&&after.days>=MIN_AFTER){
+      body=`<div class="rp-ba">
+        <div class="cell"><div class="n">${repFmtN(before.p)}</div><div class="l">${escapeHtml(t("rep_ba_before"))}</div></div>
+        <span class="arr">→</span>
+        <div class="cell after"><div class="n">${repFmtN(after.p)}</div><div class="l">${escapeHtml(t("rep_ba_after"))}</div></div>
+      </div>
+      <div class="est">${escapeHtml(t("rep_est_days",after.days))}</div>`;
+    }else{
+      body=`<div class="est">${escapeHtml(t("rep_fix_wait",MIN_AFTER))}</div>`;
+    }
+    return `<div class="rp-fix">
+      <div class="when">${escapeHtml(when)}</div>
+      <div class="did">${withCmds(m.t||m.kind)}</div>
+      ${body}</div>`;
+  }).join("");
+}
+
+// 6 · para los días que vienen: las 2 fugas más caras, en imperativo
+function renderRepNext(d){
+  const ign=fndIgnored();
+  const top=(d.fnd||[]).filter(f=>!ign.has(fndKey(f)))
+    .sort((a,b)=>b.cost-a.cost).slice(0,2);
+  if(!top.length){
+    $("repNext").innerHTML=`<div class="rp-empty">${withCmds(t("rep_next_none"))}</div>`;
+    return;
+  }
+  $("repNext").innerHTML=top.map((f,i)=>{
+    const est=f.estimated?"~":"";
+    const cost=f.cost>0?t("rep_next_cost",est+"$"+f.cost.toFixed(2)):"";
+    return `<div class="rp-act">
+      <span class="n">${i+1}</span>
+      <span class="t">${withCmds(fndTitle(f))}
+        <small>${escapeHtml([fndProj(f.project||""),cost].filter(Boolean).join(" · "))}</small>
+      </span>
+    </div>`;
+  }).join("");
+}
+
 function showTab(name){
-  for(const k of ["main","sources","findings","tips","prefs"]) $("tab-"+k).hidden = (k!==name);
+  for(const k of ["main","sources","findings","tips","report","prefs"]) $("tab-"+k).hidden = (k!==name);
   $("expBox").hidden = true;                      // el aviso era de ese momento
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
   // los servidores se refrescan en las DOS pestañas que dependen de ellos:
@@ -5575,6 +6303,7 @@ function showTab(name){
   // "no veo hallazgos" de la sesión recién hecha — y era cierto)
   if(name==="findings") loadFindings(Date.now()-fndCacheAt>5*60*1000);
   if(name==="tips"){ renderTips(); renderTipFoot(); }  // estático: gratis
+  if(name==="report") loadReport(false);          // TTL de 5 min, como Hallazgos
   if(name==="prefs") renderPricesStatus();        // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
   document.querySelector(".panel").scrollTop=0;

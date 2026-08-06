@@ -476,12 +476,26 @@ hacer público el repo (o sus releases).
       no viaja a hub ni ntfy). (c) MARCAS DE ARREGLO en localStorage
       (`fndHist`/`fndMarks`, solo hallazgos de estado, escaneos ≥7d sin
       rango; visto ≥3 días + desaparecido ≥2 = arreglado, rastro en
-      flowLog). FALTA: fase 2 pestaña Reporte (mockup A elegido como base,
-      chips Semana/Mes/Personalizado) y fase 3 export HTML. También en el
-      doc y sin arrancar: manómetro de contexto en pastilla/gatito,
-      detector de auto-compacts, detector de pegado masivo. DESCARTADO con
-      porqué en el doc: sesión contaminada, score único, modelo local,
-      telemetría colectiva (choca con invariante #3).
+      flowLog). FASE 2 pestaña Reporte: IMPLEMENTADA el 2026-08-06
+      (pendiente de capturas de Oscar) — 6.ª pestaña `rep_tab`, chips
+      Semana/Mes/Personalizado (el calendario compartido ganó el target
+      "rep"; Borrar = volver a Semana), secciones: héroe rendimiento
+      (nunca pinta con uturns=0), "¿te duró más o menos?" del histórico
+      de cuota (cobertura mínima 20 fotos o dice "juntando datos";
+      ventanas de sesión agrupadas por reset con tolerancia 10 min),
+      gráfica 4 semanas (serie daily, se oculta con <2 semanas con
+      datos), proyectos con delta vs periodo ANTERIOR (misma anchura
+      terminando donde empieza el actual; umbral 10% o $0.50) y "qué lo
+      encareció" SOLO de hallazgos reales, marcas con antes/después
+      (mínimo 5 días de datos tras el arreglo o dice "midiendo"), y
+      "para los días que vienen" (top 2 fugas por costo). Sin candado de
+      carga: peticiones con sello (repStamp), la tardía se descarta.
+      ~44 claves i18n ×8 (paridad verificada por script). FALTA: fase 3
+      export HTML del mockup A. También en el doc y sin arrancar:
+      manómetro de contexto en pastilla/gatito, detector de
+      auto-compacts, detector de pegado masivo. DESCARTADO con porqué en
+      el doc: sesión contaminada, score único, modelo local, telemetría
+      colectiva (choca con invariante #3).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
