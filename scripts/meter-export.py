@@ -825,7 +825,11 @@ def _coach_default():
     return {"offset": 0, "last_ctx": 0, "first_turn": 0, "last_turn": 0,
             "turns": 0, "cmds": 0, "reads": {}, "edits": [], "tool_ids": [],
             "title": "", "proj": "", "cost": 0.0, "gaps": 0, "done": False,
-            "notified": False, "asked": False, "pending_tool": False}
+            "notified": False, "asked": False, "pending_tool": False,
+            # señales del clasificador de tarea viva (réplica del Rust,
+            # docs/remediacion.md etapa 1b) — solo hechos, cero veredicto
+            "todos_open": 0, "todos_total": 0, "trail": [],
+            "commit_clean": False}
 
 
 def coach_leaks(st):
@@ -957,11 +961,29 @@ def coach_scan(projects_dir):
                                 if name == "Read" and inp.get("file_path"):
                                     fpx = inp["file_path"]
                                     st["reads"][fpx] = st["reads"].get(fpx, 0) + 1
+                                    st["trail"].append(fpx)
                                 elif name == "Bash":
                                     st["cmds"] += 1
-                                elif name in ("Edit", "Write", "NotebookEdit") \
-                                        and inp.get("file_path"):
-                                    edits.add(inp["file_path"])
+                                    # señal de cierre: commit deja la mesa
+                                    # limpia hasta que algo se edite después
+                                    if "git commit" in (inp.get("command") or ""):
+                                        st["commit_clean"] = True
+                                elif name in ("Edit", "Write", "NotebookEdit"):
+                                    if inp.get("file_path"):
+                                        edits.add(inp["file_path"])
+                                        st["trail"].append(inp["file_path"])
+                                    st["commit_clean"] = False
+                                elif name == "TodoWrite":
+                                    # la señal REINA: la lista de tareas
+                                    td = inp.get("todos")
+                                    if isinstance(td, list):
+                                        st["todos_total"] = len(td)
+                                        st["todos_open"] = sum(
+                                            1 for x in td if isinstance(x, dict)
+                                            and x.get("status") != "completed")
+                                # rastro acotado a los últimos 20 archivos
+                                if len(st["trail"]) > 20:
+                                    st["trail"] = st["trail"][-20:]
                     st["tool_ids"] = sorted(tool_ids)
                     st["edits"] = sorted(edits)
                     st["asked"] = False   # el log creció: se rearma la espera
@@ -988,7 +1010,18 @@ def coach_scan(projects_dir):
                 # de la sesión activa — dato puro, sin compuertas (como en Rust)
                 if (st["last_ctx"] > 0 and st["last_turn"] > 0
                         and quiet_min < PRESS_QUIET_MAX):
-                    hit("press", st["last_ctx"], quiet=quiet_min)
+                    # continuidad de archivos: Jaccard % de los últimos 10
+                    # contra los 10 previos del rastro (misma cuenta que Rust)
+                    trail = st["trail"]
+                    cont = 0
+                    if len(trail) >= 12:
+                        a, b = set(trail[-10:]), set(trail[-20:-10])
+                        u = a | b
+                        if u:
+                            cont = len(a & b) * 100 // len(u)
+                    hit("press", st["last_ctx"], quiet=quiet_min,
+                        topen=st["todos_open"], ttotal=st["todos_total"],
+                        cont=cont, gclean=st["commit_clean"])
                 if (st["pending_tool"] and not st["asked"]
                         and quiet_min >= COACH_ASK_QUIET and st["turns"] >= 1):
                     st["asked"] = True

@@ -17,6 +17,7 @@
     "core:window:allow-minimize",
     "core:window:allow-start-dragging",
     "notification:default",
-    "updater:default"
+    "updater:default",
+    "clipboard-manager:allow-write-text"
   ]
 }

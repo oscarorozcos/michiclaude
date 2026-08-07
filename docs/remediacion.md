@@ -137,14 +137,18 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
 1. **Consejero con intención** (sin relevo, TODAS las sesiones):
    manómetro de presión en pastilla/gatito (puntos 9-10 de
    presion-y-rendimiento.md — dato ya existe, viaja en quota:update)
-   [HECHO 2026-08-07: regla `press` en el coach Rust+Python, campo
-   `press` en quota:update, gauge en pastilla/gatito y número en
-   pcard/globo; pendiente cargo check en Windows],
+   [HECHO 2026-08-07 y VALIDADO en vivo por Oscar],
    parser de TodoWrite + clasificador (TRES piezas: Rust +
-   meter-export.py + panel, invariante #1), tarjeta de intención con
+   meter-export.py + panel, invariante #1) [HECHO 2026-08-07: el motor
+   manda HECHOS crudos en el hit press (topen/ttotal/cont/gclean) y el
+   veredicto vive UNA vez en JS (`intentVerdict`); Python validado con
+   logs reales del VPS], tarjeta de intención con
    evidencia y botón "Copiar comando" (clipboard SOLO al clic — pisar el
    clipboard sin pedirlo es invasivo; dep nueva justificada:
-   tauri-plugin-clipboard-manager).
+   tauri-plugin-clipboard-manager) [HECHO 2026-08-07: regla sintética
+   `intent` con presión ≥80, tarjeta en Consejos con dos opciones,
+   evidencia, "Recomendado" por veredicto y "Ahora no"; pendiente cargo
+   check en Windows — dep nueva].
 2. **Automático out-of-band:** matar zombies (con re-verificación
    anti-reciclaje de PID: nombre de ejecutable + hora de inicio antes
    del taskkill) + archivar JSONL **≥365 días** + registro de acciones +

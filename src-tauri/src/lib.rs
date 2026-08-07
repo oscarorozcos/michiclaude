@@ -2968,6 +2968,13 @@ struct CoachSess {
     pending_tool: bool, // hay tool_use sin tool_result: espera una aprobación
     asked: bool,        // el aviso de "te está esperando" ya salió (se rearma
                         // cuando el log vuelve a crecer)
+    // Señales del clasificador de tarea viva (docs/remediacion.md etapa 1b).
+    // Aquí solo HECHOS medidos; el veredicto Alive/Boundary/Uncertain lo pone
+    // el panel (una sola implementación, en JS).
+    todos_open: u64,    // pendientes (status != completed) del ÚLTIMO TodoWrite
+    todos_total: u64,   // tareas totales de esa misma lista
+    trail: Vec<String>, // últimos archivos tocados (Read/Edit/Write), tope 20
+    commit_clean: bool, // hubo `git commit` y NADA se editó después
 }
 
 /// Una fuga detectada al CIERRE de la sesión (mini-auditoría del coach):
@@ -3032,6 +3039,13 @@ struct CoachHit {
     quiet: u64,      // solo "press": minutos desde el último toque del log —
                      // con varias sesiones vivas el panel elige la más fresca
                      // (aditivo con default, invariante #1)
+    // Señales del clasificador (solo "press", aditivas): hechos crudos para
+    // que el panel calcule el veredicto y la tarjeta de intención.
+    topen: u64,      // pendientes abiertos del último TodoWrite
+    ttotal: u64,     // tareas totales de esa lista (0 = nunca hubo lista)
+    cont: u64,       // continuidad de archivos: Jaccard % (últimos 10 vs 10
+                     // previos del rastro); 0 = sin rastro suficiente
+    gclean: bool,    // git commit reciente sin ediciones después
     /// De qué máquina viene el consejo: vacío = esta (el panel enseña
     /// "local"); con nombre = el que el usuario le dio al servidor. Lo pone
     /// get_coach al fusionar, nunca el exportador (el mismo patrón que el
@@ -3246,15 +3260,49 @@ fn coach_scan() -> Vec<CoachHit> {
                                 "Read" => {
                                     if let Some(p) = b["input"]["file_path"].as_str() {
                                         *st.reads.entry(p.to_string()).or_insert(0) += 1;
+                                        st.trail.push(p.to_string());
                                     }
                                 }
-                                "Bash" => st.cmds += 1,
+                                "Bash" => {
+                                    st.cmds += 1;
+                                    // señal de cierre: un commit deja la mesa
+                                    // limpia — hasta que algo se edite después
+                                    if b["input"]["command"]
+                                        .as_str()
+                                        .map(|c| c.contains("git commit"))
+                                        .unwrap_or(false)
+                                    {
+                                        st.commit_clean = true;
+                                    }
+                                }
                                 "Edit" | "Write" | "NotebookEdit" => {
                                     if let Some(p) = b["input"]["file_path"].as_str() {
                                         st.edits.insert(p.to_string());
+                                        st.trail.push(p.to_string());
+                                    }
+                                    st.commit_clean = false;
+                                }
+                                // la señal REINA del clasificador: la propia
+                                // lista de tareas que Claude Code mantiene
+                                "TodoWrite" => {
+                                    if let Some(td) = b["input"]["todos"].as_array() {
+                                        st.todos_total = td.len() as u64;
+                                        st.todos_open = td
+                                            .iter()
+                                            .filter(|x| {
+                                                x["status"].as_str().unwrap_or("")
+                                                    != "completed"
+                                            })
+                                            .count()
+                                            as u64;
                                     }
                                 }
                                 _ => {}
+                            }
+                            // rastro acotado: solo los últimos 20 archivos
+                            if st.trail.len() > 20 {
+                                let cut = st.trail.len() - 20;
+                                st.trail.drain(..cut);
                             }
                         }
                     }
@@ -3312,12 +3360,29 @@ fn coach_scan() -> Vec<CoachHit> {
             // de la sesión que se está trabajando AHORA. Dato puro en cada
             // sondeo — el % y los colores los pone el frontend.
             if st.last_ctx > 0 && st.last_turn > 0 && quiet_min < PRESS_QUIET_MAX {
+                // continuidad de archivos: Jaccard de los últimos 10 contra
+                // los 10 previos del rastro (¿sigue en los MISMOS archivos?)
+                let cont = if st.trail.len() >= 12 {
+                    let n = st.trail.len();
+                    let a: HashSet<&String> = st.trail[n - 10..].iter().collect();
+                    let b: HashSet<&String> =
+                        st.trail[n.saturating_sub(20)..n - 10].iter().collect();
+                    let i = a.intersection(&b).count();
+                    let u = a.union(&b).count();
+                    if u > 0 { (i * 100 / u) as u64 } else { 0 }
+                } else {
+                    0
+                };
                 hits.push(CoachHit {
                     rule: "press".into(),
                     session: sid.clone(),
                     value: st.last_ctx,
                     project: pname(st, &proj_name),
                     quiet: quiet_min.max(0) as u64,
+                    topen: st.todos_open,
+                    ttotal: st.todos_total,
+                    cont,
+                    gclean: st.commit_clean,
                     ..Default::default()
                 });
             }
@@ -3780,6 +3845,7 @@ pub fn run() {
             None,
         ))
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
             get_quota,
             get_local_stats,

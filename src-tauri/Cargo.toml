@@ -16,6 +16,10 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-notification = "2"
+# "Copiar comando" de la tarjeta de intención (docs/remediacion.md etapa 1c):
+# escribe al portapapeles SOLO al clic del usuario. Sin wrapper npm — el
+# panel lo invoca directo (plugin:clipboard-manager|write_text).
+tauri-plugin-clipboard-manager = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-updater = "2"

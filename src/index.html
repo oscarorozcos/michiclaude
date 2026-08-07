@@ -269,6 +269,33 @@
     color:var(--txt-dim);cursor:pointer;font-size:11px;line-height:1;
     padding:3px 5px;border-radius:6px;font-family:var(--font)}
   .tip-x:hover{color:var(--txt);background:rgba(128,128,128,.18)}
+  /* Tarjeta de INTENCIÓN (docs/remediacion.md etapa 1c): la presión de la
+     sesión activa cruzó el umbral. Pregunta la intención en llano y pone el
+     comando pequeño al lado — el usuario aprende el mapeo sin que sea
+     requisito. El cuerpo anida divs: fuera el pre-line de las fichas. */
+  .fnd.tip.int .fnd-f{white-space:normal}
+  .int-pct{font-family:var(--mono);color:var(--warn)}
+  .int-pct.hot{color:var(--bad)}
+  .int-ev{font-size:11px;color:var(--txt-dim);font-family:var(--mono);
+    line-height:1.5;margin-top:6px;overflow-wrap:anywhere}
+  .int-q{margin-bottom:2px}
+  .int-opt{position:relative;border:1px solid var(--stroke-soft);border-radius:12px;
+    padding:10px 12px;margin-top:10px;background:var(--card-hi)}
+  .int-opt.rec{border-color:var(--accent-line)}
+  .int-badge{position:absolute;top:-8px;right:10px;font-size:9.5px;font-weight:700;
+    letter-spacing:.6px;text-transform:uppercase;color:var(--accent-ink);
+    background:var(--accent);border-radius:999px;padding:2px 8px}
+  .int-ot{font-size:12.5px;font-weight:600;color:var(--txt)}
+  .int-ob{font-size:11.5px;color:var(--txt-mut);line-height:1.5;margin-top:3px}
+  .int-warn{font-size:11px;color:var(--warn);line-height:1.5;margin-top:5px}
+  .int-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .int-copy{margin-left:auto;font-size:11px;font-weight:600;font-family:var(--font);
+    color:var(--txt);background:transparent;border:1px solid var(--stroke-soft);
+    border-radius:999px;padding:4px 11px;cursor:pointer;transition:.15s}
+  .int-copy:hover{border-color:var(--accent-line);color:var(--accent)}
+  .int-later{margin-top:10px;text-align:right;font-size:11px;color:var(--txt-dim);
+    cursor:pointer}
+  .int-later:hover{color:var(--txt)}
   .fnd-x{position:absolute;top:11px;right:12px;font-size:10.5px;font-weight:600;
     color:var(--txt-dim);background:var(--card-hi);border:1px solid var(--stroke-soft);
     border-radius:999px;padding:3px 9px;cursor:pointer;transition:.15s}
@@ -1827,6 +1854,22 @@ en:{
   pill_ses:"session", pill_week:"week",
   card_ses:"Session", card_week:"Weekly",
   press_lab:"Context pressure",
+  int_t:"Your session is getting heavy",
+  int_q:"Every message is costing you more. What do you want to do?",
+  int_ev:"Michi detected",
+  int_ev_todo:(a,b)=>`task list: ${a} of ${b} open`,
+  int_ev_cont:"still in the same files",
+  int_ev_commit:"recent commit with no edits after",
+  int_ev_quiet:m=>`last message ${m} min ago`,
+  int_rec:"Recommended",
+  int_go_t:"I'm still on the same task",
+  int_go_b:"Compresses the history, but Claude remembers where you left off.",
+  int_done_t:"I'm done, starting something new",
+  int_done_b:"Clean slate: maximum savings. Your files on disk are untouched.",
+  int_warn:n=>`You have ${n} open tasks — this would erase them from Claude's memory.`,
+  int_copy:"Copy command",
+  int_copied:"Copied ✓",
+  int_later:"Not now",
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
   pill_layer_normal:"Normal window",
@@ -2171,6 +2214,22 @@ es:{
   pill_ses:"sesión", pill_week:"semana",
   card_ses:"Sesión", card_week:"Semanal",
   press_lab:"Presión de contexto",
+  int_t:"Tu sesión ya pesa mucho",
+  int_q:"Cada mensaje te está costando más caro. ¿Qué quieres hacer?",
+  int_ev:"Michi detectó",
+  int_ev_todo:(a,b)=>`lista de tareas: ${a} de ${b} sin terminar`,
+  int_ev_cont:"sigues en los mismos archivos",
+  int_ev_commit:"commit reciente sin cambios después",
+  int_ev_quiet:m=>`último mensaje hace ${m} min`,
+  int_rec:"Recomendado",
+  int_go_t:"Sigo trabajando en lo mismo",
+  int_go_b:"Comprime el historial, pero Claude recuerda en qué van.",
+  int_done_t:"Ya terminé, empiezo algo nuevo",
+  int_done_b:"Borrón y cuenta nueva: máximo ahorro. Tus archivos en disco no se tocan.",
+  int_warn:n=>`Tienes ${n} pendientes en tu lista — esto los borraría de la memoria de Claude.`,
+  int_copy:"Copiar comando",
+  int_copied:"Copiado ✓",
+  int_later:"Ahora no",
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
   pill_layer_normal:"Ventana normal",
@@ -2515,6 +2574,22 @@ pt:{
   pill_ses:"sessão", pill_week:"semana",
   card_ses:"Sessão", card_week:"Semanal",
   press_lab:"Pressão de contexto",
+  int_t:"Sua sessão já pesa muito",
+  int_q:"Cada mensagem está custando mais caro. O que você quer fazer?",
+  int_ev:"Michi detectou",
+  int_ev_todo:(a,b)=>`lista de tarefas: ${a} de ${b} em aberto`,
+  int_ev_cont:"continua nos mesmos arquivos",
+  int_ev_commit:"commit recente sem edições depois",
+  int_ev_quiet:m=>`última mensagem há ${m} min`,
+  int_rec:"Recomendado",
+  int_go_t:"Sigo trabalhando no mesmo",
+  int_go_b:"Comprime o histórico, mas o Claude lembra onde vocês pararam.",
+  int_done_t:"Já terminei, vou começar algo novo",
+  int_done_b:"Recomeço do zero: economia máxima. Seus arquivos em disco ficam intactos.",
+  int_warn:n=>`Você tem ${n} tarefas em aberto — isso as apagaria da memória do Claude.`,
+  int_copy:"Copiar comando",
+  int_copied:"Copiado ✓",
+  int_later:"Agora não",
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
   pill_layer_normal:"Janela normal",
@@ -2859,6 +2934,22 @@ fr:{
   pill_ses:"session", pill_week:"semaine",
   card_ses:"Session", card_week:"Hebdo",
   press_lab:"Pression du contexte",
+  int_t:"Ta session commence à peser lourd",
+  int_q:"Chaque message te coûte de plus en plus cher. Que veux-tu faire ?",
+  int_ev:"Michi a détecté",
+  int_ev_todo:(a,b)=>`liste de tâches : ${a} sur ${b} en cours`,
+  int_ev_cont:"toujours dans les mêmes fichiers",
+  int_ev_commit:"commit récent sans modification ensuite",
+  int_ev_quiet:m=>`dernier message il y a ${m} min`,
+  int_rec:"Recommandé",
+  int_go_t:"Je continue sur la même tâche",
+  int_go_b:"Compresse l'historique, mais Claude se souvient d'où vous en êtes.",
+  int_done_t:"J'ai fini, je passe à autre chose",
+  int_done_b:"Table rase : économie maximale. Tes fichiers sur disque restent intacts.",
+  int_warn:n=>`Tu as ${n} tâches en cours — cela les effacerait de la mémoire de Claude.`,
+  int_copy:"Copier la commande",
+  int_copied:"Copié ✓",
+  int_later:"Pas maintenant",
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
   pill_layer_normal:"Fenêtre normale",
@@ -3203,6 +3294,22 @@ de:{
   pill_ses:"Sitzung", pill_week:"Woche",
   card_ses:"Sitzung", card_week:"Woche",
   press_lab:"Kontextdruck",
+  int_t:"Deine Sitzung wird schwer",
+  int_q:"Jede Nachricht kostet dich mehr. Was möchtest du tun?",
+  int_ev:"Michi hat erkannt",
+  int_ev_todo:(a,b)=>`Aufgabenliste: ${a} von ${b} offen`,
+  int_ev_cont:"weiter in denselben Dateien",
+  int_ev_commit:"frischer Commit ohne Änderungen danach",
+  int_ev_quiet:m=>`letzte Nachricht vor ${m} Min.`,
+  int_rec:"Empfohlen",
+  int_go_t:"Ich arbeite an derselben Aufgabe weiter",
+  int_go_b:"Komprimiert den Verlauf, aber Claude weiß noch, wo ihr wart.",
+  int_done_t:"Fertig — ich fange etwas Neues an",
+  int_done_b:"Reiner Tisch: maximale Ersparnis. Deine Dateien auf der Platte bleiben unberührt.",
+  int_warn:n=>`Du hast ${n} offene Aufgaben — das würde sie aus Claudes Gedächtnis löschen.`,
+  int_copy:"Befehl kopieren",
+  int_copied:"Kopiert ✓",
+  int_later:"Jetzt nicht",
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
   pill_layer_normal:"Normales Fenster",
@@ -3547,6 +3654,22 @@ ja:{
   pill_ses:"セッション", pill_week:"週",
   card_ses:"セッション", card_week:"週間",
   press_lab:"コンテキスト圧",
+  int_t:"セッションが重くなっています",
+  int_q:"メッセージごとのコストが上がっています。どうしますか？",
+  int_ev:"Michiの検出",
+  int_ev_todo:(a,b)=>`タスクリスト: ${b}件中${a}件が未完了`,
+  int_ev_cont:"同じファイルで作業中",
+  int_ev_commit:"コミット後に編集なし",
+  int_ev_quiet:m=>`最終メッセージは${m}分前`,
+  int_rec:"おすすめ",
+  int_go_t:"同じ作業を続ける",
+  int_go_b:"履歴を圧縮しますが、Claudeは続きを覚えています。",
+  int_done_t:"終わったので新しい作業を始める",
+  int_done_b:"まっさらに再スタート: 節約は最大。ディスク上のファイルはそのままです。",
+  int_warn:n=>`未完了のタスクが${n}件あります — Claudeの記憶から消えます。`,
+  int_copy:"コマンドをコピー",
+  int_copied:"コピーしました ✓",
+  int_later:"今はしない",
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
   pill_layer_normal:"通常ウィンドウ",
@@ -3891,6 +4014,22 @@ ko:{
   pill_ses:"세션", pill_week:"주",
   card_ses:"세션", card_week:"주간",
   press_lab:"컨텍스트 압력",
+  int_t:"세션이 무거워지고 있어요",
+  int_q:"메시지마다 비용이 늘고 있어요. 어떻게 할까요?",
+  int_ev:"Michi가 감지함",
+  int_ev_todo:(a,b)=>`작업 목록: ${b}개 중 ${a}개 미완료`,
+  int_ev_cont:"같은 파일에서 작업 중",
+  int_ev_commit:"최근 커밋 후 편집 없음",
+  int_ev_quiet:m=>`마지막 메시지 ${m}분 전`,
+  int_rec:"추천",
+  int_go_t:"같은 작업을 계속할래요",
+  int_go_b:"기록을 압축하지만 Claude는 진행 상황을 기억해요.",
+  int_done_t:"끝났어요, 새 작업을 시작할래요",
+  int_done_b:"새 출발: 최대 절약. 디스크의 파일은 그대로예요.",
+  int_warn:n=>`미완료 작업이 ${n}개 있어요 — Claude의 기억에서 지워져요.`,
+  int_copy:"명령 복사",
+  int_copied:"복사됨 ✓",
+  int_later:"나중에",
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
   pill_layer_normal:"일반 창",
@@ -4235,6 +4374,22 @@ zh:{
   pill_ses:"会话", pill_week:"周",
   card_ses:"会话", card_week:"每周",
   press_lab:"上下文压力",
+  int_t:"会话越来越重了",
+  int_q:"每条消息的成本越来越高。你想怎么做？",
+  int_ev:"Michi 检测到",
+  int_ev_todo:(a,b)=>`任务列表：${b} 项中 ${a} 项未完成`,
+  int_ev_cont:"仍在处理相同的文件",
+  int_ev_commit:"最近提交后没有再编辑",
+  int_ev_quiet:m=>`最后一条消息在 ${m} 分钟前`,
+  int_rec:"推荐",
+  int_go_t:"继续做同一件事",
+  int_go_b:"压缩历史记录，但 Claude 记得进展到哪了。",
+  int_done_t:"已完成，开始新任务",
+  int_done_b:"从头开始：最大程度省钱。磁盘上的文件不受影响。",
+  int_warn:n=>`你的清单还有 ${n} 项未完成 — 这会把它们从 Claude 的记忆中抹去。`,
+  int_copy:"复制命令",
+  int_copied:"已复制 ✓",
+  int_later:"暂不",
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
   pill_layer_normal:"普通窗口",
@@ -4428,6 +4583,20 @@ function pressField(){
   if(!lastPress||!lastPress.ctx) return null;
   return {pct:Math.min(100,Math.round(lastPress.ctx/PRESS_FULL*100)),
     proj:lastPress.project+(lastPress.origin?" · "+lastPress.origin:"")};
+}
+// Clasificador de tarea viva (docs/remediacion.md etapa 1b): determinista y
+// con UNA sola implementación — el motor (Rust/Python) manda hechos crudos en
+// el hit "press" y el veredicto se calcula aquí. La lista de tareas es la
+// señal reina; después la lista cerrada y el commit limpio (cierre); después
+// la continuidad de archivos. En la duda: "unsure" y la tarjeta NO recomienda
+// (regla de oro: en la duda se pregunta, no se actúa).
+const INTENT_PCT=80;   // % de presión que enciende la tarjeta de intención
+function intentVerdict(h){
+  if((h.topen||0)>0) return "alive";      // pendientes abiertos: a media tarea
+  if((h.ttotal||0)>0) return "boundary";  // la lista existió y quedó al 100%
+  if(h.gclean) return "boundary";         // commit sin ediciones después
+  if((h.cont||0)>=40) return "alive";     // sigue en los mismos archivos
+  return "unsure";
 }
 function emitPill(ses, wk, extras){
   lastPillArgs=[ses,wk,extras];             // para el tic del contador (abajo)
@@ -5898,9 +6067,42 @@ function renderTips(){
     </div>`});
     }catch(_){/* un recibo malformado no tumba a los demás */}
   }
+  // TARJETA DE INTENCIÓN (docs/remediacion.md etapa 1c): pregunta la
+  // intención en llano ("¿sigues o terminaste?") con el comando pequeño al
+  // lado. El veredicto del clasificador SOLO reparte la insignia
+  // "Recomendado" (unsure = sin insignia — regla de oro: en la duda no se
+  // empuja). La evidencia medida va siempre visible: diagnóstico, no
+  // adivinanza. Botones "Copiar comando" (clipboard SOLO al clic) y
+  // "Ahora no" (= despachar).
+  const ints=q?[]:cards.filter(c=>c.h.rule==="intent");
+  for(const c of ints){
+    try{
+      const h=c.h, v=intentVerdict(h);
+      const donde=[h.project||"",h.origin||t("src_local")].filter(Boolean).join(" · ");
+      const ev=[];
+      if((h.ttotal||0)>0) ev.push(t("int_ev_todo",h.topen||0,h.ttotal));
+      if((h.cont||0)>=40) ev.push(t("int_ev_cont"));
+      if(h.gclean) ev.push(t("int_ev_commit"));
+      ev.push(t("int_ev_quiet",h.quiet||0));
+      const opt=(cmd,tt,bb,rec,extra)=>`<div class="int-opt${rec?" rec":""}">${
+          rec?`<span class="int-badge">${t("int_rec")}</span>`:""
+        }<div class="int-ot">${tt}</div><div class="int-ob">${bb}</div>${extra||""
+        }<div class="int-row"><code>${cmd}</code><button class="int-copy" data-cmd="${cmd}">${t("int_copy")}</button></div></div>`;
+      live.push({born:c.born||0, html:`<div class="fnd tip int${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
+      <button class="tip-x" aria-label="✕">✕</button>
+      <div class="fnd-t">${t("int_t")} · <span class="int-pct${h.value>=85?" hot":""}">${Math.round(h.value)}%</span></div>
+      <div class="fnd-m"><span>${t("press_lab")} — ${esc(donde)}</span></div>
+      <div class="fnd-f"><div class="int-q">${t("int_q")}</div><div class="int-ev">${esc(t("int_ev"))}: ${esc(ev.join(" · "))}</div>${
+        opt("/compact",t("int_go_t"),t("int_go_b"),v==="alive")}${
+        opt("/clear",t("int_done_t"),t("int_done_b"),v==="boundary",
+          (h.topen||0)>0?`<div class="int-warn">⚠ ${t("int_warn",h.topen)}</div>`:"")
+      }<div class="int-later">${t("int_later")}</div></div>
+    </div>`});
+    }catch(_){/* una tarjeta malformada no tumba a las demás */}
+  }
   // fichas disparadas por el motor de reglas: abiertas (salvo que el
   // usuario las haya contraído) y con su línea "Ahora: <dato medido>"
-  const hot={}; cards.forEach(c=>{ if(c.h.rule!=="sum"&&!(c.h.rule in hot)) hot[c.h.rule]=c; });
+  const hot={}; cards.forEach(c=>{ if(c.h.rule!=="sum"&&c.h.rule!=="intent"&&!(c.h.rule in hot)) hot[c.h.rule]=c; });
   const ids=[...TIPS].filter(id=>!q ||
     (t("tip_"+id+"_t")+" "+t("tip_"+id+"_b")).toLowerCase().includes(q));
   const tipHtml=id=>{
@@ -5953,6 +6155,33 @@ function renderTips(){
       e.stopPropagation();
       const k=x.parentElement.dataset.ck;
       flog("tips: ✕ despacha "+k);
+      if(simFnd) coachHits=coachHits.filter(h=>h.rule+"|"+h.session!==k);
+      else saveCoachCards(coachCardsStore().filter(c=>c.h.rule+"|"+c.h.session!==k));
+      renderTips(); renderTipsDot();
+      if(lastPillArgs) emitPill(...lastPillArgs);
+    }));
+  // "Copiar comando" de la tarjeta de intención: clipboard SOLO al clic del
+  // usuario (comando del plugin invocado directo, sin wrapper npm —
+  // invariante #4). El clic NO pliega ni marca la tarjeta: copiar no es
+  // terminar de leer.
+  $("tipList").querySelectorAll(".int-copy").forEach(b=>
+    b.addEventListener("click",async e=>{
+      e.stopPropagation();
+      const cmd=b.dataset.cmd||"";
+      try{
+        await invoke("plugin:clipboard-manager|write_text",{text:cmd});
+        flog("intent: copiado "+cmd);
+        b.textContent=t("int_copied");
+      }catch(_){ b.textContent="✕"; }
+      setTimeout(()=>{ b.textContent=t("int_copy"); },1600);
+    }));
+  // "Ahora no" = despachar, igual que el ✕. tipSeen impide que renazca en
+  // esta sesión; si mañana la presión sube en OTRA sesión, esa trae la suya.
+  $("tipList").querySelectorAll(".int-later").forEach(bt=>
+    bt.addEventListener("click",e=>{
+      e.stopPropagation();
+      const k=bt.closest(".tip")?.dataset.ck;
+      flog("intent: ahora no "+k);
       if(simFnd) coachHits=coachHits.filter(h=>h.rule+"|"+h.session!==k);
       else saveCoachCards(coachCardsStore().filter(c=>c.h.rule+"|"+c.h.session!==k));
       renderTips(); renderTipsDot();
@@ -6139,6 +6368,22 @@ async function coachPoll(){
       .sort((a,b)=>(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
     lastPress=pr?{ctx:pr.value||0,project:pr.project||"",origin:pr.origin||""}:null;
     const hits=all.filter(h=>h.rule!=="done"&&h.rule!=="ask"&&h.rule!=="press");
+    // Tarjeta de intención (docs/remediacion.md etapa 1c): con la presión en
+    // zona alta nace UNA tarjeta por sesión con las señales medidas del
+    // clasificador. Es un hit SINTÉTICO local: entra al pipeline normal de
+    // tarjetas (anti-spam por sesión, leído estilo Gmail, ✕, TTL) y el
+    // veredicto lo pone intentVerdict() al pintar.
+    let intentHit=null;
+    if(pr){
+      const ppct=Math.min(100,Math.round((pr.value||0)/PRESS_FULL*100));
+      if(ppct>=INTENT_PCT){
+        intentHit={rule:"intent", session:pr.session||"", value:ppct,
+          project:pr.project||"", origin:pr.origin||"", quiet:pr.quiet||0,
+          topen:pr.topen||0, ttotal:pr.ttotal||0, cont:pr.cont||0,
+          gclean:!!pr.gclean};
+        hits.push(intentHit);
+      }
+    }
     ntfyDone(all.filter(h=>h.rule==="done"));
     ntfyAsk(all.filter(h=>h.rule==="ask"));
     const seen=tipSeenSet();
@@ -6153,8 +6398,10 @@ async function coachPoll(){
       if(!day.keys.includes(k)){
         // tope diario SUBIDO a 10 (2026-08-03: con varios proyectos, 5 se
         // quedaba corto). El RESUMEN sigue exento — es el recibo de la
-        // sesión, una vez por sesión.
-        if(h.rule!=="sum" && day.keys.length>=10) continue;
+        // sesión, una vez por sesión. La tarjeta de INTENCIÓN también: es
+        // la insignia de la etapa 1 y perderla por tope sería perder justo
+        // el aviso que más ahorra.
+        if(h.rule!=="sum" && h.rule!=="intent" && day.keys.length>=10) continue;
         day.keys.push(k);
       }
       seen.add(k);                      // se marca al ENTRAR, no al verse
@@ -6170,6 +6417,16 @@ async function coachPoll(){
         const i=cards.findIndex(c=>c.h.rule===h.rule);
         if(i>=0) cards.splice(i,1);
         cards.push({h, born:Date.now()}); dirty=true;
+      }
+    }
+    // la tarjeta de intención VIVA se refresca con la medición de cada
+    // sondeo (%, pendientes, señales) sin renacer: conserva born/min/v — y
+    // si el usuario la despachó con ✕ o "Ahora no", NO se resucita (tipSeen
+    // ya la tiene y aquí solo se actualiza la que sigue en el almacén).
+    if(intentHit){
+      const ic=cards.find(c=>c.h.rule==="intent"&&c.h.session===intentHit.session);
+      if(ic&&JSON.stringify(ic.h)!==JSON.stringify(intentHit)){
+        ic.h=intentHit; dirty=true;
       }
     }
     localStorage.setItem("tipSeen",JSON.stringify([...seen].slice(-300)));
@@ -6208,6 +6465,8 @@ function sfFakeFindings(){
 }
 function sfFakeCoach(){
   return [
+    {rule:"intent",  session:"sim00004", value:86, project:"-sim-demo",
+     topen:2, ttotal:8, cont:55, quiet:3, gclean:false},
     {rule:"compact", session:"sim00001", value:372, project:"-sim-demo"},
     {rule:"cache",   session:"sim00002", value:26,  project:"-sim-demo"},
     {rule:"sum",     session:"sim00003", value:47, cmds:23, edits:6,

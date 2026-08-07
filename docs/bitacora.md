@@ -2368,3 +2368,60 @@ del exportador, press_lab en los 8 idiomas, cero firmas Rust tocadas
 (campo aditivo + regla nueva). PENDIENTE: cargo check en el Windows de
 Oscar y verlo en vivo con una sesión real. Siguen 1b (parser TodoWrite +
 clasificador) y 1c (tarjeta de intención + clipboard).
+
+## 2026-08-07 (quinta sesión) — remediación etapa 1 COMPLETA: clasificador y tarjeta de intención
+
+La 1a (manómetro) quedó VALIDADA en vivo por Oscar en cuanto compiló:
+sus capturas mostraron el arco en la pastilla, el 86% rojo en el detalle
+con "michiclaude · VPS-EU" y la fila en el globo del gatito. De paso
+preguntó qué significa y qué hacer — la respuesta es justamente 1b+1c,
+así que se implementaron en esta misma jornada.
+
+1B — SEÑALES EN EL MOTOR (Rust + Python, invariante #1): el estado del
+coach gana todos_open/todos_total (del ÚLTIMO TodoWrite de la sesión —
+la señal reina), trail (últimos 20 archivos tocados con
+Read/Edit/Write) y commit_clean (hubo `git commit` y nada se editó
+después; cualquier edición lo apaga). El hit `press` los lleva como
+campos aditivos topen/ttotal/cont/gclean, donde cont = Jaccard % de los
+últimos 10 archivos contra los 10 previos (¿sigue en lo mismo?). El
+estado viejo del exportador migra solo (setdefault contra el default).
+
+DECISIÓN DE ARQUITECTURA: el motor manda HECHOS crudos; el veredicto
+Alive/Boundary/Uncertain vive UNA sola vez, en JS (`intentVerdict`):
+topen>0 → alive; lista cerrada al 100% o commit limpio → boundary;
+cont≥40 → alive; si no, unsure. Así el invariante #1 solo carga con los
+hechos y la lógica no se duplica en tres lados. La señal de "lenguaje de
+cierre" sigue FUERA (solo-español vs app de 8 idiomas, ya documentado).
+
+1C — TARJETA DE INTENCIÓN: con presión ≥80% (INTENT_PCT) coachPoll
+sintetiza el hit LOCAL `intent` y lo mete al pipeline normal de
+tarjetas del coach — hereda gratis el anti-spam por sesión (tipSeen),
+el leído estilo Gmail, el ✕, el TTL de 24 h y el aviso
+post-it/foco/contador. Exenta del tope diario (perder por tope justo el
+aviso que más ahorra sería un contrasentido) y se REFRESCA en cada
+sondeo sin renacer (conserva born/min/v; despachada NO resucita). La
+tarjeta pregunta la intención en llano — "¿Sigues trabajando en lo
+mismo?" / "¿Ya terminaste?" — con el comando pequeño al lado (el
+usuario aprende el mapeo), evidencia medida siempre visible ("Michi
+detectó: lista 5/6 · sigues en los mismos archivos · último msg hace X
+min"), insignia "Recomendado" SOLO cuando el veredicto no es unsure
+(regla de oro), advertencia ámbar en /clear si hay pendientes, botón
+"Copiar comando" y "Ahora no". El clic de copiar NO pliega ni marca la
+tarjeta (stopPropagation): copiar no es terminar de leer.
+
+CLIPBOARD: dep nueva tauri-plugin-clipboard-manager (la justificada en
+el diseño), invocada DIRECTO con plugin:clipboard-manager|write_text —
+sin wrapper npm (invariante #4). Capability
+clipboard-manager:allow-write-text añadida. Escribe al portapapeles
+SOLO al clic del usuario.
+
+VALIDACIÓN: node --check en el panel, py_compile, paridad de las 16
+claves int_* ×8 por conteo, y prueba de fuego REAL — el exportador
+nuevo corrió sobre los logs de este VPS (estado aislado con
+XDG_CACHE_HOME para no pisar el del exportador productivo) y detectó
+esta misma sesión de trabajo: press con topen=5, ttotal=6 (la lista de
+tareas real del momento), cont=50 y quiet=0 → veredicto alive →
+recomendaría /compact. El simulador "🧪 Simular hallazgos" gana una
+tarjeta intent falsa para probar lo visual sin esperar presión real.
+PENDIENTE: cargo check en Windows (la dep nueva se descarga en la
+primera compilación) y ver la tarjeta nacer en vivo.
