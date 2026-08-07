@@ -5,6 +5,8 @@ de otra IA + mockups). Este documento es la versión DESTILADA Y CORREGIDA:
 la propuesta original traía contexto falso del proyecto y varias piezas
 que chocan con invariantes — aquí queda solo lo viable, con su porqué y
 sus etapas. LEER ANTES de tocar cualquier cosa de remediación.
+Los prompts para generar las maquetas con otra IA están guardados en
+`prompts-diseno-remediacion.md` (referencia visual, no código).
 
 ## La idea en una frase
 

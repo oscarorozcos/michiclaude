@@ -2298,3 +2298,30 @@ descartado en presion-y-rendimiento.md, el countdown no puede ser globo
 escritura (→ relevo ConPTY `michi claude`, el "tmux nativo" con 5 reglas
 anti-choque), y el "handoff Pro" necesita una IA que no hay. 4 etapas,
 cada una útil sola; NO arrancar hasta cerrar el reporte.
+
+## 2026-08-07 (tercera sesión) — cierre del reporte y prompts guardados
+
+"LEÍDO" ESTILO GMAIL — VALIDADO por Oscar desde el inspector: los
+contadores y post-its descuentan tarjeta por tarjeta al clicarlas y
+abrir la pestaña o el post-it ya no borra nada. Tema cerrado.
+
+REPORTE EJECUTIVO — CERRADO HASTA DONDE ESTÁ (decisión de Oscar): las
+fases 1 y 2 quedan como están, funcionando; se retoma solo si al usarlo
+falta algo o pide ajustes. La fase 3 (export HTML del mockup A) NO se
+arranca; queda anotada en el pendiente como lo primero si se retoma.
+Siguen vivos de esa área el cargo check de la fase 1 en Windows y la
+validación en vivo, que caerán con el uso normal.
+
+PROMPTS DE DISEÑO DE REMEDIACIÓN — guardados como referencia en
+`docs/prompts-diseno-remediacion.md` (rescatados del transcript de la
+sesión anterior): bloque de estilo común con la paleta y tipografía
+REALES del panel + 7 prompts (tarjeta de intención, modo automático con
+candados, countdown, registro de acciones, manómetro en widgets,
+tarjeta educativa, relevo en terminal) + las 3 notas de uso (handoff
+Pro fuera a propósito, correcciones de honestidad ya incluidas, y que
+lo que devuelva la otra IA es referencia visual — la integración se
+traduce al sistema real del panel). Referenciado desde remediacion.md
+y desde el pendiente de REMEDIACIÓN en CLAUDE.md, cuyo candado se
+re-redactó: ya no es "hasta cerrar el reporte" (cerrado hoy) sino
+"decisión explícita de Oscar" (matar procesos es clase nueva de
+capacidad).

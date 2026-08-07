@@ -469,8 +469,11 @@ hacer público el repo (o sus releases).
 - [ ] Updater: decidir repo público + publicar tag v* y probar completo.
 - [ ] Capturas para el README (las hace Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
-      `docs/presion-y-rendimiento.md` — LEERLO antes de tocar). EN OBRA:
-      la fase 1 (motor de datos) se implementó el 2026-08-06, pendiente de
+      `docs/presion-y-rendimiento.md` — LEERLO antes de tocar). CERRADO
+      HASTA DONDE ESTÁ (Oscar, 2026-08-07): fases 1 y 2 implementadas y
+      funcionando; queda como pendiente SOLO por si al usarlo falta algo
+      o pide ajustes — no hay obra activa. La fase 1 (motor de datos) se
+      implementó el 2026-08-06, pendiente de
       `cargo check` en Windows y de validación en vivo. Qué existe ya:
       (a) TURNOS ÚTILES `uturns` en LocalStats/proyectos/daily (mensajes
       HUMANOS: fuera meta, sidechain, tool_result, comandos locales e
@@ -514,7 +517,7 @@ hacer público el repo (o sus releases).
       ÷ sus mensajes), barras de volumen abajo y DETALLE al tocar punto o
       barra (repSel). Sin candado de carga: peticiones con sello
       (repStamp), la tardía se descarta. ~72 claves i18n ×8 (paridad por
-      script). FALTA: fase 3
+      script). SI SE RETOMA, lo primero sería: fase 3
       export HTML del mockup A. También en el doc y sin arrancar:
       manómetro de contexto en pastilla/gatito, detector de
       auto-compacts, detector de pegado masivo. DESCARTADO con porqué en
@@ -527,9 +530,12 @@ hacer público el repo (o sus releases).
       con clipboard al clic), 2 automático out-of-band (zombies con
       anti-reciclaje de PID, archivar ≥365d, candados de confianza
       progresiva), 3 relevo ConPTY `michi claude` (inyección real, solo
-      sesiones del relevo), 4 relevo en WSL/SSH. NO arrancar hasta
-      cerrar el reporte; matar procesos es clase nueva de capacidad —
-      decisión pendiente de Oscar.
+      sesiones del relevo), 4 relevo en WSL/SSH. Los 7 prompts para
+      generar maquetas con otra IA están guardados en
+      `docs/prompts-diseno-remediacion.md` (referencia visual, no código
+      integrable). NO arrancar sin decisión explícita de Oscar: matar
+      procesos es clase nueva de capacidad (el reporte ya se cerró el
+      2026-08-07, pero la decisión sigue pendiente).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
