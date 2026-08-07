@@ -149,7 +149,8 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
    `intent` con presión ≥80, tarjeta en Consejos con dos opciones,
    evidencia, "Recomendado" por veredicto y "Ahora no"; VALIDADA en vivo
    el mismo día: nació sola con la sesión real del VPS al 100%,
-   veredicto frontera (0/5 todos + commit limpio) → /clear Recomendado].
+   veredicto frontera (0/5 todos + commit limpio) → /clear Recomendado,
+   y el botón "Copiar comando" probado por Oscar].
 2. **Automático out-of-band:** matar zombies (con re-verificación
    anti-reciclaje de PID: nombre de ejecutable + hora de inicio antes
    del taskkill) + archivar JSONL **≥365 días** + registro de acciones +

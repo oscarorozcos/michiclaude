@@ -2453,3 +2453,6 @@ Con esto la ETAPA 1 de remediación queda validada en vivo de punta a
 punta salvo un clic: el botón "Copiar comando" (pegar y ver /compact o
 /clear). Las etapas 2-4 siguen sin arrancar a la espera de la decisión
 explícita de Oscar (matar procesos = clase nueva de capacidad).
+
+Remate: Oscar probó el botón "Copiar comando" y funcionó. ETAPA 1
+COMPLETA Y VALIDADA al 100%, sin pendientes.

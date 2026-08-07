@@ -558,8 +558,8 @@ hacer público el repo (o sus releases).
       REALES en el Windows de Oscar — la sesión de trabajo del VPS llegó
       a 100%, veredicto frontera (0/5 todos + commit limpio) → /clear
       Recomendado; compiló con la dep nueva
-      tauri-plugin-clipboard-manager. Falta solo un clic a "Copiar
-      comando". Las etapas 2-4 NO arrancan sin decisión explícita de
+      tauri-plugin-clipboard-manager y el botón "Copiar comando"
+      funcionó. Las etapas 2-4 NO arrancan sin decisión explícita de
       Oscar: matar procesos es clase nueva de capacidad.
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
