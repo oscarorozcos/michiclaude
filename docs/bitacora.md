@@ -2503,3 +2503,51 @@ check, ver la sección en Ajustes, "Revisar ahora" con y sin zombies
 el clic manual que desbloquea, el kill automático a la hora siguiente,
 el registro con auto/manual, y el archivado con un .jsonl viejo de
 laboratorio (tocar mtime con `(Get-Item f).LastWriteTime=...`).
+
+### Validación en vivo de la etapa 2 (2026-08-07, Windows de Oscar)
+
+Zombies VALIDADO de punta a punta: detección, cierre manual, desbloqueo
+del candado, cierre automático a los 90 s del arranque y registro con
+sus dos líneas (`03:40 manual` / `03:45 auto`, ambas «fantasma»). El
+`cargo check` queda implícito: la app compiló y arrancó con el código
+corregido. Archivado, pendiente de la prueba de laboratorio.
+
+Dos bugs que SOLO salían en Windows real — ninguno era visible leyendo
+el código, y por eso la regla de validar en la máquina de verdad antes
+de dar una etapa por buena:
+
+1. **Barras.** La firma sale de `~/.claude.json` con barra normal
+   (`@modelcontextprotocol/server-memory`) y la línea de comando del
+   proceso ya resuelto lleva barra invertida
+   (`…\node_modules\@modelcontextprotocol\server-memory\dist\index.js`):
+   NINGÚN MCP lanzado con npx casaba jamás. Se normalizan ambos lados a
+   `/` antes de comparar (commit 68d84e0).
+2. **El script del kill moría en el parser de PowerShell.** Iba en UNA
+   línea y PowerShell no acepta el `}` de un bloque seguido de otra
+   sentencia sin separador: el script no llegaba a ejecutarse, stdout
+   salía vacío y TODO cierre acababa en ERR_ZOMBIE_KILL ("No se pudo
+   cerrar") mientras `Stop-Process` a mano funcionaba perfecto. Ahora
+   lleva saltos de línea reales; REGLA: script de PowerShell escrito
+   desde Rust, saltos reales SIEMPRE. El escaneo nunca lo sufrió porque
+   es una tubería de una sola sentencia (commit 144986a). De paso, el
+   veredicto ya no se decide con `$?` —que con `-ErrorAction
+   SilentlyContinue` no distingue "no pude" de "ya no estaba"— sino
+   re-consultando el PID, y un veredicto irreconocible deja foto cruda
+   en `rem_debug.json` (sin eso el fallo era indistinguible desde la UI:
+   nos costó tres rondas de terminal descubrirlo).
+
+Cómo se fabricó el zombie de laboratorio (lo primero que falló): un MCP
+bien educado NO sirve. Con `@modelcontextprotocol/server-memory`, al
+matar el `cmd` de arriba se cerró toda la cadena sola — cuando su
+cliente muere, él se va. Los zombies reales los dejan los MCP que
+ignoran el cierre de stdin. Receta que sí funciona: `mcp-fantasma.js`
+con `setInterval(function(){},1000000)`, `claude mcp add fantasma --
+node <ruta>` y lanzarlo con `powershell -Command "Start-Process node
+-ArgumentList '<ruta>' -WindowStyle Hidden"` — ese powershell
+intermedio muere en el acto y deja al node huérfano de nacimiento.
+
+Nota de comunicación (Oscar es nuevo en terminal): NUNCA dar comandos
+con huecos tipo `<PID>` o `EL_NUMERO_NUEVO` — los pega literales y
+PowerShell escupe un error que no dice nada útil. O el número ya
+puesto, o un comando que busque por nombre y no necesite sustituir
+nada.

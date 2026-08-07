@@ -560,8 +560,17 @@ hacer público el repo (o sus releases).
       defecto, primera vez SIEMPRE manual), sección en Ajustes +
       tarjeta de zombies en Consejos (pipeline normal, clave
       zombie|arranque-más-nuevo) y sondeo horario `remPoll`. SOLO
-      LOCAL: WSL/SSH quedan para etapas 3-4. PENDIENTE: cargo check en
-      Windows + validación en vivo; etapas 3-4 tras validar la 2.
+      LOCAL: WSL/SSH quedan para etapas 3-4. ZOMBIES VALIDADOS EN VIVO
+      (2026-08-07: detección, manual, desbloqueo, automático a los 90 s
+      y registro auto/manual). Cayeron dos bugs que solo salían en
+      Windows real: firmas con barra `/` del config contra barra `\`
+      del proceso (se normalizan ambos lados) y el script del kill en
+      UNA línea, que moría en el parser de PowerShell y hacía fallar
+      TODO cierre — REGLA: script de PowerShell escrito desde Rust,
+      saltos de línea REALES siempre; veredicto por re-consulta del
+      PID, nunca por `$?`; fallo raro deja `rem_debug.json`. Detalle y
+      receta del zombie de laboratorio en la bitácora. PENDIENTE:
+      probar el archivado; etapas 3-4 tras eso.
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
