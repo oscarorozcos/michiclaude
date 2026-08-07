@@ -92,9 +92,9 @@
   /* color-scheme: los controles nativos (desplegables, spinners, scrollbars)
      se pintan a juego con el tema — sin esto, la lista del idioma se ve mal
      en oscuro */
-  /* 3px: Oscar lo pidió aún más apretado (2026-08-06); la sombra pierde su
-     halo lateral pero el marco transparente casi desaparece */
-  body{font-family:var(--font);color:var(--txt);padding:3px;overflow:hidden;color-scheme:dark}
+  /* 1px: segunda apretada de Oscar (2026-08-06) — solo queda un pelo para
+     que el anillo del borde no se corte contra la ventana */
+  body{font-family:var(--font);color:var(--txt);padding:1px;overflow:hidden;color-scheme:dark}
   body.light{color-scheme:light}
   /* si el contenido crece (ajustes abiertos), el panel hace scroll interno */
   /* overflow-x HIDDEN a propósito: con solo overflow-y:auto el navegador
@@ -107,7 +107,7 @@
      "marco fantasma" que cambiaba con cada pestaña. Con height, el panel
      llena siempre la ventana con su fondo sólido y el hueco desaparece;
      el contenido largo sigue con scroll interno. */
-  .panel{height:calc(100vh - 6px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+  .panel{height:calc(100vh - 2px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
   /* Scrollbar FINA y redondeada, estilo overlay (Oscar 2026-08-06, con
      captura de referencia): riel invisible y pastilla delgada. El truco
      del borde transparente + background-clip deja la pastilla de ~4px
@@ -841,10 +841,45 @@
   .rp-plain{font-size:12px;font-weight:600;line-height:1.5;margin-top:10px;
     background:var(--surface);border:1px solid var(--stroke-soft);
     border-radius:12px;padding:9px 12px}
-  /* tokens del periodo: informativo y NEUTRO (sin verde/rojo) — el juicio
-     de valor vive solo en el rendimiento */
-  .rp-stats{font-size:10.5px;color:var(--txt-dim);line-height:1.7;margin-top:9px}
-  .rp-stats b{color:var(--txt-mut);font-family:var(--mono);font-weight:600}
+  /* la traducción a $ SIEMPRE pegada al dato de tokens (maqueta de Oscar
+     2026-08-06): tokens y dinero son el mismo hecho en dos monedas */
+  .as-money{color:var(--teal);font-weight:700;font-family:var(--mono);font-size:.95em}
+  .rp-dim{color:var(--txt-dim)}
+  /* bloque VOLUMEN, separado del de eficiencia: son dos medidas distintas */
+  .rp-vol{margin-top:12px;border-top:1px dashed var(--stroke);padding-top:11px}
+  .rp-vol .vt{font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    color:var(--txt-dim);margin-bottom:8px}
+  .vol-row{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;
+    font-size:12px;color:var(--txt-mut);line-height:1.55}
+  .vol-row + .vol-row{margin-top:5px}
+  .vol-row b{font-family:var(--mono);font-weight:700;color:var(--txt)}
+  .vpill{font-size:10.5px;font-weight:700;color:var(--txt-dim);
+    background:var(--surface);padding:2px 9px;border-radius:20px}
+  .vpill.ok{color:var(--ok);background:rgba(64,184,105,.14)}
+  .rp-contra{font-size:10.5px;color:var(--txt-dim);line-height:1.55;margin-top:10px}
+  .rp-contra b{color:var(--txt-mut)}
+  .rp-rule{display:flex;align-items:center;gap:9px;margin-top:11px;
+    background:rgba(79,209,224,.10);border:1px solid rgba(79,209,224,.28);
+    border-radius:12px;padding:8px 11px;font-size:10.5px;color:var(--txt-mut);line-height:1.5}
+  .rp-rule .eq{font-family:var(--mono);font-weight:800;color:var(--teal);white-space:nowrap}
+  /* gráfica: conmutador de unidad, leyenda y detalle al tocar */
+  .unit-sw{display:flex;gap:3px;background:var(--card-hi);border:1px solid var(--stroke-soft);
+    border-radius:11px;padding:3px}
+  .usw{border:0;background:transparent;color:var(--txt-mut);cursor:pointer;
+    font-family:var(--mono);font-size:9.5px;font-weight:700;padding:4px 9px;
+    border-radius:8px;transition:.15s;white-space:nowrap;letter-spacing:0;text-transform:none}
+  .usw.on{background:var(--grad);color:var(--accent-ink)}
+  .rep-legend{display:flex;gap:12px;font-size:9.5px;color:var(--txt-dim);margin-bottom:2px}
+  .rep-legend i{display:inline-block;vertical-align:middle;margin-right:5px}
+  .rep-legend .l-line{width:14px;height:3px;border-radius:2px;
+    background:linear-gradient(90deg,var(--accent),var(--teal))}
+  .rep-legend .l-bar{width:9px;height:9px;border-radius:3px;background:rgba(124,140,255,.25)}
+  #repChart .pt{cursor:pointer}
+  .rep-det{margin-top:8px;background:var(--card-hi);border:1px solid var(--stroke-soft);
+    border-radius:13px;padding:10px 12px;font-size:11.5px;line-height:1.6;color:var(--txt-mut)}
+  .rep-det b{color:var(--txt)}
+  .rep-det .tap{font-size:9.5px;color:var(--txt-dim);margin-top:3px}
+  .rep-det .ok2{color:var(--ok)}.rep-det .wr2{color:var(--warn)}
   /* filas de "¿te duró más o menos?" */
   .rp-row{display:flex;gap:11px;align-items:flex-start;padding:9px 2px}
   .rp-row + .rp-row{border-top:1px solid var(--stroke-soft)}
@@ -1187,9 +1222,19 @@
       <div id="repLast"></div>
     </div>
     <div class="sect" id="repChartSect" hidden>
-      <div class="eyebrow"><span data-i18n="rep_chart_t"></span> <span class="q" data-i18n="rep_chart_q"></span></div>
-      <div class="rep-note"><b style="color:var(--ok)">↓</b> <span data-i18n="rep_lower_better"></span></div>
+      <div class="eyebrow"><span><span data-i18n="rep_chart_t"></span> · <span data-i18n="rep_chart_q"></span></span>
+        <span class="unit-sw" id="repUnitSw">
+          <button class="usw" data-u="tok" data-i18n="rep_unit_tok"></button>
+          <button class="usw" data-u="usd" data-i18n="rep_unit_usd"></button>
+        </span>
+      </div>
+      <div class="rep-note"><b style="color:var(--ok)">↓ <span data-i18n="rep_lower_lbl"></span></b> <span data-i18n="rep_lower_better"></span></div>
+      <div class="rep-legend">
+        <span><i class="l-line"></i><span data-i18n="rep_leg_line"></span></span>
+        <span><i class="l-bar"></i><span data-i18n="rep_leg_bar"></span></span>
+      </div>
       <div id="repChart"></div>
+      <div class="rep-det" id="repDet" hidden></div>
     </div>
     <div class="sect">
       <div class="eyebrow"><span data-i18n="rep_proj_t"></span> <span class="q" data-i18n="rep_proj_q"></span></div>
@@ -1651,11 +1696,27 @@ en:{
   tray_open:"Open panel", tray_widget:"Floating widget", tray_quit:"Quit",
   fnd_tab:"Findings",
   rep_tab:"Report",
-  rep_tok_less:(n,p)=>`<b>${n}</b> working tokens — ${p}% less than the previous period`,
-  rep_tok_more:(n,p)=>`<b>${n}</b> working tokens — ${p}% more than the previous period`,
-  rep_tok_flat:n=>`<b>${n}</b> working tokens — about the same as the previous period`,
-  rep_tok_only:n=>`<b>${n}</b> working tokens this period`,
-  rep_topday:(d,n)=>`Heaviest day: ${d} (${n} tokens)`,
+  rep_money_msg:m=>`≈ ${m}/message`,
+  rep_vol_t:"How much you worked in total",
+  rep_vol_less:p=>`↓ ${p}% less than the previous period`,
+  rep_vol_more:p=>`↑ ${p}% more than the previous period`,
+  rep_vol_flat:"about the same as the previous period",
+  rep_est_word:"estimated",
+  rep_topday:(d,n,m)=>`Heaviest day: <b>${d}</b> with <b>${n} tok</b> <span class="as-money">≈ ${m}</span>`,
+  rep_contra_a:"Not a contradiction: you worked less overall (↓ volume), but each message cost you more (↑ cost per message). Two different measures — and the second is the one you can improve with habits.",
+  rep_contra_b:"Not a contradiction: you worked more overall (↑ volume) and still each message came out cheaper (↓ cost per message). Good sign: volume up, waste down.",
+  rep_rule:"Quick rule for reading this report — estimated at the public API price; on your subscription you don't pay per token.",
+  rep_lower_lbl:"Lower is better:",
+  rep_leg_line:"cost per message",
+  rep_leg_bar:"week's total work",
+  rep_unit_tok:"tokens",
+  rep_unit_usd:"$ estimated",
+  rep_det:(name,tok,musd,vol,vusd)=>`<b>${name}</b>: each message cost <b>${tok} tok</b> ≈ ${musd} · you worked <b>${vol} tok</b> ≈ ${vusd}`,
+  rep_det_first:"first week of the range",
+  rep_det_cheaper:p=>`↓ ${p}% cheaper per message than the week before`,
+  rep_det_dearer:p=>`↑ ${p}% dearer per message than the week before`,
+  rep_det_same:"same as the week before",
+  rep_det_tap:"Tap any point or bar to see its detail.",
   rep_next_intro:"Not an alarm — your savings to-do list: the most expensive leaks of this period, with what to do about each. Fix #1 first.",
   rep_week:"Week", rep_month:"Month", rep_custom:"Custom",
   rep_perf:"Your efficiency", rep_perf_unit:"tokens per message you send",
@@ -1676,7 +1737,7 @@ en:{
   rep_msgs_v:(n,d)=>`<b>${n} messages</b> per active day (${d} days)`,
   rep_msgs_say:"Your average on the days you actually used Claude.",
   rep_chart_t:"Efficiency", rep_chart_q:"last 4 weeks",
-  rep_lower_better:"Lower is better: each of your messages costs fewer tokens.",
+  rep_lower_better:"the line is what each of your messages costs. The bars below are how much you worked that week.",
   rep_w3:"3 wk ago", rep_w2:"2 wk ago", rep_w1:"last wk", rep_w0:"this wk",
   rep_proj_t:"Your projects", rep_proj_q:"highest spend first",
   rep_why:"What made it expensive:",
@@ -1978,11 +2039,27 @@ es:{
   tray_open:"Abrir panel", tray_widget:"Widget flotante", tray_quit:"Salir",
   fnd_tab:"Hallazgos",
   rep_tab:"Reporte",
-  rep_tok_less:(n,p)=>`<b>${n}</b> tokens de trabajo — ${p}% menos que el periodo anterior`,
-  rep_tok_more:(n,p)=>`<b>${n}</b> tokens de trabajo — ${p}% más que el periodo anterior`,
-  rep_tok_flat:n=>`<b>${n}</b> tokens de trabajo — como el periodo anterior`,
-  rep_tok_only:n=>`<b>${n}</b> tokens de trabajo en el periodo`,
-  rep_topday:(d,n)=>`Tu día más pesado: ${d} (${n} tokens)`,
+  rep_money_msg:m=>`≈ ${m}/mensaje`,
+  rep_vol_t:"Cuánto trabajaste en total",
+  rep_vol_less:p=>`↓ ${p}% menos que el periodo anterior`,
+  rep_vol_more:p=>`↑ ${p}% más que el periodo anterior`,
+  rep_vol_flat:"como el periodo anterior",
+  rep_est_word:"estimado",
+  rep_topday:(d,n,m)=>`Tu día más pesado: <b>${d}</b> con <b>${n} tok</b> <span class="as-money">≈ ${m}</span>`,
+  rep_contra_a:"Ojo, no es contradicción: trabajaste menos en total (↓ volumen), pero cada mensaje te salió más caro (↑ costo por mensaje). Son dos medidas distintas — y la segunda es la que puedes mejorar con hábitos.",
+  rep_contra_b:"Ojo, no es contradicción: trabajaste más en total (↑ volumen) y aun así cada mensaje te salió más barato (↓ costo por mensaje). Buena señal: el volumen sube, el desperdicio no.",
+  rep_rule:"Regla rápida para leer este reporte — estimado al precio público de API; con tu suscripción no pagas por token.",
+  rep_lower_lbl:"Bajar es mejor:",
+  rep_leg_line:"costo por mensaje",
+  rep_leg_bar:"trabajo total de la semana",
+  rep_unit_tok:"tokens",
+  rep_unit_usd:"$ estimado",
+  rep_det:(name,tok,musd,vol,vusd)=>`<b>${name}</b>: cada mensaje costó <b>${tok} tok</b> ≈ ${musd} · trabajaste <b>${vol} tok</b> ≈ ${vusd}`,
+  rep_det_first:"primera semana del rango",
+  rep_det_cheaper:p=>`↓ ${p}% más barato por mensaje que la anterior`,
+  rep_det_dearer:p=>`↑ ${p}% más caro por mensaje que la anterior`,
+  rep_det_same:"igual que la anterior",
+  rep_det_tap:"Toca cualquier punto o barra para ver su detalle.",
   rep_next_intro:"No es una alarma — es tu lista de tareas de ahorro: las fugas más caras del periodo, con qué hacer en cada una. Empieza por la 1.",
   rep_week:"Semana", rep_month:"Mes", rep_custom:"Personalizado",
   rep_perf:"Tu rendimiento", rep_perf_unit:"tokens por mensaje tuyo",
@@ -2003,7 +2080,7 @@ es:{
   rep_msgs_v:(n,d)=>`<b>${n} mensajes</b> por día trabajado (${d} días)`,
   rep_msgs_say:"Tu promedio en los días que sí usaste Claude.",
   rep_chart_t:"Rendimiento", rep_chart_q:"últimas 4 semanas",
-  rep_lower_better:"Bajar es mejor: cada mensaje tuyo cuesta menos tokens.",
+  rep_lower_better:"la línea es lo que cuesta cada mensaje tuyo. Las barras de abajo son cuánto trabajaste esa semana.",
   rep_w3:"hace 3 sem", rep_w2:"hace 2", rep_w1:"pasada", rep_w0:"esta",
   rep_proj_t:"Tus proyectos", rep_proj_q:"de mayor a menor gasto",
   rep_why:"Qué lo encareció:",
@@ -2305,11 +2382,27 @@ pt:{
   tray_open:"Abrir painel", tray_widget:"Widget flutuante", tray_quit:"Sair",
   fnd_tab:"Achados",
   rep_tab:"Relatório",
-  rep_tok_less:(n,p)=>`<b>${n}</b> tokens de trabalho — ${p}% menos que o período anterior`,
-  rep_tok_more:(n,p)=>`<b>${n}</b> tokens de trabalho — ${p}% mais que o período anterior`,
-  rep_tok_flat:n=>`<b>${n}</b> tokens de trabalho — como o período anterior`,
-  rep_tok_only:n=>`<b>${n}</b> tokens de trabalho no período`,
-  rep_topday:(d,n)=>`Seu dia mais pesado: ${d} (${n} tokens)`,
+  rep_money_msg:m=>`≈ ${m}/mensagem`,
+  rep_vol_t:"Quanto você trabalhou no total",
+  rep_vol_less:p=>`↓ ${p}% menos que o período anterior`,
+  rep_vol_more:p=>`↑ ${p}% mais que o período anterior`,
+  rep_vol_flat:"como o período anterior",
+  rep_est_word:"estimado",
+  rep_topday:(d,n,m)=>`Seu dia mais pesado: <b>${d}</b> com <b>${n} tok</b> <span class="as-money">≈ ${m}</span>`,
+  rep_contra_a:"Não é contradição: você trabalhou menos no total (↓ volume), mas cada mensagem saiu mais cara (↑ custo por mensagem). São duas medidas diferentes — e a segunda é a que você pode melhorar com hábitos.",
+  rep_contra_b:"Não é contradição: você trabalhou mais no total (↑ volume) e mesmo assim cada mensagem saiu mais barata (↓ custo por mensagem). Bom sinal: o volume sobe, o desperdício não.",
+  rep_rule:"Regra rápida para ler este relatório — estimado ao preço público da API; na assinatura você não paga por token.",
+  rep_lower_lbl:"Descer é melhor:",
+  rep_leg_line:"custo por mensagem",
+  rep_leg_bar:"trabalho total da semana",
+  rep_unit_tok:"tokens",
+  rep_unit_usd:"$ estimado",
+  rep_det:(name,tok,musd,vol,vusd)=>`<b>${name}</b>: cada mensagem custou <b>${tok} tok</b> ≈ ${musd} · você trabalhou <b>${vol} tok</b> ≈ ${vusd}`,
+  rep_det_first:"primeira semana do intervalo",
+  rep_det_cheaper:p=>`↓ ${p}% mais barato por mensagem que a anterior`,
+  rep_det_dearer:p=>`↑ ${p}% mais caro por mensagem que a anterior`,
+  rep_det_same:"igual à anterior",
+  rep_det_tap:"Toque em qualquer ponto ou barra para ver o detalhe.",
   rep_next_intro:"Não é um alarme — é sua lista de tarefas de economia: os vazamentos mais caros do período, com o que fazer em cada um. Comece pelo 1.",
   rep_week:"Semana", rep_month:"Mês", rep_custom:"Personalizado",
   rep_perf:"Seu rendimento", rep_perf_unit:"tokens por mensagem sua",
@@ -2330,7 +2423,7 @@ pt:{
   rep_msgs_v:(n,d)=>`<b>${n} mensagens</b> por dia trabalhado (${d} dias)`,
   rep_msgs_say:"Sua média nos dias em que realmente usou o Claude.",
   rep_chart_t:"Rendimento", rep_chart_q:"últimas 4 semanas",
-  rep_lower_better:"Descer é melhor: cada mensagem sua custa menos tokens.",
+  rep_lower_better:"a linha é o que custa cada mensagem sua. As barras abaixo são quanto você trabalhou naquela semana.",
   rep_w3:"há 3 sem", rep_w2:"há 2", rep_w1:"passada", rep_w0:"esta",
   rep_proj_t:"Seus projetos", rep_proj_q:"do maior ao menor gasto",
   rep_why:"O que encareceu:",
@@ -2632,11 +2725,27 @@ fr:{
   tray_open:"Ouvrir le panneau", tray_widget:"Widget flottant", tray_quit:"Quitter",
   fnd_tab:"Constats",
   rep_tab:"Rapport",
-  rep_tok_less:(n,p)=>`<b>${n}</b> tokens de travail — ${p}% de moins que la période précédente`,
-  rep_tok_more:(n,p)=>`<b>${n}</b> tokens de travail — ${p}% de plus que la période précédente`,
-  rep_tok_flat:n=>`<b>${n}</b> tokens de travail — comme la période précédente`,
-  rep_tok_only:n=>`<b>${n}</b> tokens de travail sur la période`,
-  rep_topday:(d,n)=>`Votre jour le plus chargé : ${d} (${n} tokens)`,
+  rep_money_msg:m=>`≈ ${m}/message`,
+  rep_vol_t:"Combien vous avez travaillé au total",
+  rep_vol_less:p=>`↓ ${p}% de moins que la période précédente`,
+  rep_vol_more:p=>`↑ ${p}% de plus que la période précédente`,
+  rep_vol_flat:"comme la période précédente",
+  rep_est_word:"estimé",
+  rep_topday:(d,n,m)=>`Votre jour le plus chargé : <b>${d}</b> avec <b>${n} tok</b> <span class="as-money">≈ ${m}</span>`,
+  rep_contra_a:"Pas de contradiction : vous avez travaillé moins au total (↓ volume), mais chaque message vous a coûté plus cher (↑ coût par message). Deux mesures différentes — et la seconde s'améliore avec de bonnes habitudes.",
+  rep_contra_b:"Pas de contradiction : vous avez travaillé plus au total (↑ volume) et pourtant chaque message est revenu moins cher (↓ coût par message). Bon signe : le volume monte, le gaspillage non.",
+  rep_rule:"Règle rapide pour lire ce rapport — estimé au prix public de l'API ; avec l'abonnement vous ne payez pas au token.",
+  rep_lower_lbl:"Plus bas = mieux :",
+  rep_leg_line:"coût par message",
+  rep_leg_bar:"travail total de la semaine",
+  rep_unit_tok:"tokens",
+  rep_unit_usd:"$ estimé",
+  rep_det:(name,tok,musd,vol,vusd)=>`<b>${name}</b> : chaque message a coûté <b>${tok} tok</b> ≈ ${musd} · vous avez travaillé <b>${vol} tok</b> ≈ ${vusd}`,
+  rep_det_first:"première semaine de la plage",
+  rep_det_cheaper:p=>`↓ ${p}% moins cher par message que la précédente`,
+  rep_det_dearer:p=>`↑ ${p}% plus cher par message que la précédente`,
+  rep_det_same:"comme la précédente",
+  rep_det_tap:"Touchez un point ou une barre pour voir son détail.",
   rep_next_intro:"Pas une alarme — votre liste de tâches d'économie : les fuites les plus chères de la période, avec quoi faire pour chacune. Commencez par la 1.",
   rep_week:"Semaine", rep_month:"Mois", rep_custom:"Personnalisé",
   rep_perf:"Votre rendement", rep_perf_unit:"tokens par message envoyé",
@@ -2657,7 +2766,7 @@ fr:{
   rep_msgs_v:(n,d)=>`<b>${n} messages</b> par jour actif (${d} jours)`,
   rep_msgs_say:"Votre moyenne les jours où vous avez vraiment utilisé Claude.",
   rep_chart_t:"Rendement", rep_chart_q:"4 dernières semaines",
-  rep_lower_better:"Plus bas = mieux : chaque message coûte moins de tokens.",
+  rep_lower_better:"la ligne est ce que coûte chacun de vos messages. Les barres en dessous montrent combien vous avez travaillé cette semaine-là.",
   rep_w3:"il y a 3 sem", rep_w2:"il y a 2", rep_w1:"dernière", rep_w0:"celle-ci",
   rep_proj_t:"Vos projets", rep_proj_q:"de la plus grosse dépense à la plus petite",
   rep_why:"Ce qui a coûté cher :",
@@ -2959,11 +3068,27 @@ de:{
   tray_open:"Panel öffnen", tray_widget:"Schwebendes Widget", tray_quit:"Beenden",
   fnd_tab:"Befunde",
   rep_tab:"Bericht",
-  rep_tok_less:(n,p)=>`<b>${n}</b> Arbeits-Tokens — ${p}% weniger als im Vorzeitraum`,
-  rep_tok_more:(n,p)=>`<b>${n}</b> Arbeits-Tokens — ${p}% mehr als im Vorzeitraum`,
-  rep_tok_flat:n=>`<b>${n}</b> Arbeits-Tokens — ungefähr wie im Vorzeitraum`,
-  rep_tok_only:n=>`<b>${n}</b> Arbeits-Tokens in diesem Zeitraum`,
-  rep_topday:(d,n)=>`Dein schwerster Tag: ${d} (${n} Tokens)`,
+  rep_money_msg:m=>`≈ ${m}/Nachricht`,
+  rep_vol_t:"Wie viel du insgesamt gearbeitet hast",
+  rep_vol_less:p=>`↓ ${p}% weniger als im Vorzeitraum`,
+  rep_vol_more:p=>`↑ ${p}% mehr als im Vorzeitraum`,
+  rep_vol_flat:"ungefähr wie im Vorzeitraum",
+  rep_est_word:"geschätzt",
+  rep_topday:(d,n,m)=>`Dein schwerster Tag: <b>${d}</b> mit <b>${n} Tok</b> <span class="as-money">≈ ${m}</span>`,
+  rep_contra_a:"Kein Widerspruch: du hast insgesamt weniger gearbeitet (↓ Volumen), aber jede Nachricht war teurer (↑ Kosten pro Nachricht). Zwei verschiedene Maße — und das zweite kannst du mit Gewohnheiten verbessern.",
+  rep_contra_b:"Kein Widerspruch: du hast insgesamt mehr gearbeitet (↑ Volumen) und trotzdem war jede Nachricht günstiger (↓ Kosten pro Nachricht). Gutes Zeichen: Volumen rauf, Verschwendung runter.",
+  rep_rule:"Schnelle Leseregel für diesen Bericht — geschätzt zum öffentlichen API-Preis; im Abo zahlst du nicht pro Token.",
+  rep_lower_lbl:"Niedriger ist besser:",
+  rep_leg_line:"Kosten pro Nachricht",
+  rep_leg_bar:"Gesamtarbeit der Woche",
+  rep_unit_tok:"Tokens",
+  rep_unit_usd:"$ geschätzt",
+  rep_det:(name,tok,musd,vol,vusd)=>`<b>${name}</b>: jede Nachricht kostete <b>${tok} Tok</b> ≈ ${musd} · gearbeitet: <b>${vol} Tok</b> ≈ ${vusd}`,
+  rep_det_first:"erste Woche des Zeitraums",
+  rep_det_cheaper:p=>`↓ ${p}% günstiger pro Nachricht als die Vorwoche`,
+  rep_det_dearer:p=>`↑ ${p}% teurer pro Nachricht als die Vorwoche`,
+  rep_det_same:"wie die Vorwoche",
+  rep_det_tap:"Tippe auf einen Punkt oder Balken für Details.",
   rep_next_intro:"Kein Alarm — deine Spar-Aufgabenliste: die teuersten Lecks des Zeitraums, mit dem, was jeweils zu tun ist. Fang mit Nr. 1 an.",
   rep_week:"Woche", rep_month:"Monat", rep_custom:"Benutzerdefiniert",
   rep_perf:"Deine Effizienz", rep_perf_unit:"Tokens pro Nachricht von dir",
@@ -2984,7 +3109,7 @@ de:{
   rep_msgs_v:(n,d)=>`<b>${n} Nachrichten</b> pro aktivem Tag (${d} Tage)`,
   rep_msgs_say:"Dein Durchschnitt an den Tagen, an denen du Claude wirklich genutzt hast.",
   rep_chart_t:"Effizienz", rep_chart_q:"letzte 4 Wochen",
-  rep_lower_better:"Niedriger ist besser: jede Nachricht kostet weniger Tokens.",
+  rep_lower_better:"die Linie ist, was jede deiner Nachrichten kostet. Die Balken darunter zeigen, wie viel du in der Woche gearbeitet hast.",
   rep_w3:"vor 3 Wo", rep_w2:"vor 2", rep_w1:"letzte", rep_w0:"diese",
   rep_proj_t:"Deine Projekte", rep_proj_q:"nach Ausgaben sortiert",
   rep_why:"Was es teuer machte:",
@@ -3286,11 +3411,27 @@ ja:{
   tray_open:"パネルを開く", tray_widget:"フローティングウィジェット", tray_quit:"終了",
   fnd_tab:"検出結果",
   rep_tab:"レポート",
-  rep_tok_less:(n,p)=>`作業トークン<b>${n}</b> — 前の期間より${p}%少ない`,
-  rep_tok_more:(n,p)=>`作業トークン<b>${n}</b> — 前の期間より${p}%多い`,
-  rep_tok_flat:n=>`作業トークン<b>${n}</b> — 前の期間とほぼ同じ`,
-  rep_tok_only:n=>`この期間の作業トークン<b>${n}</b>`,
-  rep_topday:(d,n)=>`最も重かった日：${d}（${n}トークン）`,
+  rep_money_msg:m=>`≈ ${m}/メッセージ`,
+  rep_vol_t:"合計でどれだけ作業したか",
+  rep_vol_less:p=>`↓ 前の期間より${p}%少ない`,
+  rep_vol_more:p=>`↑ 前の期間より${p}%多い`,
+  rep_vol_flat:"前の期間とほぼ同じ",
+  rep_est_word:"推定",
+  rep_topday:(d,n,m)=>`最も重かった日：<b>${d}</b>（<b>${n} tok</b> <span class="as-money">≈ ${m}</span>）`,
+  rep_contra_a:"矛盾ではありません：合計の作業量は減った（↓ボリューム）のに、1メッセージあたりは高くつきました（↑コスト/メッセージ）。別々の指標で、習慣で改善できるのは後者です。",
+  rep_contra_b:"矛盾ではありません：合計の作業量は増えた（↑ボリューム）のに、1メッセージあたりは安くなりました（↓コスト/メッセージ）。良い兆候：量は増えても無駄は増えていません。",
+  rep_rule:"このレポートの読み方 — API公開価格での推定です。サブスクではトークン単位の支払いはありません。",
+  rep_lower_lbl:"低いほど良い：",
+  rep_leg_line:"メッセージあたりコスト",
+  rep_leg_bar:"週の作業量",
+  rep_unit_tok:"トークン",
+  rep_unit_usd:"$ 推定",
+  rep_det:(name,tok,musd,vol,vusd)=>`<b>${name}</b>：1メッセージ <b>${tok} tok</b> ≈ ${musd} · 作業量 <b>${vol} tok</b> ≈ ${vusd}`,
+  rep_det_first:"範囲の最初の週",
+  rep_det_cheaper:p=>`↓ 前の週よりメッセージあたり${p}%安い`,
+  rep_det_dearer:p=>`↑ 前の週よりメッセージあたり${p}%高い`,
+  rep_det_same:"前の週と同じ",
+  rep_det_tap:"点やバーをタップすると詳細が見られます。",
   rep_next_intro:"警報ではありません — 節約のためのやることリストです。この期間で最も高くついたリークと、その対処法。まずは1番から。",
   rep_week:"週", rep_month:"月", rep_custom:"カスタム",
   rep_perf:"あなたの効率", rep_perf_unit:"あなたの1メッセージあたりのトークン",
@@ -3311,7 +3452,7 @@ ja:{
   rep_msgs_v:(n,d)=>`稼働日あたり<b>${n}メッセージ</b>（${d}日）`,
   rep_msgs_say:"実際にClaudeを使った日の平均です。",
   rep_chart_t:"効率", rep_chart_q:"直近4週間",
-  rep_lower_better:"低いほど良い：1メッセージのトークン消費が少ないということ。",
+  rep_lower_better:"線はあなたの1メッセージのコスト。下のバーはその週の作業量です。",
   rep_w3:"3週前", rep_w2:"2週前", rep_w1:"先週", rep_w0:"今週",
   rep_proj_t:"プロジェクト", rep_proj_q:"支出の多い順",
   rep_why:"高くついた原因：",
@@ -3613,11 +3754,27 @@ ko:{
   tray_open:"패널 열기", tray_widget:"플로팅 위젯", tray_quit:"종료",
   fnd_tab:"발견 항목",
   rep_tab:"리포트",
-  rep_tok_less:(n,p)=>`작업 토큰 <b>${n}</b> — 이전 기간보다 ${p}% 적음`,
-  rep_tok_more:(n,p)=>`작업 토큰 <b>${n}</b> — 이전 기간보다 ${p}% 많음`,
-  rep_tok_flat:n=>`작업 토큰 <b>${n}</b> — 이전 기간과 비슷`,
-  rep_tok_only:n=>`이 기간 작업 토큰 <b>${n}</b>`,
-  rep_topday:(d,n)=>`가장 무거웠던 날: ${d} (${n} 토큰)`,
+  rep_money_msg:m=>`≈ ${m}/메시지`,
+  rep_vol_t:"총 작업량",
+  rep_vol_less:p=>`↓ 이전 기간보다 ${p}% 적음`,
+  rep_vol_more:p=>`↑ 이전 기간보다 ${p}% 많음`,
+  rep_vol_flat:"이전 기간과 비슷",
+  rep_est_word:"추정",
+  rep_topday:(d,n,m)=>`가장 무거웠던 날: <b>${d}</b> (<b>${n} tok</b> <span class="as-money">≈ ${m}</span>)`,
+  rep_contra_a:"모순이 아닙니다: 총 작업량은 줄었지만(↓ 볼륨) 메시지당 비용은 늘었습니다(↑). 서로 다른 지표이며, 습관으로 개선할 수 있는 것은 후자입니다.",
+  rep_contra_b:"모순이 아닙니다: 총 작업량은 늘었지만(↑ 볼륨) 메시지당 비용은 줄었습니다(↓). 좋은 신호: 양은 늘어도 낭비는 늘지 않았습니다.",
+  rep_rule:"이 리포트를 읽는 빠른 규칙 — 공개 API 가격 기준 추정치입니다. 구독은 토큰당 과금이 아닙니다.",
+  rep_lower_lbl:"낮을수록 좋음:",
+  rep_leg_line:"메시지당 비용",
+  rep_leg_bar:"주간 총 작업량",
+  rep_unit_tok:"토큰",
+  rep_unit_usd:"$ 추정",
+  rep_det:(name,tok,musd,vol,vusd)=>`<b>${name}</b>: 메시지당 <b>${tok} tok</b> ≈ ${musd} · 작업량 <b>${vol} tok</b> ≈ ${vusd}`,
+  rep_det_first:"범위의 첫 주",
+  rep_det_cheaper:p=>`↓ 전주보다 메시지당 ${p}% 저렴`,
+  rep_det_dearer:p=>`↑ 전주보다 메시지당 ${p}% 비쌈`,
+  rep_det_same:"전주와 동일",
+  rep_det_tap:"점이나 막대를 누르면 상세를 볼 수 있습니다.",
   rep_next_intro:"경보가 아닙니다 — 절약 할 일 목록입니다. 이 기간 가장 비쌌던 누수와 각각의 대처법. 1번부터 시작하세요.",
   rep_week:"주간", rep_month:"월간", rep_custom:"사용자 지정",
   rep_perf:"나의 효율", rep_perf_unit:"내 메시지당 토큰",
@@ -3638,7 +3795,7 @@ ko:{
   rep_msgs_v:(n,d)=>`활동일당 <b>${n}개 메시지</b> (${d}일)`,
   rep_msgs_say:"실제로 Claude를 쓴 날들의 평균입니다.",
   rep_chart_t:"효율", rep_chart_q:"최근 4주",
-  rep_lower_better:"낮을수록 좋음: 메시지당 토큰이 적게 듭니다.",
+  rep_lower_better:"선은 메시지 하나의 비용, 아래 막대는 그 주의 작업량입니다.",
   rep_w3:"3주 전", rep_w2:"2주 전", rep_w1:"지난주", rep_w0:"이번 주",
   rep_proj_t:"내 프로젝트", rep_proj_q:"지출 많은 순",
   rep_why:"비용이 커진 이유:",
@@ -3940,11 +4097,27 @@ zh:{
   tray_open:"打开面板", tray_widget:"浮动小组件", tray_quit:"退出",
   fnd_tab:"发现",
   rep_tab:"报告",
-  rep_tok_less:(n,p)=>`工作 token <b>${n}</b> — 比上一时段少 ${p}%`,
-  rep_tok_more:(n,p)=>`工作 token <b>${n}</b> — 比上一时段多 ${p}%`,
-  rep_tok_flat:n=>`工作 token <b>${n}</b> — 与上一时段差不多`,
-  rep_tok_only:n=>`本时段工作 token <b>${n}</b>`,
-  rep_topday:(d,n)=>`最重的一天：${d}（${n} token）`,
+  rep_money_msg:m=>`≈ ${m}/条`,
+  rep_vol_t:"总共干了多少活",
+  rep_vol_less:p=>`↓ 比上一时段少 ${p}%`,
+  rep_vol_more:p=>`↑ 比上一时段多 ${p}%`,
+  rep_vol_flat:"与上一时段差不多",
+  rep_est_word:"估计",
+  rep_topday:(d,n,m)=>`最重的一天：<b>${d}</b>（<b>${n} tok</b> <span class="as-money">≈ ${m}</span>）`,
+  rep_contra_a:"这不矛盾：总量少了（↓ 体量），但每条消息更贵了（↑ 单条成本）。两个不同的指标 — 能靠习惯改善的是后者。",
+  rep_contra_b:"这不矛盾：总量多了（↑ 体量），但每条消息反而更便宜（↓ 单条成本）。好迹象：量涨了，浪费没涨。",
+  rep_rule:"读懂本报告的速记规则 — 按公开 API 价格估算；订阅制不按 token 收费。",
+  rep_lower_lbl:"越低越好：",
+  rep_leg_line:"每条消息成本",
+  rep_leg_bar:"当周总工作量",
+  rep_unit_tok:"token",
+  rep_unit_usd:"$ 估计",
+  rep_det:(name,tok,musd,vol,vusd)=>`<b>${name}</b>：每条消息 <b>${tok} tok</b> ≈ ${musd} · 工作量 <b>${vol} tok</b> ≈ ${vusd}`,
+  rep_det_first:"范围内的第一周",
+  rep_det_cheaper:p=>`↓ 每条消息比前一周便宜 ${p}%`,
+  rep_det_dearer:p=>`↑ 每条消息比前一周贵 ${p}%`,
+  rep_det_same:"与前一周相同",
+  rep_det_tap:"点按任意点或柱子查看详情。",
   rep_next_intro:"这不是警报 — 是你的省钱待办清单：本时段最贵的泄漏及各自的处理办法。先从第 1 条开始。",
   rep_week:"周", rep_month:"月", rep_custom:"自定义",
   rep_perf:"你的效率", rep_perf_unit:"你每条消息消耗的 token",
@@ -3965,7 +4138,7 @@ zh:{
   rep_msgs_v:(n,d)=>`每个活跃日 <b>${n} 条消息</b>（${d} 天）`,
   rep_msgs_say:"实际使用 Claude 那些天的平均值。",
   rep_chart_t:"效率", rep_chart_q:"最近 4 周",
-  rep_lower_better:"越低越好：你每条消息消耗的 token 更少。",
+  rep_lower_better:"折线是你每条消息的成本，下方柱子是当周的工作量。",
   rep_w3:"3周前", rep_w2:"2周前", rep_w1:"上周", rep_w0:"本周",
   rep_proj_t:"你的项目", rep_proj_q:"按花费从高到低",
   rep_why:"花费大的原因：",
@@ -6178,20 +6351,29 @@ function renderRepHero(d){
     else{ plain=t("rep_verd_flat");
       delta=`<span class="rp-delta flat">= ${t("rep_flat")}</span>`; }
   }
-  // tokens del periodo: dato NEUTRO a propósito (sin verde/rojo) — menos
-  // tokens puede ser eficiencia o simplemente menos trabajo; el juicio de
-  // valor vive solo en el rendimiento (tokens POR mensaje), que sí compara
-  // peras con peras. Pedido por Oscar 2026-08-06.
-  const tk=d.cur.tokens_week, qtk=d.prev?d.prev.tokens_week:0;
-  let stats="";
+  // EFICIENCIA arriba, VOLUMEN abajo, separados a propósito (maqueta de
+  // Oscar 2026-08-06): "cuánto me cuesta cada mensaje" y "cuánto trabajé"
+  // son medidas distintas y mezclarlas confundía. La traducción a $ va
+  // SIEMPRE pegada a su dato de tokens, y sale de lo MEDIDO del periodo
+  // (cost/uturns y cost del día), nunca de una tarifa inventada.
+  const pm=d.cur.uturns_week>0?d.cur.cost_week/d.cur.uturns_week:null;
+  const qm=(d.prev&&d.prev.uturns_week>0)?d.prev.cost_week/d.prev.uturns_week:null;
+  let unitLine=escapeHtml(t("rep_perf_unit"));
+  if(pm!=null) unitLine+=` <span class="as-money">${escapeHtml(t("rep_money_msg","$"+pm.toFixed(2)))}</span>`;
+  if(q!=null){
+    unitLine+=` · ${escapeHtml(t("rep_before"))} <s>${repFmtN(q)}</s>`;
+    if(qm!=null) unitLine+=` <span class="rp-dim">(≈ $${qm.toFixed(2)})</span>`;
+  }
+  const tk=d.cur.tokens_week, ck=d.cur.cost_week, qtk=d.prev?d.prev.tokens_week:0;
+  let vol="";
   if(tk>0){
-    let line;
+    let pill="";
     if(qtk>0){
       const ch=Math.round((tk-qtk)/qtk*100);
-      line = ch<=-3?t("rep_tok_less",fmtTok(tk),Math.abs(ch))
-           : ch>=3?t("rep_tok_more",fmtTok(tk),ch)
-           : t("rep_tok_flat",fmtTok(tk));
-    }else line=t("rep_tok_only",fmtTok(tk));
+      pill = ch<=-3?`<span class="vpill ok">${escapeHtml(t("rep_vol_less",Math.abs(ch)))}</span>`
+           : ch>=3?`<span class="vpill">${escapeHtml(t("rep_vol_more",ch))}</span>`
+           : `<span class="vpill">${escapeHtml(t("rep_vol_flat"))}</span>`;
+    }
     // el día más pesado, si la serie diaria cubre el periodo
     const from=d.endE-d.W*86400;
     const inP=(d.cur.daily||[]).filter(x=>{
@@ -6200,15 +6382,30 @@ function renderRepHero(d){
     let top="";
     if(inP.length){
       const mx=inP.reduce((a,x)=>x.tokens>a.tokens?x:a);
-      top=`<div>${escapeHtml(t("rep_topday",fmtDate(mx.date,false),fmtTok(mx.tokens)))}</div>`;
+      top=`<div class="vol-row">${t("rep_topday",escapeHtml(fmtDate(mx.date,false)),fmtTok(mx.tokens),"$"+mx.cost.toFixed(0))}</div>`;
     }
-    stats=`<div class="rp-stats"><div>${line}</div>${top}</div>`;
+    // "no es contradicción": SOLO cuando volumen y costo/mensaje van en
+    // direcciones opuestas — es justo el caso que confunde
+    let contra="";
+    if(q!=null&&qtk>0){
+      const chV=(tk-qtk)/qtk, chP=(p-q)/q;
+      if(chV<-0.03&&chP>0.03) contra=`<div class="rp-contra">${withCmds(t("rep_contra_a"))}</div>`;
+      else if(chV>0.03&&chP<-0.03) contra=`<div class="rp-contra">${withCmds(t("rep_contra_b"))}</div>`;
+    }
+    // la regla que conecta tokens con $ de una vez: tarifa REAL del
+    // periodo (su propio costo ÷ sus propios tokens), redondeada
+    const rate=ck>0?ck/(tk/1e6):0;
+    const rule=rate>0?`<div class="rp-rule"><span class="eq">1M tok ≈ $${Math.round(rate)}</span><span>${withCmds(t("rep_rule"))}</span></div>`:"";
+    vol=`<div class="rp-vol">
+      <div class="vt">${escapeHtml(t("rep_vol_t"))}</div>
+      <div class="vol-row"><b>${fmtTok(tk)} tokens</b>${ck>0?` <span class="as-money">≈ $${Math.round(ck)} ${escapeHtml(t("rep_est_word"))}</span>`:""} ${pill}</div>
+      ${top}${contra}${rule}</div>`;
   }
   $("repHero").innerHTML=`
     <div class="rp-big">${repFmtN(p)} ${delta}</div>
-    <div class="rp-nums">${escapeHtml(t("rep_perf_unit"))}${q!=null?` · ${escapeHtml(t("rep_before"))} <s>${repFmtN(q)}</s>`:""}</div>
+    <div class="rp-nums">${unitLine}</div>
     <div class="rp-plain">${withCmds(plain)}</div>
-    ${stats}
+    ${vol}
     ${d.prev&&d.prev.hub_skipped?`<div class="rep-note" style="margin-top:7px">${escapeHtml(t("hub_range_note"))}</div>`:""}`;
 }
 
@@ -6268,49 +6465,118 @@ function renderRepLast(d){
   </div>`).join("");
 }
 
-// 3 · rendimiento semanal (4 semanas de la serie diaria, anclada a HOY)
-function renderRepChart(d){
-  const daily=(d.cur&&d.cur.daily)||[];
-  const map=Object.fromEntries(daily.map(x=>[x.date,x]));
-  const vals=[], wkTok=[];
+// 3 · rendimiento semanal (4 semanas de la serie diaria, anclada a HOY).
+// Rediseño 2026-08-06 sobre maqueta de Oscar: gráfica GRANDE con píldoras
+// de valor legibles, barras de volumen abajo (contexto), conmutador
+// tokens/$ (misma curva en dos monedas — el $ es el costo REAL medido de
+// cada semana, no una tarifa fija) y detalle al tocar punto o barra.
+let repUnit=localStorage.getItem("repUnit")||"tok";
+let repSel=3;
+function repWeeks(d){
+  const map=Object.fromEntries(((d.cur&&d.cur.daily)||[]).map(x=>[x.date,x]));
+  const weeks=[];
   for(let b=3;b>=0;b--){
-    let tok=0,ut=0;
+    let tok=0,ut=0,cost=0;
     for(let i=0;i<7;i++){
       const dt=new Date(Date.now()-(b*7+i)*864e5);
       const c=map[dt.toISOString().slice(0,10)];
-      if(c){ tok+=c.tokens||0; ut+=c.uturns||0; }
+      if(c){ tok+=c.tokens||0; ut+=c.uturns||0; cost+=c.cost||0; }
     }
-    vals.push(ut>0?tok/ut:null);
-    wkTok.push(tok);
+    weeks.push({tok,ut,cost, pm:ut>0?tok/ut:null, pmu:ut>0?cost/ut:null});
   }
-  if(vals.filter(v=>v!=null).length<2){ $("repChartSect").hidden=true; return; }
+  return weeks;
+}
+function markRepUnit(){
+  document.querySelectorAll(".usw").forEach(x=>x.classList.toggle("on",x.dataset.u===repUnit));
+}
+$("repUnitSw").addEventListener("click",e=>{
+  const b=e.target.closest(".usw"); if(!b) return;
+  repUnit=b.dataset.u; localStorage.setItem("repUnit",repUnit); markRepUnit();
+  if(repData){ renderRepChart(repData); }
+});
+function renderRepChart(d){
+  const weeks=repWeeks(d);
+  if(weeks.filter(w=>w.pm!=null).length<2){ $("repChartSect").hidden=true; return; }
   $("repChartSect").hidden=false;
-  const nums=vals.filter(v=>v!=null);
-  const max=Math.max(...nums), min=Math.min(...nums);
-  const span=Math.max(max-min, max*0.15, 1);
-  const X=i=>46+i*(354/3), Y=v=>26+(max-v)/span*88;
-  const pts=vals.map((v,i)=>v==null?null:[X(i),Y(v),v]).filter(Boolean);
-  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
-  const area=line+` L ${pts[pts.length-1][0].toFixed(1)} 132 L ${pts[0][0].toFixed(1)} 132 Z`;
-  const labels=[t("rep_w3"),t("rep_w2"),t("rep_w1"),t("rep_w0")];
-  const last=pts[pts.length-1];
-  $("repChart").innerHTML=`<svg viewBox="0 0 446 164" xmlns="http://www.w3.org/2000/svg">
+  markRepUnit();
+  if(weeks[repSel]&&weeks[repSel].pm==null) repSel=3;
+  const lab=w=> repUnit==="tok"?repFmtN(w.pm):"$"+w.pmu.toFixed(2);
+  const MONO="ui-monospace,'Cascadia Code',Consolas,monospace";
+  const W=430,H=252, topPad=42, lineBase=160, barTop=170, barBase=206;
+  const xs=weeks.map((_,i)=>32+i*(W-64)/3);
+  const nums=weeks.filter(w=>w.pm!=null).map(w=>w.pm);
+  const vmax=Math.max(...nums), vmin=Math.min(...nums);
+  const span=Math.max(vmax-vmin, vmax*0.15, 1);
+  const Y=v=>topPad+(vmax-v)/span*(lineBase-topPad);
+  const volMax=Math.max(...weeks.map(w=>w.tok),1);
+  const names=[t("rep_w3"),t("rep_w2"),t("rep_w1"),t("rep_w0")];
+  let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
     <defs><linearGradient id="rpArea" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="var(--accent)" stop-opacity=".25"/>
-      <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
-    <path d="${area}" fill="url(#rpArea)"/>
-    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5"
-      stroke-linecap="round" stroke-linejoin="round"/>
-    ${pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${p===last?5:3.5}"
-      fill="${p===last?"var(--teal)":"var(--card)"}" stroke="${p===last?"var(--teal)":"var(--accent)"}" stroke-width="2"/>`).join("")}
-    ${pts.map(p=>`<text x="${p[0].toFixed(1)}" y="${(p[1]-11).toFixed(1)}" text-anchor="middle"
-      font-family="var(--mono)" font-size="10" font-weight="700"
-      fill="${p===last?"var(--teal)":"var(--txt-mut)"}">${repFmtN(p[2])}</text>`).join("")}
-    ${vals.map((v,i)=>`<text x="${X(i).toFixed(1)}" y="145" text-anchor="middle" font-size="9.5"
-      fill="${i===3?"var(--txt)":"var(--txt-dim)"}"${i===3?' font-weight="700"':""}>${escapeHtml(labels[i])}</text>`).join("")}
-    ${wkTok.map((tok,i)=>tok>0?`<text x="${X(i).toFixed(1)}" y="158" text-anchor="middle"
-      font-family="var(--mono)" font-size="8.5" fill="var(--txt-dim)">${fmtTok(tok)} tok</text>`:"").join("")}
-  </svg>`;
+      <stop offset="0" stop-color="var(--accent)" stop-opacity=".24"/>
+      <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient>
+    <linearGradient id="rpStk" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--teal)"/></linearGradient></defs>`;
+  // barras de volumen (contexto, abajo)
+  weeks.forEach((w,i)=>{
+    const h=Math.max(3,(w.tok/volMax)*(barBase-barTop));
+    const hot=i===repSel;
+    s+=`<g class="pt" data-i="${i}">
+      <rect x="${xs[i]-15}" y="${barBase-h}" width="30" height="${h}" rx="7"
+        fill="${hot?"rgba(124,140,255,.42)":"rgba(124,140,255,.18)"}"/>
+      <text x="${xs[i]}" y="${barBase+14}" text-anchor="middle" font-size="10"
+        font-family="${MONO}" fill="${hot?"var(--txt)":"var(--txt-dim)"}"
+        font-weight="${hot?"700":"400"}">${fmtTok(w.tok)}</text>
+      <text x="${xs[i]}" y="${barBase+28}" text-anchor="middle" font-size="10"
+        fill="${hot?"var(--txt)":"var(--txt-dim)"}" font-weight="${hot?"800":"500"}">${escapeHtml(names[i])}</text>
+    </g>`;
+  });
+  // área + línea de eficiencia (solo semanas con datos)
+  const pts=weeks.map((w,i)=>w.pm==null?null:[xs[i],Y(w.pm),i]).filter(Boolean);
+  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  s+=`<path d="${line} L ${pts[pts.length-1][0].toFixed(1)} ${lineBase} L ${pts[0][0].toFixed(1)} ${lineBase} Z" fill="url(#rpArea)"/>
+      <path d="${line}" fill="none" stroke="url(#rpStk)" stroke-width="3.5"
+        stroke-linecap="round" stroke-linejoin="round"/>`;
+  // puntos + píldoras de valor GRANDES, nunca sobre la línea
+  pts.forEach(p=>{
+    const i=p[2], w=weeks[i], hot=i===repSel, tx=lab(w);
+    const tw=tx.length*8.2+18, cy=p[1];
+    s+=`<g class="pt" data-i="${i}">
+      <rect x="${(p[0]-tw/2).toFixed(1)}" y="${(cy-34).toFixed(1)}" width="${tw.toFixed(1)}" height="22" rx="11"
+        fill="${hot?"var(--teal)":"var(--card-hi)"}" stroke="${hot?"rgba(79,209,224,.4)":"var(--stroke)"}"/>
+      <text x="${p[0].toFixed(1)}" y="${(cy-19).toFixed(1)}" text-anchor="middle" font-size="12.5" font-weight="800"
+        font-family="${MONO}" fill="${hot?"var(--accent-ink)":"var(--txt-mut)"}">${tx}</text>
+      <circle cx="${p[0].toFixed(1)}" cy="${cy.toFixed(1)}" r="${hot?6.5:4.5}"
+        fill="${hot?"var(--teal)":"var(--card)"}" stroke="${hot?"rgba(79,209,224,.35)":"var(--accent)"}"
+        stroke-width="${hot?7:2.5}"/>
+    </g>`;
+  });
+  s+="</svg>";
+  $("repChart").innerHTML=s;
+  $("repChart").querySelectorAll(".pt").forEach(el=>el.addEventListener("click",()=>{
+    repSel=+el.dataset.i;
+    renderRepChart(d); // re-pinta resaltado + detalle
+  }));
+  renderRepDet(weeks);
+}
+function renderRepDet(weeks){
+  const w=weeks[repSel];
+  const det=$("repDet");
+  if(!w||w.pm==null){ det.hidden=true; return; }
+  det.hidden=false;
+  const prev=weeks[repSel-1];
+  let cmp;
+  if(!prev||prev.pm==null) cmp=escapeHtml(t("rep_det_first"));
+  else{
+    const ch=Math.round((w.pm-prev.pm)/prev.pm*100);
+    cmp = ch===0?escapeHtml(t("rep_det_same"))
+        : ch>0?`<span class="wr2">${escapeHtml(t("rep_det_dearer",ch))}</span>`
+              :`<span class="ok2">${escapeHtml(t("rep_det_cheaper",-ch))}</span>`;
+  }
+  const names=[t("rep_w3"),t("rep_w2"),t("rep_w1"),t("rep_w0")];
+  det.innerHTML=t("rep_det", escapeHtml(names[repSel]), repFmtN(w.pm),
+      `<span class="as-money">$${w.pmu.toFixed(2)}</span>`, fmtTok(w.tok),
+      `<span class="as-money">$${Math.round(w.cost)} ${escapeHtml(t("rep_est_word"))}</span>`)
+    +` · ${cmp}<div class="tap">${escapeHtml(t("rep_det_tap"))}</div>`;
 }
 
 // 4 · proyectos con su delta y su "por qué" (SOLO de detectores reales)

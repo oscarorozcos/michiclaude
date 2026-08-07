@@ -442,8 +442,9 @@ hacer público el repo (o sus releases).
       Hallazgos, filtro de proyectos, "cuándo pasó" en los hallazgos,
       comandos resaltados, Acerca de con versión real, rastro de los
       avisos en flowLog, y el panel llenando siempre su ventana (margen de
-      sombra 3 px desde 2026-08-06 — era 5; scrollbar fina redondeada
-      estilo overlay, global vía ::-webkit-scrollbar). DECISIONES VIGENTES de la ronda: tipografía EMBEBIDA
+      sombra 1 px desde 2026-08-07 — fue 8→5→3→1, Oscar lo quiere casi
+      invisible; scrollbar fina redondeada estilo overlay, global vía
+      ::-webkit-scrollbar). DECISIONES VIGENTES de la ronda: tipografía EMBEBIDA
       (`src/fonts/`, OFL, sin CDN — una fuente remota rompería CSP y
       privacidad); `.sect` es TARJETA con fondo; toda tarjeta con fondo
       propio redefine `--txt-mut`/`--txt-dim` en vez de repintar hijos;
@@ -494,17 +495,22 @@ hacer público el repo (o sus releases).
       (mínimo 5 días de datos tras el arreglo o dice "midiendo"), y
       "para los días que vienen" (top 2 fugas por costo, cada una CON su
       recomendación `fnd_<kind>_f` y una intro que dice qué es — lista de
-      tareas de ahorro, no alarma). Ronda de ajustes 2026-08-06 tras
-      capturas de Oscar: caché en memoria POR PERIODO + render PROGRESIVO
-      (stats primero, hallazgos re-pintan sus 2 secciones al llegar; el
-      cambio de chip ya no se siente lento), tokens del periodo en el
-      héroe (delta % NEUTRO sin verde/rojo — menos tokens puede ser menos
-      trabajo, el juicio vive solo en tokens/mensaje) + día más pesado +
-      tokens por proyecto y por semana en la gráfica, y re-render del
-      reporte al cambiar idioma (la gráfica se quedaba en el idioma
-      anterior). Sin candado de carga: peticiones con sello (repStamp),
-      la tardía se descarta. ~56 claves i18n ×8 (paridad por script).
-      FALTA: fase 3
+      tareas de ahorro, no alarma). Ronda 2026-08-06 tras capturas: caché
+      POR PERIODO + render PROGRESIVO (stats primero, hallazgos re-pintan
+      sus 2 secciones al llegar), y re-render al cambiar idioma. Ronda
+      2026-08-07 sobre maqueta de Oscar (michiclaude-hero-grafica.html):
+      héroe partido en EFICIENCIA arriba / VOLUMEN abajo (raya punteada;
+      "Cuánto trabajaste en total" con ≈$ real, día más pesado, nota
+      "no es contradicción" SOLO cuando volumen y costo/msj divergen, y
+      la regla "1M tok ≈ $X" con la tarifa REAL del periodo — cost/tok
+      medidos, nunca tarifa fija); la traducción a $ SIEMPRE pegada a su
+      dato de tokens (clase .as-money); gráfica GRANDE (viewBox 430×252,
+      píldoras de valor legibles) con conmutador tokens/«$ estimado»
+      (`repUnit` persistido; el $ semanal es el costo real de esa semana
+      ÷ sus mensajes), barras de volumen abajo y DETALLE al tocar punto o
+      barra (repSel). Sin candado de carga: peticiones con sello
+      (repStamp), la tardía se descarta. ~72 claves i18n ×8 (paridad por
+      script). FALTA: fase 3
       export HTML del mockup A. También en el doc y sin arrancar:
       manómetro de contexto en pastilla/gatito, detector de
       auto-compacts, detector de pegado masivo. DESCARTADO con porqué en
