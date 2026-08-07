@@ -219,6 +219,39 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
   archivado automático una pasada al día (`remArchDay`, marcado ANTES de
   intentar, estilo fndEventLast).
 
+### Lo que cazó la validación en vivo (2026-08-07)
+
+Dos bugs que solo aparecían en Windows real, ninguno visible en revisión
+de código:
+
+- **Barras.** El config trae el paquete con barra normal
+  (`@modelcontextprotocol/server-x`) y la línea de comando del proceso ya
+  resuelto lleva barra invertida
+  (`…\node_modules\@modelcontextprotocol\server-x\dist\index.js`): NINGÚN
+  MCP lanzado con npx casaba. Se normalizan los dos lados a `/` antes de
+  comparar.
+- **El script del kill no compilaba en PowerShell.** Iba en UNA sola
+  línea, y PowerShell no acepta el `}` de un bloque seguido de otra
+  sentencia sin separador: el script moría en el parser, stdout salía
+  vacío y TODO cierre acababa en ERR_ZOMBIE_KILL ("No se pudo cerrar")
+  mientras `Stop-Process` a mano funcionaba. Ahora el script lleva saltos
+  de línea reales. El escaneo nunca lo sufrió porque es una tubería de
+  una sola sentencia — al escribir scripts de PowerShell desde Rust,
+  saltos reales SIEMPRE.
+- De ahí salió `rem_debug.json` (foto cruda de stdout/stderr cuando el
+  veredicto no se reconoce): sin él, un fallo del kill es indistinguible
+  desde la UI. Y el veredicto ya no se decide por `$?` —que con
+  `-ErrorAction SilentlyContinue` no distingue "no pude" de "ya no
+  estaba"— sino re-consultando el PID.
+
+**Receta para fabricar un zombie de prueba** (los MCP bien educados como
+`server-memory` se cierran solos en cadena cuando su cliente muere, así
+que no sirven): un `mcp-fantasma.js` con `setInterval(function(){},
+1000000)`, registrado con `claude mcp add fantasma -- node <ruta>`, y
+lanzado con `powershell -Command "Start-Process node -ArgumentList
+'<ruta>' -WindowStyle Hidden"` — ese powershell intermedio muere en el
+acto y deja al node huérfano de nacimiento.
+
 ## Correcciones sobre la propuesta original (para no rediscutir)
 
 - **Contexto falso que traía el handoff:** licencia "MIT/Apache

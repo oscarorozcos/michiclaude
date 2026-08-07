@@ -4088,14 +4088,24 @@ async fn scan_zombies() -> Result<Vec<Zombie>, String> {
 #[cfg(windows)]
 fn kill_zombie_impl(pid: u32, name: &str, start: i64) -> Result<String, String> {
     use std::os::windows::process::CommandExt;
+    // SALTOS DE LÍNEA REALES, no una sola línea: PowerShell no acepta el
+    // `}` de un bloque seguido de otra sentencia sin separador, así que el
+    // script entero moría en el parser, stdout salía vacío y todo cierre
+    // acababa en ERR_ZOMBIE_KILL (2026-08-07, cazado validando en vivo:
+    // Stop-Process a mano SÍ funcionaba). El escaneo no lo sufría porque
+    // es una tubería de una sola sentencia.
+    // El veredicto se decide RE-CONSULTANDO el PID, no con $?: con
+    // -ErrorAction SilentlyContinue esa variable no distingue "no pude"
+    // de "ya no estaba".
     let script = format!(
-        "$e=[datetime]::new(1970,1,1,0,0,0,[datetimekind]::Utc);\
-        $p=Get-CimInstance Win32_Process -Filter 'ProcessId={pid}';\
-        if(-not $p){{ 'gone'; exit }}\
-        $s=if($p.CreationDate){{[int64]($p.CreationDate.ToUniversalTime()-$e).TotalSeconds}}else{{0}};\
-        if($p.Name -ne '{name}' -or [math]::Abs($s-{start}) -gt 2){{ 'changed'; exit }}\
-        Stop-Process -Id {pid} -Force -ErrorAction SilentlyContinue;\
-        if($?){{ 'ok' }} else {{ 'fail' }}",
+        "$e=[datetime]::new(1970,1,1,0,0,0,[datetimekind]::Utc)\n\
+         $p=Get-CimInstance Win32_Process -Filter 'ProcessId={pid}'\n\
+         if(-not $p){{ 'gone'; exit }}\n\
+         $s=if($p.CreationDate){{[int64]($p.CreationDate.ToUniversalTime()-$e).TotalSeconds}}else{{0}}\n\
+         if($p.Name -ne '{name}' -or [math]::Abs($s-{start}) -gt 2){{ 'changed'; exit }}\n\
+         Stop-Process -Id {pid} -Force -ErrorAction SilentlyContinue\n\
+         Start-Sleep -Milliseconds 300\n\
+         if(Get-Process -Id {pid} -ErrorAction SilentlyContinue){{ 'fail' }} else {{ 'ok' }}",
         pid = pid,
         name = name.replace('\'', ""),
         start = start
@@ -4110,7 +4120,26 @@ fn kill_zombie_impl(pid: u32, name: &str, start: i64) -> Result<String, String> 
         "ok" => Ok("ok".into()),
         "gone" => Ok("gone".into()),
         "changed" => Err("ERR_ZOMBIE_CHANGED".into()),
-        _ => Err("ERR_ZOMBIE_KILL".into()),
+        // Sin veredicto reconocible la UI solo puede decir "no se pudo"
+        // (invariante #10: Rust no redacta textos), así que la foto cruda
+        // va a un archivo, como quota_debug/coach_debug. Sin esto, el bug
+        // del parser de arriba fue invisible hasta probarlo a mano.
+        _ => {
+            let err = String::from_utf8_lossy(&out.stderr);
+            let _ = fs::write(
+                app_data_dir().join("rem_debug.json"),
+                serde_json::json!({
+                    "ts": Utc::now().timestamp(),
+                    "pid": pid,
+                    "name": name,
+                    "start": start,
+                    "stdout": verdict,
+                    "stderr": err.trim(),
+                })
+                .to_string(),
+            );
+            Err("ERR_ZOMBIE_KILL".into())
+        }
     }
 }
 
