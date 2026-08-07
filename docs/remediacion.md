@@ -147,8 +147,9 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
    clipboard sin pedirlo es invasivo; dep nueva justificada:
    tauri-plugin-clipboard-manager) [HECHO 2026-08-07: regla sintética
    `intent` con presión ≥80, tarjeta en Consejos con dos opciones,
-   evidencia, "Recomendado" por veredicto y "Ahora no"; pendiente cargo
-   check en Windows — dep nueva].
+   evidencia, "Recomendado" por veredicto y "Ahora no"; VALIDADA en vivo
+   el mismo día: nació sola con la sesión real del VPS al 100%,
+   veredicto frontera (0/5 todos + commit limpio) → /clear Recomendado].
 2. **Automático out-of-band:** matar zombies (con re-verificación
    anti-reciclaje de PID: nombre de ejecutable + hora de inicio antes
    del taskkill) + archivar JSONL **≥365 días** + registro de acciones +

@@ -553,15 +553,14 @@ hacer público el repo (o sus releases).
       sesiones del relevo), 4 relevo en WSL/SSH. Los 7 prompts para
       generar maquetas con otra IA están guardados en
       `docs/prompts-diseno-remediacion.md` (referencia visual, no código
-      integrable). ETAPA 1 COMPLETA (2026-08-07): 1a manómetro VALIDADO
-      en vivo por Oscar; 1b señales+clasificador y 1c tarjeta de
-      intención IMPLEMENTADAS (ver sección Coach; motor Python validado
-      con logs reales del VPS: detectó la sesión de trabajo con topen
-      5/6 y cont 50). Pendiente: `cargo check` en Windows (dep NUEVA
-      tauri-plugin-clipboard-manager — la primera compilación la
-      descarga) y ver tarjeta+clipboard en vivo. Las etapas 2-4 NO
-      arrancan sin decisión explícita de Oscar: matar procesos es clase
-      nueva de capacidad.
+      integrable). ETAPA 1 COMPLETA Y VALIDADA EN VIVO (2026-08-07):
+      manómetro, clasificador y tarjeta de intención vistos con datos
+      REALES en el Windows de Oscar — la sesión de trabajo del VPS llegó
+      a 100%, veredicto frontera (0/5 todos + commit limpio) → /clear
+      Recomendado; compiló con la dep nueva
+      tauri-plugin-clipboard-manager. Falta solo un clic a "Copiar
+      comando". Las etapas 2-4 NO arrancan sin decisión explícita de
+      Oscar: matar procesos es clase nueva de capacidad.
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.

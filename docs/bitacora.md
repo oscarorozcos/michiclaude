@@ -2425,3 +2425,31 @@ recomendaría /compact. El simulador "🧪 Simular hallazgos" gana una
 tarjeta intent falsa para probar lo visual sin esperar presión real.
 PENDIENTE: cargo check en Windows (la dep nueva se descarga en la
 primera compilación) y ver la tarjeta nacer en vivo.
+
+### Sexta sesión (2026-08-07) — la prueba real que se hizo sola
+
+El pendiente "ver la tarjeta nacer en vivo" se resolvió de la forma más
+poética posible: la sesión de Claude Code del VPS en la que CONSTRUIMOS
+la tarjeta llegó al 100% de presión (se compactó trabajando), y Michi la
+cazó en el Windows de Oscar sin simulador ni re-armado — "digamos que
+fue prueba real jaja" (Oscar, con capturas).
+
+Lo que confirmaron las capturas, punto por punto:
+- La tarjeta nació sola en Consejos: "Tu sesión ya pesa mucho · 100%",
+  proyecto "michiclaude · VPS-EU" (el origin remoto pintado bien).
+- El VEREDICTO acertó: evidencia "lista de tareas: 0 de 5 sin terminar
+  · commit reciente sin cambios después · último mensaje hace 3 min" →
+  frontera → insignia RECOMENDADO en /clear. Exactamente lo que el
+  clasificador debía concluir con esos hechos (la lista de todos ya
+  estaba completada y el último commit no tenía ediciones después).
+- Globo del gatito con la fila "Presión de contexto 100%" en rojo entre
+  Sesión y Semanal; arco del manómetro en la cápsula conviviendo con el
+  % de sesión (94%); contador "1" en la pestaña Consejos.
+- De rebote: cargo check y la compilación con la dep nueva
+  tauri-plugin-clipboard-manager pasaron en Windows (nada de esto
+  existiría en pantalla sin ella).
+
+Con esto la ETAPA 1 de remediación queda validada en vivo de punta a
+punta salvo un clic: el botón "Copiar comando" (pegar y ver /compact o
+/clear). Las etapas 2-4 siguen sin arrancar a la espera de la decisión
+explícita de Oscar (matar procesos = clase nueva de capacidad).
