@@ -544,23 +544,24 @@ hacer público el repo (o sus releases).
       el doc: sesión contaminada, score único, modelo local, telemetría
       colectiva (choca con invariante #3).
 - [ ] REMEDIACIÓN (diseño en `docs/remediacion.md` — LEERLO antes de
-      tocar; 2026-08-07, destilado de una propuesta externa CORREGIDA:
-      lo que chocaba con invariantes y su porqué está ahí). Etapas: 1
-      consejero con intención (manómetro + parser TodoWrite + tarjeta
-      con clipboard al clic), 2 automático out-of-band (zombies con
-      anti-reciclaje de PID, archivar ≥365d, candados de confianza
-      progresiva), 3 relevo ConPTY `michi claude` (inyección real, solo
-      sesiones del relevo), 4 relevo en WSL/SSH. Los 7 prompts para
-      generar maquetas con otra IA están guardados en
-      `docs/prompts-diseno-remediacion.md` (referencia visual, no código
-      integrable). ETAPA 1 COMPLETA Y VALIDADA EN VIVO (2026-08-07):
-      manómetro, clasificador y tarjeta de intención vistos con datos
-      REALES en el Windows de Oscar — la sesión de trabajo del VPS llegó
-      a 100%, veredicto frontera (0/5 todos + commit limpio) → /clear
-      Recomendado; compiló con la dep nueva
-      tauri-plugin-clipboard-manager y el botón "Copiar comando"
-      funcionó. Las etapas 2-4 NO arrancan sin decisión explícita de
-      Oscar: matar procesos es clase nueva de capacidad.
+      tocar; ahí está lo que chocaba con invariantes y su porqué, y los
+      prompts de maquetas en `docs/prompts-diseno-remediacion.md`).
+      Etapas: 1 consejero con intención, 2 automático out-of-band, 3
+      relevo ConPTY `michi claude`, 4 relevo en WSL/SSH. ETAPA 1
+      COMPLETA Y VALIDADA EN VIVO (2026-08-07, detalle en el doc y la
+      bitácora). ETAPA 2 IMPLEMENTADA (2026-08-07, con el go explícito
+      de Oscar — matar procesos era decisión suya): zombies MCP por
+      PowerShell/CIM sin deps nuevas (firma = arg más largo de cada MCP
+      stdio de ~/.claude.json; huérfano = padre muerto o PID de padre
+      reciclado; kill re-verifica PID+exe+arranque), archivado ≥365d a
+      `%APPDATA%\<app>\archive`, registro `actions_log.json` (tope 200,
+      d1/d2 crudos y el panel traduce), desbloqueo progresivo en
+      localStorage (`remCfg`/`remFirst`: zombie ON / archive OFF por
+      defecto, primera vez SIEMPRE manual), sección en Ajustes +
+      tarjeta de zombies en Consejos (pipeline normal, clave
+      zombie|arranque-más-nuevo) y sondeo horario `remPoll`. SOLO
+      LOCAL: WSL/SSH quedan para etapas 3-4. PENDIENTE: cargo check en
+      Windows + validación en vivo; etapas 3-4 tras validar la 2.
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.

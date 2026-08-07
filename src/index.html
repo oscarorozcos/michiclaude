@@ -296,6 +296,12 @@
   .int-later{margin-top:10px;text-align:right;font-size:11px;color:var(--txt-dim);
     cursor:pointer}
   .int-later:hover{color:var(--txt)}
+  /* Remediación etapa 2: filas de zombies (Ajustes y tarjeta) y registro */
+  .rem-z{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:11px;color:var(--txt-mut);padding:3px 0;min-width:0}
+  .rem-z b{color:var(--txt)}
+  .rem-z span{overflow-wrap:anywhere}
+  .rem-l{font-size:10.5px;color:var(--txt-dim);padding:2px 0;overflow-wrap:anywhere}
   .fnd-x{position:absolute;top:11px;right:12px;font-size:10.5px;font-weight:600;
     color:var(--txt-dim);background:var(--card-hi);border:1px solid var(--stroke-soft);
     border-radius:999px;padding:3px 9px;cursor:pointer;transition:.15s}
@@ -1415,6 +1421,38 @@
     </div>
   </div>
 
+  <!-- REMEDIACIÓN (docs/remediacion.md etapa 2): lo que Michi puede
+       arreglar DIRECTO, sin tocar la terminal. Desbloqueo progresivo: la
+       primera vez de cada acción SIEMPRE la aplica el usuario con su clic
+       (aquí o en la tarjeta de Consejos); solo después el interruptor
+       automático tiene efecto. Todo lo aplicado queda en el registro. -->
+  <div class="sect">
+    <div class="eyebrow" data-i18n="rem_label"></div>
+    <div class="cfg-form">
+      <div class="cfg-note" data-i18n="rem_hint"></div>
+      <label class="cfg-row" style="cursor:pointer">
+        <span data-i18n="rem_zombie_on"></span><input type="checkbox" id="remZombieChk">
+      </label>
+      <div class="cfg-note" id="remZombieLock" hidden style="color:var(--warn)" data-i18n="rem_lock"></div>
+      <div class="btnrow">
+        <button id="remZombieScan" class="sec" data-i18n="rem_scan_now"></button>
+        <span id="remZombieMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+      </div>
+      <div id="remZombieList"></div>
+      <label class="cfg-row" style="cursor:pointer;margin-top:6px">
+        <span data-i18n="rem_arch_on"></span><input type="checkbox" id="remArchChk">
+      </label>
+      <div class="cfg-note" id="remArchLock" hidden style="color:var(--warn)" data-i18n="rem_lock"></div>
+      <div class="btnrow">
+        <button id="remArchScan" class="sec" data-i18n="rem_arch_scan"></button>
+        <button id="remArchGo" hidden data-i18n="rem_arch_go"></button>
+        <span id="remArchMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+      </div>
+      <div class="cfg-lbl" data-i18n="rem_log_label"></div>
+      <div id="remLog" class="cfg-note"></div>
+    </div>
+  </div>
+
   <div class="sect">
     <div class="eyebrow" data-i18n="prices_label"></div>
     <div class="cfg-form">
@@ -1870,6 +1908,34 @@ en:{
   int_copy:"Copy command",
   int_copied:"Copied ✓",
   int_later:"Not now",
+  rem_label:"Automatic remediation",
+  rem_hint:"Michi can fix what it controls directly, outside the Claude Code terminal. The first time of each action is always applied by you, with a click.",
+  rem_zombie_on:"Close orphaned MCP processes automatically",
+  rem_arch_on:"Archive logs older than a year automatically",
+  rem_lock:"Michi doesn't automate what you haven't seen: apply it yourself once and the automatic mode unlocks.",
+  rem_scan_now:"Check now",
+  rem_found:n=>n===1?"1 orphaned process found":`${n} orphaned processes found`,
+  rem_none:"No orphaned MCP processes",
+  rem_kill:"Close",
+  rem_killed:"Closed ✓",
+  rem_kill_all:"Close all",
+  rem_kill_fail:"Couldn't close",
+  rem_arch_scan:"Check old logs",
+  rem_arch_go:"Archive now",
+  rem_arch_msg:(n,mb)=>`${n} files · ${mb} MB older than a year`,
+  rem_arch_none:"No logs older than a year",
+  rem_arch_done:n=>`Archived ${n} files ✓`,
+  rem_arch_failn:n=>`${n} failed`,
+  rem_log_label:"Action log",
+  rem_log_empty:"Nothing applied yet",
+  rem_log_zombie:s=>`closed orphaned MCP «${s}»`,
+  rem_log_arch:(n,mb)=>`archived ${n} logs (${mb} MB)`,
+  rem_auto_lab:"auto",
+  rem_man_lab:"manual",
+  rem_fail_lab:"failed",
+  rem_card_t:"Orphaned MCP processes",
+  rem_card_m:(n,mb)=>`${n===1?"1 process":n+" processes"} · ${mb} MB of RAM retained`,
+  rem_card_b:"A closed Claude Code session left these MCP servers running. Nothing is using them — closing them frees the memory and touches nothing else.",
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
   pill_layer_normal:"Normal window",
@@ -2230,6 +2296,34 @@ es:{
   int_copy:"Copiar comando",
   int_copied:"Copiado ✓",
   int_later:"Ahora no",
+  rem_label:"Remediación automática",
+  rem_hint:"Michi puede arreglar lo que controla directo, fuera de la terminal de Claude Code. La primera vez de cada acción siempre la aplicas tú, con un clic.",
+  rem_zombie_on:"Cerrar procesos MCP huérfanos en automático",
+  rem_arch_on:"Archivar logs con más de un año en automático",
+  rem_lock:"Michi no automatiza lo que no has visto: aplícalo tú una vez y el automático se desbloquea.",
+  rem_scan_now:"Revisar ahora",
+  rem_found:n=>n===1?"1 proceso huérfano encontrado":`${n} procesos huérfanos encontrados`,
+  rem_none:"Sin procesos MCP huérfanos",
+  rem_kill:"Cerrar",
+  rem_killed:"Cerrado ✓",
+  rem_kill_all:"Cerrar todos",
+  rem_kill_fail:"No se pudo cerrar",
+  rem_arch_scan:"Revisar logs viejos",
+  rem_arch_go:"Archivar ahora",
+  rem_arch_msg:(n,mb)=>`${n} archivos · ${mb} MB con más de un año`,
+  rem_arch_none:"Sin logs con más de un año",
+  rem_arch_done:n=>`${n} archivos archivados ✓`,
+  rem_arch_failn:n=>`${n} fallaron`,
+  rem_log_label:"Registro de acciones",
+  rem_log_empty:"Aún no se ha aplicado nada",
+  rem_log_zombie:s=>`cerró el MCP huérfano «${s}»`,
+  rem_log_arch:(n,mb)=>`archivó ${n} logs (${mb} MB)`,
+  rem_auto_lab:"auto",
+  rem_man_lab:"manual",
+  rem_fail_lab:"falló",
+  rem_card_t:"Procesos MCP huérfanos",
+  rem_card_m:(n,mb)=>`${n===1?"1 proceso":n+" procesos"} · ${mb} MB de RAM retenidos`,
+  rem_card_b:"Una sesión cerrada de Claude Code dejó estos servidores MCP corriendo. Nada los está usando — cerrarlos libera la memoria y no toca nada más.",
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
   pill_layer_normal:"Ventana normal",
@@ -2590,6 +2684,34 @@ pt:{
   int_copy:"Copiar comando",
   int_copied:"Copiado ✓",
   int_later:"Agora não",
+  rem_label:"Remediação automática",
+  rem_hint:"O Michi pode consertar o que controla diretamente, fora do terminal do Claude Code. A primeira vez de cada ação é sempre aplicada por você, com um clique.",
+  rem_zombie_on:"Fechar processos MCP órfãos automaticamente",
+  rem_arch_on:"Arquivar logs com mais de um ano automaticamente",
+  rem_lock:"O Michi não automatiza o que você não viu: aplique você mesmo uma vez e o automático se desbloqueia.",
+  rem_scan_now:"Verificar agora",
+  rem_found:n=>n===1?"1 processo órfão encontrado":`${n} processos órfãos encontrados`,
+  rem_none:"Nenhum processo MCP órfão",
+  rem_kill:"Fechar",
+  rem_killed:"Fechado ✓",
+  rem_kill_all:"Fechar todos",
+  rem_kill_fail:"Não foi possível fechar",
+  rem_arch_scan:"Verificar logs antigos",
+  rem_arch_go:"Arquivar agora",
+  rem_arch_msg:(n,mb)=>`${n} arquivos · ${mb} MB com mais de um ano`,
+  rem_arch_none:"Nenhum log com mais de um ano",
+  rem_arch_done:n=>`${n} arquivos arquivados ✓`,
+  rem_arch_failn:n=>`${n} falharam`,
+  rem_log_label:"Registro de ações",
+  rem_log_empty:"Nada aplicado ainda",
+  rem_log_zombie:s=>`fechou o MCP órfão «${s}»`,
+  rem_log_arch:(n,mb)=>`arquivou ${n} logs (${mb} MB)`,
+  rem_auto_lab:"auto",
+  rem_man_lab:"manual",
+  rem_fail_lab:"falhou",
+  rem_card_t:"Processos MCP órfãos",
+  rem_card_m:(n,mb)=>`${n===1?"1 processo":n+" processos"} · ${mb} MB de RAM retidos`,
+  rem_card_b:"Uma sessão fechada do Claude Code deixou estes servidores MCP rodando. Nada os está usando — fechá-los libera a memória e não toca em mais nada.",
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
   pill_layer_normal:"Janela normal",
@@ -2950,6 +3072,34 @@ fr:{
   int_copy:"Copier la commande",
   int_copied:"Copié ✓",
   int_later:"Pas maintenant",
+  rem_label:"Remédiation automatique",
+  rem_hint:"Michi peut réparer ce qu'il contrôle directement, hors du terminal Claude Code. La première fois de chaque action, c'est toujours vous qui l'appliquez, d'un clic.",
+  rem_zombie_on:"Fermer automatiquement les processus MCP orphelins",
+  rem_arch_on:"Archiver automatiquement les journaux de plus d'un an",
+  rem_lock:"Michi n'automatise pas ce que vous n'avez pas vu : appliquez-le vous-même une fois et l'automatique se débloque.",
+  rem_scan_now:"Vérifier maintenant",
+  rem_found:n=>n===1?"1 processus orphelin trouvé":`${n} processus orphelins trouvés`,
+  rem_none:"Aucun processus MCP orphelin",
+  rem_kill:"Fermer",
+  rem_killed:"Fermé ✓",
+  rem_kill_all:"Tout fermer",
+  rem_kill_fail:"Fermeture impossible",
+  rem_arch_scan:"Vérifier les vieux journaux",
+  rem_arch_go:"Archiver maintenant",
+  rem_arch_msg:(n,mb)=>`${n} fichiers · ${mb} Mo de plus d'un an`,
+  rem_arch_none:"Aucun journal de plus d'un an",
+  rem_arch_done:n=>`${n} fichiers archivés ✓`,
+  rem_arch_failn:n=>`${n} en échec`,
+  rem_log_label:"Journal des actions",
+  rem_log_empty:"Rien d'appliqué pour l'instant",
+  rem_log_zombie:s=>`a fermé le MCP orphelin « ${s} »`,
+  rem_log_arch:(n,mb)=>`a archivé ${n} journaux (${mb} Mo)`,
+  rem_auto_lab:"auto",
+  rem_man_lab:"manuel",
+  rem_fail_lab:"échec",
+  rem_card_t:"Processus MCP orphelins",
+  rem_card_m:(n,mb)=>`${n===1?"1 processus":n+" processus"} · ${mb} Mo de RAM retenus`,
+  rem_card_b:"Une session Claude Code fermée a laissé ces serveurs MCP en cours. Rien ne les utilise — les fermer libère la mémoire et ne touche à rien d'autre.",
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
   pill_layer_normal:"Fenêtre normale",
@@ -3310,6 +3460,34 @@ de:{
   int_copy:"Befehl kopieren",
   int_copied:"Kopiert ✓",
   int_later:"Jetzt nicht",
+  rem_label:"Automatische Aufräumaktionen",
+  rem_hint:"Michi kann reparieren, was er direkt kontrolliert — außerhalb des Claude-Code-Terminals. Das erste Mal jeder Aktion führst immer du aus, per Klick.",
+  rem_zombie_on:"Verwaiste MCP-Prozesse automatisch beenden",
+  rem_arch_on:"Logs, die älter als ein Jahr sind, automatisch archivieren",
+  rem_lock:"Michi automatisiert nichts, was du nicht gesehen hast: einmal selbst anwenden, und der Automatikmodus wird freigeschaltet.",
+  rem_scan_now:"Jetzt prüfen",
+  rem_found:n=>n===1?"1 verwaister Prozess gefunden":`${n} verwaiste Prozesse gefunden`,
+  rem_none:"Keine verwaisten MCP-Prozesse",
+  rem_kill:"Beenden",
+  rem_killed:"Beendet ✓",
+  rem_kill_all:"Alle beenden",
+  rem_kill_fail:"Beenden fehlgeschlagen",
+  rem_arch_scan:"Alte Logs prüfen",
+  rem_arch_go:"Jetzt archivieren",
+  rem_arch_msg:(n,mb)=>`${n} Dateien · ${mb} MB älter als ein Jahr`,
+  rem_arch_none:"Keine Logs älter als ein Jahr",
+  rem_arch_done:n=>`${n} Dateien archiviert ✓`,
+  rem_arch_failn:n=>`${n} fehlgeschlagen`,
+  rem_log_label:"Aktionsprotokoll",
+  rem_log_empty:"Noch nichts angewendet",
+  rem_log_zombie:s=>`verwaisten MCP „${s}“ beendet`,
+  rem_log_arch:(n,mb)=>`${n} Logs archiviert (${mb} MB)`,
+  rem_auto_lab:"auto",
+  rem_man_lab:"manuell",
+  rem_fail_lab:"fehlgeschlagen",
+  rem_card_t:"Verwaiste MCP-Prozesse",
+  rem_card_m:(n,mb)=>`${n===1?"1 Prozess":n+" Prozesse"} · ${mb} MB RAM belegt`,
+  rem_card_b:"Eine geschlossene Claude-Code-Sitzung hat diese MCP-Server laufen lassen. Nichts nutzt sie — sie zu beenden gibt den Speicher frei und rührt sonst nichts an.",
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
   pill_layer_normal:"Normales Fenster",
@@ -3670,6 +3848,34 @@ ja:{
   int_copy:"コマンドをコピー",
   int_copied:"コピーしました ✓",
   int_later:"今はしない",
+  rem_label:"自動修復",
+  rem_hint:"Michi は直接制御できるものを、Claude Code のターミナルの外で修復できます。各アクションの初回は必ずあなたがクリックで適用します。",
+  rem_zombie_on:"孤立した MCP プロセスを自動で終了する",
+  rem_arch_on:"1年以上前のログを自動でアーカイブする",
+  rem_lock:"Michi はあなたが見ていないことを自動化しません。一度自分で適用すると自動モードが解除されます。",
+  rem_scan_now:"今すぐ確認",
+  rem_found:n=>`孤立プロセスを ${n} 件検出`,
+  rem_none:"孤立した MCP プロセスはありません",
+  rem_kill:"終了",
+  rem_killed:"終了しました ✓",
+  rem_kill_all:"すべて終了",
+  rem_kill_fail:"終了できませんでした",
+  rem_arch_scan:"古いログを確認",
+  rem_arch_go:"今すぐアーカイブ",
+  rem_arch_msg:(n,mb)=>`1年以上前のファイル ${n} 件 · ${mb} MB`,
+  rem_arch_none:"1年以上前のログはありません",
+  rem_arch_done:n=>`${n} 件をアーカイブしました ✓`,
+  rem_arch_failn:n=>`${n} 件失敗`,
+  rem_log_label:"アクション履歴",
+  rem_log_empty:"まだ何も適用されていません",
+  rem_log_zombie:s=>`孤立 MCP「${s}」を終了`,
+  rem_log_arch:(n,mb)=>`ログ ${n} 件をアーカイブ（${mb} MB）`,
+  rem_auto_lab:"自動",
+  rem_man_lab:"手動",
+  rem_fail_lab:"失敗",
+  rem_card_t:"孤立した MCP プロセス",
+  rem_card_m:(n,mb)=>`${n} プロセス · RAM ${mb} MB を占有`,
+  rem_card_b:"終了した Claude Code セッションがこれらの MCP サーバーを残したままです。どこからも使われていません — 終了すればメモリが解放され、他には何も触れません。",
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
   pill_layer_normal:"通常ウィンドウ",
@@ -4030,6 +4236,34 @@ ko:{
   int_copy:"명령 복사",
   int_copied:"복사됨 ✓",
   int_later:"나중에",
+  rem_label:"자동 복구",
+  rem_hint:"Michi는 Claude Code 터미널 밖에서 직접 제어할 수 있는 것을 고칠 수 있습니다. 각 작업의 첫 실행은 항상 사용자가 클릭으로 적용합니다.",
+  rem_zombie_on:"고아 MCP 프로세스를 자동으로 종료",
+  rem_arch_on:"1년 이상 된 로그를 자동으로 보관",
+  rem_lock:"Michi는 사용자가 보지 않은 것을 자동화하지 않습니다. 한 번 직접 적용하면 자동 모드가 잠금 해제됩니다.",
+  rem_scan_now:"지금 확인",
+  rem_found:n=>`고아 프로세스 ${n}개 발견`,
+  rem_none:"고아 MCP 프로세스 없음",
+  rem_kill:"종료",
+  rem_killed:"종료됨 ✓",
+  rem_kill_all:"모두 종료",
+  rem_kill_fail:"종료할 수 없음",
+  rem_arch_scan:"오래된 로그 확인",
+  rem_arch_go:"지금 보관",
+  rem_arch_msg:(n,mb)=>`1년 이상 된 파일 ${n}개 · ${mb} MB`,
+  rem_arch_none:"1년 이상 된 로그 없음",
+  rem_arch_done:n=>`${n}개 파일 보관됨 ✓`,
+  rem_arch_failn:n=>`${n}개 실패`,
+  rem_log_label:"작업 기록",
+  rem_log_empty:"아직 적용된 작업 없음",
+  rem_log_zombie:s=>`고아 MCP «${s}» 종료`,
+  rem_log_arch:(n,mb)=>`로그 ${n}개 보관 (${mb} MB)`,
+  rem_auto_lab:"자동",
+  rem_man_lab:"수동",
+  rem_fail_lab:"실패",
+  rem_card_t:"고아 MCP 프로세스",
+  rem_card_m:(n,mb)=>`프로세스 ${n}개 · RAM ${mb} MB 점유`,
+  rem_card_b:"종료된 Claude Code 세션이 이 MCP 서버들을 남겨 두었습니다. 아무것도 사용하지 않습니다 — 종료하면 메모리가 해제되고 다른 것은 건드리지 않습니다.",
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
   pill_layer_normal:"일반 창",
@@ -4390,6 +4624,34 @@ zh:{
   int_copy:"复制命令",
   int_copied:"已复制 ✓",
   int_later:"暂不",
+  rem_label:"自动修复",
+  rem_hint:"Michi 可以在 Claude Code 终端之外修复它能直接控制的东西。每类操作的第一次始终由你点击执行。",
+  rem_zombie_on:"自动关闭孤立的 MCP 进程",
+  rem_arch_on:"自动归档一年以上的日志",
+  rem_lock:"Michi 不会自动化你没见过的操作：自己应用一次后，自动模式才会解锁。",
+  rem_scan_now:"立即检查",
+  rem_found:n=>`发现 ${n} 个孤立进程`,
+  rem_none:"没有孤立的 MCP 进程",
+  rem_kill:"关闭",
+  rem_killed:"已关闭 ✓",
+  rem_kill_all:"全部关闭",
+  rem_kill_fail:"无法关闭",
+  rem_arch_scan:"检查旧日志",
+  rem_arch_go:"立即归档",
+  rem_arch_msg:(n,mb)=>`${n} 个文件 · ${mb} MB 超过一年`,
+  rem_arch_none:"没有超过一年的日志",
+  rem_arch_done:n=>`已归档 ${n} 个文件 ✓`,
+  rem_arch_failn:n=>`${n} 个失败`,
+  rem_log_label:"操作记录",
+  rem_log_empty:"尚未执行任何操作",
+  rem_log_zombie:s=>`关闭了孤立 MCP «${s}»`,
+  rem_log_arch:(n,mb)=>`归档了 ${n} 个日志（${mb} MB）`,
+  rem_auto_lab:"自动",
+  rem_man_lab:"手动",
+  rem_fail_lab:"失败",
+  rem_card_t:"孤立的 MCP 进程",
+  rem_card_m:(n,mb)=>`${n} 个进程 · 占用 ${mb} MB 内存`,
+  rem_card_b:"已关闭的 Claude Code 会话留下了这些 MCP 服务器。没有任何东西在使用它们——关闭即可释放内存，不会影响其他任何东西。",
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
   pill_layer_normal:"普通窗口",
@@ -6100,9 +6362,29 @@ function renderTips(){
     </div>`});
     }catch(_){/* una tarjeta malformada no tumba a las demás */}
   }
+  // TARJETA DE ZOMBIES (docs/remediacion.md etapa 2): procesos MCP
+  // huérfanos detectados y aún sin permiso automático (o automático
+  // apagado). Enseña la evidencia (qué proceso, cuánto lleva, cuánta RAM)
+  // y el botón que ES la primera aplicación manual del desbloqueo
+  // progresivo. Solo nace en local: el escaneo ni existe por SSH.
+  const zoms=q?[]:cards.filter(c=>c.h.rule==="zombie");
+  for(const c of zoms){
+    try{
+      const h=c.h;
+      live.push({born:c.born||0, html:`<div class="fnd tip int${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
+      <button class="tip-x" aria-label="✕">✕</button>
+      <div class="fnd-t">${t("rem_card_t")}</div>
+      <div class="fnd-m">${t("rem_card_m",h.value,Math.max(1,Math.round((h.mem||0)/1048576)))}</div>
+      <div class="fnd-f">${t("rem_card_b")}
+        ${(h.list||[]).map(z=>`<div class="rem-z"><span><b>«${esc(z.server)}»</b> · ${esc(z.name)} · ${remAge(z.mins||0)} · ${remMB(z.mem||0)} MB</span></div>`).join("")}
+        <div class="int-row"><button class="int-copy rem-card-kill">${t("rem_kill_all")}</button></div>
+        <div class="int-later">${t("int_later")}</div></div>
+    </div>`});
+    }catch(_){/* una tarjeta malformada no tumba a las demás */}
+  }
   // fichas disparadas por el motor de reglas: abiertas (salvo que el
   // usuario las haya contraído) y con su línea "Ahora: <dato medido>"
-  const hot={}; cards.forEach(c=>{ if(c.h.rule!=="sum"&&c.h.rule!=="intent"&&!(c.h.rule in hot)) hot[c.h.rule]=c; });
+  const hot={}; cards.forEach(c=>{ if(c.h.rule!=="sum"&&c.h.rule!=="intent"&&c.h.rule!=="zombie"&&!(c.h.rule in hot)) hot[c.h.rule]=c; });
   const ids=[...TIPS].filter(id=>!q ||
     (t("tip_"+id+"_t")+" "+t("tip_"+id+"_b")).toLowerCase().includes(q));
   const tipHtml=id=>{
@@ -6184,6 +6466,23 @@ function renderTips(){
       flog("intent: ahora no "+k);
       if(simFnd) coachHits=coachHits.filter(h=>h.rule+"|"+h.session!==k);
       else saveCoachCards(coachCardsStore().filter(c=>c.h.rule+"|"+c.h.session!==k));
+      renderTips(); renderTipsDot();
+      if(lastPillArgs) emitPill(...lastPillArgs);
+    }));
+  // "Cerrar todos" de la tarjeta de zombies: ESTA es la primera aplicación
+  // manual que desbloquea el automático (remKillList la sella). Al
+  // terminar, la tarjeta se despacha — el resultado queda en el registro
+  // de Ajustes y en los procesos mismos.
+  $("tipList").querySelectorAll(".rem-card-kill").forEach(b=>
+    b.addEventListener("click",async e=>{
+      e.stopPropagation();
+      if(simFnd||!invoke) return;
+      b.disabled=true; b.textContent="…";
+      const el=b.closest(".tip"), k=el?.dataset.ck;
+      const card=coachCardsStore().find(c=>c.h.rule+"|"+c.h.session===k);
+      const r=await remKillList(card?.h.list||[],false);
+      flog("rem: tarjeta zombie aplicada — "+r.ok+" ok, "+r.fail+" fallos");
+      saveCoachCards(coachCardsStore().filter(c=>c.h.rule+"|"+c.h.session!==k));
       renderTips(); renderTipsDot();
       if(lastPillArgs) emitPill(...lastPillArgs);
     }));
@@ -6991,8 +7290,9 @@ function showTab(name){
   if(name==="findings") loadFindings(Date.now()-fndCacheAt>5*60*1000);
   if(name==="tips"){ renderTips(); renderTipFoot(); }  // estático: gratis
   if(name==="report") loadReport(false);          // TTL de 5 min, como Hallazgos
-  if(name==="prefs") renderPricesStatus();        // la descarga de fondo puede
+  if(name==="prefs"){ renderPricesStatus();       // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
+    remUi(); remLogLoad(); remZombieRows(); }     // remediación: estado + registro frescos
   document.querySelector(".panel").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
@@ -7201,6 +7501,181 @@ $("fndBadgeChk").addEventListener("change",()=>{
   else localStorage.setItem("fndBadgeOff","1");
   if(lastPillArgs) emitPill(...lastPillArgs);
 });
+// ---------- remediación etapa 2 (docs/remediacion.md) ----------
+// Automático out-of-band, SOLO LOCAL: cerrar MCPs zombies y archivar
+// JSONL ≥365 días. El backend ejecuta y registra; AQUÍ vive el desbloqueo
+// progresivo: la primera vez de cada acción SIEMPRE la aplica el usuario
+// con su clic — sin esa primera manual el interruptor automático no
+// tiene efecto ("Michi no automatiza lo que no entiendes").
+//   remCfg   {zombie:bool, archive:bool} — interruptores (zombie ON por
+//            defecto: riesgo bajo real; archive OFF por defecto)
+//   remFirst {zombie:ts, archive:ts} — sello de la primera manual
+function remCfg(){ try{ return JSON.parse(localStorage.getItem("remCfg")||"{}"); }catch(_){ return {}; } }
+function remOn(k){ const c=remCfg(); return k in c ? !!c[k] : k==="zombie"; }
+function remFirstSet(){ try{ return JSON.parse(localStorage.getItem("remFirst")||"{}"); }catch(_){ return {}; } }
+function remUnlocked(k){ return !!remFirstSet()[k]; }
+function remMarkManual(k){
+  const f=remFirstSet();
+  if(!f[k]){ f[k]=Date.now(); localStorage.setItem("remFirst",JSON.stringify(f));
+    flog("rem: primera manual de "+k+" — automático desbloqueado"); remUi(); }
+}
+function remUi(){
+  $("remZombieChk").checked=remOn("zombie");
+  $("remArchChk").checked=remOn("archive");
+  // el candado solo se enseña cuando el automático está pedido pero aún
+  // no ganado — con el interruptor apagado no hay nada que explicar
+  $("remZombieLock").hidden=!(remOn("zombie")&&!remUnlocked("zombie"));
+  $("remArchLock").hidden=!(remOn("archive")&&!remUnlocked("archive"));
+}
+for(const [id,k] of [["remZombieChk","zombie"],["remArchChk","archive"]])
+  $(id).addEventListener("change",()=>{
+    const c=remCfg(); c[k]=$(id).checked;
+    localStorage.setItem("remCfg",JSON.stringify(c));
+    flog("rem: automático de "+k+" → "+(c[k]?"on":"off"));
+    remUi();
+  });
+// La edad se enseña en unidades humanas; "min"/"h" son universales en los
+// 8 idiomas (mismo criterio que las notifs).
+function remAge(mins){ return mins<90 ? Math.round(mins)+" min" : (mins/60).toFixed(mins<600?1:0)+" h"; }
+function remMB(b){ return Math.max(1,Math.round(b/1048576)); }
+let lastZombies=[];
+function remZombieRows(){
+  const el=$("remZombieList"); if(!el) return;
+  el.innerHTML=lastZombies.map((z,i)=>`<div class="rem-z">
+      <span><b>«${escapeHtml(z.server)}»</b> · ${escapeHtml(z.name)} · ${remAge(z.mins)} · ${remMB(z.mem)} MB</span>
+      <button class="sec rem-kill" data-i="${i}">${t("rem_kill")}</button></div>`).join("");
+  el.querySelectorAll(".rem-kill").forEach(b=>
+    b.addEventListener("click",async ()=>{
+      b.disabled=true;
+      const r=await remKillList([lastZombies[+b.dataset.i]],false);
+      $("remZombieMsg").textContent=r.fail?t("rem_kill_fail"):t("rem_killed");
+    }));
+}
+// Cierra una lista de zombies. El backend re-verifica PID+ejecutable+hora
+// de arranque justo antes del kill (anti-reciclaje); "gone" = se cerró
+// solo (no cuenta como aplicación ni va al registro).
+async function remKillList(list,auto){
+  let ok=0,fail=0;
+  if(!invoke) return {ok,fail};
+  for(const z of (list||[])){
+    try{
+      const r=await invoke("kill_zombie",{pid:z.pid,name:z.name,start:z.start,server:z.server,auto});
+      flog("rem: zombie «"+z.server+"» pid "+z.pid+" → "+r+(auto?" (auto)":""));
+      if(r==="ok"){ ok++; if(!auto) remMarkManual("zombie"); }
+    }catch(e){ fail++; flog("rem: zombie «"+z.server+"» ERROR "+e); }
+    lastZombies=lastZombies.filter(x=>!(x.pid===z.pid&&x.start===z.start));
+  }
+  remZombieRows(); remLogLoad();
+  return {ok,fail};
+}
+$("remZombieScan").addEventListener("click",async ()=>{
+  if(!invoke) return;
+  $("remZombieMsg").textContent="…";
+  try{
+    lastZombies=await invoke("scan_zombies")||[];
+    $("remZombieMsg").textContent=lastZombies.length?t("rem_found",lastZombies.length):t("rem_none");
+    remZombieRows();
+  }catch(e){ $("remZombieMsg").textContent=t("rem_kill_fail"); flog("rem: scan ERROR "+e); }
+});
+$("remArchScan").addEventListener("click",async ()=>{
+  if(!invoke) return;
+  $("remArchMsg").textContent="…"; $("remArchGo").hidden=true;
+  try{
+    const s=await invoke("scan_archivable");
+    if(s&&s.files>0){
+      $("remArchMsg").textContent=t("rem_arch_msg",s.files,remMB(s.bytes));
+      $("remArchGo").hidden=false;
+    }else $("remArchMsg").textContent=t("rem_arch_none");
+  }catch(e){ $("remArchMsg").textContent=t("rem_kill_fail"); flog("rem: arch scan ERROR "+e); }
+});
+$("remArchGo").addEventListener("click",async ()=>{
+  $("remArchGo").hidden=true;
+  try{
+    const r=await invoke("archive_old",{auto:false});
+    $("remArchMsg").textContent=t("rem_arch_done",r.files)+(r.failed?" · ⚠ "+t("rem_arch_failn",r.failed):"");
+    if(r.files>0) remMarkManual("archive");
+    flog("rem: archivados "+r.files+" ("+remMB(r.bytes)+" MB) manual");
+    remLogLoad();
+  }catch(e){ $("remArchMsg").textContent=t("rem_kill_fail"); flog("rem: archive ERROR "+e); }
+});
+// Registro de acciones: la bitácora de TODO lo que Michi aplicó (auto o
+// manual). Se pinta al abrir Ajustes y tras cada acción; datos crudos del
+// backend + textos de t() — así el registro cambia de idioma con la app.
+async function remLogLoad(){
+  const el=$("remLog"); if(!el||!invoke) return;
+  try{
+    const list=await invoke("get_action_log")||[];
+    if(!list.length){ el.innerHTML=t("rem_log_empty"); return; }
+    el.innerHTML=list.slice(0,15).map(a=>{
+      const d=new Date(a.ts*1000);
+      const when=d.toLocaleDateString(undefined,{day:"2-digit",month:"2-digit"})+" "+
+        d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+      const what=a.kind==="zombie"?t("rem_log_zombie",a.d1):t("rem_log_arch",a.d1,a.d2);
+      return `<div class="rem-l">${when} · ${a.auto?t("rem_auto_lab"):t("rem_man_lab")} · ${
+        escapeHtml(what)}${a.ok?"":" · ⚠ "+t("rem_fail_lab")}</div>`;
+    }).join("");
+  }catch(_){ el.innerHTML=""; }
+}
+// Sondeo de fondo: cada hora (la foto de procesos vía PowerShell cuesta
+// ~1 s — cadencia baja a propósito). Con automático ganado, cierra y
+// registra; si aún no, nace la tarjeta en Consejos para el clic manual.
+async function remPoll(){
+  if(!invoke||simFnd) return;
+  try{
+    lastZombies=await invoke("scan_zombies")||[];
+    if(lastZombies.length){
+      flog("rem: "+lastZombies.length+" zombie(s) MCP detectados");
+      if(remOn("zombie")&&remUnlocked("zombie")) await remKillList([...lastZombies],true);
+      else zombieCardSynth();
+      if(!$("tab-prefs").hidden) remZombieRows();
+    }
+    // archivado automático: una pasada al día basta (los archivos tardan
+    // un año en volverse candidatos); el día se marca ANTES, estilo
+    // fndEventLast, para que un fallo no lo reintente en bucle cada hora
+    const hoy=new Date().toISOString().slice(0,10);
+    if(remOn("archive")&&remUnlocked("archive")&&localStorage.getItem("remArchDay")!==hoy){
+      localStorage.setItem("remArchDay",hoy);
+      const s=await invoke("scan_archivable");
+      if(s&&s.files>0){
+        const r=await invoke("archive_old",{auto:true});
+        flog("rem: archivados "+r.files+" ("+remMB(r.bytes)+" MB) auto");
+      }
+    }
+  }catch(_){/* sin backend: el siguiente ciclo reintenta */}
+}
+// La tarjeta de zombies entra al pipeline normal de Consejos (leído estilo
+// Gmail, ✕, TTL) como la de intención. La clave incluye el arranque del
+// zombie más nuevo: un LOTE nuevo re-avisa aunque el anterior se haya
+// despachado; el mismo lote despachado no resucita (tipSeen).
+function zombieCardSynth(){
+  if(!lastZombies.length) return;
+  const sess=String(Math.max(...lastZombies.map(z=>z.start||0)));
+  const k="zombie|"+sess;
+  const mem=lastZombies.reduce((a,z)=>a+(z.mem||0),0);
+  const h={rule:"zombie",session:sess,value:lastZombies.length,mem,
+    list:lastZombies.map(z=>({pid:z.pid,name:z.name,server:z.server,start:z.start,mins:z.mins,mem:z.mem}))};
+  const seen=tipSeenSet(), cards=coachCardsStore();
+  const c=cards.find(x=>x.h.rule==="zombie");
+  if(seen.has(k)){
+    // la viva se refresca con la medición nueva sin renacer (como intent)
+    if(c&&c.h.session===sess&&JSON.stringify(c.h)!==JSON.stringify(h)){
+      c.h=h; saveCoachCards(cards);
+      if(!$("tab-tips").hidden) renderTips();
+    }
+    return;
+  }
+  seen.add(k); localStorage.setItem("tipSeen",JSON.stringify([...seen].slice(-300)));
+  const i=cards.findIndex(x=>x.h.rule==="zombie"); if(i>=0) cards.splice(i,1);
+  cards.push({h,born:Date.now()});
+  saveCoachCards(cards);
+  flog("rem: nace tarjeta zombie ×"+lastZombies.length);
+  renderTipsDot();
+  if(lastPillArgs) emitPill(...lastPillArgs);
+  if(!$("tab-tips").hidden) renderTips();
+}
+setTimeout(remPoll,90*1000);          // primer sondeo tras la carga
+setInterval(remPoll,60*60*1000);      // y cada hora
+
 // ---------- avisos al celular (ntfy) ----------
 // La config vive en ntfy_config.json (backend); aquí solo una copia en
 // memoria. Rust no redacta nada: todos los textos salen de t() ya en el

@@ -3823,6 +3823,425 @@ async fn get_quota_history(days: Option<u32>) -> Result<Vec<QuotaSnap>, String> 
     .map_err(|e| e.to_string())?
 }
 
+// ---------- Remediación etapa 2: automático out-of-band ----------
+// docs/remediacion.md — SOLO LOCAL: nada de matar procesos ni mover
+// archivos por SSH; WSL queda para la etapa 4 (sus procesos viven dentro
+// de la VM y desde Win32 ni se ven). Tres piezas: MCPs zombies (detectar
+// + cerrar con anti-reciclaje de PID), archivar JSONL ≥365 días y el
+// registro de acciones. El desbloqueo progresivo (primera vez SIEMPRE
+// manual) vive en el frontend; aquí solo se ejecuta y se registra.
+
+/// Registro de acciones aplicadas (candado de confianza: el usuario puede
+/// auditar TODO lo que Michi hizo). d1/d2 son datos crudos que el panel
+/// traduce (invariante #10: Rust no redacta textos).
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct RemAction {
+    ts: i64,
+    /// "zombie" | "archive"
+    kind: String,
+    /// true = la aplicó el modo automático; false = clic del usuario
+    auto: bool,
+    ok: bool,
+    /// zombie: nombre del MCP · archive: nº de archivos
+    #[serde(default)]
+    d1: String,
+    /// zombie: ejecutable · archive: MB movidos
+    #[serde(default)]
+    d2: String,
+}
+
+fn actions_log_path() -> PathBuf {
+    app_data_dir().join("actions_log.json")
+}
+
+/// Añade una entrada al registro (tope 200 — es una bitácora, no un
+/// histórico infinito). Nunca viaja a ntfy ni al hub: contiene nombres.
+fn log_action(kind: &str, auto: bool, ok: bool, d1: String, d2: String) {
+    let mut list: Vec<RemAction> = fs::read_to_string(actions_log_path())
+        .ok()
+        .and_then(|x| serde_json::from_str(&x).ok())
+        .unwrap_or_default();
+    list.push(RemAction {
+        ts: Utc::now().timestamp(),
+        kind: kind.into(),
+        auto,
+        ok,
+        d1,
+        d2,
+    });
+    let skip = list.len().saturating_sub(200);
+    let list: Vec<_> = list.into_iter().skip(skip).collect();
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(j) = serde_json::to_string(&list) {
+        let _ = fs::write(actions_log_path(), j);
+    }
+}
+
+#[tauri::command]
+async fn get_action_log() -> Result<Vec<RemAction>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut list: Vec<RemAction> = fs::read_to_string(actions_log_path())
+            .ok()
+            .and_then(|x| serde_json::from_str(&x).ok())
+            .unwrap_or_default();
+        list.reverse(); // la más reciente primero
+        Ok(list)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Un proceso MCP huérfano detectado. `start` (epoch de arranque) es la
+/// mitad del anti-reciclaje de PID: para cerrar hay que devolverlo y
+/// que siga coincidiendo.
+#[derive(Serialize, Clone)]
+struct Zombie {
+    pid: u32,
+    /// ejecutable (node.exe, python.exe…)
+    name: String,
+    /// nombre del servidor MCP configurado que casó
+    server: String,
+    /// epoch de arranque del proceso
+    start: i64,
+    /// edad en minutos (para enseñar evidencia)
+    mins: i64,
+    /// WorkingSetSize en bytes (para enseñar cuánta RAM retiene)
+    mem: u64,
+}
+
+/// Firmas de los MCP stdio configurados: (nombre, token distintivo en
+/// minúsculas). El token es el argumento más largo del comando (el nombre
+/// del paquete o la ruta del script) — lo bastante específico para no
+/// casar con procesos ajenos; tokens cortos (<5 chars) se descartan.
+/// Misma fuente que mcp_unused: ~/.claude.json global + por proyecto.
+fn mcp_stdio_signatures() -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = Vec::new();
+    let Some(home) = dirs::home_dir() else {
+        return out;
+    };
+    let Ok(raw) = fs::read_to_string(home.join(".claude.json")) else {
+        return out;
+    };
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else {
+        return out;
+    };
+    let mut add = |m: &serde_json::Map<String, serde_json::Value>| {
+        for (name, def) in m {
+            // solo stdio: los http/sse no son procesos hijos
+            let Some(cmd) = def["command"].as_str() else {
+                continue;
+            };
+            let mut token = String::new();
+            if let Some(args) = def["args"].as_array() {
+                for a in args.iter().filter_map(|x| x.as_str()) {
+                    // banderas tipo "-y" o "--stdio" no identifican nada
+                    if !a.starts_with('-') && a.len() > token.len() {
+                        token = a.to_string();
+                    }
+                }
+            }
+            if token.len() < 5 {
+                // sin argumento distintivo, el propio comando (ruta de un
+                // script propio, p. ej.); "npx"/"node" solos no sirven
+                if cmd.len() >= 5 && !["npx", "node", "python", "uvx", "uv", "cmd"].contains(&cmd) {
+                    token = cmd.to_string();
+                } else {
+                    continue;
+                }
+            }
+            let token = token.to_lowercase();
+            if !out.iter().any(|(_, t)| *t == token) {
+                out.push((name.clone(), token));
+            }
+        }
+    };
+    if let Some(m) = v["mcpServers"].as_object() {
+        add(m);
+    }
+    if let Some(projs) = v["projects"].as_object() {
+        for p in projs.values() {
+            if let Some(m) = p["mcpServers"].as_object() {
+                add(m);
+            }
+        }
+    }
+    out
+}
+
+/// Foto de procesos vía PowerShell/CIM (pid, ppid, nombre, cmdline,
+/// arranque epoch, RAM). Sin dependencias nuevas (invariante #4): en un
+/// Windows 11 PowerShell siempre está. ~1 s de CPU, por eso el sondeo
+/// del panel es de baja cadencia y todo corre en spawn_blocking (10ter).
+#[cfg(windows)]
+fn ps_processes() -> Vec<(u32, u32, String, String, i64, u64)> {
+    use std::os::windows::process::CommandExt;
+    // OutputEncoding a UTF-8: PowerShell 5.1 redirigido emite OEM por
+    // defecto y una ruta con acentos rompería el parseo del JSON.
+    let script = "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;\
+        $e=[datetime]::new(1970,1,1,0,0,0,[datetimekind]::Utc);\
+        Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ \
+        p=$_.ProcessId; pp=$_.ParentProcessId; n=$_.Name; c=$_.CommandLine; \
+        s=if($_.CreationDate){[int64]($_.CreationDate.ToUniversalTime()-$e).TotalSeconds}else{0}; \
+        m=[int64]$_.WorkingSetSize } } | ConvertTo-Json -Compress";
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args(["-NoProfile", "-NonInteractive", "-Command", script]);
+    cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    let Ok(out) = cmd.output() else {
+        return Vec::new();
+    };
+    let txt = String::from_utf8_lossy(&out.stdout);
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(&txt) else {
+        return Vec::new();
+    };
+    // ConvertTo-Json devuelve OBJETO (no lista) si solo hay un elemento
+    let items: Vec<&serde_json::Value> = match v.as_array() {
+        Some(a) => a.iter().collect(),
+        None => vec![&v],
+    };
+    items
+        .into_iter()
+        .filter_map(|x| {
+            Some((
+                x["p"].as_u64()? as u32,
+                x["pp"].as_u64().unwrap_or(0) as u32,
+                x["n"].as_str().unwrap_or("").to_string(),
+                x["c"].as_str().unwrap_or("").to_string(),
+                x["s"].as_i64().unwrap_or(0),
+                x["m"].as_u64().unwrap_or(0),
+            ))
+        })
+        .collect()
+}
+
+/// Zombie = proceso que casa con la firma de un MCP configurado Y cuyo
+/// padre ya no existe (o el PID del padre fue reciclado por un proceso
+/// MÁS NUEVO que el hijo — un padre no puede nacer después que su hijo).
+/// Un MCP con su sesión de Claude Code viva tiene al padre presente y
+/// más viejo, así que jamás se marca.
+#[cfg(windows)]
+fn scan_zombies_impl() -> Vec<Zombie> {
+    let sigs = mcp_stdio_signatures();
+    if sigs.is_empty() {
+        return Vec::new();
+    }
+    let procs = ps_processes();
+    if procs.is_empty() {
+        return Vec::new();
+    }
+    let starts: HashMap<u32, i64> = procs.iter().map(|p| (p.0, p.4)).collect();
+    let me = std::process::id();
+    let now = Utc::now().timestamp();
+    let mut out = Vec::new();
+    for (pid, ppid, name, cmdline, start, mem) in &procs {
+        if *pid == me || *pid <= 4 || *start == 0 || cmdline.is_empty() {
+            continue;
+        }
+        let low = cmdline.to_lowercase();
+        let Some((server, _)) = sigs.iter().find(|(_, tok)| low.contains(tok)) else {
+            continue;
+        };
+        let orphan = match starts.get(ppid) {
+            None => true,                  // el padre murió
+            Some(ps) => *ps > *start + 2,  // PID de padre reciclado
+        };
+        if !orphan {
+            continue;
+        }
+        out.push(Zombie {
+            pid: *pid,
+            name: name.clone(),
+            server: server.clone(),
+            start: *start,
+            mins: (now - start).max(0) / 60,
+            mem: *mem,
+        });
+    }
+    // los que más RAM retienen primero; tope 20 (más es una anomalía)
+    out.sort_by(|a, b| b.mem.cmp(&a.mem));
+    out.truncate(20);
+    out
+}
+
+/// Sin Win32 no hay procesos que mirar (espejo VPS / futuro port):
+/// misma pareja de versiones que wsl_claude_dirs.
+#[cfg(not(windows))]
+fn scan_zombies_impl() -> Vec<Zombie> {
+    Vec::new()
+}
+
+#[tauri::command]
+async fn scan_zombies() -> Result<Vec<Zombie>, String> {
+    tauri::async_runtime::spawn_blocking(|| Ok(scan_zombies_impl()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Cierra UN zombie con re-verificación anti-reciclaje: justo antes del
+/// kill se consulta ese PID de nuevo y debe seguir con el MISMO ejecutable
+/// y la MISMA hora de arranque (±2 s). Si ya no está → "gone" (se cerró
+/// solo, no es error); si cambió → ERR_ZOMBIE_CHANGED y no se toca.
+#[cfg(windows)]
+fn kill_zombie_impl(pid: u32, name: &str, start: i64) -> Result<String, String> {
+    use std::os::windows::process::CommandExt;
+    let script = format!(
+        "$e=[datetime]::new(1970,1,1,0,0,0,[datetimekind]::Utc);\
+        $p=Get-CimInstance Win32_Process -Filter 'ProcessId={pid}';\
+        if(-not $p){{ 'gone'; exit }}\
+        $s=if($p.CreationDate){{[int64]($p.CreationDate.ToUniversalTime()-$e).TotalSeconds}}else{{0}};\
+        if($p.Name -ne '{name}' -or [math]::Abs($s-{start}) -gt 2){{ 'changed'; exit }}\
+        Stop-Process -Id {pid} -Force -ErrorAction SilentlyContinue;\
+        if($?){{ 'ok' }} else {{ 'fail' }}",
+        pid = pid,
+        name = name.replace('\'', ""),
+        start = start
+    );
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
+    cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    let out = cmd.output().map_err(|e| e.to_string())?;
+    let txt = String::from_utf8_lossy(&out.stdout);
+    let verdict = txt.trim();
+    match verdict {
+        "ok" => Ok("ok".into()),
+        "gone" => Ok("gone".into()),
+        "changed" => Err("ERR_ZOMBIE_CHANGED".into()),
+        _ => Err("ERR_ZOMBIE_KILL".into()),
+    }
+}
+
+#[cfg(not(windows))]
+fn kill_zombie_impl(_pid: u32, _name: &str, _start: i64) -> Result<String, String> {
+    Err("ERR_WIN_ONLY".into())
+}
+
+#[tauri::command]
+async fn kill_zombie(
+    pid: u32,
+    name: String,
+    start: i64,
+    server: String,
+    auto: bool,
+) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let r = kill_zombie_impl(pid, &name, start);
+        // "gone" no se registra: no lo cerró Michi. "changed" tampoco tocó
+        // nada — solo los intentos reales de kill van a la bitácora.
+        match &r {
+            Ok(v) if v == "ok" => log_action("zombie", auto, true, server, name),
+            Err(e) if e == "ERR_ZOMBIE_KILL" => log_action("zombie", auto, false, server, name),
+            _ => {}
+        }
+        r
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Archivos .jsonl locales con más de 365 días (mtime). SOLO el ~/.claude
+/// de ESTA máquina: las fuentes WSL quedan fuera (mover archivos a través
+/// de \\wsl.localhost es lento y falible — etapa 4) y las SSH ni se
+/// consideran. 365 y no menos: el analizador, el Reporte y las marcas de
+/// arreglo viven de ese historial (cleanupPeriodDays=365).
+const ARCHIVE_MIN_DAYS: i64 = 365;
+
+fn archivable_files() -> Vec<(PathBuf, u64)> {
+    let root = claude_dir().join("projects");
+    let cutoff = std::time::SystemTime::now()
+        - std::time::Duration::from_secs(ARCHIVE_MIN_DAYS as u64 * 86_400);
+    let mut out = Vec::new();
+    let Ok(pdirs) = fs::read_dir(&root) else {
+        return out;
+    };
+    for pd in pdirs.flatten() {
+        if !pd.path().is_dir() {
+            continue;
+        }
+        for f in project_jsonls(&pd.path()) {
+            let Ok(md) = fs::metadata(&f) else { continue };
+            let Ok(mt) = md.modified() else { continue };
+            if mt < cutoff {
+                out.push((f, md.len()));
+            }
+        }
+    }
+    out
+}
+
+#[derive(Serialize, Default)]
+struct ArchScan {
+    files: u64,
+    bytes: u64,
+}
+
+#[tauri::command]
+async fn scan_archivable() -> Result<ArchScan, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let list = archivable_files();
+        Ok(ArchScan {
+            files: list.len() as u64,
+            bytes: list.iter().map(|(_, b)| b).sum(),
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[derive(Serialize, Default)]
+struct ArchResult {
+    files: u64,
+    bytes: u64,
+    failed: u64,
+    dest: String,
+}
+
+/// Mueve los .jsonl ≥365d a %APPDATA%\<app>\archive\<proyecto>\…
+/// conservando la estructura (subagents incluido). ARCHIVAR, no borrar:
+/// se puede volver a mirar o restaurar a mano. rename primero y si el
+/// volumen no lo permite, copiar+borrar. Un archivo que falla no detiene
+/// a los demás.
+#[tauri::command]
+async fn archive_old(auto: bool) -> Result<ArchResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = claude_dir().join("projects");
+        let dest_root = app_data_dir().join("archive");
+        let mut r = ArchResult {
+            dest: dest_root.to_string_lossy().into_owned(),
+            ..Default::default()
+        };
+        for (f, bytes) in archivable_files() {
+            let Ok(rel) = f.strip_prefix(&root) else {
+                r.failed += 1;
+                continue;
+            };
+            let dest = dest_root.join(rel);
+            let ok = dest
+                .parent()
+                .map(|p| fs::create_dir_all(p).is_ok())
+                .unwrap_or(false)
+                && (fs::rename(&f, &dest).is_ok()
+                    || (fs::copy(&f, &dest).is_ok() && fs::remove_file(&f).is_ok()));
+            if ok {
+                r.files += 1;
+                r.bytes += bytes;
+            } else {
+                r.failed += 1;
+            }
+        }
+        if r.files > 0 || r.failed > 0 {
+            log_action(
+                "archive",
+                auto,
+                r.failed == 0,
+                r.files.to_string(),
+                format!("{:.1}", r.bytes as f64 / 1_048_576.0),
+            );
+        }
+        Ok(r)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 // ---------- app + tray ----------
 
 pub fn run() {
@@ -3888,7 +4307,12 @@ pub fn run() {
             save_ntfy,
             ntfy_push,
             ntfy_qr,
-            ntfy_regen
+            ntfy_regen,
+            scan_zombies,
+            kill_zombie,
+            scan_archivable,
+            archive_old,
+            get_action_log
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

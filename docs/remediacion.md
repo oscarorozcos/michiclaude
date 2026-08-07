@@ -157,6 +157,9 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
    desbloqueo progresivo. Todo async + spawn_blocking (invariante
    10ter). SOLO LOCAL — nada de matar procesos ni mover archivos por
    SSH; las tarjetas de origen remoto no ofrecen botón.
+   [IMPLEMENTADA 2026-08-07 con el go explícito de Oscar; pendiente de
+   `cargo check` en Windows y de validación en vivo. Decisiones de la
+   implementación en §"Decisiones de la etapa 2".]
 3. **El relevo** (`michi claude`): inyección real de /compact//clear con
    countdown, solo sesiones del relevo; los checks "Aplicar" APARECEN
    solo cuando existen sesiones inyectables. El countdown va en una
@@ -164,6 +167,57 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
    reutilizar los globos (regla única: ningún globo se cierra solo) ni
    toast de Windows con widget vivo.
 4. **Relevo en WSL y SSH** — el modo automático completo en los 3 modos.
+
+## Decisiones de la etapa 2 (implementación 2026-08-07)
+
+- **Foto de procesos por PowerShell/CIM** (`Get-CimInstance Win32_Process`
+  → JSON), no una crate de procesos: cero dependencias nuevas (invariante
+  #4) y en Windows 11 PowerShell siempre está. `[Console]::OutputEncoding`
+  forzado a UTF-8 (redirigido, PS 5.1 emite OEM y una ruta con acentes
+  rompía el parseo). Cuesta ~1 s de CPU → sondeo `remPoll` cada 60 min y
+  todo en spawn_blocking (10ter). OJO: `ConvertTo-Json` devuelve OBJETO
+  suelto si hay un solo elemento — el parser lo envuelve.
+- **Qué es zombie:** proceso que casa con la FIRMA de un MCP stdio
+  configurado en `~/.claude.json` (global + por proyecto, misma fuente
+  que mcp_unused) Y cuyo padre ya no existe — o el PID del padre lo
+  recicló un proceso MÁS NUEVO que el hijo (un padre no nace después que
+  su hijo). La firma es el argumento más largo del comando (paquete o
+  ruta de script, mínimo 5 chars; "npx"/"node"/"python" solos NO firman
+  nada). Un MCP con sesión viva tiene padre presente y más viejo: jamás
+  se marca. Los MCP http/sse no son procesos hijos y quedan fuera.
+- **Kill con anti-reciclaje:** `kill_zombie(pid, name, start, server,
+  auto)` re-consulta ESE pid justo antes y exige mismo ejecutable y misma
+  hora de arranque (±2 s). Ya no está → "gone" (no es error, no va al
+  registro); cambió → ERR_ZOMBIE_CHANGED y no se toca nada.
+- **Archivado:** mueve (rename, y si el volumen no deja, copia+borra) los
+  .jsonl con mtime ≥365 d de `~/.claude/projects/**` (subagentes
+  incluidos) a `%APPDATA%\<app>\archive\` conservando estructura —
+  archivar, no borrar. WSL queda FUERA (mover por `\\wsl.localhost` es
+  lento y falible — etapa 4); SSH ni se considera.
+- **Registro:** `actions_log.json` en el dir de la app, tope 200. Rust
+  guarda datos crudos (`kind`, `auto`, `ok`, `d1`, `d2`) y el panel los
+  traduce con `t()` (invariante #10) — el registro cambia de idioma con
+  la app. Nunca viaja a ntfy ni al hub (lleva nombres).
+- **Desbloqueo progresivo (frontend):** `remCfg` (interruptores: zombie
+  ON por defecto — riesgo bajo real —, archive OFF) y `remFirst` (sello
+  de la primera aplicación MANUAL por tipo). Automático = interruptor ON
+  **y** primera manual hecha; el candado de Ajustes solo se enseña
+  cuando está pedido pero no ganado. Sin contador de N aplicaciones ni
+  ventana de 30 días: eso es de los candados in-band (/compact, /clear)
+  de la etapa 3.
+- **Superficies:** sección "Remediación automática" en Ajustes (toggles +
+  candado + revisar/cerrar/archivar a mano + registro) y TARJETA de
+  zombies en Consejos por el pipeline normal de tarjetas (leído Gmail,
+  ✕, TTL 24 h, "Ahora no"). La tarjeta nace solo cuando el automático
+  NO puede actuar (apagado o sin desbloquear): su botón "Cerrar todos"
+  ES la primera manual. Clave `zombie|<arranque del zombie más nuevo>`:
+  un lote nuevo re-avisa aunque el anterior se haya despachado; el mismo
+  lote no resucita (tipSeen). El archivado no tiene tarjeta: vive entero
+  en Ajustes (apagado por defecto; quien lo enciende tiene ahí mismo el
+  botón de la primera vez). Sin globos ni toasts (regla única intacta).
+- **Cadencias:** zombies cada 60 min (+ primer sondeo a los 90 s);
+  archivado automático una pasada al día (`remArchDay`, marcado ANTES de
+  intentar, estilo fndEventLast).
 
 ## Correcciones sobre la propuesta original (para no rediscutir)
 
@@ -197,10 +251,13 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
   (invariante #3). Y nada del registro de acciones va a ntfy con rutas
   ni nombres de proyecto.
 
-## Pendiente de decisión de Oscar antes de arrancar
+## Decisión de arranque (histórico)
 
-- Matar procesos es una CLASE NUEVA de capacidad (hoy la app solo lee
-  logs y llama un endpoint) — decisión consciente, no colarse en un PR.
-- Cuándo arrancar: hay obra abierta (fase 1 del reporte pendiente de
-  cargo check en Windows, fase 2 de capturas, fase 3 sin arrancar,
-  validación pasiva). Recomendación: cerrar el reporte primero.
+- Matar procesos es una CLASE NUEVA de capacidad (hasta la etapa 1 la
+  app solo leía logs y llamaba un endpoint) — por eso las etapas 2-4 no
+  se colaron en un PR: Oscar dio el GO EXPLÍCITO el 2026-08-07 y la
+  etapa 2 se implementó ese día.
+- Las etapas 3-4 (el relevo) arrancan cuando la 2 pase `cargo check` en
+  Windows y se valide en vivo: el relevo construye SOBRE el registro de
+  acciones y el desbloqueo progresivo que nacen aquí, y validar por
+  etapas es la misma disciplina que funcionó con la 1.

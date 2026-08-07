@@ -2456,3 +2456,50 @@ explícita de Oscar (matar procesos = clase nueva de capacidad).
 
 Remate: Oscar probó el botón "Copiar comando" y funcionó. ETAPA 1
 COMPLETA Y VALIDADA al 100%, sin pendientes.
+
+## 2026-08-07 (séptima sesión) — remediación etapa 2: automático out-of-band
+
+Oscar dio el GO explícito a las etapas 2-4 (la decisión que faltaba:
+matar procesos es clase nueva de capacidad). Se implementó la ETAPA 2
+completa; las 3-4 (el relevo ConPTY) esperan a que esta pase cargo check
+en Windows y se valide en vivo — misma disciplina por etapas que
+funcionó con la 1, y además el relevo construye sobre el registro y el
+desbloqueo progresivo que nacen aquí.
+
+Qué se construyó (decisiones detalladas en docs/remediacion.md
+§"Decisiones de la etapa 2"):
+
+- **Rust, 5 comandos nuevos** (todos async + spawn_blocking, 10ter):
+  `scan_zombies` (foto de procesos por PowerShell/CIM sin deps nuevas;
+  zombie = proceso que casa con la firma de un MCP stdio de
+  ~/.claude.json Y padre muerto o PID de padre reciclado),
+  `kill_zombie` (re-verifica PID+ejecutable+arranque ±2 s justo antes
+  del Stop-Process; "gone" si ya no está, ERR_ZOMBIE_CHANGED si el PID
+  ya es de otro), `scan_archivable` + `archive_old` (mueve .jsonl ≥365d
+  a %APPDATA%\<app>\archive conservando estructura; WSL fuera hasta la
+  etapa 4), `get_action_log` (registro actions_log.json, tope 200,
+  datos crudos que el panel traduce — invariante #10).
+- **Frontend:** sección "Remediación automática" en Ajustes (toggles
+  zombie ON / archive OFF por defecto, candado "Michi no automatiza lo
+  que no has visto", revisar/cerrar/archivar a mano, registro de
+  acciones) + tarjeta de zombies en Consejos por el pipeline normal
+  (nace solo cuando el automático no puede actuar; su "Cerrar todos" ES
+  la primera manual que desbloquea; clave zombie|arranque-más-nuevo
+  para que un lote nuevo re-avise sin resucitar lotes despachados) +
+  sondeo `remPoll` horario y archivado auto una vez al día.
+- **i18n:** 28 claves × 8 idiomas (paridad verificada por script en la
+  sesión).
+- Sin tocar meter-export.py: nada de esto viaja por SSH (SOLO LOCAL),
+  así que el invariante #1 no se activa.
+
+Trampa evitada sobre la marcha: `#[cfg]` sobre bloques-expresión en
+posición de cola dentro de un closure NO compila tras el strip (el
+bloque queda en posición de statement); se cambió a la pareja de
+funciones cfg'd, el mismo patrón de `wsl_claude_dirs`.
+
+PENDIENTE para validar la etapa 2 (en el Windows de Oscar): cargo
+check, ver la sección en Ajustes, "Revisar ahora" con y sin zombies
+(fabricar uno: abrir una sesión con un MCP stdio y matar la terminal),
+el clic manual que desbloquea, el kill automático a la hora siguiente,
+el registro con auto/manual, y el archivado con un .jsonl viejo de
+laboratorio (tocar mtime con `(Get-Item f).LastWriteTime=...`).
