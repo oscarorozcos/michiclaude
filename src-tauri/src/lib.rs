@@ -3949,7 +3949,12 @@ fn mcp_stdio_signatures() -> Vec<(String, String)> {
                     continue;
                 }
             }
-            let token = token.to_lowercase();
+            // Separadores NORMALIZADOS a "/": el config trae el paquete con
+            // barra (@modelcontextprotocol/server-x) pero la línea de comando
+            // del proceso ya resuelto lleva barra invertida
+            // (…\node_modules\@modelcontextprotocol\server-x\dist\index.js).
+            // Sin esto ningún MCP lanzado con npx casaría jamás.
+            let token = token.to_lowercase().replace('\\', "/");
             if !out.iter().any(|(_, t)| *t == token) {
                 out.push((name.clone(), token));
             }
@@ -4036,7 +4041,7 @@ fn scan_zombies_impl() -> Vec<Zombie> {
         if *pid == me || *pid <= 4 || *start == 0 || cmdline.is_empty() {
             continue;
         }
-        let low = cmdline.to_lowercase();
+        let low = cmdline.to_lowercase().replace('\\', "/");
         let Some((server, _)) = sigs.iter().find(|(_, tok)| low.contains(tok)) else {
             continue;
         };
