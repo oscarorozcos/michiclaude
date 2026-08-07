@@ -323,11 +323,13 @@ Pasada ligera 1d compartida `fndPass()`: al NACER UN RECIBO (cierre de
 sesión local; freno 15 min `fndEventLast`, marcado ANTES) y periódica
 cada 3 h como respaldo (era 20 h; a 20 h los hallazgos nacidos en el VPS
 —que no disparan cierre local— quedaban invisibles hasta un día entero y
-Oscar los veía antes de que el aviso existiera, 2026-08-06). "Visto" = la
-tarjeta se pintó con la pestaña VISIBLE y el panel CON FOCO (pintar en
-pestaña oculta no marca — mataría el aviso). TRAMPA DEL VIGILANTE (mordió
-4 veces, la 4.ª el 2026-08-06 con "nunca vi el post-it rojo"): si miras
-la pestaña cuando nace, nace vista y no hay aviso — es lo correcto. Los hallazgos
+Oscar los veía antes de que el aviso existiera, 2026-08-06). "LEÍDO" =
+CLIC en la tarjeta, estilo Gmail (Oscar 2026-08-07): abrir la pestaña o
+el post-it NO marca nada; contador y post-it descuentan tarjeta por
+tarjeta al clicarla (el clic de plegar/desplegar marca; Ignorar apaga la
+suya; restaurar ignorados revive las no leídas al conteo). Esto ENTERRÓ
+la vieja TRAMPA DEL VIGILANTE (4 mordidas): ya no existe "nace vista por
+estar mirando la pestaña". Los hallazgos
 NUNCA van al celular (privacidad ntfy). El interruptor de Preferencias
 ("Avisarme en el widget — hallazgos y consejos") apaga SOLO el widget;
 los contadores de pestaña quedan siempre. Para re-armar en pruebas:
@@ -355,8 +357,10 @@ attach/compact/cache; ctx y cache EXCLUYENTES; cerrar con ctx≥30k es fuga
 al cierre). Anti-spam: tope diario 10 (`tipDay`, sum EXENTO), una tarjeta
 viva por regla (la nueva reemplaza), `tipSeen` se marca al ENTRAR al
 almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`),
-visto (`v`) apaga el aviso sin despachar, caducidad 24 h (TIP_TTL).
-"Visto" exige pestaña visible + `document.hasFocus()`. Las tarjetas vivas
+leído (`v`) apaga el aviso sin despachar, caducidad 24 h (TIP_TTL).
+"LEÍDO" = CLIC en la tarjeta, estilo Gmail (Oscar 2026-08-07): abrir la
+pestaña no marca nada; cada tarjeta descuenta al clicarla (el ✕ además
+la despacha). Las tarjetas vivas
 (recibos y fichas calientes) se pintan en UNA corriente por `born` desc —
 la más reciente arriba; las frías del catálogo abajo. PENDIENTE FANTASMA
 (blindado): un turno nuevo del hilo principal LIMPIA pending_tool; los
@@ -516,6 +520,16 @@ hacer público el repo (o sus releases).
       auto-compacts, detector de pegado masivo. DESCARTADO con porqué en
       el doc: sesión contaminada, score único, modelo local, telemetría
       colectiva (choca con invariante #3).
+- [ ] REMEDIACIÓN (diseño en `docs/remediacion.md` — LEERLO antes de
+      tocar; 2026-08-07, destilado de una propuesta externa CORREGIDA:
+      lo que chocaba con invariantes y su porqué está ahí). Etapas: 1
+      consejero con intención (manómetro + parser TodoWrite + tarjeta
+      con clipboard al clic), 2 automático out-of-band (zombies con
+      anti-reciclaje de PID, archivar ≥365d, candados de confianza
+      progresiva), 3 relevo ConPTY `michi claude` (inyección real, solo
+      sesiones del relevo), 4 relevo en WSL/SSH. NO arrancar hasta
+      cerrar el reporte; matar procesos es clase nueva de capacidad —
+      decisión pendiente de Oscar.
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.

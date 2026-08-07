@@ -2271,3 +2271,30 @@ nuestras propias sesiones son intensas; el reporte de Oscar marcó
 PENDIENTE AL CIERRE: fase 3 (export HTML del mockup A), validación
 natural del post-it rojo (ahora con la pasada de 3 h tiene cómo), y que
 el histórico de cuota junte días para llenar "¿te duró más o menos?".
+
+## 2026-08-07 (segunda sesión) — "Leído" estilo Gmail y diseño de remediación
+
+AVISOS POR TARJETA (pedido de Oscar): abrir la pestaña de Hallazgos o
+Consejos —aunque sea por error— ya NO marca nada como visto. Cada
+tarjeta se marca LEÍDA con su propio clic (el mismo que pliega/
+despliega); el contador de pestaña y el post-it del widget descuentan
+una por una, como Gmail descuenta correos abiertos. Ignorar apaga la
+suya; restaurar ignorados revive las no leídas; el ✕ del coach despacha.
+Cayeron los marcados masivos del render (y con ellos el requisito de
+document.hasFocus, que solo existía para que la precarga invisible no
+matara el aviso). La TRAMPA DEL VIGILANTE (4 mordidas) queda ENTERRADA:
+ya no existe "nace vista por estar mirando la pestaña". Sin claves i18n
+nuevas. Detalle fino: en el coach, guardar coachCards ANTES de repintar
+el contador (lee de localStorage — al revés quedaba desfasado un clic).
+
+REMEDIACIÓN — DISEÑO DESTILADO en `docs/remediacion.md`: análisis de una
+propuesta externa (handoff de otra IA + mockups). Se conservó lo bueno
+(intención-no-comando, regla de oro "en la duda pregunta", confianza
+progresiva con candados, clasificador de tarea viva por TodoWrite) y se
+corrigió lo que chocaba: archivar JSONL a 30d se dejaba ciega a la
+propia app (→ ≥365d), el "modelo local" para casos dudosos ya estaba
+descartado en presion-y-rendimiento.md, el countdown no puede ser globo
+(regla única), los checks "Aplicar /compact//clear" mienten sin canal de
+escritura (→ relevo ConPTY `michi claude`, el "tmux nativo" con 5 reglas
+anti-choque), y el "handoff Pro" necesita una IA que no hay. 4 etapas,
+cada una útil sola; NO arrancar hasta cerrar el reporte.

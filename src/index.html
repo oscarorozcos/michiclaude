@@ -5900,7 +5900,9 @@ function renderTips(){
     ids.filter(id=>!(id in hot)).map(tipHtml).join(""))
     || `<div style="font-size:11.5px;margin-top:10px;color:var(--txt-dim)">${t("tips_none")}</div>`;
   // clic en la tarjeta = contraer/expandir; si es una tarjeta viva, la pose
-  // se RECUERDA (min) para poder "leerla más tarde"
+  // se RECUERDA (min) para poder "leerla más tarde". Y el MISMO clic la marca
+  // LEÍDA (v) — estilo Gmail (Oscar 2026-08-07): el contador y el post-it
+  // descuentan tarjeta por tarjeta según las tocas, no por abrir la pestaña.
   $("tipList").querySelectorAll(".tip").forEach(el=>
     el.addEventListener("click",()=>{
       el.classList.toggle("open");
@@ -5908,7 +5910,17 @@ function renderTips(){
       if(k&&!simFnd){
         const a=coachCardsStore();
         const c=a.find(x=>x.h.rule+"|"+x.h.session===k);
-        if(c){ c.min=!el.classList.contains("open"); saveCoachCards(a); }
+        if(c){
+          c.min=!el.classList.contains("open");
+          const nueva=!c.v;
+          c.v=true;
+          saveCoachCards(a);          // guardar ANTES: el contador lee de localStorage
+          if(nueva){
+            flog("tips: leída con clic "+k+" — quedan "+a.filter(x=>!x.v).length+" sin leer");
+            renderTipsDot();
+            if(lastPillArgs) emitPill(...lastPillArgs);
+          }
+        }
       }
     }));
   // ✕ = despachar ESA tarjeta (el recibo se va; la ficha "Ahora" vuelve a
@@ -5923,23 +5935,12 @@ function renderTips(){
       renderTips(); renderTipsDot();
       if(lastPillArgs) emitPill(...lastPillArgs);
     }));
-  // ver la pestaña APAGA el aviso (contador + post-it del widget) pero no
-  // despacha nada: las tarjetas esperan su ✕ o sus 24 h — como Hallazgos.
-  // document.hasFocus() OBLIGATORIO: el panel al cerrarse solo se OCULTA y
-  // la pestaña sigue activa por dentro — sin el foco, el sondeo pintaba el
-  // recibo recién nacido en una ventana invisible y lo marcaba visto sin
-  // que nadie lo viera (el post-it nunca se encendía; Oscar 2026-08-02).
-  if(!$("tab-tips").hidden && document.hasFocus() && !simFnd){
-    const a=coachCardsStore();
-    let ch=false;
-    a.forEach(c=>{ if(!c.v){ c.v=true; ch=true; } });
-    if(ch){
-      saveCoachCards(a);
-      flog("tips: vistas con foco ("+a.length+" tarjetas) — aviso apagado");
-      renderTipsDot();
-      if(lastPillArgs) emitPill(...lastPillArgs);
-    }
-  }
+  // Ver la pestaña ya NO apaga el aviso (Oscar 2026-08-07, estilo Gmail):
+  // abrirla —aunque sea sin querer— no marca nada; cada tarjeta se marca
+  // leída (v) con SU clic, arriba. El ✕ la despacha (sale del almacén y del
+  // conteo). Esto además vuelve obsoleto el viejo requisito de
+  // document.hasFocus(): ya no hay marcado por pintar, así que la precarga
+  // en ventana invisible no puede matar el aviso.
 }
 $("tipFilter").addEventListener("input",renderTips);
 
@@ -7163,7 +7164,11 @@ function renderFindings(){
     // contraer/expandir con clic, como las fichas de Consejos (Oscar
     // 2026-08-04): se queda título+datos, se pliega la recomendación. La
     // pose se recuerda por hallazgo (fndMin) — salvo en simulador, que no
-    // toca localStorage.
+    // toca localStorage. El MISMO clic marca la tarjeta LEÍDA — estilo Gmail
+    // (Oscar 2026-08-07): el contador y el post-it rojo descuentan una por
+    // una según las tocas, no por abrir la pestaña. fndKey es independiente
+    // de la ventana: el clic en la vista 7/30d apaga la entrada del aviso
+    // (que nace del escaneo 1d).
     $("fndList").querySelectorAll(".fnd").forEach(el=>
       el.addEventListener("click",()=>{
         el.classList.toggle("min");
@@ -7172,14 +7177,24 @@ function renderFindings(){
           if(el.classList.contains("min")) m.add(el.dataset.k);
           else m.delete(el.dataset.k);
           localStorage.setItem("fndMin",JSON.stringify([...m].slice(-300)));
+          const seen=fndSeen();
+          if(!seen.has(el.dataset.k)){
+            seen.add(el.dataset.k);
+            localStorage.setItem("fndSeen",JSON.stringify([...seen].slice(-300)));
+            flog("fnd: leída con clic "+el.dataset.k);
+            fndBadgeCalc();          // recalcula contador, post-it y campana
+          }
         }
       }));
-    // Ignorar no debe plegar la tarjeta al mismo tiempo: se detiene aquí
+    // Ignorar no debe plegar la tarjeta al mismo tiempo: se detiene aquí.
+    // Ignorada también apaga SU aviso (fndBadgeCalc excluye fndIgnore) —
+    // antes lo hacía el marcado masivo del render, que ya no existe.
     $("fndList").querySelectorAll(".fnd-x").forEach(b=>b.addEventListener("click",e=>{
       e.stopPropagation();
       const ign2=fndIgnored(); ign2.add(b.dataset.k);
       localStorage.setItem("fndIgnore",JSON.stringify([...ign2]));
       renderFindings();
+      fndBadgeCalc();
     }));
   }
   // Pie en DOS piezas (Oscar 2026-08-05): arriba el enlace para recuperar
@@ -7190,18 +7205,14 @@ function renderFindings(){
     + `<div class="fnd-note">${t("fnd_est_note")}</div>`;
   const r=$("fndRestore");
   if(r) r.addEventListener("click",e=>{ e.preventDefault();
-    localStorage.removeItem("fndIgnore"); renderFindings(); });
-  // lo que quedó A LA VISTA cuenta como visto: el contador y el sticker se
-  // apagan y estas tarjetas no los vuelven a encender (las de mañana sí).
-  // SOLO si la pestaña está de verdad en pantalla: la precarga de fondo
-  // también pinta, y marcar visto lo que nadie vio mataría el aviso.
-  // (Y NUNCA durante el simulador: sus tarjetas falsas no deben pisar
-  // fndSeen — misma regla que los globos simulados y localStorage.)
-  if(!$("tab-findings").hidden && !simFnd){
-    const seen=fndSeen(); list.forEach(f=>seen.add(fndKey(f)));
-    localStorage.setItem("fndSeen",JSON.stringify([...seen].slice(-300)));
-    fndBadgeCalc();
-  }
+    localStorage.removeItem("fndIgnore"); renderFindings();
+    fndBadgeCalc(); });   // lo restaurado no leído vuelve a contar en el aviso
+  // Pintar la lista ya NO marca nada como visto (Oscar 2026-08-07, estilo
+  // Gmail): cada tarjeta se marca leída con SU clic (arriba, junto a fndMin)
+  // o con su Ignorar. Abrir la pestaña —aunque sea sin querer— deja el
+  // contador y el post-it intactos; se van descontando tarjeta por tarjeta.
+  // Esto también entierra la TRAMPA DEL VIGILANTE (4 mordidas): ya no existe
+  // "nace vista por estar mirando la pestaña".
 }
 // El comando propio es un caso rarísimo (otro binario de python, un
 // contenedor...). Oculto por defecto: verlo sin saber para qué es solo
