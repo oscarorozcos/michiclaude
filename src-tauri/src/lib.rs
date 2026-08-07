@@ -2942,6 +2942,11 @@ const COACH_DONE_TURNS: u64 = 5; // un chat corto no vale una notificación
 // permiso en pantalla). Tres minutos bastan: quien sigue frente a la
 // terminal aprueba en segundos.
 const COACH_ASK_QUIET: i64 = 3;
+// Manómetro de presión de contexto (docs/remediacion.md etapa 1): el hit
+// "press" reporta el contexto de la sesión BAJO LOS DEDOS — quieta menos de
+// estos minutos. No es ficha ni aviso: el frontend lo aparta (como done/ask)
+// y solo lo dibuja en el widget; sin compuertas anti-spam.
+const PRESS_QUIET_MAX: i64 = 10;
 
 #[derive(Default)]
 struct CoachSess {
@@ -3024,6 +3029,9 @@ struct CoachHit {
     turns: u64,      // "sum"/"done": turnos de la sesión
     cost: f64,       // "sum"/"done": costo medido de la sesión (equiv. API)
     leaks: Vec<CoachLeak>, // "sum"/"done": mini-auditoría al cierre
+    quiet: u64,      // solo "press": minutos desde el último toque del log —
+                     // con varias sesiones vivas el panel elige la más fresca
+                     // (aditivo con default, invariante #1)
     /// De qué máquina viene el consejo: vacío = esta (el panel enseña
     /// "local"); con nombre = el que el usuario le dio al servidor. Lo pone
     /// get_coach al fusionar, nunca el exportador (el mismo patrón que el
@@ -3300,6 +3308,19 @@ fn coach_scan() -> Vec<CoachHit> {
             // MichiClaude no estuvo abierto durante la sesión no hay estado
             // acumulado y no hay resumen — limitación asumida de la v1.
             let quiet_min = now.saturating_sub(mtime) / 60;
+            // manómetro (docs/remediacion.md etapa 1): la presión de contexto
+            // de la sesión que se está trabajando AHORA. Dato puro en cada
+            // sondeo — el % y los colores los pone el frontend.
+            if st.last_ctx > 0 && st.last_turn > 0 && quiet_min < PRESS_QUIET_MAX {
+                hits.push(CoachHit {
+                    rule: "press".into(),
+                    session: sid.clone(),
+                    value: st.last_ctx,
+                    project: pname(st, &proj_name),
+                    quiet: quiet_min.max(0) as u64,
+                    ..Default::default()
+                });
+            }
             // "Claude está esperando tu aprobación": quieta con una
             // herramienta sin resultado NO es terminada — es la sesión
             // detenida en un permiso. Va al celular (regla `ask`, no es

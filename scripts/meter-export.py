@@ -813,6 +813,7 @@ COACH_SUM_MIN_TURNS = 5
 COACH_DONE_QUIET = 5
 COACH_DONE_TURNS = 5
 COACH_ASK_QUIET = 3
+PRESS_QUIET_MAX = 10  # manómetro: sesión "bajo los dedos" (réplica del Rust)
 
 
 def coach_state_path():
@@ -983,6 +984,11 @@ def coach_scan(projects_dir):
                 if reread:
                     hit("attach", max(reread))
                 quiet_min = max(0, now - mtime) // 60
+                # manómetro (docs/remediacion.md etapa 1): presión de contexto
+                # de la sesión activa — dato puro, sin compuertas (como en Rust)
+                if (st["last_ctx"] > 0 and st["last_turn"] > 0
+                        and quiet_min < PRESS_QUIET_MAX):
+                    hit("press", st["last_ctx"], quiet=quiet_min)
                 if (st["pending_tool"] and not st["asked"]
                         and quiet_min >= COACH_ASK_QUIET and st["turns"] >= 1):
                     st["asked"] = True

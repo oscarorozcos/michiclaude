@@ -2325,3 +2325,46 @@ y desde el pendiente de REMEDIACIÓN en CLAUDE.md, cuyo candado se
 re-redactó: ya no es "hasta cerrar el reporte" (cerrado hoy) sino
 "decisión explícita de Oscar" (matar procesos es clase nueva de
 capacidad).
+
+## 2026-08-07 (cuarta sesión) — remediación etapa 1a: manómetro de presión
+
+Arranca la etapa 1 de remediación (consejero con intención — la única
+que no necesita la decisión pendiente de Oscar: no toca nada, solo
+mide). Primera pieza: el MANÓMETRO DE PRESIÓN DE CONTEXTO, puntos 9-10
+de presion-y-rendimiento.md ("muy viable y barato: el dato ya existe").
+
+CÓMO: regla nueva `press` en el motor del coach — un hit por sesión con
+contexto y quieta <10 min (PRESS_QUIET_MAX), value = tokens de contexto
+crudos y campo aditivo `quiet` (minutos quieta). Implementada en las DOS
+piezas del motor (Rust `coach_scan` + `--coach` del exportador,
+invariante #1); viaja por el canal de siempre (`get_coach`, fusión con
+origin intacta — un exportador viejo simplemente no la manda y el
+manómetro remoto no existe, degradación honesta). NO es ficha ni aviso:
+coachPoll la aparta como done/ask (no gasta tope diario ni tipSeen),
+elige la más fresca (menos quieta; empate → más contexto) y emitPill la
+monta como campo `press` de quota:update con el % ya redondeado sobre
+200k (PRESS_FULL, constante del frontend con su comentario). Sin hit en
+un sondeo el manómetro se APAGA solo (la sesión se durmió).
+
+UI: arco de manómetro SVG inline (pathLength=100 + stroke-dasharray, sin
+fuentes externas) en la cápsula de la pastilla y del gatito — diminuto,
+sin texto ni tooltip (regla de la cápsula); el NÚMERO vive en el detalle
+pcard (fila con barra y proyecto·origen) y en el globo del hover del
+gatito (bloque con barra). Umbrales PROPIOS 60/85 (presión de contexto,
+no ritmo de cuota): calma = acento/tinta, ámbar ≥60, rojo ≥85. Se pinta
+ANTES del early-return de ok:false como las campanas: la presión sale de
+los logs locales y un fallo del endpoint de cuota no la toca. En
+card.html hizo falta `.blk[hidden]{display:none}` — la misma trampa del
+10bis (display:flex anula al atributo hidden). Clave i18n `press_lab`
+×8. Previews de navegador actualizados en las 4 ventanas.
+
+Decisiones: press NUNCA va a ntfy ni al hub (es lectura local); no pasa
+por el interruptor de avisos (es lectura, como el % de sesión); 200k
+como techo es constante comentada del frontend — el backend manda tokens
+crudos a propósito para que un cambio de techo sea un solo número.
+
+VERIFICADO: node --check en los scripts de las 5 ventanas, py_compile
+del exportador, press_lab en los 8 idiomas, cero firmas Rust tocadas
+(campo aditivo + regla nueva). PENDIENTE: cargo check en el Windows de
+Oscar y verlo en vivo con una sesión real. Siguen 1b (parser TodoWrite +
+clasificador) y 1c (tarjeta de intención + clipboard).

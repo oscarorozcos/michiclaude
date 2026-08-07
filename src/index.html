@@ -1826,6 +1826,7 @@ en:{
   theme_dark:"Dark",
   pill_ses:"session", pill_week:"week",
   card_ses:"Session", card_week:"Weekly",
+  press_lab:"Context pressure",
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
   pill_layer_normal:"Normal window",
@@ -2169,6 +2170,7 @@ es:{
   theme_dark:"Oscuro",
   pill_ses:"sesión", pill_week:"semana",
   card_ses:"Sesión", card_week:"Semanal",
+  press_lab:"Presión de contexto",
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
   pill_layer_normal:"Ventana normal",
@@ -2512,6 +2514,7 @@ pt:{
   theme_dark:"Escuro",
   pill_ses:"sessão", pill_week:"semana",
   card_ses:"Sessão", card_week:"Semanal",
+  press_lab:"Pressão de contexto",
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
   pill_layer_normal:"Janela normal",
@@ -2855,6 +2858,7 @@ fr:{
   theme_dark:"Sombre",
   pill_ses:"session", pill_week:"semaine",
   card_ses:"Session", card_week:"Hebdo",
+  press_lab:"Pression du contexte",
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
   pill_layer_normal:"Fenêtre normale",
@@ -3198,6 +3202,7 @@ de:{
   theme_dark:"Dunkel",
   pill_ses:"Sitzung", pill_week:"Woche",
   card_ses:"Sitzung", card_week:"Woche",
+  press_lab:"Kontextdruck",
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
   pill_layer_normal:"Normales Fenster",
@@ -3541,6 +3546,7 @@ ja:{
   theme_dark:"ダーク",
   pill_ses:"セッション", pill_week:"週",
   card_ses:"セッション", card_week:"週間",
+  press_lab:"コンテキスト圧",
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
   pill_layer_normal:"通常ウィンドウ",
@@ -3884,6 +3890,7 @@ ko:{
   theme_dark:"어둡게",
   pill_ses:"세션", pill_week:"주",
   card_ses:"세션", card_week:"주간",
+  press_lab:"컨텍스트 압력",
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
   pill_layer_normal:"일반 창",
@@ -4227,6 +4234,7 @@ zh:{
   theme_dark:"深色",
   pill_ses:"会话", pill_week:"周",
   card_ses:"会话", card_week:"每周",
+  press_lab:"上下文压力",
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
   pill_layer_normal:"普通窗口",
@@ -4380,7 +4388,8 @@ let lastQuotaData=null, lastLocalData=null;   // caché para re-render al cambia
 let lastPill=null, pillOn=false;
 function getPillStyle(){ return localStorage.getItem("pillStyle")==="cat"?"cat":"plain"; }
 function pillLabels(){
-  return {ses:t("pill_ses"), week:t("pill_week"), cardSes:t("card_ses"), cardWeek:t("card_week")};
+  return {ses:t("pill_ses"), week:t("pill_week"), cardSes:t("card_ses"), cardWeek:t("card_week"),
+    press:t("press_lab")};
 }
 // Tema del panel (el que manda el botón ◐) y los dos que puede soltar el
 // usuario: el ARTE del gatito y la PIEL de sus globos (cápsula incluida — es
@@ -4409,6 +4418,17 @@ function mascotState(ses, weekPct){
   return "normal";
 }
 let lastPillArgs=null;
+// Manómetro de presión de contexto (docs/remediacion.md etapa 1): lo llena
+// coachPoll con el hit "press" más fresco; null = ninguna sesión activa y el
+// widget lo esconde. 200k es el techo de contexto de Claude Code — si algún
+// día cambia, cambia aquí (el backend manda tokens crudos a propósito).
+let lastPress=null;
+const PRESS_FULL=200000;
+function pressField(){
+  if(!lastPress||!lastPress.ctx) return null;
+  return {pct:Math.min(100,Math.round(lastPress.ctx/PRESS_FULL*100)),
+    proj:lastPress.project+(lastPress.origin?" · "+lastPress.origin:"")};
+}
 function emitPill(ses, wk, extras){
   lastPillArgs=[ses,wk,extras];             // para el tic del contador (abajo)
   const weekPct = wk ? wk.pct : null;
@@ -4430,6 +4450,9 @@ function emitPill(ses, wk, extras){
     // consejos del coach sin ver (post-it acento / punto de la pastilla);
     // comparte el interruptor de hallazgos: un concepto, un apagador
     coach: fndBadgeOn()&&coachCount() ? {n:coachCount(), tip:t("tips_tab")} : null,
+    // manómetro de presión de contexto: LECTURA, no aviso — no pasa por el
+    // interruptor de avisos ni por contadores (como el % de sesión)
+    press: pressField(),
     tip: ses?t("tray_tip",Math.round(ses.pct),fmtReset(ses.resets),weekPct!=null?Math.round(weekPct):null):t("tray_no_data")};
   EVENT?.emit("quota:update", lastPill);
 }
@@ -6108,7 +6131,14 @@ async function coachPoll(){
     // "tu agente terminó" y "te está esperando" NO son fichas: son avisos al
     // celular. Se apartan antes del filtro para que no gasten el tope diario
     // del coach ni aparezcan como consejo en el panel.
-    const hits=all.filter(h=>h.rule!=="done"&&h.rule!=="ask");
+    // "press" tampoco es ficha: es el manómetro de presión de contexto
+    // (docs/remediacion.md etapa 1). Con varias sesiones vivas gana la más
+    // fresca (menos minutos quieta) y a igual frescura la de más contexto;
+    // sin hit en este sondeo el manómetro se apaga (la sesión se durmió).
+    const pr=all.filter(h=>h.rule==="press")
+      .sort((a,b)=>(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
+    lastPress=pr?{ctx:pr.value||0,project:pr.project||"",origin:pr.origin||""}:null;
+    const hits=all.filter(h=>h.rule!=="done"&&h.rule!=="ask"&&h.rule!=="press");
     ntfyDone(all.filter(h=>h.rule==="done"));
     ntfyAsk(all.filter(h=>h.rule==="ask"));
     const seen=tipSeenSet();

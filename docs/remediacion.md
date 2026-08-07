@@ -136,7 +136,10 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
 
 1. **Consejero con intención** (sin relevo, TODAS las sesiones):
    manómetro de presión en pastilla/gatito (puntos 9-10 de
-   presion-y-rendimiento.md — dato ya existe, viaja en quota:update),
+   presion-y-rendimiento.md — dato ya existe, viaja en quota:update)
+   [HECHO 2026-08-07: regla `press` en el coach Rust+Python, campo
+   `press` en quota:update, gauge en pastilla/gatito y número en
+   pcard/globo; pendiente cargo check en Windows],
    parser de TodoWrite + clasificador (TRES piezas: Rust +
    meter-export.py + panel, invariante #1), tarjeta de intención con
    evidencia y botón "Copiar comando" (clipboard SOLO al clic — pisar el

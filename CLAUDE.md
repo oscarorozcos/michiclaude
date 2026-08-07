@@ -345,7 +345,14 @@ servidor SSH — el exportador replica el motor bajo `--coach` (invariante
 #1; estado incremental en `~/.cache/michiclaude/coach_state.json` del
 servidor, reconstruible; subagentes fuera, plano como en Rust) y
 `get_coach` fusiona poniendo `origin` (vacío = local; el panel lo enseña
-en fichas, recibos y pushes). Exportador viejo: ignora --coach y devuelve
+en fichas, recibos y pushes). Regla `press` (2026-08-07, manómetro de
+remediación etapa 1): un hit por sesión con contexto y quieta <10 min
+(`PRESS_QUIET_MAX`), `value` = tokens de contexto crudos, campo aditivo
+`quiet` = minutos quieta; NO es ficha ni aviso — coachPoll la aparta
+(como done/ask), elige la más fresca y emitPill la monta como campo
+`press` en quota:update (% sobre 200k `PRESS_FULL`, umbrales 60/85).
+Gauge SVG en cápsulas de pastilla y gatito; número+proyecto en pcard y
+en el globo del hover. Nunca viaja a ntfy ni al hub. Exportador viejo: ignora --coach y devuelve
 el JSON grande sin clave `coach` → cero hits, se degrada solo. VALIDADO
 en vivo en el VPS el mismo día: detectó la propia sesión de trabajo
 (compact 802k, attach 26) y el sondeo incremental cuesta ~80 ms. Reglas: ctx≥120k → compact;
@@ -533,9 +540,14 @@ hacer público el repo (o sus releases).
       sesiones del relevo), 4 relevo en WSL/SSH. Los 7 prompts para
       generar maquetas con otra IA están guardados en
       `docs/prompts-diseno-remediacion.md` (referencia visual, no código
-      integrable). NO arrancar sin decisión explícita de Oscar: matar
-      procesos es clase nueva de capacidad (el reporte ya se cerró el
-      2026-08-07, pero la decisión sigue pendiente).
+      integrable). EN OBRA (2026-08-07): etapa 1a manómetro de presión
+      IMPLEMENTADA (regla `press` del coach en Rust+Python, campo `press`
+      en quota:update, gauge en las 4 ventanas del widget — ver sección
+      Coach), pendiente de `cargo check` en Windows y de verse en vivo.
+      Siguen de la etapa 1: 1b parser TodoWrite + clasificador
+      Alive/Boundary/Uncertain y 1c tarjeta de intención con clipboard.
+      Las etapas 2-4 NO arrancan sin decisión explícita de Oscar: matar
+      procesos es clase nueva de capacidad.
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.

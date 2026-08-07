@@ -89,6 +89,18 @@
   <span class="grip" id="grip" title="⠿">⠿</span>
   <button class="mkbtn" id="mkbtn"><img id="mkImg" src="sticker-black.png" alt="" draggable="false"></button>
   <span class="lab" id="sesLab"></span><b class="pct" id="sPct">—</b>
+  <!-- manómetro de PRESIÓN DE CONTEXTO (docs/remediacion.md etapa 1):
+       arco diminuto que se llena con el % de contexto de la sesión activa.
+       Solo aparece con una sesión de Claude Code bajo los dedos; sin texto
+       ni tooltip (regla de la cápsula) — el número vive en el detalle. -->
+  <span class="m" id="pBox" hidden aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
+      stroke-linecap="round">
+      <path d="M4 17.5a8.5 8.5 0 1 1 16 0" opacity=".28" pathLength="100"/>
+      <path id="pArc" d="M4 17.5a8.5 8.5 0 1 1 16 0" pathLength="100"
+        stroke-dasharray="0 100"/>
+    </svg>
+  </span>
   <!-- Los huecos semanal y por-modelo se quitaron y VOLVIERON el mismo
        2026-07-31 (Oscar los extrañó a las horas): la cápsula es el
        vistazo rápido y esos dos números le faltaban. -->
@@ -165,6 +177,15 @@ function render(d){
   const tc=d?.coach;
   $("tdotc").hidden=!tc;
   if(tc) $("tdotc").title=tc.tip||"";
+  // manómetro de contexto: también ANTES del early-return — la presión sale
+  // de los logs locales y un fallo pasajero del endpoint de cuota no la toca.
+  // Umbrales propios (60/85): son de presión de contexto, no de ritmo.
+  const pr=d?.press;
+  $("pBox").hidden=!pr;
+  if(pr){
+    $("pBox").style.color = pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--acc)";
+    $("pArc").setAttribute("stroke-dasharray",Math.max(3,pr.pct)+" 100");
+  }
   if(!d || d.ok===false){
     document.body.classList.add("stale");
     $("sPct").textContent="—"; $("wBox").hidden=true; $("xBox").hidden=true; return;
@@ -193,7 +214,8 @@ if(EVENT){
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{   // preview suelto en un navegador
   render({ok:true, session:{pct:6,pace:30}, weekly:{pct:35},
-    extras:[{label:"Weekly · Fable",pct:28}], labels:{cardSes:"Session"}});
+    extras:[{label:"Weekly · Fable",pct:28}], labels:{cardSes:"Session"},
+    press:{pct:64, proj:"demo"}});
 }
 
 // clic en la cápsula = desplegar/plegar el detalle. (El hover se probó el

@@ -77,6 +77,12 @@
     box-shadow:0 1px 3px rgba(0,0,0,.25)}
   .plabel .lab{font-size:10.5px;font-weight:600;color:var(--ink)}
   .plabel b{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--ink)}
+  /* manómetro de PRESIÓN DE CONTEXTO en la cápsula (docs/remediacion.md
+     etapa 1): arco diminuto junto al %; solo con sesión activa. El número
+     y el proyecto viven en el globo del hover. */
+  .pgauge{display:inline-flex;align-self:center}
+  .pgauge svg{width:13px;height:13px;display:block}
+  .pgauge[hidden]{display:none}
   body.hovering .plabel{opacity:0}
   /* Al arrancar (o sin token) todavía no hay % que enseñar. Mejor que el
      gatito salga solo a que enseñe una cápsula vacía, que parece un error. */
@@ -143,7 +149,16 @@
 <button class="head" id="head" aria-label="MichiClaude"></button>
 <div class="fstack" id="fstack"><i class="fn2"></i><i class="fn1"></i><button class="fbadge" id="fbadge">!</button></div>
 <div class="tstack" id="tstack"><i class="tn2"></i><i class="tn1"></i><button class="tbadge" id="tbadge">!</button></div>
-<div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b></div>
+<div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b>
+  <span class="pgauge" id="pg" hidden aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+      stroke-linecap="round">
+      <path d="M4 17.5a8.5 8.5 0 1 1 16 0" opacity=".3" pathLength="100"/>
+      <path id="pgArc" d="M4 17.5a8.5 8.5 0 1 1 16 0" pathLength="100"
+        stroke-dasharray="0 100"/>
+    </svg>
+  </span>
+</div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
 const $=id=>document.getElementById(id);
@@ -204,6 +219,15 @@ function apply(d){
   if(tc){
     $("tbadge").textContent = tc.n>9 ? "9+" : String(tc.n);
     $("tbadge").title = tc.tip||"";
+  }
+  // manómetro de contexto en la cápsula: también antes del early-return (la
+  // presión sale de los logs, no del endpoint). Umbrales propios 60/85; en
+  // calma va del color de la tinta, como el resto de la cápsula.
+  const pr=d.press;
+  $("pg").hidden=!pr;
+  if(pr){
+    $("pg").style.color = pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--ink)";
+    $("pgArc").setAttribute("stroke-dasharray",Math.max(3,pr.pct)+" 100");
   }
   if(d.ok===false) return;                 // conserva el último % bueno
   const s=d.session;

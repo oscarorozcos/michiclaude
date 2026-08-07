@@ -39,6 +39,9 @@
   .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;
     background:var(--mut);box-shadow:0 0 0 1.5px var(--ink)}
   .blk{display:flex;flex-direction:column;gap:4px}
+  /* sin esta regla, display:flex anula al atributo hidden (misma trampa
+     que el 10bis del panel) */
+  .blk[hidden]{display:none}
   .r{display:flex;justify-content:space-between;align-items:baseline}
   .lab{font-size:11.5px;font-weight:700}
   .pct{font-family:var(--mono);font-size:12.5px;font-weight:800}
@@ -75,6 +78,14 @@
     <div class="r"><span class="lab" id="sLab">Session</span><b class="pct" id="sPct">—</b></div>
     <div class="track"><i class="fill" id="sFill"></i></div>
     <div class="rst" id="sRst"></div>
+  </div>
+  <!-- presión de contexto de la sesión activa (docs/remediacion.md etapa 1):
+       el número del manómetro de la cápsula, con barra y proyecto. Solo
+       aparece con una sesión de Claude Code trabajando. -->
+  <div class="blk" id="pBlk" hidden>
+    <div class="r"><span class="lab" id="pLab">Context pressure</span><b class="pct" id="pPct">—</b></div>
+    <div class="track"><i class="fill" id="pFill"></i></div>
+    <div class="rst" id="pProj"></div>
   </div>
   <div class="blk">
     <div class="r"><span class="lab" id="wLab">Weekly</span><b class="pct" id="wPct">—</b></div>
@@ -132,6 +143,16 @@ function render(d){
   $("wPct").textContent = w ? Math.round(w.pct)+"%" : "—";
   $("wFill").style.width = w ? Math.min(100,Math.round(w.pct))+"%" : "0";
   $("wRst").textContent = d.wkReset||"";
+  // presión de contexto: umbrales propios 60/85 (no son los de ritmo)
+  const pr=d.press;
+  $("pBlk").hidden=!pr;
+  if(pr){
+    if(d.labels&&d.labels.press) $("pLab").textContent=d.labels.press;
+    $("pPct").textContent=pr.pct+"%";
+    $("pFill").style.width=Math.min(100,pr.pct)+"%";
+    $("pFill").style.background=pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--ok)";
+    $("pProj").textContent=pr.proj||"";
+  }
   $("dot").style.background = s ? col(Math.round(s.pct), s.pace) : "var(--mut)";
   // buckets semanales extra (Fable, futuros…): filas dinámicas con la
   // etiqueta tal cual la reporta el endpoint (textContent = sin HTML)
@@ -160,8 +181,9 @@ if(EVENT){
 }else{
   render({ok:true, session:{pct:51,pace:30}, weekly:{pct:26},
     sesReset:"reset en 19 min", wkReset:"reset en 29 h 49 min",
+    press:{pct:64, proj:"demo"},
     extras:[{label:"Semanal · Fable", pct:23, resets:"reset en 29 h 49 min"}],
-    labels:{cardSes:"Sesión",cardWeek:"Semanal"}});  // preview en navegador
+    labels:{cardSes:"Sesión",cardWeek:"Semanal",press:"Presión de contexto"}});  // preview en navegador
 }
 
 // si el mouse entra al globo y sale, también se pliega

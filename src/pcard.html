@@ -140,6 +140,9 @@ const ICON={
     stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 11.8 8.2 16.5 10 11.8
     11.8 10 16.5 8.2 11.8 3.5 10 8.2 8.2Z"/><path d="M18 4v3M19.5 5.5h-3M18 15v3M19.5
     16.5h-3"/></svg>`,
+  press:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round"><path d="M4 17.5a8.5 8.5 0 1 1 16 0"/>
+    <path d="M12 13.5 15.5 8"/></svg>`,
 };
 // Color de los porcentajes. El verde de "todo bien" se cambió por el acento
 // de la app (petición de Oscar 2026-07-27: el mismo tono del tag
@@ -151,8 +154,10 @@ function col(p,pace){ if(p>=95) return "var(--bad)";
 
 // Una fila: icono + etiqueta + % + barra + cuándo se restablece. La etiqueta
 // se pinta con textContent (viene del endpoint) — nunca como HTML.
-function row(icon, label, pct, pace, reset){
-  const c=col(pct,pace);
+// `c` opcional: color ya decidido (la presión usa umbrales 60/85 propios,
+// que no son los de ritmo de col()).
+function row(icon, label, pct, pace, reset, c){
+  c=c||col(pct,pace);
   const d=document.createElement("div"); d.className="row";
   d.innerHTML=`<div class="rtop"><span class="rlab">${icon}<span></span></span>
       <span class="rpct" style="color:${c}">${pct}%</span></div>
@@ -186,6 +191,13 @@ function render(d){
   const list=$("list"); list.innerHTML="";
   if(s) list.appendChild(row(ICON.ses, $("sesLab").textContent,
     Math.round(s.pct), s.pace, d.sesReset));
+  // presión de contexto de la sesión activa (docs/remediacion.md etapa 1):
+  // aquí vive el NÚMERO del manómetro de la cápsula; debajo, a qué proyecto
+  // pertenece (con su origen si es remota)
+  const pr=d.press;
+  if(pr) list.appendChild(row(ICON.press, d.labels?.press||"Context pressure",
+    pr.pct, null, pr.proj||"",
+    pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--acc)"));
   if(w) list.appendChild(row(ICON.week, wkLab, Math.round(w.pct), null, d.wkReset));
   // buckets por modelo: DINÁMICOS, con la etiqueta tal cual la reporta el
   // endpoint (Fable hoy, lo que salga mañana)
@@ -201,9 +213,10 @@ if(EVENT){
   });
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{   // preview suelto en un navegador
-  render({ok:true, theme:"dark", labels:{cardSes:"Session",cardWeek:"Weekly"},
+  render({ok:true, theme:"dark",
+    labels:{cardSes:"Session",cardWeek:"Weekly",press:"Context pressure"},
     session:{pct:6,pace:30}, weekly:{pct:35}, sesReset:"Reset in 1 h 6 min",
-    wkReset:"Reset in 74 h 56 min",
+    wkReset:"Reset in 74 h 56 min", press:{pct:64, proj:"demo"},
     extras:[{label:"Weekly · Fable",pct:28,resets:"Reset in 74 h 56 min"}]});
 }
 
