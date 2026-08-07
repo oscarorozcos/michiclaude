@@ -2216,3 +2216,58 @@ pasiva natural (alarmas/ntfy/aviso al cierre), decisión del updater
 (repo público + tag), capturas del README, y las ideas apuntadas para su
 momento (hub con rangos por día; armonizar el widget con la estética v5
 si algún día apetece).
+
+---
+
+## Cierre de jornada — 2026-08-06/07
+
+REPORTE EJECUTIVO: DE IDEA A PESTAÑA FUNCIONANDO en dos días. Nació del
+documento de estrategia que trajo Oscar (context rot / medir desperdicio
+en vez de consumo): primero el análisis con tabla comparativa de 22
+puntos (docs/presion-y-rendimiento.md — veredicto: el Nivel 1 ya lo
+cubríamos casi entero; lo nuevo viable era rendimiento + antes/después),
+luego el diseño del reporte con mockups de IA externa (Oscar eligió el
+A, documento ejecutivo en llano), y de ahí las tres fases.
+
+FASE 1 — MOTOR DE DATOS (verificado en el VPS con logs reales):
+- Turnos útiles `uturns` (mensajes HUMANOS: fuera meta, sidechain,
+  tool_result, comandos, inyecciones <ide_…) en totales, proyectos y
+  serie daily (que ganó también tokens/día). is_user_turn réplica exacta
+  Rust↔Python; caché de escaneo v2 ambos lados. Regresión con logs
+  CONGELADOS y --end fijo: campos viejos idénticos byte a byte;
+  coherencia 7d+7d=14d exacta; muestreo del filtro sin falsos (el <ide_
+  se cazó ahí: el IDE inyecta avisos con rol user sin marcar meta).
+- Histórico de cuota quota_history.json (90 días, una foto por ciclo,
+  freno 150 s; log_quota desde refresh() solo con lectura buena).
+  Validado en Windows: la primera foto nació con s/w/sr/wr correctos.
+- Marcas de arreglo fndHist/fndMarks (solo hallazgos de estado, escaneos
+  ≥7d sin rango; visto ≥3d + desaparecido ≥2d = arreglado).
+
+FASE 2 — PESTAÑA REPORTE (validada con capturas de Oscar): 6.ª pestaña,
+chips Semana/Mes/Personalizado (calendario compartido, target "rep"),
+héroe de rendimiento, "¿te duró más o menos?" del histórico de cuota
+(con estado honesto "juntando datos"), gráfica 4 semanas, proyectos con
+delta vs periodo anterior y "qué lo encareció" de hallazgos reales,
+marcas con antes/después (mínimo 5 días o "midiendo"), y "para los días
+que vienen" con recomendación por fuga.
+
+RONDAS DE CAPTURAS (dos): (1) velocidad — caché por periodo + render
+progresivo; pasada ligera de hallazgos 20h→3h (el porqué del "nunca vi
+el post-it rojo": hallazgos del VPS no disparan cierre local y a 20 h
+llegaban tarde — 4.ª mordida de la trampa del vigilante); 6 pestañas en
+una fila; re-render al cambiar idioma (gráfica en español dentro del
+panel en japonés). (2) maqueta michiclaude-hero-grafica.html de Oscar —
+héroe EFICIENCIA/VOLUMEN con ≈$ real pegado a cada dato de tokens, nota
+"no es contradicción" solo cuando divergen, regla "1M tok ≈ $X" con la
+tarifa MEDIDA del periodo (mejora sobre la maqueta, que traía tarifa
+fija), gráfica grande con conmutador tokens/$ estimado, barras de
+volumen y detalle al tocar. Margen transparente 8→5→3→1 px; scrollbar
+overlay fina.
+
+PRIMERA MEDICIÓN REAL del rendimiento: ~51k tok/turno en el VPS (7d) —
+nuestras propias sesiones son intensas; el reporte de Oscar marcó
+"empeoró 13%"… con nosotros mismos como causa. El medidor midiéndonos.
+
+PENDIENTE AL CIERRE: fase 3 (export HTML del mockup A), validación
+natural del post-it rojo (ahora con la pasada de 3 h tiene cómo), y que
+el histórico de cuota junte días para llenar "¿te duró más o menos?".
