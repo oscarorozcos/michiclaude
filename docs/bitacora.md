@@ -2763,3 +2763,60 @@ Lección general: **una cascada de respaldo no es una cascada verificada.**
 Mientras la primera fuente responda, las otras dos son código que nadie
 ejecuta — y el código que nadie ejecuta se pudre sin avisar. Si hay
 paracaídas de repuesto, hay que abrirlos de vez en cuando.
+
+### El relevo deja de depender de que te acuerdes (2026-08-08)
+
+Tres piezas del mismo problema, planteado por Oscar: *"los usuarios se les
+olvide y empiecen a trabajar y se den cuenta de que MichiClaude no ejecutó
+nada"*. Un automático que depende de un hábito no es un automático.
+
+**El atajo del PATH.** La pregunta que lo desatascó fue suya: *"¿se puede
+hacer genérico o hay que especificar por herramienta?"*. La respuesta cambió
+el diseño: **las terminales y los editores no interpretan `claude`** —
+ejecutan un shell, y el shell resuelve el comando. Perseguir "el top 10 de
+herramientas" era perseguir el objeto equivocado; el eje real eran cuatro
+shells. Y por encima de los cuatro hay algo mejor: un `claude.cmd` propio
+primero en el PATH, porque ahí resuelve **Windows**, no el shell. Un
+mecanismo, y vale para Windows Terminal, VS Code, Cursor, Warp, Alacritty y
+los que salgan mañana. Validado: `claude` a secas abrió con relevo y el panel
+lo detectó solo.
+
+Lo que costó de la primera prueba: **una pestaña nueva no es una terminal
+nueva.** Windows Terminal heredó su entorno al arrancar y se lo pasa a cada
+pestaña, así que el PATH nuevo no llegaba. El aviso decía "abre una terminal
+NUEVA" — engañoso, porque una pestaña lo parece. Ahora dice que hay que
+cerrar la VENTANA. Y el `.cmd` pasó a ASCII puro: la raya del comentario
+salía como `â€”` porque un `.cmd` no declara codificación y cmd.exe lo lee
+con la página de códigos que toque. En un comentario es cosmético; en un
+archivo de órdenes, una bomba de relojería.
+
+**Y el indicador estaba en el sitio equivocado.** Lo levantó Oscar: *"¿no
+estaría bien ver de forma visual qué sesión está activa con relevo, y no
+darme cuenta al final de que no?"*. Tenía razón y era un fallo de diseño mío
+— el indicador vivía en el panel, que es donde NO tienes los ojos. Trabajas
+en la terminal.
+
+Plan A (poner el título al arrancar) **no sobrevivió**: Claude Code pone
+«Claude Code» en cuanto arranca. Estaba declarado como best-effort antes de
+probarlo, así que el plan B ya estaba pensado: como el relevo ve pasar todos
+los bytes, `TitleMark` intercepta la secuencia OSC del título y le antepone
+la marca. La pestaña queda «michi · MichiClaude · Claude Code» y la marca
+sobrevive a cada reescritura de Claude porque se pega a todas.
+
+Es la ÚNICA excepción al paso transparente del relevo, así que va acotada:
+solo `ESC ] 0|1|2 ;`, **leyendo el número entero y no el primer dígito**
+—`ESC]10;` es el color de primer plano y tratarlo como título le habría
+metido la marca dentro—, sin apilar marcas, y con tope de 1024 bytes que
+suelta lo retenido tal cual. Fail-open: lo peor posible es quedarse sin
+marca, jamás comerse la salida. Diez casos probados con un puerto de la
+máquina de estados antes de tocar un compilador.
+
+Lecciones:
+
+- **Cuando algo "hay que acordarse de hacerlo", el diseño está incompleto.**
+  No es un problema de documentación ni de disciplina del usuario.
+- **Antes de integrar N herramientas, buscar qué tienen debajo.** Diez
+  terminales eran cuatro shells, y cuatro shells eran un PATH.
+- **Un indicador va donde están los ojos**, no donde es cómodo ponerlo.
+- **Declarar "best-effort" antes de probar** convirtió un fallo en un paso
+  previsto: el plan B ya estaba pensado cuando el plan A cayó.
