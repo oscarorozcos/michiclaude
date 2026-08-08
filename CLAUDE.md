@@ -480,7 +480,7 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       mecanismo se validó el 2026-08-05 re-armando fndSeen; falta verlo
       nacer natural, con una fuga nueva y el panel cerrado).
 - [ ] Updater: decidir repo público + publicar tag v* y probar completo.
-- [ ] Capturas para el README (las hace Oscar).
+- [ ] Capturas del README (las hace Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
       `docs/presion-y-rendimiento.md` — LEERLO antes de tocar). CERRADO
       HASTA DONDE ESTÁ (Oscar, 2026-08-07): fases 1 y 2 implementadas y
@@ -575,10 +575,10 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       panel). ATAJO DEL PATH
       (`set_relay_alias`): un `claude.cmd` en `%APPDATA%\<app>\bin`
       DELANTE del PATH de usuario — resuelve Windows, no el shell, así
-      que vale para cualquier terminal/editor sin integrarlos uno a uno;
-      NO alcanza WSL/SSH ni rutas absolutas. El shim NUNCA puede dejarte
-      sin Claude Code: con `MICHI_RELEVO` puesto o sin michi.exe ejecuta
-      el real (ruta resuelta al instalar). PATH por
+      que vale para cualquier terminal/editor; NO alcanza WSL/SSH ni
+      rutas absolutas. NUNCA deja sin Claude Code: con `MICHI_RELEVO`
+      puesto o sin michi.exe ejecuta el real (ruta resuelta al
+      instalar). PATH por
       `[Environment]::SetEnvironmentVariable`, JAMÁS `setx` (trunca a
       1024); copia en `path_backup.txt` y el interruptor quita EXACTA su
       entrada. Falta 3c-2, el AUTOMÁTICO: el countdown va a la cápsula
