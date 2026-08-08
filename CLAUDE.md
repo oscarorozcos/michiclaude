@@ -109,25 +109,22 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   Pie Hoy/Semana solo en Principal. El panel es el ÚNICO que llama al
   endpoint; el tray se actualiza desde su ciclo (`updateTray`).
 - **Pastilla** (`pill`, 280x54) + **detalle** (`pcard`, 280x300): cápsula
-  de cristal con asa ⠿, sticker del gatito como MARCA, "Sesión X%", hueco
-  semanal (calendario) y hueco semanal POR MODELO (destellos, VARIABLE: si
-  el endpoint no lo reporta no se pinta). Clic en cápsula = desplegar
-  detalle; clic en la MARCA = abrir panel; ⠿ arrastra (pliega antes); clic
-  derecho oculta. NO robar foco (WS_EX_NOACTIVATE). NUNCA llama al
-  endpoint: el panel emite `quota:update` y cada ventana pide el último
-  dato con `pill:ready` al cargar (toda ventana nueva del widget DEBE
-  emitirlo). El detalle son DOS ventanas (mostrar/ocultar, parece que
-  crece); `toggle_pill_card()` elige pose (hacia abajo si cabe; si no,
-  `body.up` invierte). Cabecera del detalle = geometría IDÉNTICA a la
-  cápsula (el margen de 6 px en ambas es lo que las alinea; sin él el halo
-  del box-shadow se corta en recto);
-  con el detalle abierto la cabecera esconde números (CSS del pcard). La
-  cabecera es funcional: gatito abre panel, asa arrastra vía
-  `drag_pill_from_card`. SIN tooltips nativos en la cápsula. El hover para
-  desplegar se probó y se DEVOLVIÓ a clic — no reintroducir. El % en
-  color: acento en "todo bien", pero ÁMBAR y ROJO se conservan. Los
-  tamaños de estas ventanas se definen en `ensure_widget_windows`, NO en
-  el json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos),
+  de cristal con asa ⠿, gatito como MARCA, "Sesión X%", hueco semanal y
+  hueco semanal POR MODELO (VARIABLE: si el endpoint no lo reporta no se
+  pinta). Clic en cápsula = desplegar detalle; clic en la MARCA = abrir
+  panel; ⠿ arrastra (pliega antes); clic derecho oculta. NO robar foco
+  (WS_EX_NOACTIVATE). NUNCA llama al endpoint: el panel emite
+  `quota:update` y cada ventana pide el último dato con `pill:ready` al
+  cargar (toda ventana nueva del widget DEBE emitirlo). El detalle son DOS ventanas (mostrar/ocultar, parece que crece);
+  `toggle_pill_card()` elige pose (abajo si cabe; si no `body.up`
+  invierte). Cabecera del detalle = geometría IDÉNTICA a la cápsula (el
+  margen de 6 px en ambas las alinea; sin él el halo del box-shadow se
+  corta en recto); con el detalle abierto esconde números. Es funcional:
+  gatito abre panel, asa arrastra vía `drag_pill_from_card`. SIN tooltips
+  en la cápsula. El hover para desplegar se probó y se DEVOLVIÓ a clic —
+  no reintroducir. El % en color: acento en "todo bien", ÁMBAR y ROJO se
+  conservan. Los tamaños se definen en `ensure_widget_windows`, NO en el
+  json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos),
   ambos SVG inline (la CSP no permite fuentes externas).
 - **Gatito** (estilo `cat`): 4 ventanas — `cat` (gif + cápsula "Sesión X%"
   + zona `.head`), `card` (globo resumen al hover), `notif` (globo de
@@ -157,14 +154,14 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   la vez; gana el primero de `ACK_KINDS`. SEGUNDA REGLA: cerrar el globo
   NO cambia el dibujo del gatito (refleja el estado REAL; solo la alarma
   lo calma). NINGÚN aviso va a toast de Windows con widget; el toast queda
-  SOLO sin widget (y ahí se repite cada 5 min).
-  Con la pastilla el globo es POPOVER (`body.cap`): severidad en `--sev`
-  (la calcula `balloonMeta()`), fondo OPACO a propósito, cola pequeña;
-  sigue al tema del panel. Si notif.html se ve "sin estilo", verificar que
-  sigan `*{box-sizing}`, `.box`, `.msg`, `.x` — `body.cap` las ESPECIALIZA. `place_balloon()` ancla al widget (cola
-  62% gato / 50% pastilla), pose automática multi-monitor; la punta se
-  mete 40 px en el gatito y 8 en la cápsula (`notif_overlap`). Globo y
-  detalle de la pastilla NUNCA a la vez (el globo gana y pliega).
+  SOLO sin widget (y ahí se repite cada 5 min). Con la pastilla el globo
+  es POPOVER (`body.cap`): severidad en `--sev`, fondo OPACO a propósito,
+  cola pequeña; sigue al tema del panel. Si notif.html se ve "sin estilo",
+  verificar `*{box-sizing}`, `.box`, `.msg`, `.x` — `body.cap` las
+  ESPECIALIZA. `place_balloon()` ancla al widget (cola 62% gato / 50%
+  pastilla), pose automática multi-monitor; la punta se mete 40 px en el
+  gatito y 8 en la cápsula (`notif_overlap`). Globo y detalle de la
+  pastilla NUNCA a la vez (el globo gana y pliega).
 - **Capa** (`PillConfig.layer`): top/normal/bottom. `apply_layer()` +
   `reassert_layers()` cada ciclo + `win_taskbar::force_topmost()`
   (SetWindowPos HWND_TOPMOST con SWP_NOACTIVATE — Windows degrada el
@@ -172,8 +169,8 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   globos SIEMPRE en la misma capa; el panel no participa. Si el bug de
   hundirse volviera: SetWinEventHook (EVENT_SYSTEM_FOREGROUND).
 - **CRÍTICO — ventanas transparentes:** NUNCA redimensionar en vivo
-  (`set_size`): WebView2 deja de pintar. Patrón correcto: ventanas de
-  tamaño fijo que se muestran/ocultan.
+  (`set_size`): WebView2 deja de pintar. Patrón: tamaño fijo que se
+  muestra/oculta.
 - **Creación en caliente:** `pill`/`pcard`/`cat`/`card` NO están en
   tauri.conf.json — las crea `ensure_widget_windows()` (solo el par del
   estilo elegido; al cambiar de widget se crea el nuevo y se DESTRUYE el
@@ -302,10 +299,10 @@ se usa "gastó de más".
 van abajo por costo. En Python `parse_ts` da datetime — va
 `int(ts.timestamp())`.
 
-**Subagentes:** sus turnos llevan el sessionId de la sesión MADRE y NO
-tocan el estado de sesión (turns/first_cr/last_cr/cr_cost/cb) — solo
-suman a su tarjeta; sus tool_use SÍ cuentan (MCP usado es usado). El
-coach queda plano a propósito. `proj` (carpeta de logs, para casar con
+**Subagentes:** sus turnos llevan el sessionId de la MADRE y NO tocan el
+estado de sesión (turns/first_cr/last_cr/cr_cost/cb) — solo suman a su
+tarjeta; sus tool_use SÍ cuentan (MCP usado es usado). El coach queda
+plano a propósito. `proj` (carpeta de logs, para casar con
 claudemd) y `disp` (cwd real, para enseñar) van SEPARADOS — unificarlos
 dejaría claudemd en costo 0 en silencio.
 
@@ -334,9 +331,8 @@ borrar fndSeen y fndAutoLast.
 ## Coach (pestaña Consejos)
 
 Diseño en `docs/consejos-coach.md` — LEERLO antes de tocar. Fichas
-estáticas curadas (sin IA, sin red, `tip_<id>_*` ×8) + motor de sesión
-activa: `get_coach` (Rust, lectura incremental por offset, sesiones
-tocadas en 30 min). Desde 2026-08-05 MULTI-FUENTE: local + WSL + cada
+curadas (sin IA, sin red, `tip_<id>_*` ×8) + motor de sesión activa:
+`get_coach` (Rust, incremental por offset, sesiones tocadas en 30 min). Desde 2026-08-05 MULTI-FUENTE: local + WSL + cada
 servidor SSH — el exportador replica el motor bajo `--coach` (invariante
 #1; estado incremental en `~/.cache/michiclaude/coach_state.json` del
 servidor, reconstruible; subagentes fuera, plano como en Rust) y
@@ -370,11 +366,9 @@ veredicto (unsure = sin insignia), advertencia si hay pendientes, botón
 "Copiar comando" → `plugin:clipboard-manager|write_text` invocado
 directo (dep `tauri-plugin-clipboard-manager`, capability
 `clipboard-manager:allow-write-text`, sin wrapper npm). Exportador viejo: ignora --coach → cero hits, se
-degrada solo (validado en vivo en el VPS, sondeo ~80 ms). Regla `acomp` (2026-08-08, LA pieza para
-el chat de la extensión de VS Code, donde NO se inyecta: claude va por
-ruta absoluta con stdin en socket privado, y sin ver el borrador del
-chat R1 es inverificable): `compact_boundary` con trigger≠manual y
-<30 min → ficha con los preTokens (los manuales no avisan). Reglas: ctx≥120k → compact;
+degrada solo (validado en vivo en el VPS, sondeo ~80 ms). Regla `acomp` (2026-08-08): `compact_boundary`
+con trigger≠manual y <30 min → ficha con los preTokens (los manuales no
+avisan: los hiciste tú). Reglas: ctx≥120k → compact;
 pausa≥6 min con ctx≥30k → cache; mismo archivo leído ≥3 → attach; `ask`
 (tool_use sin tool_result ≥3 min) y `done` (quieta 5 min, 5+ turnos) son
 SOLO push al celular, no fichas; `sum` (quieta 10 min) = recibo con
@@ -419,13 +413,12 @@ bloquear nada.
 ## Modo HUB (multi-máquina)
 
 TERMINADO y verificado. Análisis en `docs/hub-modo-equipo.md` — LEERLO
-antes de tocar código del hub. Cada ciclo sube la foto LOCAL A SECAS
-(antes de fusionar — subir lo fusionado haría eco) a
-`~/.michiclaude/hosts/<máquina>.json` por SSH; identidad en
-`hub_identity.json`, guard por id EN el servidor (código 3 si otro id).
-UNA FOTO POR VENTANA (`HUB_WINDOWS` = 1/7/15/30, DEBE coincidir con el
-selector del panel); quien lee no puede recortar un resumen ajeno.
-`fetch_remote` pasa `--exclude-host <id>` y Rust re-filtra por id
+antes de tocar el hub. Cada ciclo sube la foto LOCAL A SECAS (subir lo
+fusionado haría eco) a `~/.michiclaude/hosts/<máquina>.json` por SSH;
+identidad en `hub_identity.json`, guard por id EN el servidor (código 3
+si otro id). UNA FOTO POR VENTANA (`HUB_WINDOWS` = 1/7/15/30, DEBE
+coincidir con el selector); quien lee no puede recortar un resumen
+ajeno. `fetch_remote` pasa `--exclude-host <id>` y Rust re-filtra
 (recibir lo propio = contarlo doble). Nada se descarta por antigüedad.
 Config compartida: MANUAL a propósito (dos botones en Fuentes de datos);
 al guardar escribe en TODOS los servidores, al traer gana el primero;
@@ -536,10 +529,9 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       escrito desde Rust con saltos de línea REALES (en una línea muere
       en el parser: hacía fallar TODO cierre); el veredicto del kill
       sale de re-consultar el PID, nunca de `$?`, y lo raro deja
-      `rem_debug.json`. ETAPA 3 (relevo) COMPLETA salvo la 4;
-      TODO VALIDADO EN VIVO 2026-08-08, detalle y autopsias en
-      `docs/remediacion.md` y la bitácora. REGLAS DURAS que hay que
-      conocer antes de tocarlo:
+      `rem_debug.json`. ETAPA 3 (relevo) COMPLETA salvo la 4, TODO
+      VALIDADO EN VIVO 2026-08-08 (detalle y autopsias en el doc y la
+      bitácora). REGLAS DURAS antes de tocarlo:
       crate APARTE `relevo/` (la app no gana deps, invariante #4);
       canal por ARCHIVOS `%APPDATA%\<app>\relevo\<pid>.json|.cmd`
       (tmp+rename con `.tmp` sobre el nombre ENTERO o estado y orden se
@@ -549,42 +541,47 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       del que está en medio** — las teclas llegan como
       `ESC[Vk;Sc;Uc;Kd;Cs;Rc_` y hay que decodificarlas; los avisos del
       terminal (foco, cursor) NO son teclas; UNA fuente de verdad para
-      "hay texto"; un Enter no limpia hasta ver si Claude REACCIONA; el
-      relevo JAMÁS escribe lo tecleado (`--debug` son CUENTAS).
-      `TitleMark` antepone la marca al título que escribe Claude: ÚNICA
-      excepción al paso transparente, lee el número OSC ENTERO
-      (`ESC]10;` es color) y es fail-open con tope. Casado
-      sesión↔relevo por el `cwd` COMPLETO (campo `scwd` del hit `press`,
-      replicado en el exportador) y FAIL-CLOSED ante ambigüedad. Quien
+      "hay texto"; un Enter no limpia hasta ver si Claude REACCIONA;
+      JAMÁS escribe lo tecleado.
+      `TitleMark` antepone la marca al título de Claude: ÚNICA excepción
+      al paso transparente, lee el número OSC ENTERO (`ESC]10;` es
+      color), fail-open con tope. Casado sesión↔relevo por el `cwd` COMPLETO (`scwd` del hit `press`)
+      y FAIL-CLOSED ante ambigüedad. Quien
       DECIDE es el relevo: `attend()` revuelve R1-R3 al escribir, que el
       countdown acabe no es permiso. `relayBusy` impide repintar con una
       cuenta viva (si no, el botón se va y la orden se aplica a ciegas).
-      El motivo del rechazo va en línea propia, nunca dentro del botón.
-      Desbloqueo en `relayDone` (/compact 2, /clear 3) y `/clear` NO se
-      automatiza aunque se gane. El AUTOMÁTICO exige widget A LA VISTA
-      —la cuenta atrás vive en la cápsula—, dura 15 s, cualquier toque
-      la para (en el gatito el manejador va en CAPTURA) y se marca ANTES
-      de empezar para que un fallo no teclee en bucle. ATAJO DEL PATH
-      (`set_relay_alias`): un `claude.cmd` en `%APPDATA%\<app>\bin`
-      DELANTE del PATH de usuario — resuelve Windows, no el shell, así
-      que vale para cualquier terminal/editor; NO alcanza WSL/SSH ni
-      rutas absolutas. NUNCA deja sin Claude Code: con `MICHI_RELEVO`
-      puesto o sin michi.exe ejecuta el real (ruta resuelta al
-      instalar). PATH por
-      `[Environment]::SetEnvironmentVariable`, JAMÁS `setx` (trunca a
-      1024); copia en `path_backup.txt` y el interruptor quita EXACTA su
-      entrada. FAIL-OPEN sin consola: michi ejecuta el claude real con
+      El motivo del rechazo va en línea propia, nunca en el botón.
+      Desbloqueo en `relayDone` (/compact 2, /clear 3; lo que TECLEAS TÚ
+      también cuenta) y `/clear` NO se automatiza aunque se gane. El
+      AUTOMÁTICO exige widget A LA VISTA —la cuenta atrás vive en la
+      cápsula—, dura 15 s, cualquier toque la para (en el gatito el
+      manejador va en CAPTURA) y se marca ANTES de empezar. ATAJO DEL PATH (`set_relay_alias`): un `claude.cmd` en
+      `%APPDATA%\<app>\bin` DELANTE del PATH de usuario — resuelve
+      Windows, no el shell, así que vale para cualquier terminal/editor;
+      NO alcanza WSL/SSH ni rutas absolutas. NUNCA deja sin Claude Code
+      (con `MICHI_RELEVO` o sin michi.exe ejecuta el real). PATH por
+      `SetEnvironmentVariable`, JAMÁS `setx` (trunca a 1024); copia en
+      `path_backup.txt` y quita EXACTA su entrada. FAIL-OPEN sin consola: michi ejecuta el claude real con
       `MICHI_RELEVO=0` (sin la marca, `cmd /c claude` puede resolver a
       NUESTRO shim y ciclar) — el chat de la extensión de VS Code NO es
       una terminal y no se envuelve, queda en modo consejero (inv. #8).
-      ETAPA 4 ARRANCADA: 4a = relevo del VPS en PYTHON
-      (`scripts/michi-relevo.py`, stdlib pty; el VPS no tiene Rust),
-      viaja EMBEBIDO como el exportador (`upload_script`, re-subido al
-      arrancar; cortesía, no tumba el alta), mismas constantes/esquema/
-      códigos que main.rs y VALIDADO EN EL VPS con banco de PTY real (12
-      pruebas). Faltan 4b (descubrir remotas por SSH con `origin`), 4c
-      (inyección remota + alias `~/.bashrc` opt-in) y WSL; el automático
-      NO se extiende a remotas aún. FALTA: que `michi.exe` viaje en el instalador
+      EL CHAT DE LA EXTENSIÓN DE VS CODE SÍ SE RELEVA (el "imposible" de
+      antes se dictó con media evidencia): `claudeCode.claudeProcessWrapper`
+      es enganche OFICIAL y `michi-relevo.py wrap` proxea stream-json —
+      `/compact` como línea `user` lo INTERCEPTA la CLI ($0, turno
+      `<synthetic>`). Ahí R1 se cumple POR CONSTRUCCIÓN (líneas atómicas)
+      y R2 es CERTEZA (`user` entra → `result` sale): más seguro que la
+      terminal; casado por `session_id`. `michi-wrap.sh` va en el ajuste,
+      con 3 caminos de emergencia. OJO: `--replay-user-messages` NO
+      replica comandos, así que el relevo emite él la línea de replay
+      para que la inyección SE VEA (solo al chat; el JSONL no se toca).
+      Residual: no vemos el borrador del cuadro.
+      ETAPA 4: 4a = relevo del VPS en PYTHON (`michi-relevo.py`, stdlib
+      pty; el VPS no tiene Rust), embebido y re-subido como el exportador
+      junto a `michi-wrap.sh`; mismas constantes/esquema/códigos que
+      main.rs, validado con banco de PTY real. Faltan 4b (descubrir
+      remotas por SSH), 4c (inyección remota + alias `~/.bashrc`) y WSL;
+      el automático NO llega a remotas aún. FALTA: que `michi.exe` viaje en el instalador
       (workflow, invariante #9) y la etapa 4 (WSL/SSH).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras

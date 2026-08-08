@@ -1091,6 +1091,10 @@ const REMOTE_SCRIPT: &str = include_str!("../../scripts/meter-export.py");
 /// win32-input-mode (eso es ConPTY de Windows).
 const REMOTE_RELEVO_PATH: &str = "~/.michiclaude/michi-relevo.py";
 const REMOTE_RELEVO: &str = include_str!("../../scripts/michi-relevo.py");
+/// Lanzador para `claudeCode.claudeProcessWrapper`: es lo que la extensión de
+/// VS Code ejecuta en lugar de `claude`. Viaja con los otros dos.
+const REMOTE_WRAP_PATH: &str = "~/.michiclaude/michi-wrap.sh";
+const REMOTE_WRAP: &str = include_str!("../../scripts/michi-wrap.sh");
 
 /// Sube un script al servidor por SSH escribiéndolo desde stdin (sin scp ni
 /// permisos extra). Idempotente: sobrescribe siempre.
@@ -1139,6 +1143,7 @@ fn upload_script(host: &str, path: &str, body: &str) -> Result<(), String> {
 fn upload_exporter(host: &str) -> Result<(), String> {
     upload_script(host, REMOTE_SCRIPT_PATH, REMOTE_SCRIPT)?;
     let _ = upload_script(host, REMOTE_RELEVO_PATH, REMOTE_RELEVO);
+    let _ = upload_script(host, REMOTE_WRAP_PATH, REMOTE_WRAP);
     Ok(())
 }
 

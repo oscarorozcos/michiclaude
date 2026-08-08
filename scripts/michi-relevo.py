@@ -10,7 +10,10 @@ constantes. Lo que NO se replica: el decodificador win32-input-mode (eso es
 ConPTY de Windows; aquí las teclas llegan como bytes normales).
 
 Uso:
-  michi-relevo.py claude [args...]   abre Claude Code con relevo
+  michi-relevo.py claude [args...]   abre Claude Code con relevo (TERMINAL)
+  michi-relevo.py wrap [claude] [args...]
+                                     relevo del CHAT: proxy de stream-json,
+                                     para claudeCode.claudeProcessWrapper
   michi-relevo.py status [--debug]   sesiones con relevo vivas
   michi-relevo.py inject [pid] /compact
 
@@ -39,6 +42,12 @@ SUBMIT_WAIT_MS = 3_000  # un Enter no limpia hasta ver si Claude REACCIONA
 TICK_S = 0.25
 STATE_EVERY_S = 0.5
 FRESH_S = 15          # viva = estado con menos de esto (MISMA regla que el panel)
+
+# El mensaje que se inyecta en modo chat. Es el MISMO protocolo que usa la
+# extensión para tus mensajes: una línea JSON completa por stdin.
+def user_line(text):
+    return json.dumps({"type": "user", "message": {
+        "role": "user", "content": [{"type": "text", "text": text}]}}) + "\n"
 
 
 def state_dir():
@@ -457,6 +466,252 @@ def run_relevo(extra):
     sys.exit(code if isinstance(code, int) else 1)
 
 
+# ---------- relevo del CHAT: proxy de stream-json (paso 2 de la etapa 4) ----------
+# El chat de la extensión de VS Code NO es una terminal: lanza `claude` con
+# --input-format stream-json y le habla por stdin/stdout con UNA LÍNEA JSON
+# por mensaje. Aquí el relevo no envuelve una PTY, envuelve ese tubo — se pone
+# en medio con `claudeCode.claudeProcessWrapper`, el enganche OFICIAL de la
+# extensión ("Executable path used to launch the Claude process").
+#
+# Por qué este modo es MÁS seguro que el de terminal, no menos:
+#  - R1 (no teclear encima del usuario) se cumple por CONSTRUCCIÓN: no hay
+#    buffer compartido ni teclas a medias. Cada mensaje es una línea atómica;
+#    si el usuario envía el suyo un instante después, son dos mensajes
+#    separados y mezclarlos es imposible. Su borrador en el cuadro ni se toca.
+#  - R2 ("Claude está generando") deja de INFERIRSE del silencio: el propio
+#    protocolo lo dice — un `user` entra, un `result` sale. Certeza.
+#  - Con --replay-user-messages (lo que usa la extensión) el /compact
+#    inyectado APARECE en el chat: auditable a simple vista.
+#
+# Riesgo residual, dicho sin adornos: no vemos lo que el usuario está
+# escribiendo en el cuadro. Si inyectamos mientras redacta, su mensaje llega
+# DESPUÉS y se evalúa con el contexto ya compactado. No se corrompe nada y es
+# justo para lo que sirve la función, pero no es invisible: por eso el
+# countdown y el candado de calma siguen existiendo aquí.
+
+
+def find_claude(args):
+    """La ruta del claude real. Se aceptan las DOS convenciones posibles del
+    wrapper (que la extensión pase el binario como primer argumento, o que no
+    lo pase y el envoltorio deba encontrarlo), porque cuál usa no está
+    documentado y no se puede adivinar sin romperle el chat a alguien."""
+    rest = list(args)
+    if rest and os.path.isfile(rest[0]) and os.access(rest[0], os.X_OK):
+        return rest[0], rest[1:]
+    env = os.environ.get("MICHI_CLAUDE_BIN")
+    if env and os.path.isfile(env):
+        return env, rest
+    # el binario que trae la propia extensión (lo normal en Remote-SSH)
+    import glob
+    pats = sorted(glob.glob(os.path.expanduser(
+        "~/.vscode-server/extensions/anthropic.claude-code-*/resources/native-binary/claude")))
+    if pats:
+        return pats[-1], rest
+    for d in (os.environ.get("PATH") or "").split(os.pathsep):
+        c = os.path.join(d, "claude")
+        if os.path.isfile(c) and os.access(c, os.X_OK):
+            return c, rest
+    return None, rest
+
+
+def run_wrap(args):
+    claude, rest = find_claude(args)
+    if not claude:
+        print("michi: no encontré el binario de Claude Code", file=sys.stderr)
+        sys.exit(127)
+    # Ya dentro de un relevo, o sin el protocolo esperado: paso directo. El
+    # wrapper NUNCA puede dejar sin Claude Code (misma regla que el shim).
+    if os.environ.get("MICHI_RELEVO") or "--input-format" not in rest:
+        os.environ["MICHI_RELEVO"] = "0"
+        try:
+            os.execv(claude, [claude] + rest)
+        except OSError as e:
+            print(f"michi: no pude lanzar claude: {e}", file=sys.stderr)
+            sys.exit(127)
+
+    pid = os.getpid()
+    cwd = os.getcwd()
+    env = dict(os.environ, MICHI_RELEVO=str(pid))
+    child = subprocess.Popen(
+        [claude] + rest, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=None, env=env, cwd=cwd, bufsize=0,
+    )
+
+    started = now_epoch()
+    d = state_dir()
+    state_path = os.path.join(d, f"{pid}.json")
+    cmd_path = os.path.join(d, f"{pid}.cmd")
+
+    st = {
+        "last_in": now_ms(),    # último mensaje del usuario hacia Claude
+        "last_out": now_ms(),   # última salida de Claude
+        "busy": False,          # turno en curso (CERTEZA, no inferencia)
+        "inject_at": 0,
+        "sid": "",              # session_id del log: casado EXACTO con el panel
+        "user_cmd": None,
+        "ack": None,
+        "alive": True,
+    }
+    lock = __import__("threading").Lock()      # escribir al hijo
+    olock = __import__("threading").Lock()     # escribir al chat
+
+    def why_not():
+        now = now_ms()
+        if not st["alive"] or child.poll() is not None:
+            return "ERR_RELAY_GONE"
+        if st["busy"]:
+            return "ERR_RELAY_BUSY"
+        if now - st["last_out"] < QUIET_MS:
+            return "ERR_RELAY_BUSY"
+        if now - st["last_in"] < CALM_MS:
+            return "ERR_RELAY_NOISY"
+        if st["inject_at"] and now - st["inject_at"] < COOLDOWN_MS:
+            return "ERR_RELAY_COOLDOWN"
+        return ""
+
+    def snapshot():
+        now = now_ms()
+        why = why_not()
+        uc = st["user_cmd"]
+        return json.dumps({
+            "v": STATE_V, "pid": pid, "started": started, "cwd": cwd,
+            "ts": now_epoch(), "alive": child.poll() is None,
+            # en el chat no hay borrador visible: `typed` es SIEMPRE false y no
+            # se finge otra cosa. R1 se cumple por construcción (líneas atómicas)
+            "typed": False,
+            "idle_in": (now - st["last_in"]) // 1000,
+            "idle_out": (now - st["last_out"]) // 1000,
+            "ready": why == "", "why": why,
+            "mode": "chat",          # el panel lo enseña distinto de "terminal"
+            "sid": st["sid"],        # casado EXACTO por sesión, no por carpeta
+            "diag": {"line_len": 0, "pending": st["busy"], "k_print": 0,
+                     "k_enter": 0, "k_esc": 0, "k_other": 0, "k_win32": 0},
+            "user_cmd": uc and uc[1], "user_cmd_ts": uc and uc[0],
+            "last": st["ack"],
+        })
+
+    def attend(raw):
+        try:
+            v = json.loads(raw)
+        except ValueError:
+            return {"ok": False, "err": "ERR_RELAY_BADCMD"}
+        rid = v.get("id") or ""
+        text = (v.get("text") or "").strip()
+        out = lambda ok, err: {"id": rid, "ok": ok, "err": err,
+                               "text": text, "ts": now_epoch()}
+        if text not in ALLOWED:
+            return out(False, "ERR_RELAY_BADCMD")
+        w = why_not()
+        if w:
+            return out(False, w)
+        try:
+            with lock:
+                child.stdin.write(user_line(text).encode())
+                child.stdin.flush()
+        except (OSError, ValueError):
+            return out(False, "ERR_RELAY_WRITE")
+        st["inject_at"] = now_ms()
+        st["busy"] = True
+        # QUE SE VEA EN EL CHAT. --replay-user-messages replica los mensajes
+        # normales pero NO los comandos: la CLI los intercepta antes (medido
+        # 2026-08-08). Sin esto, la conversación se compactaría sin que nada
+        # en pantalla dijera quién lo pidió — justo el "Michi actuando a tus
+        # espaldas" que este proyecto no permite. Se emite la MISMA forma que
+        # la CLI usa al replicar un mensaje de usuario, así que la extensión
+        # ya sabe pintarla. Va solo al chat: el JSONL lo escribe la CLI y no
+        # se toca, así que esto no falsea el registro.
+        try:
+            with olock:
+                sys.stdout.buffer.write(user_line(text).encode())
+                sys.stdout.buffer.flush()
+        except (OSError, ValueError):
+            pass
+        return out(True, "")
+
+    def pump_in():
+        """Del chat hacia Claude. Cada línea se reenvía INTACTA."""
+        try:
+            for line in iter(sys.stdin.buffer.readline, b""):
+                try:
+                    v = json.loads(line)
+                    if v.get("type") == "user":
+                        st["last_in"] = now_ms()
+                        st["busy"] = True
+                        # ¿el usuario aplicó él mismo uno de los dos? cuenta
+                        # para el desbloqueo igual que en la terminal
+                        c = v.get("message", {}).get("content")
+                        txt = ""
+                        if isinstance(c, str):
+                            txt = c
+                        elif isinstance(c, list):
+                            txt = " ".join(b.get("text", "") for b in c
+                                           if isinstance(b, dict))
+                        txt = txt.strip()
+                        for a in ALLOWED:
+                            if txt == a or txt.startswith(a + " "):
+                                st["user_cmd"] = (now_epoch(), a)
+                except ValueError:
+                    pass            # no es JSON: se reenvía igual, sin tocar
+                with lock:
+                    child.stdin.write(line)
+                    child.stdin.flush()
+        except (OSError, ValueError):
+            pass
+        finally:
+            st["alive"] = False
+            try:
+                child.stdin.close()
+            except OSError:
+                pass
+
+    def pump_out():
+        """De Claude hacia el chat. Igual de intacta."""
+        try:
+            for line in iter(child.stdout.readline, b""):
+                st["last_out"] = now_ms()
+                try:
+                    v = json.loads(line)
+                    t = v.get("type")
+                    if t == "result":
+                        st["busy"] = False       # fin de turno: CERTEZA
+                    if t == "system" and v.get("session_id"):
+                        st["sid"] = v["session_id"]
+                except ValueError:
+                    pass
+                with olock:
+                    sys.stdout.buffer.write(line)
+                    sys.stdout.buffer.flush()
+        except (OSError, ValueError):
+            pass
+        finally:
+            st["alive"] = False
+
+    import threading
+    for fn in (pump_in, pump_out):
+        threading.Thread(target=fn, daemon=True).start()
+
+    try:
+        while child.poll() is None:
+            if os.path.exists(cmd_path):
+                try:
+                    with open(cmd_path, encoding="utf-8") as f:
+                        raw = f.read()
+                    os.unlink(cmd_path)
+                except OSError:
+                    raw = ""
+                if raw.strip():
+                    st["ack"] = attend(raw)
+            write_atomic(state_path, snapshot())
+            time.sleep(STATE_EVERY_S)
+    finally:
+        for p in (state_path, cmd_path):
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
+    sys.exit(child.returncode or 0)
+
+
 # ---------- subcomandos (validar sin panel, igual que en Windows) ----------
 
 def live_sessions():
@@ -540,6 +795,8 @@ def main():
     args = sys.argv[1:]
     if args and args[0] == "claude":
         run_relevo(args[1:])
+    elif args and args[0] == "wrap":
+        run_wrap(args[1:])
     elif args and args[0] == "status":
         cmd_status(args[1:])
     elif args and args[0] == "inject":

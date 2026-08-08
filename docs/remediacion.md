@@ -690,7 +690,64 @@ y hay que decirlos sin adornos:
   avisos de foco no reinician la calma, y el estado se borra al salir. Un
   fallo del banco por el camino que es lección de PTY: un Ctrl+D con bytes
   pendientes en la línea no es EOF, es "enviar línea" — hacen falta dos.
-## El chat de la extensión de VS Code: el veredicto (2026-08-08)
+## El chat de la extensión SÍ se puede relevar (2026-08-08) — corrección
+
+**El veredicto de más abajo era incorrecto y queda anulado.** Se dictó con la
+investigación a medias: se miró CÓMO arranca la extensión (ruta absoluta,
+sockets) y se concluyó "imposible" sin mirar si la extensión ofrecía un
+enganche ni cómo se comporta su protocolo. Las dos cosas cambian la
+respuesta. Se conserva el texto original abajo porque el error tiene valor:
+**"no se puede" es una conclusión que exige tanta evidencia como "sí se
+puede", y aquí se dio por buena con la mitad.**
+
+Lo que se encontró al investigar de verdad:
+
+- **La extensión tiene un enganche OFICIAL:**
+  `claudeCode.claudeProcessWrapper` — *"Executable path used to launch the
+  Claude process"*. Ajuste soportado, de scope `machine`, presente en 2.1.226.
+  No hay que parchear nada ni pelearse con actualizaciones.
+- **`/compact` se ejecuta por el protocolo:** enviando por stdin la línea
+  `{"type":"user","message":{...,"content":[{"type":"text","text":"/compact"}]}}`
+  la CLI lo INTERCEPTA como comando — turno `<synthetic>`, `num_turns: 0`,
+  coste $0. No llega al modelo.
+- **Y el modo chat es MÁS seguro que el de terminal, no menos.** R1 (jamás
+  teclear encima del usuario) se cumple por CONSTRUCCIÓN: no hay buffer
+  compartido ni teclas a medias, cada mensaje es una línea atómica y mezclarse
+  es imposible. R2 deja de inferirse del silencio: el protocolo lo DICE (`user`
+  entra → `result` sale). Certeza donde en la terminal había deducción.
+- **Casado EXACTO por `session_id`**: el evento `system init` trae el id que
+  da nombre al `.jsonl`, así que aquí no hace falta la heurística del `cwd`.
+
+Implementación (`michi-relevo.py wrap`, paso 1) y activación (`michi-wrap.sh`
+en el ajuste, paso 2):
+
+- **`michi-wrap.sh`** es lo que se pone en el ajuste; solo antepone `wrap` y
+  hace `exec`. Con tres caminos de emergencia —binario como primer argumento,
+  el `native-binary` de la extensión, el del PATH— porque **el chat de alguien
+  es su trabajo del día y una función de más no vale romperlo**. Validado: sin
+  python3 y sin relevo, arranca igual.
+- **Las dos convenciones posibles del wrapper están cubiertas** (que la
+  extensión pase el binario real como primer argumento o que no lo pase),
+  porque cuál usa NO está documentado y adivinar rompería chats ajenos.
+- **El `/compact` inyectado se ve en el chat, y hubo que construirlo.**
+  `--replay-user-messages` replica los mensajes normales pero NO los comandos:
+  la CLI los intercepta antes (medido — el harness lo cazó y desmintió lo que
+  yo había prometido una hora antes). El relevo emite él mismo la línea de
+  replay, con la MISMA forma que usa la CLI, así que la extensión ya sabe
+  pintarla. Va solo al chat: el JSONL lo escribe la CLI y no se toca, así que
+  esto NO falsea el registro.
+- **Riesgo residual, dicho claro:** no vemos el borrador del cuadro de chat.
+  Si se inyecta mientras el usuario redacta, su mensaje llega después y se
+  evalúa con el contexto ya compactado. No se corrompe nada —y es justo para
+  lo que sirve la función—, pero no es invisible: por eso el countdown y la
+  ventana de calma siguen existiendo también aquí.
+- **VALIDADO 12/12 contra el binario REAL de la extensión** (2.1.226), con un
+  cliente que simula al chat, incluida la invocación tal cual la hará VS Code
+  (a través del lanzador y SIN pasarle el binario).
+
+### El veredicto original, conservado como error documentado
+
+
 
 Es el día a día de Oscar y pidió "hazlo compatible o ve la manera". Se
 investigó EN SU PROPIA MÁQUINA (el VPS), no en teoría:
