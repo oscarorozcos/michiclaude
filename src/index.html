@@ -288,7 +288,7 @@
   .int-ot{font-size:12.5px;font-weight:600;color:var(--txt)}
   .int-ob{font-size:11.5px;color:var(--txt-mut);line-height:1.5;margin-top:3px}
   .int-warn{font-size:11px;color:var(--warn);line-height:1.5;margin-top:5px}
-  .int-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .int-row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
   .int-copy{margin-left:auto;font-size:11px;font-weight:600;font-family:var(--font);
     color:var(--txt);background:transparent;border:1px solid var(--stroke-soft);
     border-radius:999px;padding:4px 11px;cursor:pointer;transition:.15s}
@@ -302,6 +302,13 @@
     white-space:nowrap}
   .int-apply:hover{filter:brightness(1.08)}
   .int-apply[data-running]{background:var(--warn);color:#1a1206}
+  /* El motivo del "no se aplicó" va en SU PROPIA LÍNEA, nunca dentro del
+     botón: metido ahí lo estiraba hasta salirse de la ventana (visto por
+     Oscar 2026-08-08). flex-basis 100% lo baja entero; el botón conserva
+     su etiqueta corta y su nowrap. */
+  .int-msg{flex:1 1 100%;font-size:10.5px;color:var(--bad);line-height:1.45;
+    overflow-wrap:anywhere}
+  .int-msg:empty{display:none}
   .int-later{margin-top:10px;text-align:right;font-size:11px;color:var(--txt-dim);
     cursor:pointer}
   .int-later:hover{color:var(--txt)}
@@ -313,7 +320,8 @@
   .rem-l{font-size:10.5px;color:var(--txt-dim);padding:2px 0;overflow-wrap:anywhere}
   /* Relevo etapa 3b: una fila por sesión de Claude Code abierta con relevo */
   .rly-r{display:flex;align-items:center;justify-content:space-between;gap:8px;
-    font-size:11px;color:var(--txt-mut);padding:3px 0;min-width:0}
+    font-size:11px;color:var(--txt-mut);padding:3px 0;min-width:0;flex-wrap:wrap}
+  .rly-act{display:flex;align-items:center;gap:8px;min-width:0}
   .rly-r b{color:var(--txt)}
   .rly-s{font-size:10.5px;white-space:nowrap;color:var(--txt-dim)}
   .rly-s.ok{color:var(--ok)}
@@ -7950,7 +7958,7 @@ function rlyRows(){
     // decisión necesita el contexto de la tarjeta de intención —el veredicto
     // y el aviso de pendientes—, no una fila suelta en Ajustes.
     return `<div class="rly-r"><span><b>${escapeHtml(r.project||r.cwd)}</b> · pid ${
-      r.pid}${pct}</span><span style="display:flex;gap:8px;align-items:center">${s}<button
+      r.pid}${pct}</span><span class="rly-act">${s}<button
       class="int-apply" data-cmd="/compact" data-pid="${r.pid}">${t("rly_apply")} /compact</button></span></div>`;
   }).join("");
   el.querySelectorAll(".int-apply").forEach(b=>
@@ -7993,6 +8001,16 @@ function relayMark(cmd){
 // Traduce el veredicto del relevo. Los códigos vienen crudos del backend
 // (invariante #10) y rlyWhy ya sabe convertirlos; aquí solo se enmarca.
 function relayFail(code){ return t("rly_failed", rlyWhy(code)); }
+// El motivo del rechazo va a su propia línea dentro de la fila, NUNCA dentro
+// del botón: ahí lo estiraba hasta salirse del panel. Se crea al vuelo y se
+// borra sola; `.int-msg:empty` la esconde para no dejar un hueco.
+function relayMsg(btn,txt){
+  const row=btn.closest(".int-row,.rly-r")||btn.parentElement;
+  if(!row) return;
+  let m=row.querySelector(".int-msg");
+  if(!m){ m=document.createElement("span"); m.className="int-msg"; row.appendChild(m); }
+  m.textContent=txt||"";
+}
 // Cuenta atrás sobre el propio botón y, al llegar a cero, la orden. Mientras
 // corre, el botón ES el botón de cancelar: un solo control, imposible
 // confundirse. Si el usuario cancela, no se escribe nada en ningún sitio.
@@ -8025,13 +8043,17 @@ function relayApply(btn){
     try{
       await invoke("relay_inject",{pid,text:cmd,auto:false});
       btn.textContent=t("rly_applied");
+      relayMsg(btn,"");
       relayMark(cmd);
       flog("relevo: aplicado "+cmd+" en pid "+pid);
       remLogLoad();
-    }catch(err){
-      btn.textContent=relayFail(String(err));
-      flog("relevo: NO aplicado "+cmd+" — "+err);
       setTimeout(()=>{ btn.textContent=label; },4000);
+    }catch(err){
+      // el botón recupera su etiqueta corta y el porqué baja a su línea
+      btn.textContent=label;
+      relayMsg(btn,relayFail(String(err)));
+      flog("relevo: NO aplicado "+cmd+" — "+err);
+      setTimeout(()=>{ relayMsg(btn,""); },6000);
     }
   },1000);
   btn.dataset.timer=String(tick);

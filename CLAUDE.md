@@ -119,12 +119,12 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   emitirlo). El detalle son DOS ventanas (mostrar/ocultar, parece que
   crece); `toggle_pill_card()` elige pose (hacia abajo si cabe; si no,
   `body.up` invierte). Cabecera del detalle = geometría IDÉNTICA a la
-  cápsula (el margen de 6 px en ambas es lo que las alinea — cambiar en
-  una obliga a la otra; sin él, el halo del box-shadow se corta en recto);
+  cápsula (el margen de 6 px en ambas es lo que las alinea; sin él el halo
+  del box-shadow se corta en recto);
   con el detalle abierto la cabecera esconde números (CSS del pcard). La
   cabecera es funcional: gatito abre panel, asa arrastra vía
   `drag_pill_from_card`. SIN tooltips nativos en la cápsula. El hover para
-  desplegar se probó y se DEVOLVIÓ a clic — no reintroducirlo. El % en
+  desplegar se probó y se DEVOLVIÓ a clic — no reintroducir. El % en
   color: acento en "todo bien", pero ÁMBAR y ROJO se conservan. Los
   tamaños de estas ventanas se definen en `ensure_widget_windows`, NO en
   el json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos),
@@ -135,11 +135,9 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   cat-zzz (`hit:week`) / cat-break (`hit:session`) / cat-fire
   (`ackPending:alarm`) / normal; los banderines `hit:*` los limpia
   `trackResets()` con ventana nueva. Cápsula nace OCULTA (`body.nodata`)
-  hasta tener lectura real; si falta el arte de un estado, cae al gif
-  normal. Zona `.head` en vars CSS `--hx:50% --hy:52% --hw:37% --hh:36%`
-  (RECALIBRADA 2026-08-04 midiendo los píxeles del gif: cabeza real
-  x[50%,86.5%] y[53%,87.5%]; para recalibrar, pintar .head con fondo
-  rojo). El HOVER del globo resumen vive SOLO en `.head` (la laptop no lo
+  hasta tener lectura real; sin arte de un estado, cae al gif normal. Zona `.head` en vars CSS `--hx:50% --hy:52% --hw:37% --hh:36%`
+  (RECALIBRADA 2026-08-04 midiendo el gif: cabeza real x[50%,86.5%]
+  y[53%,87.5%]; para recalibrar, pintar .head de rojo). El HOVER del globo resumen vive SOLO en `.head` (la laptop no lo
   despliega; salir de la ventana pliega; rozar <300ms cancela el
   temporizador). Laptop y márgenes arrastran. Post-its en la tapa:
   pilita ROJA de hallazgos (`.fstack`, vars `--bx/--by/--bs`, rojo FIJO
@@ -157,16 +155,15 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   panel, y no vuelve. NADA de auto-cierre por temporizador. Hover lo
   oculta pero NO cuenta como leído (`notif:ready` lo restaura). Un globo a
   la vez; gana el primero de `ACK_KINDS`. SEGUNDA REGLA: cerrar el globo
-  NO cambia el dibujo del gatito (el dibujo refleja el estado REAL; solo
-  la alarma lo calma). NINGÚN aviso va a toast de Windows mientras haya
-  widget; el toast queda SOLO sin widget (y ahí se repite cada 5 min).
+  NO cambia el dibujo del gatito (refleja el estado REAL; solo la alarma
+  lo calma). NINGÚN aviso va a toast de Windows con widget; el toast queda
+  SOLO sin widget (y ahí se repite cada 5 min).
   Con la pastilla el globo es POPOVER (`body.cap`): severidad en `--sev`
-  (acento/ámbar/rojo, la calcula `balloonMeta()`), fondo OPACO a
-  propósito, cola pequeña; sigue al tema del panel. Si notif.html se ve
-  "sin estilo", verificar que sigan `*{box-sizing}`, `.box`, `.msg`, `.x`
-  — `body.cap` solo las ESPECIALIZA. `place_balloon()` ancla al widget
-  (cola 62% gato / 50% pastilla), pose automática multi-monitor; la punta
-  se mete 40 px en el gatito y 8 en la cápsula (`notif_overlap`). Globo y
+  (la calcula `balloonMeta()`), fondo OPACO a propósito, cola pequeña;
+  sigue al tema del panel. Si notif.html se ve "sin estilo", verificar que
+  sigan `*{box-sizing}`, `.box`, `.msg`, `.x` — `body.cap` las ESPECIALIZA. `place_balloon()` ancla al widget (cola
+  62% gato / 50% pastilla), pose automática multi-monitor; la punta se
+  mete 40 px en el gatito y 8 en la cápsula (`notif_overlap`). Globo y
   detalle de la pastilla NUNCA a la vez (el globo gana y pliega).
 - **Capa** (`PillConfig.layer`): top/normal/bottom. `apply_layer()` +
   `reassert_layers()` cada ciclo + `win_taskbar::force_topmost()`
@@ -571,7 +568,7 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       casada · listo/motivo; sondeo 5 s SOLO con esa pestaña visible) y
       como insignia "relevo" en la tarjeta de intención. El % de la fila
       ES la prueba visible del casado. **3c-1
-      IMPLEMENTADA 2026-08-08** (manual; falta validar): `relay_inject`
+      COMPLETA Y VALIDADA EN VIVO 2026-08-08** (manual): `relay_inject`
       escribe la orden y espera acuse 8 s; lista blanca en LOS DOS
       lados; countdown de
       5 s donde el propio botón es el de parar; `relayBusy` impide
@@ -579,7 +576,9 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       aplica a ciegas); botón en la tarjeta de intención y en Ajustes
       (ahí SOLO /compact — `/clear` necesita su contexto); todo al
       registro (`kind:"relay"`); desbloqueo en
-      `relayDone` (/compact 2, /clear 3). Falta 3c-2, el AUTOMÁTICO: el
+      `relayDone` (/compact 2, /clear 3). El motivo del rechazo va en
+      línea propia, NUNCA dentro del botón (lo estiraba fuera del
+      panel). Falta 3c-2, el AUTOMÁTICO: el
       countdown tiene que verse con el panel CERRADO, así que va al
       widget; sin eso no hay interruptor. Y decidir cómo llega
       `michi.exe` (hoy a mano, fuera del instalador).

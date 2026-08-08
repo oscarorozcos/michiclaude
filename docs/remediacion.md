@@ -507,6 +507,12 @@ superficie visible con el panel cerrado — ver "lo que falta" al final.
   tarjeta, no una fila suelta. El de Ajustes hace además de banco de
   pruebas: no hay que esperar a una sesión al 80% para ejercitar
   el camino entero.
+- **El motivo del rechazo NUNCA va dentro del botón.** Metido ahí, un
+  "No se aplicó: tienes texto sin enviar" estiraba el botón hasta salirse
+  del panel (visto por Oscar en la primera validación). Va en `.int-msg`,
+  una línea propia a lo ancho de la fila; el botón conserva su etiqueta
+  corta. Regla general: **un control de tamaño fijo no es un sitio donde
+  poner texto de longitud desconocida.**
 - **Todo lo aplicado va al registro de acciones** (`kind: "relay"`, d1 =
   comando, d2 = proyecto, crudos y traducidos por el panel). Si Michi teclea
   en tu terminal, queda escrito.
