@@ -11,19 +11,19 @@ sobre (pasó el 2026-08-04 con 118.8k y dos tercios del archivo sin leerse).
 
 ## Qué es esta app
 
-Widget de bandeja para Windows 11 hecho con **Tauri 2** que mide en tiempo
-real el uso de Claude (suscripción):
+Widget de bandeja para Windows 11 con **Tauri 2** que mide en tiempo real
+el uso de Claude (suscripción):
 
-- **Cuota real del plan** (sesión de 5 h + límites semanales con buckets por
-  modelo) — la misma de claude.ai → Configuración → Uso. Compartida entre
-  claude.ai, Claude Code e IDEs.
+- **Cuota real del plan** (sesión de 5 h + límites semanales con buckets
+  por modelo) — la misma de claude.ai → Configuración → Uso. Compartida
+  entre claude.ai, Claude Code e IDEs.
 - **Marcador de ritmo** y **proyección de burn rate** ("al 100% en X min").
-- **Gasto por proyecto** (equivalente API) y modelo más usado, desde los
-  logs locales. Nota `spend_only_cc`: los $ son SOLO de Claude Code; lo de
-  claude.ai gasta cuota pero no es medible en dinero.
+- **Gasto por proyecto** (equiv. API) y modelo más usado, de los logs
+  locales. Nota `spend_only_cc`: los $ son SOLO de Claude Code; claude.ai
+  gasta cuota pero no es medible en dinero.
 - **Icono de bandeja dinámico** (% de sesión dibujado en canvas).
-- **Analizador de fugas de tokens** (pestaña Hallazgos) y **coach**
-  (pestaña Consejos) — ver sus secciones.
+- **Analizador de fugas** (Hallazgos) y **coach** (Consejos) — ver sus
+  secciones.
 - **Modo HUB** multi-máquina y **avisos al celular** (ntfy).
 
 ## Arquitectura
@@ -315,17 +315,15 @@ contador encienden con hallazgos NO VISTOS. Pasada ligera 1d compartida
 `fndPass()`: al NACER UN RECIBO (cierre local; freno 15 min
 `fndEventLast`, marcado ANTES) y cada 3 h de respaldo (era 20 h: los
 nacidos en el VPS no disparan cierre local y quedaban invisibles un día,
-2026-08-06). "LEÍDO" =
-CLIC en la tarjeta, estilo Gmail (Oscar 2026-08-07): abrir la pestaña o
-el post-it NO marca nada; contador y post-it descuentan tarjeta por
-tarjeta al clicarla (plegar/desplegar marca; Ignorar apaga la suya;
-restaurar ignorados revive las no leídas). Esto ENTERRÓ la TRAMPA DEL
-VIGILANTE (4 mordidas): ya no existe "nace vista por estar mirando la
-pestaña". Los hallazgos
-NUNCA van al celular (privacidad ntfy). El interruptor de Preferencias
-("Avisarme en el widget — hallazgos y consejos") apaga SOLO el widget;
-los contadores de pestaña quedan siempre. Para re-armar en pruebas:
-borrar fndSeen y fndAutoLast.
+2026-08-06). "LEÍDO" = CLIC en la tarjeta, estilo Gmail (Oscar
+2026-08-07): abrir la pestaña o el post-it NO marca nada; contador y
+post-it descuentan tarjeta por tarjeta al clicarla (plegar/desplegar
+marca; Ignorar apaga la suya; restaurar ignorados revive las no leídas).
+Esto ENTERRÓ la TRAMPA DEL VIGILANTE (4 mordidas): ya no existe "nace
+vista por estar mirando la pestaña". Los hallazgos NUNCA van al celular
+(privacidad ntfy). El interruptor de Ajustes ("Avisarme en el widget")
+apaga SOLO el widget; los contadores de pestaña quedan siempre. Para
+re-armar en pruebas: borrar fndSeen y fndAutoLast.
 
 ## Coach (pestaña Consejos)
 
@@ -400,14 +398,14 @@ horas de reset, conteos y frases del diccionario — nunca proyectos,
 rutas ni dólares (los topics son públicos). El nombre del proyecto es
 casilla aparte (`names`, apagada, con advertencia). Rust no redacta
 avisos (códigos, invariante #10). Publicación JSON a la raíz (headers no
-aguantan UTF-8). Al 100%: aviso inmediato + "ya volvió" PROGRAMADO (header delay +120 s de
-colchón) que llega con la PC APAGADA; si el reset no cabe en los 3 días
-del servidor público, no se promete. Un push por ventana (notifS/notifW).
-El simulador NUNCA manda pushes (guard simRunning). "Canal nuevo"
-regenera el topic en dos pasos. ntfy NO viaja en los ajustes compartidos
-del hub (esa pantalla promete no guardar contraseñas). Dedup de done/ask:
-ntfyDone/ntfyAsked, máx 3 por sondeo. Fallos a ntfy_debug.json sin
-bloquear nada.
+aguantan UTF-8). Al 100%: aviso inmediato + "ya volvió" PROGRAMADO
+(header delay +120 s de colchón) que llega con la PC APAGADA; si el reset
+no cabe en los 3 días del servidor público, no se promete. Un push por
+ventana (notifS/notifW). El simulador NUNCA manda pushes (guard
+simRunning). "Canal nuevo" regenera el topic en dos pasos. ntfy NO viaja
+en los ajustes compartidos del hub (esa pantalla promete no guardar
+contraseñas). Dedup de done/ask: ntfyDone/ntfyAsked, máx 3 por sondeo.
+Fallos a ntfy_debug.json sin bloquear nada.
 
 ## Modo HUB (multi-máquina)
 
@@ -501,26 +499,23 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
 - [ ] REMEDIACIÓN (diseño en `docs/remediacion.md` — LEERLO antes de
       tocar; ahí está lo que chocaba con invariantes y su porqué, y los
       prompts de maquetas en `docs/prompts-diseno-remediacion.md`).
-      Etapas: 1 consejero con intención, 2 automático out-of-band, 3
-      relevo ConPTY `michi claude`, 4 relevo en WSL/SSH. ETAPA 1
-      COMPLETA Y VALIDADA EN VIVO (2026-08-07). ETAPA 2 IMPLEMENTADA y
-      VALIDADA EN VIVO el mismo día (con el go explícito de Oscar —
-      matar procesos era decisión suya; autopsia y receta del zombie de
-      laboratorio en la bitácora): zombies MCP por
-      PowerShell/CIM sin deps nuevas (firma = arg más largo de cada MCP
-      stdio de ~/.claude.json; huérfano = padre muerto o PID de padre
-      reciclado; kill re-verifica PID+exe+arranque), archivado ≥365d a
-      `%APPDATA%\<app>\archive`, registro `actions_log.json` (tope 200,
-      d1/d2 crudos y el panel traduce), desbloqueo progresivo
-      (`remCfg`/`remFirst`: zombie ON / archive OFF, primera vez SIEMPRE
-      manual), sección en Ajustes + tarjeta de zombies en Consejos
-      (clave zombie|arranque-más-nuevo) y sondeo horario `remPoll`. SOLO
-      LOCAL: WSL/SSH quedan para la etapa 4. De ahí: barras
-      normalizadas a `/` al casar firmas, y todo script de PowerShell
-      escrito desde Rust con saltos de línea REALES (en una línea muere
-      en el parser: hacía fallar TODO cierre); el veredicto del kill
-      sale de re-consultar el PID, nunca de `$?`, y lo raro deja
-      `rem_debug.json`. ETAPA 3 (relevo) COMPLETA salvo la 4, TODO
+      Etapas: 1 consejero, 2 automático out-of-band, 3 relevo ConPTY, 4
+      WSL/SSH. ETAPA 1 COMPLETA
+      Y VALIDADA EN VIVO (2026-08-07). ETAPA 2 IMPLEMENTADA y VALIDADA EN
+      VIVO el mismo día (con el go explícito de Oscar — matar procesos
+      era decisión suya; autopsia y receta del zombie de laboratorio en
+      la bitácora): zombies MCP por PowerShell/CIM sin deps nuevas (firma =
+      arg más largo de cada MCP stdio de ~/.claude.json; huérfano = padre
+      muerto o PID reciclado; kill re-verifica PID+exe+arranque), archivado ≥365d a `%APPDATA%\<app>\archive`,
+      registro `actions_log.json` (tope 200, d1/d2 crudos y el panel
+      traduce), desbloqueo progresivo (`remCfg`/`remFirst`: zombie ON /
+      archive OFF, primera vez SIEMPRE manual), sección en Ajustes +
+      tarjeta de zombies en Consejos (clave zombie|arranque-más-nuevo) y
+      sondeo horario `remPoll`. SOLO LOCAL: WSL/SSH quedan para la etapa
+      4. De ahí: barras a `/` al casar firmas, y todo PowerShell escrito desde
+      Rust con saltos de línea REALES (en una línea muere en el parser:
+      hacía fallar TODO cierre); el veredicto del kill sale de
+      re-consultar el PID, nunca de `$?`, y lo raro deja `rem_debug.json`. ETAPA 3 (relevo) COMPLETA salvo la 4, TODO
       VALIDADO EN VIVO 2026-08-08 (detalle y autopsias en el doc y la
       bitácora). REGLAS DURAS antes de tocarlo:
       crate APARTE `relevo/` (la app no gana deps, invariante #4);
@@ -546,7 +541,12 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       también cuenta) y `/clear` NO se automatiza aunque se gane. El
       AUTOMÁTICO exige widget A LA VISTA —la cuenta atrás vive en la
       cápsula—, dura 15 s, cualquier toque la para (en el gatito el
-      manejador va en CAPTURA) y se marca ANTES de empezar. ATAJO DEL PATH (`set_relay_alias`): un `claude.cmd` en
+      manejador va en CAPTURA) y se marca ANTES de empezar. Un rechazo del
+      candado es TRANSITORIO: `done` solo tras aplicar; un fallo guarda el
+      momento y reintenta a los 10 min (quemarlo dejaba la sesión sin
+      automático de por vida). Y la cuenta CIERRA con veredicto ✓/✕ en la
+      cápsula: una que acaba en silencio deja al usuario adivinando si
+      actuaste. ATAJO DEL PATH (`set_relay_alias`): un `claude.cmd` en
       `%APPDATA%\<app>\bin` DELANTE del PATH de usuario — resuelve
       Windows, no el shell, así que vale para cualquier terminal/editor;
       NO alcanza WSL/SSH ni rutas absolutas. NUNCA deja sin Claude Code
@@ -571,14 +571,13 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       pty; el VPS no tiene Rust), embebido y re-subido como el exportador
       junto a `michi-wrap.sh`; mismas constantes/esquema/códigos que
       main.rs, validado con banco de PTY real. 4b/4c HECHAS y validadas 6/6 contra el
-      relevo de chat vivo: `scan_relays_remote` lee los estados por SSH
-      con UNA conexión por servidor (solo en el compás del coach, 3 min;
-      el sondeo de 5 s conserva las remotas), y `relay_inject_remote`
-      escribe el `.cmd` con tmp+rename EN el servidor pasando el comando
-      por STDIN, nunca interpolado en la línea de shell. El casado va en
-      dos niveles: `sid` EXACTO (solo en modo chat) y si no el `cwd`, y
-      los dos exigen la MISMA máquina (`origin` vacío = esta). Faltan el
-      alias `~/.bashrc` y WSL; el automático NO llega a remotas aún. FALTA: que `michi.exe` viaje en el instalador
+      relevo de chat vivo: `scan_relays_remote` lee por SSH con UNA
+      conexión por servidor (solo en el compás del coach; el sondeo de
+      5 s conserva las remotas) y `relay_inject_remote` escribe el `.cmd`
+      con tmp+rename EN el servidor, con el comando por STDIN y jamás
+      interpolado en el shell. Casado en dos niveles: `sid` EXACTO (solo
+      chat), si no el `cwd`; los dos exigen la MISMA máquina. Faltan
+      alias `~/.bashrc` y WSL; el automático no llega a remotas. FALTA: que `michi.exe` viaje en el instalador
       (workflow, invariante #9) y la etapa 4 (WSL/SSH).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras

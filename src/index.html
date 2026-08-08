@@ -8267,15 +8267,32 @@ function relayApply(btn){
 // kilómetros.
 const RELAY_AUTO_WAIT=15;   // más larga que la manual: esto no lo pediste tú
 let autoRun=null;           // {cmd,pid,timer} mientras corre la cuenta
-function autoSeen(){ try{ return new Set(JSON.parse(localStorage.getItem("relayAuto")||"[]")); }catch(_){ return new Set(); } }
-function autoMark(sid){
-  const s=autoSeen(); s.add(sid);
-  localStorage.setItem("relayAuto",JSON.stringify([...s].slice(-100)));
+// Memoria del automático por sesión: "done" = ya se aplicó y no se vuelve a
+// tocar; un número = momento del último INTENTO fallido. Un rechazo del
+// candado (Claude generando, texto sin enviar) es TRANSITORIO — quemar el
+// único disparo por eso dejaba la sesión sin automático para siempre, que fue
+// justo lo que le pasó a Oscar en la primera prueba real (2026-08-08).
+const AUTO_RETRY_MIN=10;
+function autoMap(){ try{ return JSON.parse(localStorage.getItem("relayAuto")||"{}"); }catch(_){ return {}; } }
+function autoSave(m){
+  // solo las 100 últimas: es una memoria, no un archivo histórico
+  const ks=Object.keys(m).slice(-100), out={};
+  for(const k of ks) out[k]=m[k];
+  localStorage.setItem("relayAuto",JSON.stringify(out));
 }
-// Le dice al widget qué pintar. Payload nulo = quitar la cuenta.
-function autoBeam(left,cmd){
-  EVENT?.emit("relay:auto", left==null?null:{left,cmd,
-    msg:t("rly_auto_msg",cmd,left)});
+function autoBlocked(sid){
+  const v=autoMap()[sid];
+  if(v==="done") return true;                       // aplicado: no insistir
+  if(typeof v==="number") return (Date.now()-v) < AUTO_RETRY_MIN*60000;
+  return false;
+}
+function autoStamp(sid,val){ const m=autoMap(); m[sid]=val; autoSave(m); }
+// Le dice al widget qué pintar. `mark` cierra la cuenta con ✓ o ✕: una cuenta
+// atrás que termina en silencio no dice si actuó o no — y el usuario se queda
+// adivinando, que es peor que no haber avisado.
+function autoBeam(left,cmd,mark){
+  EVENT?.emit("relay:auto", (left==null&&!mark)?null:{left,cmd,mark:mark||"",
+    msg:mark?"":t("rly_auto_msg",cmd,left)});
 }
 function autoStop(why){
   if(!autoRun) return;
@@ -8292,12 +8309,14 @@ async function relayAutoCheck(pr){
   if(!remOn("relay")||!relayUnlocked("/compact")) return;
   if(pressPct(pr)<INTENT_PCT) return;
   const sid=pr.session||"";
-  if(!sid||autoSeen().has(sid)) return;      // una vez por sesión y basta
+  if(!sid||autoBlocked(sid)) return;         // aplicado, o intento reciente
   const rly=relayFor(pr);
   if(!rly) return;                           // sin pareja inequívoca, nada
   if(!pillOn) return;                        // sin widget no hay cuenta atrás
-  autoMark(sid);                             // se marca ANTES: un fallo no
-                                             // puede convertirse en un bucle
+  // Se sella el INTENTO antes de empezar: si algo revienta a medias, el
+  // sello impide un bucle que teclee en la terminal. Solo pasa a "done"
+  // cuando de verdad se aplicó.
+  autoStamp(sid, Date.now());
   let left=RELAY_AUTO_WAIT;
   flog("relevo auto: cuenta atrás para /compact en pid "+rly.pid);
   autoBeam(left,"/compact");
@@ -8311,8 +8330,16 @@ async function relayAutoCheck(pr){
     // puso a teclear durante la cuenta, esto se rechaza — y está bien.
     try{
       await invoke("relay_inject",{pid:rly.pid,text:"/compact",auto:true,origin:rly.origin||""});
+      autoStamp(sid,"done");                 // hecho: esta sesión ya está
+      autoBeam(null,null,"ok");
       flog("relevo auto: aplicado /compact");
-    }catch(e){ flog("relevo auto: NO aplicado — "+e); }
+    }catch(e){
+      // el candado se negó (Claude generando, texto sin enviar…). Es
+      // transitorio: NO se quema la sesión, se reintenta en AUTO_RETRY_MIN.
+      autoBeam(null,null,"err");
+      flog("relevo auto: NO aplicado — "+e+" (reintento en "+AUTO_RETRY_MIN+" min)");
+    }
+    setTimeout(()=>autoBeam(null),4000);     // el ✓/✕ no se queda a vivir ahí
     remLogLoad();
   },1000)};
 }

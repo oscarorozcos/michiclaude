@@ -553,6 +553,24 @@ superficie visible con el panel cerrado — ver "lo que falta" al final.
   usuario se puso a teclear durante la cuenta, la orden se rechaza. Sus manos
   siempre ganan, y no hace falta que cancele nada para ello.
 - Todo lo aplicado en automático va al registro marcado como `auto`.
+- **Dos fallos que salieron en la PRIMERA prueba real** (Oscar, 2026-08-08,
+  con el automático disparando sobre su sesión de chat del VPS):
+  1. **El rechazo del candado quemaba la sesión.** `autoMark` sellaba ANTES y
+     para siempre, así que un `ERR_RELAY_BUSY` —Claude estaba generando, un
+     estado que dura segundos— dejaba esa sesión sin automático de por vida.
+     Ahora la memoria distingue: `"done"` solo tras aplicar de verdad; un
+     fallo guarda el MOMENTO del intento y se reintenta a los 10 min. El
+     sello antes de empezar se conserva (evita el bucle), pero deja de ser
+     una condena.
+  2. **La cuenta atrás terminaba en silencio.** El usuario veía el segundero
+     y después nada: ni aplicado, ni por qué no. Ahora la cuenta CIERRA con
+     veredicto en la propia cápsula — ✓ verde si se aplicó, ✕ rojo si el
+     relevo se negó — durante 4 s. Regla que queda: **una cuenta atrás que
+     acaba sin decir qué pasó es peor que no haber avisado**, porque deja al
+     usuario adivinando si actuaste.
+  El resto de la cadena se validó sola en esa prueba: panel en Windows → SSH
+  → relevo del VPS → candado → rechazo correcto, con el acuse guardado
+  (`app-…`, `ERR_RELAY_BUSY`).
 - **Mordida del invariante 10bis, otra vez** (2026-08-08): `pill.html` y
   `cat.html` ocultaban POR CLASE (`.m[hidden]`, `.pgauge[hidden]`), no con la
   regla global que sí tiene `index.html`. La cuenta atrás traía `display`

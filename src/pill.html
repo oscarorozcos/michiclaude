@@ -92,6 +92,8 @@
     height:18px;padding:0 6px;border-radius:999px;background:var(--warn);
     color:#1a1206;font-weight:700;font-size:11px;font-variant-numeric:tabular-nums}
   body.autorun .cap{box-shadow:0 0 0 1.5px var(--warn) inset}
+  .m.auto.bad{background:var(--bad);color:#fff}
+  .m.auto.good{background:var(--ok);color:#04231a}
 </style>
 </head>
 <body class="loading">
@@ -238,8 +240,14 @@ if(EVENT){
   EVENT.listen("relay:auto", e=>{
     const a=e.payload;
     $("aBox").hidden=!a;
-    document.body.classList.toggle("autorun",!!a);
-    if(a) $("aNum").textContent=a.left;
+    document.body.classList.toggle("autorun",!!a && !a.mark);
+    if(a){
+      // el veredicto cierra la cuenta: ✓ aplicado, ✕ el relevo se negó. Una
+      // cuenta atrás que acaba en silencio deja al usuario adivinando.
+      $("aNum").textContent = a.mark==="ok" ? "✓" : a.mark==="err" ? "✕" : a.left;
+      $("aBox").classList.toggle("bad", a.mark==="err");
+      $("aBox").classList.toggle("good", a.mark==="ok");
+    }
   });
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{   // preview suelto en un navegador
