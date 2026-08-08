@@ -8084,6 +8084,35 @@ async function rlyPoll(){
   if(!invoke) return;
   try{ relays=await invoke("get_relays")||[]; }
   catch(_){ relays=[]; }              // sin backend: como si no hubiera relevo
+  relayUserCmds();
+}
+// Un /compact o /clear que TECLEAS TÚ cuenta para el desbloqueo igual que el
+// botón — más aún: es la aplicación manual por antonomasia, y el candado
+// dice "aplícalo tú una vez", no "pulsa mi botón una vez". El relevo ve pasar
+// el comando y lo publica en `user_cmd`; hasta ahora el panel lo tiraba
+// (lo cazó Oscar: aplicó un /clear a mano y el contador no se movió,
+// 2026-08-08).
+//
+// Se cuenta una sola vez por (pid, momento): el sello vive en localStorage,
+// así que ni un sondeo repetido ni un reinicio de la app lo cuentan dos veces.
+// NO va al registro de acciones — ese es de lo que aplica MICHI, no tú.
+function relayUserCmds(){
+  let seen={}; try{ seen=JSON.parse(localStorage.getItem("relayUserSeen")||"{}"); }catch(_){}
+  let dirty=false;
+  for(const r of relays){
+    if(!r.user_cmd||!r.user_cmd_ts) continue;
+    const k=String(r.pid);
+    if(seen[k]===r.user_cmd_ts) continue;
+    seen[k]=r.user_cmd_ts; dirty=true;
+    flog("relevo: "+r.user_cmd+" tecleado por el usuario en pid "+r.pid);
+    relayMark(r.user_cmd);
+  }
+  if(dirty){
+    // solo las sesiones vivas: el sello no tiene por qué crecer para siempre
+    const vivos=new Set(relays.map(r=>String(r.pid)));
+    for(const k of Object.keys(seen)) if(!vivos.has(k)) delete seen[k];
+    localStorage.setItem("relayUserSeen",JSON.stringify(seen));
+  }
 }
 // ---------- relevo: aplicar desde la interfaz (etapa 3c) ----------
 // Segundos de countdown antes de teclear. Es la única ventana que tiene el

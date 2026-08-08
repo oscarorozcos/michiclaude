@@ -516,6 +516,14 @@ superficie visible con el panel cerrado — ver "lo que falta" al final.
 - **Todo lo aplicado va al registro de acciones** (`kind: "relay"`, d1 =
   comando, d2 = proyecto, crudos y traducidos por el panel). Si Michi teclea
   en tu terminal, queda escrito.
+- **Lo que TECLEAS TÚ cuenta para el desbloqueo** (2026-08-08, lo cazó
+  Oscar: aplicó un `/clear` a mano y el contador no se movió). El candado
+  dice "aplícalo tú una vez", no "pulsa mi botón una vez" — y teclearlo en
+  la terminal es la aplicación manual por antonomasia. El relevo ya lo veía
+  pasar y lo publicaba en `user_cmd`; el panel lo tiraba. Ahora `rlyPoll` lo
+  cuenta, una sola vez por (pid, momento), con sello en localStorage para
+  que ni un sondeo repetido ni un reinicio lo dupliquen. NO va al registro
+  de acciones: ese es de lo que aplica MICHI, no tú.
 - **Desbloqueo progresivo** en `localStorage.relayDone`: `/compact` 2
   aplicaciones manuales, `/clear` 3 —una más porque borra memoria y no se
   deshace—. El marcador se enseña en Ajustes para que se vea acumular, en vez
