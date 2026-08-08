@@ -652,19 +652,34 @@ fn cmd_status() {
         println!("Ninguna sesión con relevo. Abre una con:  michi claude");
         return;
     }
-    println!("{:<8} {:<7} {:<7} {:<7} {}", "sesión", "listo", "texto", "quieta", "carpeta");
+    // El motivo va en columna propia: metido dentro de "listo" descuadraba
+    // la tabla en cuanto el código era largo (ERR_RELAY_NOISY, visto en la
+    // primera prueba de Oscar).
+    println!(
+        "{:<8} {:<6} {:<6} {:<7} {:<18} {}",
+        "sesión", "listo", "texto", "quieta", "motivo", "carpeta"
+    );
+    let mut motivos = false;
     for v in &list {
+        let why = v["why"].as_str().unwrap_or("");
+        if !why.is_empty() {
+            motivos = true;
+        }
         println!(
-            "{:<8} {:<7} {:<7} {:<7} {}",
+            "{:<8} {:<6} {:<6} {:<7} {:<18} {}",
             v["pid"].as_i64().unwrap_or(0),
-            if v["ready"].as_bool().unwrap_or(false) {
-                "sí".to_string()
-            } else {
-                format!("no ({})", v["why"].as_str().unwrap_or("?"))
-            },
+            if v["ready"].as_bool().unwrap_or(false) { "sí" } else { "no" },
             if v["typed"].as_bool().unwrap_or(false) { "sí" } else { "no" },
             format!("{}s", v["idle_in"].as_i64().unwrap_or(0)),
+            why,
             v["cwd"].as_str().unwrap_or("")
+        );
+    }
+    if motivos {
+        println!(
+            "\nTYPED = hay texto tuyo sin enviar · BUSY = Claude está generando\n\
+             NOISY = acabas de teclear (faltan segundos de calma) · COOLDOWN = se\n\
+             inyectó hace poco · GONE = la sesión ya terminó"
         );
     }
 }
