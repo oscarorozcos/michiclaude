@@ -560,8 +560,16 @@ sesión no tenía relevo (lo planteó Oscar así).
   (invariante #8). El binario se busca junto al ejecutable de la app, en el
   `target` del relevo (desarrollo) y en el PATH — cuando viaje en el
   instalador, la primera ruta acierta sola.
-- El PATH nuevo solo lo ven procesos que arranquen DESPUÉS: el panel lo dice,
-  o parecería que el interruptor no hizo nada.
+- El PATH nuevo solo lo ven procesos que arranquen DESPUÉS, y hay un matiz
+  que despistó en la primera prueba (Oscar, 2026-08-08): **una PESTAÑA nueva
+  no basta**. Windows Terminal heredó su entorno al arrancar y se lo pasa a
+  cada pestaña, así que hay que cerrar la VENTANA entera. El aviso del panel
+  lo dice con esas palabras; "abre una terminal nueva" era engañoso porque
+  una pestaña parece una terminal nueva y no lo es.
+- **El shim se escribe en ASCII PURO.** Un `.cmd` no declara codificación y
+  cmd.exe lo lee con la página de códigos que toque: la raya del comentario
+  salió como `â€”`. En un `rem` es cosmético, pero un archivo de órdenes con
+  bytes que se reinterpretan es una bomba de relojería.
 - **`.cmd` y no `.exe`:** cubre a quien teclea en un shell, que es el caso
   real, sin añadir una segunda compilación. Un programa que haga
   `CreateProcess("claude")` sin extensión no lo vería.

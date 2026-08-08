@@ -4321,10 +4321,15 @@ fn which_exe(name: &str) -> Option<PathBuf> {
 /// se expande al PARSEAR y devuelve el valor viejo. Y dos salidas de seguridad
 /// —`MICHI_RELEVO` ya puesto (estamos dentro de un relevo, no re-envolver) y
 /// relevo ausente— para que este atajo NUNCA te deje sin Claude Code.
+///
+/// SOLO ASCII: un .cmd no declara codificación y cmd.exe lo lee con la página
+/// de códigos que toque, así que una tilde o una raya se ven como `â€”` (visto
+/// en la primera prueba). En un comentario es cosmético, pero un archivo de
+/// órdenes con bytes que se reinterpretan es una bomba de relojería.
 fn shim_body(michi: &str, real: &str) -> String {
     format!(
         "@echo off\r\n\
-         rem  MichiClaude — atajo del relevo. Lo crea y lo borra el interruptor\r\n\
+         rem  MichiClaude - atajo del relevo. Lo crea y lo borra el interruptor\r\n\
          rem  de Ajustes; no editar a mano.\r\n\
          if defined MICHI_RELEVO goto real\r\n\
          if not exist \"{michi}\" goto real\r\n\
