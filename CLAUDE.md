@@ -181,11 +181,10 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   siguen listando las 6 etiquetas (los permisos van por etiqueta).
 - **Tray dinámico:** número a 24 px con contorno de 4 px (legible en barra
   clara/oscura sin detectar tema) + barrita semanal. Con cuota en error:
-  "–" gris, nunca datos inventados. Menú (clic derecho) lo construye Rust
-  pero el panel se lo manda TRADUCIDO vía `set_tray_menu` desde
-  `applyI18n()` — todo texto que Rust dibuje debe llegarle así. Windows
-  CORTA el tooltip a 128 chars: si el motivo no cabe, solo la primera
-  frase (`firstSentence`).
+  "–" gris, nunca datos inventados. El menú lo construye Rust pero el
+  panel se lo manda TRADUCIDO vía `set_tray_menu` desde `applyI18n()` —
+  todo texto que Rust dibuje llega así. Windows CORTA el tooltip a 128
+  chars: si el motivo no cabe, solo la primera frase (`firstSentence`).
 
 ## INVARIANTES — no romper nunca
 
@@ -310,8 +309,8 @@ claudemd) van abajo por costo. En Python `parse_ts` da datetime — va
 tocan el estado de sesión (turns/first_cr/last_cr/cr_cost/cb) — solo
 suman a su tarjeta; sus tool_use SÍ cuentan (MCP usado es usado). El
 coach queda plano a propósito. `proj` (carpeta de logs, para casar con
-claudemd) y `disp` (cwd real, para enseñar) son campos SEPARADOS —
-unificarlos dejaría claudemd en costo 0 en silencio.
+claudemd) y `disp` (cwd real, para enseñar) van SEPARADOS — unificarlos
+dejaría claudemd en costo 0 en silencio.
 
 **Tarjetas:** contraíbles con clic (pose en `fndMin`, guard !simFnd;
 Ignorar lleva stopPropagation). Primera apertura: enseña lo guardado al
@@ -475,12 +474,11 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       pestaña vieja. El widget CONSERVA su estética propia — el rediseño
       fue solo del panel; armonizarlo sería otra ronda.
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
-      umbral, 100%, ventana nueva reconocida por trackResets/
-      windowChanged), camino completo ntfy (push de alarma real, 100%, el
-      programado con PC apagada), y el aviso de hallazgos al cierre de
-      sesión SIN re-armar nada (el mecanismo ya quedó validado el
-      2026-08-05 re-armando fndSeen: post-it 9+, contador y rastro; falta
-      solo verlo nacer natural, con una fuga nueva y el panel cerrado).
+      umbral, 100%, ventana nueva por trackResets/windowChanged), camino
+      ntfy completo (alarma real, 100%, el programado con PC apagada) y
+      el aviso de hallazgos al cierre de sesión SIN re-armar nada (el
+      mecanismo se validó el 2026-08-05 re-armando fndSeen; falta verlo
+      nacer natural, con una fuga nueva y el panel cerrado).
 - [ ] Updater: decidir repo público + publicar tag v* y probar completo.
 - [ ] Capturas para el README (las hace Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
@@ -492,18 +490,15 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       `cargo check` en Windows y de validación en vivo. Qué existe ya:
       (a) TURNOS ÚTILES `uturns` en LocalStats/proyectos/daily (mensajes
       HUMANOS: fuera meta, sidechain, tool_result, comandos locales e
-      inyecciones `<ide_…` — `is_user_turn` réplica exacta en Rust y
-      Python, invariante #1; caché de escaneo v2, se reconstruye solo;
-      regresión congelada byte a byte OK y coherencia de rangos contiguos
-      OK con logs reales del VPS); 0 turnos = "sin datos", NUNCA dividir
-      (invariante #8). Un exportador viejo manda uturns 0 y se degrada
-      honesto. (b) HISTÓRICO DE CUOTA `quota_history.json` (90 días, una
-      foto por ciclo, comandos `log_quota`/`get_quota_history`; solo
-      lecturas BUENAS del endpoint, nunca simulador; local y privado,
-      no viaja a hub ni ntfy). (c) MARCAS DE ARREGLO en localStorage
-      (`fndHist`/`fndMarks`, solo hallazgos de estado, escaneos ≥7d sin
-      rango; visto ≥3 días + desaparecido ≥2 = arreglado, rastro en
-      flowLog). FASE 2 pestaña Reporte (`rep_tab`): IMPLEMENTADA
+      inyecciones `<ide_…`; `is_user_turn` réplica exacta Rust/Python,
+      invariante #1; caché v2 se reconstruye solo); 0 turnos = "sin
+      datos", NUNCA dividir (invariante #8); un exportador viejo manda 0
+      y se degrada honesto. (b) HISTÓRICO DE CUOTA `quota_history.json`
+      (90 días, una foto por ciclo, `log_quota`/`get_quota_history`;
+      solo lecturas BUENAS, nunca simulador; local, no viaja a hub ni
+      ntfy). (c) MARCAS DE ARREGLO (`fndHist`/`fndMarks`, solo hallazgos
+      de estado, escaneos ≥7d sin rango; visto ≥3 días + desaparecido ≥2
+      = arreglado). FASE 2 pestaña Reporte (`rep_tab`): IMPLEMENTADA
       2026-08-06, pulida 2026-08-07 sobre maqueta de Oscar — chips
       Semana/Mes/Personalizado, héroe EFICIENCIA/VOLUMEN, "¿te duró más
       o menos?", gráfica 4 semanas tokens/$ con detalle (repSel), deltas
@@ -523,11 +518,10 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       prompts de maquetas en `docs/prompts-diseno-remediacion.md`).
       Etapas: 1 consejero con intención, 2 automático out-of-band, 3
       relevo ConPTY `michi claude`, 4 relevo en WSL/SSH. ETAPA 1
-      COMPLETA Y VALIDADA EN VIVO (2026-08-07, detalle en el doc y la
-      bitácora). ETAPA 2 IMPLEMENTADA (2026-08-07, con el go explícito
-      de Oscar — matar procesos era decisión suya) y CERRADA/VALIDADA EN
-      VIVO el mismo día (zombies y archivado; autopsia y receta del
-      zombie de laboratorio en la bitácora): zombies MCP por
+      COMPLETA Y VALIDADA EN VIVO (2026-08-07). ETAPA 2 IMPLEMENTADA y
+      VALIDADA EN VIVO el mismo día (con el go explícito de Oscar —
+      matar procesos era decisión suya; autopsia y receta del zombie de
+      laboratorio en la bitácora): zombies MCP por
       PowerShell/CIM sin deps nuevas (firma = arg más largo de cada MCP
       stdio de ~/.claude.json; huérfano = padre muerto o PID de padre
       reciclado; kill re-verifica PID+exe+arranque), archivado ≥365d a
@@ -578,10 +572,18 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       registro (`kind:"relay"`); desbloqueo en
       `relayDone` (/compact 2, /clear 3). El motivo del rechazo va en
       línea propia, NUNCA dentro del botón (lo estiraba fuera del
-      panel). Falta 3c-2, el AUTOMÁTICO: el
-      countdown tiene que verse con el panel CERRADO, así que va al
-      widget; sin eso no hay interruptor. Y decidir cómo llega
-      `michi.exe` (hoy a mano, fuera del instalador).
+      panel). ATAJO DEL PATH
+      (`set_relay_alias`): un `claude.cmd` en `%APPDATA%\<app>\bin`
+      DELANTE del PATH de usuario — resuelve Windows, no el shell, así
+      que vale para cualquier terminal/editor sin integrarlos uno a uno;
+      NO alcanza WSL/SSH ni rutas absolutas. El shim NUNCA puede dejarte
+      sin Claude Code: con `MICHI_RELEVO` puesto o sin michi.exe ejecuta
+      el real (ruta resuelta al instalar). PATH por
+      `[Environment]::SetEnvironmentVariable`, JAMÁS `setx` (trunca a
+      1024); copia en `path_backup.txt` y el interruptor quita EXACTA su
+      entrada. Falta 3c-2, el AUTOMÁTICO: el countdown va a la cápsula
+      del widget (un clic lo para) y con el widget oculto NO actúa. Y
+      `michi.exe` debe viajar en el instalador (workflow, invariante #9).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
@@ -617,20 +619,20 @@ toolchain de Rust (espejo de código; `cargo check` corre en el Windows de
 Oscar) — al cambiar la FIRMA de una función, grep de TODOS sus usos antes
 de subir: el compilador no está para avisar.
 
-**Simulador** (solo dev, `is_dev`): "🐱 Simular estados" (gatito: ciclo
-dibujo+globo) / "🔔 Simular avisos" (pastilla: un aviso por severidad) /
-"🧪 Simular hallazgos" (tarjetas+post-its y fichas+resumen; dos pasos).
-`simRunning` es la bandera (NO simMascot). Los simuladores NUNCA tocan
-localStorage ni mandan pushes; al parar, `processAcks()` restaura lo
-real. Pausa ajustable (`simMin`, mínimo 5 s). Único control sin `t()`.
+**Simulador** (solo dev, `is_dev`): "🐱 Simular estados" (gatito) / "🔔
+Simular avisos" (pastilla, uno por severidad) / "🧪 Simular hallazgos"
+(tarjetas+post-its y fichas+resumen). `simRunning` es la bandera (NO
+simMascot). NUNCA tocan localStorage ni mandan pushes; al parar,
+`processAcks()` restaura lo real. Pausa `simMin` (mínimo 5 s). Único
+control sin `t()`.
 
 ## Flujo de trabajo del repo
 
 - Remoto: `https://github.com/oscarorozcos/michiclaude` — **PRIVADO**.
 - Desarrollo y pruebas en el Windows de Oscar
   (`C:\Users\oscar\Claude\MichiClaude`); en el VPS un clon espejo
-  (`/opt/projects/michiclaude`) para revisión. OJO al mover un clon en
-  Windows: `target/` guarda rutas absolutas → `cargo clean`.
+  (`/opt/projects/michiclaude`). Al mover un clon en Windows: `target/`
+  guarda rutas absolutas → `cargo clean`.
 - Antes de trabajar en cualquier lado: `git pull`. Al terminar y
   verificar: commit (Conventional Commits en español) y push.
 - La parte de negocio del analizador vive FUERA del repo

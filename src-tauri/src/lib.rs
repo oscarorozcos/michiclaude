@@ -4247,6 +4247,207 @@ async fn relay_inject(pid: u32, text: String, auto: bool) -> Result<(), String> 
     .map_err(|e| e.to_string())?
 }
 
+// ---------- atajo: que `claude` pase por el relevo (etapa 3c) ----------
+// El problema que resuelve: si hay que acordarse de escribir `michi claude`,
+// nadie se acuerda. Se trabaja media hora y después se descubre que la sesión
+// no tenía relevo y Michi no podía hacer nada.
+//
+// POR QUÉ UN SHIM EN EL PATH y no un alias por shell: las terminales y los
+// editores (Windows Terminal, VS Code, Cursor, Warp, Alacritty…) no
+// interpretan `claude` — ejecutan un SHELL, y el shell resuelve el comando.
+// Configurar shells serían cuatro mecanismos distintos (PowerShell 7, 5.1,
+// cmd, Git Bash) y aun así se quedarían fuera los que salgan mañana. Con un
+// `claude.cmd` propio primero en el PATH resuelve WINDOWS, así que vale para
+// todos a la vez. Lo que NO alcanza: WSL y SSH (cruzan la frontera, son la
+// etapa 4) y cualquier integración que llame al binario por ruta absoluta.
+
+fn shim_dir() -> PathBuf {
+    app_data_dir().join("bin")
+}
+fn shim_path() -> PathBuf {
+    shim_dir().join("claude.cmd")
+}
+/// Copia del PATH de usuario ANTES de tocarlo. Modificar el PATH es lo más
+/// invasivo que hace la app: si algo sale mal, aquí está el original.
+fn path_backup_path() -> PathBuf {
+    app_data_dir().join("path_backup.txt")
+}
+
+/// Dónde está `michi.exe`. Se busca en este orden: junto al ejecutable de la
+/// app (que es donde quedará cuando viaje en el instalador), en el `target`
+/// del crate del relevo (desarrollo) y por último en el PATH.
+fn michi_exe() -> Option<PathBuf> {
+    let mut cands: Vec<PathBuf> = Vec::new();
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(d) = exe.parent() {
+            cands.push(d.join("michi.exe"));
+            cands.push(d.join("relevo").join("michi.exe"));
+            // dev: target\debug\michiclaude.exe → ..\..\..\relevo\target\release
+            if let Some(root) = d.parent().and_then(|p| p.parent()).and_then(|p| p.parent()) {
+                cands.push(
+                    root.join("relevo")
+                        .join("target")
+                        .join("release")
+                        .join("michi.exe"),
+                );
+            }
+        }
+    }
+    if let Some(p) = cands.into_iter().find(|p| p.is_file()) {
+        return Some(p);
+    }
+    which_exe("michi")
+}
+
+/// Primera coincidencia de `where.exe <nombre>` que NO esté en nuestra carpeta
+/// de shim (si no, el atajo se encontraría a sí mismo y se llamaría en bucle).
+fn which_exe(name: &str) -> Option<PathBuf> {
+    let mut cmd = std::process::Command::new("where.exe");
+    cmd.arg(name);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let out = cmd.output().ok()?;
+    let txt = String::from_utf8_lossy(&out.stdout);
+    let ours = shim_dir();
+    txt.lines()
+        .map(|l| PathBuf::from(l.trim()))
+        .find(|p| p.is_file() && p.parent() != Some(ours.as_path()))
+}
+
+/// El atajo. Sin bloques `( )` a propósito: dentro de un bloque, `%errorlevel%`
+/// se expande al PARSEAR y devuelve el valor viejo. Y dos salidas de seguridad
+/// —`MICHI_RELEVO` ya puesto (estamos dentro de un relevo, no re-envolver) y
+/// relevo ausente— para que este atajo NUNCA te deje sin Claude Code.
+fn shim_body(michi: &str, real: &str) -> String {
+    format!(
+        "@echo off\r\n\
+         rem  MichiClaude — atajo del relevo. Lo crea y lo borra el interruptor\r\n\
+         rem  de Ajustes; no editar a mano.\r\n\
+         if defined MICHI_RELEVO goto real\r\n\
+         if not exist \"{michi}\" goto real\r\n\
+         \"{michi}\" claude %*\r\n\
+         exit /b %errorlevel%\r\n\
+         :real\r\n\
+         if not exist \"{real}\" goto missing\r\n\
+         \"{real}\" %*\r\n\
+         exit /b %errorlevel%\r\n\
+         :missing\r\n\
+         echo MichiClaude: no encuentro Claude Code. Apaga el atajo en Ajustes.1>&2\r\n\
+         exit /b 9009\r\n"
+    )
+}
+
+/// Lee/escribe el PATH de USUARIO por PowerShell. `setx` NO sirve: trunca a
+/// 1024 caracteres y se puede cargar el PATH entero.
+fn user_path_get() -> Option<String> {
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "[Environment]::GetEnvironmentVariable('Path','User')",
+    ]);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let out = cmd.output().ok()?;
+    Some(String::from_utf8_lossy(&out.stdout).trim_end().to_string())
+}
+
+fn user_path_set(value: &str) -> Result<(), String> {
+    // comilla simple duplicada = escape en PowerShell
+    let script = format!(
+        "[Environment]::SetEnvironmentVariable('Path','{}','User')",
+        value.replace('\'', "''")
+    );
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let out = cmd.output().map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err("ERR_ALIAS_PATH".into())
+    }
+}
+
+fn path_has(path: &str, dir: &str) -> bool {
+    path.split(';')
+        .any(|p| p.trim().trim_end_matches('\\').eq_ignore_ascii_case(dir.trim_end_matches('\\')))
+}
+
+#[tauri::command]
+async fn relay_alias_status() -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let dir = shim_dir();
+        let ds = dir.to_string_lossy().to_string();
+        let in_path = user_path_get().map(|p| path_has(&p, &ds)).unwrap_or(false);
+        Ok(serde_json::json!({
+            "on": shim_path().is_file() && in_path,
+            // sin el binario del relevo el atajo no se puede ofrecer: el panel
+            // enseña el porqué en vez de un interruptor que no haría nada
+            "michi": michi_exe().map(|p| p.to_string_lossy().to_string()).unwrap_or_default(),
+            "dir": ds,
+        }))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn set_relay_alias(on: bool) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let dir = shim_dir();
+        let ds = dir.to_string_lossy().to_string();
+        let mut path = user_path_get().ok_or("ERR_ALIAS_PATH")?;
+        if on {
+            let michi = michi_exe().ok_or("ERR_ALIAS_NOMICHI")?;
+            // El Claude Code de verdad se resuelve AHORA, antes de que nuestra
+            // carpeta entre al PATH: así el atajo sabe a quién delegar.
+            let real = which_exe("claude").ok_or("ERR_ALIAS_NOCLAUDE")?;
+            fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+            fs::write(
+                shim_path(),
+                shim_body(&michi.to_string_lossy(), &real.to_string_lossy()),
+            )
+            .map_err(|e| e.to_string())?;
+            if !path_has(&path, &ds) {
+                let _ = fs::write(path_backup_path(), &path);
+                // DELANTE: el PATH efectivo es máquina + usuario, y el claude
+                // de npm vive en el tramo de usuario. Detrás no lo taparía.
+                path = format!("{ds};{path}");
+                user_path_set(&path)?;
+            }
+        } else {
+            let _ = fs::remove_file(shim_path());
+            if path_has(&path, &ds) {
+                // se quita EXACTAMENTE la nuestra; lo demás se respeta tal cual
+                let keep: Vec<&str> = path
+                    .split(';')
+                    .filter(|p| {
+                        !p.trim()
+                            .trim_end_matches('\\')
+                            .eq_ignore_ascii_case(ds.trim_end_matches('\\'))
+                    })
+                    .collect();
+                user_path_set(&keep.join(";"))?;
+            }
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Un proceso MCP huérfano detectado. `start` (epoch de arranque) es la
 /// mitad del anti-reciclaje de PID: para cerrar hay que devolverlo y
 /// que siga coincidiendo.
@@ -4704,7 +4905,9 @@ pub fn run() {
             archive_old,
             get_action_log,
             get_relays,
-            relay_inject
+            relay_inject,
+            relay_alias_status,
+            set_relay_alias
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

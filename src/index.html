@@ -1481,6 +1481,13 @@
       <div class="cfg-lbl" data-i18n="rly_label"></div>
       <div class="cfg-note" id="rlyHint" data-i18n="rly_hint"></div>
       <div id="rlyList"></div>
+      <!-- Atajo: que `claude` pase por el relevo sin cambiar el hábito. Un
+           shim en el PATH, no un alias por shell — así vale para cualquier
+           terminal o editor de una vez. -->
+      <label class="cfg-row" style="cursor:pointer;margin-top:6px">
+        <span data-i18n="rly_alias_on"></span><input type="checkbox" id="rlyAliasChk">
+      </label>
+      <div class="cfg-note" id="rlyAliasMsg"></div>
       <div class="cfg-note" id="rlyUnlock"></div>
       <div class="cfg-lbl" data-i18n="rem_log_label"></div>
       <div id="remLog" class="cfg-note"></div>
@@ -1988,6 +1995,13 @@ en:{
   rly_applied:"Applied ✓",
   rly_failed:w=>`Not applied: ${w}`,
   rly_unlock:(a,b,c,d)=>`Applied by you: /compact ${a} of ${b} · /clear ${c} of ${d} — automatic mode unlocks once you complete them.`,
+  rly_alias_on:"Make «claude» go through the relay",
+  rly_alias_ok:"On: typing «claude» in any terminal opens it with relay.",
+  rly_alias_off:"Off: to get relay you have to type «michi claude».",
+  rly_alias_reopen:"Done. Open a NEW terminal for the change to apply.",
+  rly_alias_nomichi:"The relay (michi.exe) is not installed, so there is nothing to shortcut yet.",
+  rly_alias_noclaude:"I cannot find Claude Code in the PATH — I will not create a shortcut that could leave you without it.",
+  rly_alias_pathfail:"Could not change the PATH. Nothing was modified.",
   rem_log_relay:(cmd,proj)=>`applied ${cmd} in «${proj}»`,
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
@@ -2395,6 +2409,13 @@ es:{
   rly_applied:"Aplicado ✓",
   rly_failed:w=>`No se aplicó: ${w}`,
   rly_unlock:(a,b,c,d)=>`Aplicado por ti: /compact ${a} de ${b} · /clear ${c} de ${d} — el automático se desbloquea al completarlos.`,
+  rly_alias_on:"Hacer que «claude» pase por el relevo",
+  rly_alias_ok:"Activado: escribir «claude» en cualquier terminal lo abre con relevo.",
+  rly_alias_off:"Desactivado: para tener relevo hay que escribir «michi claude».",
+  rly_alias_reopen:"Listo. Abre una terminal NUEVA para que tome efecto.",
+  rly_alias_nomichi:"El relevo (michi.exe) no está instalado, así que todavía no hay nada que atajar.",
+  rly_alias_noclaude:"No encuentro Claude Code en el PATH — no voy a crear un atajo que pueda dejarte sin él.",
+  rly_alias_pathfail:"No se pudo cambiar el PATH. No se modificó nada.",
   rem_log_relay:(cmd,proj)=>`aplicó ${cmd} en «${proj}»`,
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
@@ -2802,6 +2823,13 @@ pt:{
   rly_applied:"Aplicado ✓",
   rly_failed:w=>`Não aplicado: ${w}`,
   rly_unlock:(a,b,c,d)=>`Aplicado por você: /compact ${a} de ${b} · /clear ${c} de ${d} — o automático libera ao completá-los.`,
+  rly_alias_on:"Fazer o «claude» passar pelo revezamento",
+  rly_alias_ok:"Ativado: digitar «claude» em qualquer terminal abre com revezamento.",
+  rly_alias_off:"Desativado: para ter revezamento é preciso digitar «michi claude».",
+  rly_alias_reopen:"Pronto. Abra um terminal NOVO para valer.",
+  rly_alias_nomichi:"O revezamento (michi.exe) não está instalado, então ainda não há o que atalhar.",
+  rly_alias_noclaude:"Não acho o Claude Code no PATH — não vou criar um atalho que possa te deixar sem ele.",
+  rly_alias_pathfail:"Não deu para mudar o PATH. Nada foi modificado.",
   rem_log_relay:(cmd,proj)=>`aplicou ${cmd} em «${proj}»`,
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
@@ -3209,6 +3237,13 @@ fr:{
   rly_applied:"Appliqué ✓",
   rly_failed:w=>`Non appliqué : ${w}`,
   rly_unlock:(a,b,c,d)=>`Appliqué par toi : /compact ${a} sur ${b} · /clear ${c} sur ${d} — le mode automatique se débloque une fois complétés.`,
+  rly_alias_on:"Faire passer «claude» par le relais",
+  rly_alias_ok:"Activé : taper «claude» dans n’importe quel terminal l’ouvre avec relais.",
+  rly_alias_off:"Désactivé : pour avoir le relais il faut taper «michi claude».",
+  rly_alias_reopen:"C’est fait. Ouvre un NOUVEAU terminal pour que ça s’applique.",
+  rly_alias_nomichi:"Le relais (michi.exe) n’est pas installé, il n’y a donc rien à raccourcir.",
+  rly_alias_noclaude:"Je ne trouve pas Claude Code dans le PATH — je ne créerai pas un raccourci qui pourrait t’en priver.",
+  rly_alias_pathfail:"Impossible de modifier le PATH. Rien n’a été changé.",
   rem_log_relay:(cmd,proj)=>`a appliqué ${cmd} dans «${proj}»`,
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
@@ -3616,6 +3651,13 @@ de:{
   rly_applied:"Angewendet ✓",
   rly_failed:w=>`Nicht angewendet: ${w}`,
   rly_unlock:(a,b,c,d)=>`Von dir angewendet: /compact ${a} von ${b} · /clear ${c} von ${d} — der Automatikmodus wird danach freigeschaltet.`,
+  rly_alias_on:"«claude» über das Relais laufen lassen",
+  rly_alias_ok:"An: «claude» in einem beliebigen Terminal startet es mit Relais.",
+  rly_alias_off:"Aus: für das Relais musst du «michi claude» tippen.",
+  rly_alias_reopen:"Fertig. Öffne ein NEUES Terminal, damit es greift.",
+  rly_alias_nomichi:"Das Relais (michi.exe) ist nicht installiert, es gibt also noch nichts abzukürzen.",
+  rly_alias_noclaude:"Ich finde Claude Code nicht im PATH — ich lege keine Abkürzung an, die dich ohne dastehen lassen könnte.",
+  rly_alias_pathfail:"PATH konnte nicht geändert werden. Es wurde nichts verändert.",
   rem_log_relay:(cmd,proj)=>`${cmd} in «${proj}» angewendet`,
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
@@ -4023,6 +4065,13 @@ ja:{
   rly_applied:"適用しました ✓",
   rly_failed:w=>`適用できませんでした: ${w}`,
   rly_unlock:(a,b,c,d)=>`あなたが適用した回数: /compact ${a}/${b} · /clear ${c}/${d} — すべて満たすと自動モードが解放されます。`,
+  rly_alias_on:"「claude」をリレー経由にする",
+  rly_alias_ok:"オン: どのターミナルでも「claude」でリレー付きで起動します。",
+  rly_alias_off:"オフ: リレーを使うには「michi claude」と入力する必要があります。",
+  rly_alias_reopen:"完了。反映には新しいターミナルを開いてください。",
+  rly_alias_nomichi:"リレー (michi.exe) が未インストールなので、まだ近道を作る対象がありません。",
+  rly_alias_noclaude:"PATH に Claude Code が見つかりません。使えなくなる恐れのある近道は作りません。",
+  rly_alias_pathfail:"PATH を変更できませんでした。何も変更していません。",
   rem_log_relay:(cmd,proj)=>`「${proj}」で ${cmd} を適用`,
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
@@ -4430,6 +4479,13 @@ ko:{
   rly_applied:"적용됨 ✓",
   rly_failed:w=>`적용하지 못했습니다: ${w}`,
   rly_unlock:(a,b,c,d)=>`직접 적용한 횟수: /compact ${a}/${b} · /clear ${c}/${d} — 모두 채우면 자동 모드가 열립니다.`,
+  rly_alias_on:"「claude」를 릴레이로 통하게 하기",
+  rly_alias_ok:"켜짐: 어떤 터미널에서든 「claude」를 치면 릴레이로 열립니다.",
+  rly_alias_off:"꺼짐: 릴레이를 쓰려면 「michi claude」를 입력해야 합니다.",
+  rly_alias_reopen:"완료. 적용하려면 새 터미널을 여세요.",
+  rly_alias_nomichi:"릴레이(michi.exe)가 설치되어 있지 않아 아직 연결할 대상이 없습니다.",
+  rly_alias_noclaude:"PATH에서 Claude Code를 찾을 수 없습니다 — 없이 만들 수 있는 단축은 만들지 않습니다.",
+  rly_alias_pathfail:"PATH를 바꾸지 못했습니다. 아무것도 수정되지 않았습니다.",
   rem_log_relay:(cmd,proj)=>`「${proj}」에 ${cmd} 적용`,
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
@@ -4837,6 +4893,13 @@ zh:{
   rly_applied:"已应用 ✓",
   rly_failed:w=>`未应用：${w}`,
   rly_unlock:(a,b,c,d)=>`你已手动应用：/compact ${a}/${b} · /clear ${c}/${d} — 全部完成后解锁自动模式。`,
+  rly_alias_on:"让「claude」走接力",
+  rly_alias_ok:"已开启：在任何终端输入「claude」都会带接力启动。",
+  rly_alias_off:"已关闭：要用接力需要输入「michi claude」。",
+  rly_alias_reopen:"完成。请打开一个新的终端使其生效。",
+  rly_alias_nomichi:"接力（michi.exe）尚未安装，暂时没有可以简化的东西。",
+  rly_alias_noclaude:"在 PATH 中找不到 Claude Code — 我不会创建可能让你用不了它的快捷方式。",
+  rly_alias_pathfail:"无法修改 PATH。未做任何更改。",
   rem_log_relay:(cmd,proj)=>`在「${proj}」应用了 ${cmd}`,
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
@@ -7518,7 +7581,7 @@ function showTab(name){
   if(name==="prefs"){ renderPricesStatus();       // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
     remUi(); remLogLoad(); remZombieRows();       // remediación: estado + registro frescos
-    rlyPoll().then(rlyRows); }                    // y las sesiones con relevo
+    rlyPoll().then(rlyRows); rlyAliasUi(); }      // sesiones con relevo y el atajo
   document.querySelector(".panel").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
@@ -8057,6 +8120,45 @@ function relayApply(btn){
     }
   },1000);
   btn.dataset.timer=String(tick);
+}
+
+// ---------- el atajo: que `claude` pase por el relevo ----------
+// Sin esto hay que acordarse de escribir `michi claude`, y nadie se acuerda:
+// se trabaja media hora y luego se descubre que la sesión no tenía relevo. El
+// backend pone un `claude.cmd` propio primero en el PATH — resuelve Windows,
+// no el shell, así que sirve para cualquier terminal o editor de una vez.
+// Fuera del alcance: WSL y SSH (cruzan la frontera, etapa 4).
+async function rlyAliasUi(){
+  if(!invoke) return;
+  try{
+    const s=await invoke("relay_alias_status");
+    $("rlyAliasChk").checked=!!s.on;
+    // Sin el binario del relevo no hay atajo que ofrecer: se dice por qué en
+    // vez de dejar un interruptor que no haría nada (invariante #8).
+    $("rlyAliasChk").disabled=!s.michi;
+    $("rlyAliasMsg").textContent = !s.michi ? t("rly_alias_nomichi")
+      : s.on ? t("rly_alias_ok") : t("rly_alias_off");
+  }catch(_){}
+}
+$("rlyAliasChk").addEventListener("change",async ()=>{
+  const on=$("rlyAliasChk").checked;
+  $("rlyAliasMsg").textContent="…";
+  try{
+    await invoke("set_relay_alias",{on});
+    flog("relevo: atajo del PATH → "+(on?"on":"off"));
+    // El PATH nuevo solo lo ven los procesos que arranquen DESPUÉS: hay que
+    // decirlo o parecerá que el interruptor no hizo nada.
+    $("rlyAliasMsg").textContent=t("rly_alias_reopen");
+  }catch(e){
+    $("rlyAliasChk").checked=!on;
+    $("rlyAliasMsg").textContent=errAlias(String(e));
+    flog("relevo: atajo ERROR "+e);
+  }
+});
+function errAlias(code){
+  const k={ERR_ALIAS_NOMICHI:"rly_alias_nomichi",ERR_ALIAS_NOCLAUDE:"rly_alias_noclaude",
+    ERR_ALIAS_PATH:"rly_alias_pathfail"}[code.replace(/^.*?(ERR_ALIAS_\w+).*$/,"$1")];
+  return k?t(k):code;
 }
 
 async function rlyPollUi(){

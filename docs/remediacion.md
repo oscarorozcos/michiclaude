@@ -530,6 +530,45 @@ interruptor de automático: sería prometer algo que no se puede vigilar.
 Y la regla que sale de la auditoría de fuentes: **si el techo de contexto no
 es de fiar, la 3c aconseja pero no actúa.**
 
+## El atajo del PATH (2026-08-08): que `claude` pase por el relevo
+
+Sin esto el relevo depende de un hábito, y un automático que depende de un
+hábito no es un automático: se trabaja media hora y luego se descubre que la
+sesión no tenía relevo (lo planteó Oscar así).
+
+- **Un shim en el PATH, NO un alias por shell.** Las terminales y los editores
+  —Windows Terminal, VS Code, Cursor, Warp, Alacritty, WezTerm, Hyper…— no
+  interpretan `claude`: ejecutan un SHELL, y el shell resuelve el comando. Ir
+  por shells serían cuatro mecanismos (PowerShell 7, 5.1, cmd, Git Bash) y aun
+  así quedarían fuera los que salgan mañana. Un `claude.cmd` propio primero en
+  el PATH lo resuelve WINDOWS, así que vale para todos de una vez.
+- **Alcance honesto:** cubre cualquier terminal o editor que resuelva `claude`
+  por PATH. NO cubre WSL desde dentro ni SSH (cruzan la frontera — etapa 4) ni
+  una integración que llame al binario por ruta absoluta.
+- **El atajo nunca puede dejarte sin Claude Code.** Dos salidas: si
+  `MICHI_RELEVO` ya está puesto (estamos dentro de un relevo, no re-envolver) o
+  si falta `michi.exe`, ejecuta el Claude Code de verdad, cuya ruta se resuelve
+  al instalar el atajo —antes de que nuestra carpeta entre al PATH, o `where`
+  se encontraría a sí mismo—.
+- **PATH con cinturón:** se lee el de USUARIO, se guarda copia en
+  `path_backup.txt`, se añade UNA entrada delante (el PATH efectivo es máquina
+  + usuario, y el claude de npm vive en el tramo de usuario: detrás no lo
+  taparía) y el interruptor quita exactamente esa. Se usa
+  `[Environment]::SetEnvironmentVariable` y NO `setx`, que trunca a 1024
+  caracteres y puede cargarse el PATH entero.
+- **Sin `michi.exe` no se ofrece el interruptor**, se explica por qué
+  (invariante #8). El binario se busca junto al ejecutable de la app, en el
+  `target` del relevo (desarrollo) y en el PATH — cuando viaje en el
+  instalador, la primera ruta acierta sola.
+- El PATH nuevo solo lo ven procesos que arranquen DESPUÉS: el panel lo dice,
+  o parecería que el interruptor no hizo nada.
+- **`.cmd` y no `.exe`:** cubre a quien teclea en un shell, que es el caso
+  real, sin añadir una segunda compilación. Un programa que haga
+  `CreateProcess("claude")` sin extensión no lo vería.
+- PENDIENTE que esto destapa: `michi.exe` tiene que viajar en el instalador
+  como recurso de Tauri, y eso toca el workflow de release (invariante #9: lo
+  edita Oscar).
+
 ## Correcciones sobre la propuesta original (para no rediscutir)
 
 - **Contexto falso que traía el handoff:** licencia "MIT/Apache
