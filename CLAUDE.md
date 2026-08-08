@@ -460,15 +460,14 @@ hacer público el repo (o sus releases).
       30 (o 90) días que se suban.
 
 - [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05, las 5
-      pestañas con capturas de Oscar). Respaldo del estado anterior en el
-      tag `pre-rediseno-20260805`. Por el camino cayeron además: coach
-      MULTI-FUENTE (ver su sección), calendario de rango en Gasto y
-      Hallazgos, filtro de proyectos, "cuándo pasó" en los hallazgos,
-      comandos resaltados, Acerca de con versión real, rastro de los
-      avisos en flowLog, y el panel llenando siempre su ventana (margen de
-      sombra 1 px desde 2026-08-07 — fue 8→5→3→1, Oscar lo quiere casi
-      invisible; scrollbar fina redondeada estilo overlay, global vía
-      ::-webkit-scrollbar). DECISIONES VIGENTES de la ronda: tipografía EMBEBIDA
+      pestañas con capturas de Oscar). Respaldo en el tag
+      `pre-rediseno-20260805`; el detalle de la ronda, en la bitácora.
+      Cayeron además: coach MULTI-FUENTE, calendario de rango, filtro de
+      proyectos, "cuándo pasó" en hallazgos, Acerca de con versión real y
+      el panel llenando su ventana (margen de sombra 1 px desde
+      2026-08-07 — fue 8→5→3→1, Oscar lo quiere casi invisible; scrollbar
+      fina redondeada global vía ::-webkit-scrollbar).
+      DECISIONES VIGENTES de la ronda: tipografía EMBEBIDA
       (`src/fonts/`, OFL, sin CDN — una fuente remota rompería CSP y
       privacidad); `.sect` es TARJETA con fondo; toda tarjeta con fondo
       propio redefine `--txt-mut`/`--txt-dim` en vez de repintar hijos;
