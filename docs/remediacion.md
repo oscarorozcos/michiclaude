@@ -167,8 +167,11 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
    el prompt. Crate `relevo/`, ConPTY, canal por archivos, reglas R1-R5 y
    subcomandos `status`/`inject` para validar sin panel. Decisiones y los
    TRES fallos que cayó por el camino en §"Decisiones de la etapa 3a";
-   autopsia completa en la bitácora. Faltan 3b (descubrimiento en el
-   panel) y 3c (countdown + desbloqueo progresivo)]: inyección real de /compact//clear con
+   autopsia completa en la bitácora. 3b IMPLEMENTADA 2026-08-08
+   (descubrimiento y casado en el panel; pendiente de `cargo check` en
+   Windows y de validación en vivo — §"Decisiones de la etapa 3b").
+   Falta 3c (countdown + inyección desde la UI + desbloqueo
+   progresivo)]: inyección real de /compact//clear con
    countdown, solo sesiones del relevo; los checks "Aplicar" APARECEN
    solo cuando existen sesiones inyectables. El countdown va en una
    SUPERFICIE PROPIA (tarjeta del panel o ventana nueva) — NUNCA
@@ -370,6 +373,58 @@ La etapa 3 se parte en tres para que cada trozo se valide solo:
   medio se queda con el Ctrl+C ("¿Terminar trabajo por lotes?").
 - El hijo recibe `MICHI_RELEVO=<pid>` en el entorno; servirá en 3b para
   casar "esta terminal" con "esta sesión de los logs" junto a cwd + hora.
+
+## Decisiones de la etapa 3b (el panel descubre el relevo, 2026-08-08)
+
+La 3b SOLO MIRA. No hay un solo camino por el que el panel pueda pedirle
+nada al relevo todavía: eso es la 3c. Se separó así para poder validar el
+descubrimiento y el casado por su cuenta, que es donde estaba el riesgo
+real (señalar la sesión equivocada).
+
+- **`get_relays`** (Rust, async + `spawn_blocking`, invariante #10ter) lee
+  `%APPDATA%\<app>\relevo\*.json` y devuelve las sesiones VIVAS. Viva =
+  estado con menos de 15 s Y `alive` — la MISMA regla que `michi status`;
+  si cambia, cambia en los dos lados. No devuelve el bloque `diag` (las
+  cuentas de teclas son para diagnosticar en la terminal, no para la UI).
+- **Basura:** un archivo que lleva 24 h sin tocarse es de un relevo muerto
+  de golpe (uno vivo escribe cada 500 ms); se borra al pasar. Es nuestra
+  propia carpeta de datos y así no crece para siempre.
+- **Casar sesión y relevo se hace por el `cwd` COMPLETO, no por el nombre
+  de la carpeta.** Dos proyectos distintos pueden llamarse igual, y en la
+  3c eso sería teclear en la terminal equivocada. Para eso el hit `press`
+  lleva un campo ADITIVO `scwd` (el cwd normalizado a `/`), replicado en
+  `meter-export.py` (invariante #1). Verificado antes de subir: el export
+  normal y `--findings` salen IDÉNTICOS byte a byte contra la versión
+  anterior, y `--coach` solo añade la clave nueva.
+- **Fail-closed en la ambigüedad,** igual que en el relevo: si dos relevos
+  comparten carpeta, no hay forma de saber cuál es esta sesión y no se
+  afirma nada. LÍMITE ASUMIDO: dos sesiones de Claude Code en la MISMA
+  carpeta, una con relevo y otra sin él, el cwd no las desempata. La
+  alternativa (hora de arranque del relevo vs primer turno del log) falla
+  con `--continue`/`--resume`, así que no se usa: mejor no emparejar que
+  emparejar mal.
+- **Solo LOCAL:** un hit con `origin` (VPS) no casa nunca, aunque las
+  rutas coincidieran. El relevo por SSH es la etapa 4.
+- **Dónde se ve:** Ajustes → Remediación, lista "Sesiones con relevo"
+  (proyecto · pid · % de contexto de la sesión casada · listo o el
+  motivo). Sondeo de 5 s SOLO con esa pestaña a la vista: el estado
+  caduca en 15 s y enseñarlo viejo es peor que no enseñarlo. Fuera de ahí
+  basta el compás del coach (3 min), que es quien necesita saber si la
+  sesión bajo presión tiene relevo.
+- **El % de la fila es la prueba visible del casado.** Se puede validar el
+  emparejamiento sin esperar a una sesión al 80%: si la fila enseña el
+  contexto de la sesión correcta, relevo y log están casados.
+- **Tarjeta de intención:** insignia "relevo" cuando la sesión bajo
+  presión tiene uno. Nada más — prometer ahí un botón que no existe sería
+  vender la 3c antes de tiempo.
+- Los motivos `ERR_RELAY_*` se traducen en el panel (`rly_e_*`,
+  invariante #10); un código desconocido se enseña CRUDO antes que
+  inventarle una frase bonita.
+- **Pendiente que destapó la 3b:** cómo llega `michi.exe` al usuario. Hoy
+  se compila aparte a mano (`cd relevo; cargo build --release`) y no va en
+  el instalador. Decidirlo es parte de la 3c — si el panel va a ofrecer
+  "aplicar por ti", el binario tiene que existir en la máquina y estar en
+  el PATH.
 
 ## Correcciones sobre la propuesta original (para no rediscutir)
 

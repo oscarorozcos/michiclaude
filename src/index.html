@@ -302,6 +302,16 @@
   .rem-z b{color:var(--txt)}
   .rem-z span{overflow-wrap:anywhere}
   .rem-l{font-size:10.5px;color:var(--txt-dim);padding:2px 0;overflow-wrap:anywhere}
+  /* Relevo etapa 3b: una fila por sesión de Claude Code abierta con relevo */
+  .rly-r{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:11px;color:var(--txt-mut);padding:3px 0;min-width:0}
+  .rly-r b{color:var(--txt)}
+  .rly-s{font-size:10.5px;white-space:nowrap;color:var(--txt-dim)}
+  .rly-s.ok{color:var(--ok)}
+  /* la insignia de la tarjeta de intención: "esta sesión tiene relevo" */
+  .int-rly{display:inline-block;margin-left:6px;font-size:9.5px;font-weight:600;
+    letter-spacing:.4px;text-transform:uppercase;color:var(--accent-ink);
+    background:var(--accent);border-radius:999px;padding:2px 7px;vertical-align:1px}
   .fnd-x{position:absolute;top:11px;right:12px;font-size:10.5px;font-weight:600;
     color:var(--txt-dim);background:var(--card-hi);border:1px solid var(--stroke-soft);
     border-radius:999px;padding:3px 9px;cursor:pointer;transition:.15s}
@@ -1448,6 +1458,12 @@
         <button id="remArchGo" hidden data-i18n="rem_arch_go"></button>
         <span id="remArchMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
       </div>
+      <!-- RELEVO (etapa 3b): solo DESCUBRIMIENTO. Enseña qué sesiones de
+           Claude Code están abiertas con `michi claude` y si aceptarían un
+           comando ahora mismo. Aplicar desde aquí es la etapa 3c. -->
+      <div class="cfg-lbl" data-i18n="rly_label"></div>
+      <div class="cfg-note" id="rlyHint" data-i18n="rly_hint"></div>
+      <div id="rlyList"></div>
       <div class="cfg-lbl" data-i18n="rem_log_label"></div>
       <div id="remLog" class="cfg-note"></div>
     </div>
@@ -1936,6 +1952,19 @@ en:{
   rem_card_t:"Orphaned MCP processes",
   rem_card_m:(n,mb)=>`${n===1?"1 process":n+" processes"} · ${mb} MB of RAM retained`,
   rem_card_b:"A closed Claude Code session left these MCP servers running. Nothing is using them — closing them frees the memory and touches nothing else.",
+  rly_label:"Sessions with relay",
+  rly_hint:"Claude Code opened with «michi claude»: Michi sees the state of each session and whether it would accept a command right now.",
+  rly_none:"No session opened with «michi claude».",
+  rly_ready:"ready",
+  rly_badge:"relay",
+  rly_badge_tip:"This session is open with «michi claude».",
+  rly_e_typed:"you have unsent text",
+  rly_e_busy:"Claude is generating",
+  rly_e_noisy:"you just typed",
+  rly_e_cooldown:"just applied",
+  rly_e_gone:"closing",
+  rly_e_badcmd:"command not allowed",
+  rly_e_write:"couldn't write",
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
   pill_layer_normal:"Normal window",
@@ -2324,6 +2353,19 @@ es:{
   rem_card_t:"Procesos MCP huérfanos",
   rem_card_m:(n,mb)=>`${n===1?"1 proceso":n+" procesos"} · ${mb} MB de RAM retenidos`,
   rem_card_b:"Una sesión cerrada de Claude Code dejó estos servidores MCP corriendo. Nada los está usando — cerrarlos libera la memoria y no toca nada más.",
+  rly_label:"Sesiones con relevo",
+  rly_hint:"Claude Code abierto con «michi claude»: Michi ve en qué estado está cada sesión y si aceptaría un comando ahora mismo.",
+  rly_none:"Ninguna sesión abierta con «michi claude».",
+  rly_ready:"listo",
+  rly_badge:"relevo",
+  rly_badge_tip:"Esta sesión está abierta con «michi claude».",
+  rly_e_typed:"tienes texto sin enviar",
+  rly_e_busy:"Claude está generando",
+  rly_e_noisy:"acabas de teclear",
+  rly_e_cooldown:"recién aplicado",
+  rly_e_gone:"cerrándose",
+  rly_e_badcmd:"comando no permitido",
+  rly_e_write:"no se pudo escribir",
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
   pill_layer_normal:"Ventana normal",
@@ -2712,6 +2754,19 @@ pt:{
   rem_card_t:"Processos MCP órfãos",
   rem_card_m:(n,mb)=>`${n===1?"1 processo":n+" processos"} · ${mb} MB de RAM retidos`,
   rem_card_b:"Uma sessão fechada do Claude Code deixou estes servidores MCP rodando. Nada os está usando — fechá-los libera a memória e não toca em mais nada.",
+  rly_label:"Sessões com revezamento",
+  rly_hint:"Claude Code aberto com «michi claude»: Michi vê em que estado está cada sessão e se ela aceitaria um comando agora.",
+  rly_none:"Nenhuma sessão aberta com «michi claude».",
+  rly_ready:"pronto",
+  rly_badge:"revezamento",
+  rly_badge_tip:"Esta sessão está aberta com «michi claude».",
+  rly_e_typed:"você tem texto não enviado",
+  rly_e_busy:"o Claude está gerando",
+  rly_e_noisy:"você acabou de digitar",
+  rly_e_cooldown:"aplicado agora há pouco",
+  rly_e_gone:"fechando",
+  rly_e_badcmd:"comando não permitido",
+  rly_e_write:"não deu para escrever",
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
   pill_layer_normal:"Janela normal",
@@ -3100,6 +3155,19 @@ fr:{
   rem_card_t:"Processus MCP orphelins",
   rem_card_m:(n,mb)=>`${n===1?"1 processus":n+" processus"} · ${mb} Mo de RAM retenus`,
   rem_card_b:"Une session Claude Code fermée a laissé ces serveurs MCP en cours. Rien ne les utilise — les fermer libère la mémoire et ne touche à rien d'autre.",
+  rly_label:"Sessions avec relais",
+  rly_hint:"Claude Code ouvert avec «michi claude» : Michi voit l'état de chaque session et si elle accepterait une commande maintenant.",
+  rly_none:"Aucune session ouverte avec «michi claude».",
+  rly_ready:"prêt",
+  rly_badge:"relais",
+  rly_badge_tip:"Cette session est ouverte avec «michi claude».",
+  rly_e_typed:"tu as du texte non envoyé",
+  rly_e_busy:"Claude est en train de générer",
+  rly_e_noisy:"tu viens de taper",
+  rly_e_cooldown:"vient d'être appliqué",
+  rly_e_gone:"fermeture en cours",
+  rly_e_badcmd:"commande non autorisée",
+  rly_e_write:"écriture impossible",
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
   pill_layer_normal:"Fenêtre normale",
@@ -3488,6 +3556,19 @@ de:{
   rem_card_t:"Verwaiste MCP-Prozesse",
   rem_card_m:(n,mb)=>`${n===1?"1 Prozess":n+" Prozesse"} · ${mb} MB RAM belegt`,
   rem_card_b:"Eine geschlossene Claude-Code-Sitzung hat diese MCP-Server laufen lassen. Nichts nutzt sie — sie zu beenden gibt den Speicher frei und rührt sonst nichts an.",
+  rly_label:"Sitzungen mit Relais",
+  rly_hint:"Mit «michi claude» geöffnetes Claude Code: Michi sieht den Zustand jeder Sitzung und ob sie gerade einen Befehl annehmen würde.",
+  rly_none:"Keine Sitzung mit «michi claude» geöffnet.",
+  rly_ready:"bereit",
+  rly_badge:"Relais",
+  rly_badge_tip:"Diese Sitzung ist mit «michi claude» geöffnet.",
+  rly_e_typed:"du hast ungesendeten Text",
+  rly_e_busy:"Claude generiert gerade",
+  rly_e_noisy:"du hast gerade getippt",
+  rly_e_cooldown:"gerade erst angewendet",
+  rly_e_gone:"wird beendet",
+  rly_e_badcmd:"Befehl nicht erlaubt",
+  rly_e_write:"konnte nicht schreiben",
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
   pill_layer_normal:"Normales Fenster",
@@ -3876,6 +3957,19 @@ ja:{
   rem_card_t:"孤立した MCP プロセス",
   rem_card_m:(n,mb)=>`${n} プロセス · RAM ${mb} MB を占有`,
   rem_card_b:"終了した Claude Code セッションがこれらの MCP サーバーを残したままです。どこからも使われていません — 終了すればメモリが解放され、他には何も触れません。",
+  rly_label:"リレー付きセッション",
+  rly_hint:"「michi claude」で開いた Claude Code。Michi は各セッションの状態と、いまコマンドを受け付けられるかどうかを把握します。",
+  rly_none:"「michi claude」で開いたセッションはありません。",
+  rly_ready:"準備完了",
+  rly_badge:"リレー",
+  rly_badge_tip:"このセッションは「michi claude」で開かれています。",
+  rly_e_typed:"未送信のテキストがあります",
+  rly_e_busy:"Claude が生成中です",
+  rly_e_noisy:"いま入力したばかりです",
+  rly_e_cooldown:"適用した直後です",
+  rly_e_gone:"終了中です",
+  rly_e_badcmd:"許可されていないコマンドです",
+  rly_e_write:"書き込めませんでした",
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
   pill_layer_normal:"通常ウィンドウ",
@@ -4264,6 +4358,19 @@ ko:{
   rem_card_t:"고아 MCP 프로세스",
   rem_card_m:(n,mb)=>`프로세스 ${n}개 · RAM ${mb} MB 점유`,
   rem_card_b:"종료된 Claude Code 세션이 이 MCP 서버들을 남겨 두었습니다. 아무것도 사용하지 않습니다 — 종료하면 메모리가 해제되고 다른 것은 건드리지 않습니다.",
+  rly_label:"릴레이가 있는 세션",
+  rly_hint:"「michi claude」로 연 Claude Code. Michi가 각 세션의 상태와 지금 명령을 받을 수 있는지 확인합니다.",
+  rly_none:"「michi claude」로 연 세션이 없습니다.",
+  rly_ready:"준비됨",
+  rly_badge:"릴레이",
+  rly_badge_tip:"이 세션은 「michi claude」로 열려 있습니다.",
+  rly_e_typed:"보내지 않은 텍스트가 있습니다",
+  rly_e_busy:"Claude가 생성 중입니다",
+  rly_e_noisy:"방금 입력했습니다",
+  rly_e_cooldown:"방금 적용했습니다",
+  rly_e_gone:"닫히는 중입니다",
+  rly_e_badcmd:"허용되지 않은 명령입니다",
+  rly_e_write:"쓸 수 없었습니다",
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
   pill_layer_normal:"일반 창",
@@ -4652,6 +4759,19 @@ zh:{
   rem_card_t:"孤立的 MCP 进程",
   rem_card_m:(n,mb)=>`${n} 个进程 · 占用 ${mb} MB 内存`,
   rem_card_b:"已关闭的 Claude Code 会话留下了这些 MCP 服务器。没有任何东西在使用它们——关闭即可释放内存，不会影响其他任何东西。",
+  rly_label:"带接力的会话",
+  rly_hint:"用「michi claude」打开的 Claude Code。Michi 能看到每个会话的状态，以及此刻是否能接受命令。",
+  rly_none:"没有用「michi claude」打开的会话。",
+  rly_ready:"就绪",
+  rly_badge:"接力",
+  rly_badge_tip:"该会话是用「michi claude」打开的。",
+  rly_e_typed:"你有未发送的文本",
+  rly_e_busy:"Claude 正在生成",
+  rly_e_noisy:"你刚刚在打字",
+  rly_e_cooldown:"刚刚应用过",
+  rly_e_gone:"正在关闭",
+  rly_e_badcmd:"不允许的命令",
+  rly_e_write:"无法写入",
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
   pill_layer_normal:"普通窗口",
@@ -4743,6 +4863,9 @@ function applyI18n(){
   // las fichas de Consejos se pintan desde t(): un cambio de idioma con la
   // pestaña abierta debe repintarlas al momento
   if(!$("tab-tips").hidden) renderTips();
+  // la lista de relevos también: sus filas se arman con t() y el aviso de
+  // "ninguna sesión" pisa el data-i18n de arriba
+  if(!$("tab-prefs").hidden) rlyRows();
 }
 
 // Traducción de códigos de error del backend (ERR_*)
@@ -4840,6 +4963,9 @@ let lastPillArgs=null;
 // widget lo esconde. 200k es el techo de contexto de Claude Code — si algún
 // día cambia, cambia aquí (el backend manda tokens crudos a propósito).
 let lastPress=null;
+// todos los hits "press" del último sondeo (el manómetro usa el más fresco,
+// pero la lista de relevos necesita casar cada sesión con el suyo — etapa 3b)
+let pressAll=[];
 const PRESS_FULL=200000;
 function pressField(){
   if(!lastPress||!lastPress.ctx) return null;
@@ -6341,6 +6467,10 @@ function renderTips(){
     try{
       const h=c.h, v=intentVerdict(h);
       const donde=[h.project||"",h.origin||t("src_local")].filter(Boolean).join(" · ");
+      // etapa 3b: si ESTA sesión está abierta con relevo, se dice — es la
+      // diferencia entre "cópiate el comando" y lo que vendrá en la 3c. Solo
+      // se afirma cuando la pareja es inequívoca (relayFor es fail-closed).
+      const rly=relayFor(h);
       const ev=[];
       if((h.ttotal||0)>0) ev.push(t("int_ev_todo",h.topen||0,h.ttotal));
       if((h.cont||0)>=40) ev.push(t("int_ev_cont"));
@@ -6353,7 +6483,9 @@ function renderTips(){
       live.push({born:c.born||0, html:`<div class="fnd tip int${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
       <button class="tip-x" aria-label="✕">✕</button>
       <div class="fnd-t">${t("int_t")} · <span class="int-pct${h.value>=85?" hot":""}">${Math.round(h.value)}%</span></div>
-      <div class="fnd-m"><span>${t("press_lab")} — ${esc(donde)}</span></div>
+      <div class="fnd-m"><span>${t("press_lab")} — ${esc(donde)}${
+        rly?`<span class="int-rly" title="${esc(t("rly_badge_tip"))}">${t("rly_badge")}</span>`:""
+      }</span></div>
       <div class="fnd-f"><div class="int-q">${t("int_q")}</div><div class="int-ev">${esc(t("int_ev"))}: ${esc(ev.join(" · "))}</div>${
         opt("/compact",t("int_go_t"),t("int_go_b"),v==="alive")}${
         opt("/clear",t("int_done_t"),t("int_done_b"),v==="boundary",
@@ -6655,6 +6787,10 @@ async function coachPoll(){
   if(!invoke) return;
   if(simFnd) return;               // simulación en curso: no la pises
   try{
+    // las sesiones con relevo, al mismo compás: la tarjeta de intención dice
+    // si ESTA sesión tiene relevo, y para eso la lista tiene que estar puesta
+    // antes de que nazca la tarjeta (etapa 3b)
+    await rlyPoll();
     const all=await invoke("get_coach")||[];
     // "tu agente terminó" y "te está esperando" NO son fichas: son avisos al
     // celular. Se apartan antes del filtro para que no gasten el tope diario
@@ -6663,8 +6799,10 @@ async function coachPoll(){
     // (docs/remediacion.md etapa 1). Con varias sesiones vivas gana la más
     // fresca (menos minutos quieta) y a igual frescura la de más contexto;
     // sin hit en este sondeo el manómetro se apaga (la sesión se durmió).
-    const pr=all.filter(h=>h.rule==="press")
-      .sort((a,b)=>(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
+    pressAll=all.filter(h=>h.rule==="press");   // TODAS: la lista de relevos
+                                                // casa cada relevo con la suya
+    const pr=pressAll
+      .slice().sort((a,b)=>(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
     lastPress=pr?{ctx:pr.value||0,project:pr.project||"",origin:pr.origin||""}:null;
     const hits=all.filter(h=>h.rule!=="done"&&h.rule!=="ask"&&h.rule!=="press");
     // Tarjeta de intención (docs/remediacion.md etapa 1c): con la presión en
@@ -6679,7 +6817,7 @@ async function coachPoll(){
         intentHit={rule:"intent", session:pr.session||"", value:ppct,
           project:pr.project||"", origin:pr.origin||"", quiet:pr.quiet||0,
           topen:pr.topen||0, ttotal:pr.ttotal||0, cont:pr.cont||0,
-          gclean:!!pr.gclean};
+          gclean:!!pr.gclean, scwd:pr.scwd||""};
         hits.push(intentHit);
       }
     }
@@ -7288,11 +7426,15 @@ function showTab(name){
   // de ese escaneo nunca aparecía hasta reiniciar la app (Oscar 2026-08-02:
   // "no veo hallazgos" de la sesión recién hecha — y era cierto)
   if(name==="findings") loadFindings(Date.now()-fndCacheAt>5*60*1000);
-  if(name==="tips"){ renderTips(); renderTipFoot(); }  // estático: gratis
+  // Consejos: la lista de relevos decide la insignia de la tarjeta de
+  // intención, así que se refresca ANTES de pintar (y otra vez al llegar,
+  // porque la primera pasada no espera)
+  if(name==="tips"){ renderTips(); renderTipFoot(); rlyPoll().then(renderTips); }
   if(name==="report") loadReport(false);          // TTL de 5 min, como Hallazgos
   if(name==="prefs"){ renderPricesStatus();       // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
-    remUi(); remLogLoad(); remZombieRows(); }     // remediación: estado + registro frescos
+    remUi(); remLogLoad(); remZombieRows();       // remediación: estado + registro frescos
+    rlyPoll().then(rlyRows); }                    // y las sesiones con relevo
   document.querySelector(".panel").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
@@ -7675,6 +7817,72 @@ function zombieCardSynth(){
 }
 setTimeout(remPoll,90*1000);          // primer sondeo tras la carga
 setInterval(remPoll,60*60*1000);      // y cada hora
+
+// ---------- relevo: descubrimiento (docs/remediacion.md etapa 3b) ----------
+// `michi claude` (crate aparte, binario michi.exe) envuelve Claude Code en una
+// ConPTY y deja su estado en un archivo por sesión; get_relays devuelve las
+// VIVAS (estado de menos de 15 s). ESTA ETAPA SOLO MIRA: enseñar quién tiene
+// relevo y si aceptaría un comando ahora mismo. Pedirlo es la 3c — y quien
+// decide sigue siendo el relevo, que re-verifica R1-R3 al escribir.
+let relays=[];
+// Identidad para casar una sesión de los logs con un relevo: la ruta completa
+// normalizada. En Windows conviven las dos barras y da igual mayúsculas.
+function cwdKey(p){ return String(p||"").replace(/\\/g,"/").replace(/\/+$/,"").toLowerCase(); }
+// El relevo de una sesión, o null. FAIL-CLOSED en la ambigüedad: si dos
+// relevos comparten carpeta no hay forma de saber cuál es esta sesión, y
+// adivinar sería teclear en la terminal equivocada.
+function relayFor(h){
+  if(!h||h.origin) return null;       // el relevo es local; WSL/SSH = etapa 4
+  const k=cwdKey(h.scwd);
+  if(!k) return null;                 // exportador viejo o sesión sin cwd
+  const c=relays.filter(r=>cwdKey(r.cwd)===k);
+  return c.length===1?c[0]:null;
+}
+// Motivo del "no" en llano. El backend manda códigos y el panel traduce
+// (invariante #10); un código que no conozcamos se enseña tal cual antes que
+// mentir con una frase bonita.
+function rlyWhy(code){
+  const k="rly_e_"+String(code||"").replace("ERR_RELAY_","").toLowerCase();
+  return I18N.en[k]?t(k):(code||"");
+}
+// La sesión de los logs que corresponde a un relevo — el mismo emparejamiento
+// que relayFor(), leído al revés y con la misma regla fail-closed. Sirve para
+// enseñar en la fila cuánto contexto lleva esa sesión: es la prueba visible de
+// que el casado funciona sin tener que esperar a una sesión al 80%.
+function pressForRelay(r){
+  const k=cwdKey(r.cwd); if(!k) return null;
+  const c=pressAll.filter(h=>!h.origin&&cwdKey(h.scwd)===k);
+  return c.length===1?c[0]:null;
+}
+function rlyRows(){
+  const el=$("rlyList"); if(!el) return;
+  el.innerHTML=relays.map(r=>{
+    const s=r.ready?`<span class="rly-s ok">${t("rly_ready")}</span>`
+                   :`<span class="rly-s">${escapeHtml(rlyWhy(r.why))}</span>`;
+    const p=pressForRelay(r);
+    const pct=p?` · <span title="${escapeHtml(t("press_lab"))}">${
+      Math.min(100,Math.round((p.value||0)/PRESS_FULL*100))}%</span>`:"";
+    return `<div class="rly-r"><span><b>${escapeHtml(r.project||r.cwd)}</b> · pid ${
+      r.pid}${pct}</span>${s}</div>`;
+  }).join("");
+  $("rlyHint").textContent=relays.length?t("rly_hint"):t("rly_none");
+}
+// Sondeo CORTO (5 s) y solo con Ajustes a la vista: el estado del relevo
+// caduca en 15 s, así que enseñarlo viejo sería peor que no enseñarlo. Fuera
+// de esa pestaña basta el ritmo del coach, que es quien necesita saber si la
+// sesión bajo presión tiene relevo.
+async function rlyPoll(){
+  if(!invoke) return;
+  try{ relays=await invoke("get_relays")||[]; }
+  catch(_){ relays=[]; }              // sin backend: como si no hubiera relevo
+}
+async function rlyPollUi(){
+  if($("tab-prefs").hidden||document.hidden) return;
+  const antes=relays.map(r=>r.pid+":"+r.ready+":"+r.why).join("|");
+  await rlyPoll();
+  if(relays.map(r=>r.pid+":"+r.ready+":"+r.why).join("|")!==antes) rlyRows();
+}
+setInterval(rlyPollUi,5*1000);
 
 // ---------- avisos al celular (ntfy) ----------
 // La config vive en ntfy_config.json (backend); aquí solo una copia en

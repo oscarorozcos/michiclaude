@@ -2961,6 +2961,10 @@ struct CoachSess {
     tool_ids: HashSet<String>, // dedup de tool_use (reanudaciones copian líneas)
     title: String,      // ai-title del log — SOLO display, campo interno
     proj: String,       // nombre real del proyecto, del `cwd` de la sesión
+    scwd: String,       // el `cwd` COMPLETO (barras normalizadas): la identidad
+                        // con la que el panel casa esta sesión con un relevo
+                        // (etapa 3b) — el nombre suelto no basta, dos carpetas
+                        // distintas pueden llamarse igual
     cost: f64,          // costo MEDIDO de la sesión (usage × tarifa por turno)
     gaps: u64,          // pausas ≥6 min con contexto grande (caché reescrito)
     done: bool,         // el resumen ya se emitió: una vez por sesión
@@ -3046,6 +3050,10 @@ struct CoachHit {
     cont: u64,       // continuidad de archivos: Jaccard % (últimos 10 vs 10
                      // previos del rastro); 0 = sin rastro suficiente
     gclean: bool,    // git commit reciente sin ediciones después
+    scwd: String,    // solo "press": el `cwd` completo de la sesión, para
+                     // casarla con un relevo abierto en esa misma carpeta
+                     // (etapa 3b). Aditivo: un exportador viejo manda "" y
+                     // el panel simplemente no encuentra pareja
     /// De qué máquina viene el consejo: vacío = esta (el panel enseña
     /// "local"); con nombre = el que el usuario le dio al servidor. Lo pone
     /// get_coach al fusionar, nunca el exportador (el mismo patrón que el
@@ -3176,6 +3184,11 @@ fn coach_scan() -> Vec<CoachHit> {
                     if st.proj.is_empty() {
                         if let Some(base) = cwd_name(&v) {
                             st.proj = base;
+                        }
+                    }
+                    if st.scwd.is_empty() {
+                        if let Some(c) = v["cwd"].as_str().filter(|c| !c.trim().is_empty()) {
+                            st.scwd = c.replace('\\', "/").trim_end_matches('/').to_string();
                         }
                     }
                     // título de la sesión: Claude Code lo escribe él mismo en
@@ -3383,6 +3396,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     ttotal: st.todos_total,
                     cont,
                     gclean: st.commit_clean,
+                    scwd: st.scwd.clone(),
                     ..Default::default()
                 });
             }
@@ -3891,6 +3905,119 @@ async fn get_action_log() -> Result<Vec<RemAction>, String> {
     .map_err(|e| e.to_string())?
 }
 
+// ---------- relevo: descubrimiento (docs/remediacion.md etapa 3b) ----------
+// El relevo `michi claude` (crate APARTE en relevo/, binario michi.exe) envuelve
+// a Claude Code en una ConPTY y deja su estado en
+// %APPDATA%\<app>\relevo\<pid>.json cada 500 ms. Aquí SOLO SE LEE: saber qué
+// sesiones tienen relevo y en qué estado están. Inyectar es la etapa 3c — y
+// aunque el panel aún no pueda pedir nada, quien decide siempre es el relevo
+// (`attend()` vuelve a comprobar R1-R3 en el instante de escribir).
+
+fn relay_dir() -> PathBuf {
+    app_data_dir().join("relevo")
+}
+
+/// Sesión viva = estado refrescado hace menos de esto. Un relevo matado de
+/// golpe deja su archivo atrás; la frescura es lo único fiable. MISMA regla
+/// que `michi status` — si cambia, cambia en los dos lados.
+const RELAY_FRESH: i64 = 15;
+/// Un archivo que lleva un día sin tocarse es basura de un relevo muerto de
+/// golpe: uno vivo escribe cada 500 ms. Se borra al pasar (es nuestra propia
+/// carpeta de datos, y así no crece para siempre).
+const RELAY_STALE: i64 = 24 * 3600;
+
+/// Una sesión de Claude Code con relevo. Espejo de lo que escribe el relevo,
+/// sin el bloque `diag` (cuentas de teclas para `michi status --debug`) ni
+/// nada que huela a contenido: el relevo NUNCA escribe lo tecleado.
+#[derive(Serialize, Default, Clone)]
+struct Relay {
+    pid: u32,
+    /// ruta completa donde se lanzó — es la identidad con la que se casa
+    /// con la sesión de los logs
+    cwd: String,
+    /// última carpeta del cwd: lo que se enseña
+    project: String,
+    started: i64,
+    ts: i64,
+    /// listo para recibir un comando AHORA (R1-R3 en verde)
+    ready: bool,
+    /// por qué no: ERR_RELAY_* — lo traduce el panel (invariante #10)
+    why: String,
+    /// hay texto sin enviar en el prompt (R1)
+    typed: bool,
+    idle_in: u64,
+    idle_out: u64,
+    /// el usuario aplicó él mismo uno de los dos comandos de la lista
+    /// blanca (para el desbloqueo progresivo de la 3c)
+    user_cmd: String,
+    user_cmd_ts: i64,
+}
+
+/// Lee la carpeta del relevo y devuelve las sesiones VIVAS. Nunca falla:
+/// sin carpeta, sin relevo instalado o con un archivo a medio escribir,
+/// devuelve lo que pueda (una lista vacía es una respuesta válida).
+fn scan_relays() -> Vec<Relay> {
+    let mut out: Vec<Relay> = Vec::new();
+    let now = Utc::now().timestamp();
+    let Ok(rd) = fs::read_dir(relay_dir()) else {
+        return out;
+    };
+    for e in rd.flatten() {
+        let p = e.path();
+        if p.extension().and_then(|x| x.to_str()) != Some("json") {
+            continue;
+        }
+        let Ok(raw) = fs::read_to_string(&p) else {
+            continue;
+        };
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else {
+            continue;
+        };
+        let ts = v["ts"].as_i64().unwrap_or(0);
+        if now - ts > RELAY_FRESH || !v["alive"].as_bool().unwrap_or(false) {
+            if now - ts > RELAY_STALE {
+                let _ = fs::remove_file(&p);
+            }
+            continue;
+        }
+        let cwd = v["cwd"].as_str().unwrap_or("").to_string();
+        out.push(Relay {
+            pid: v["pid"].as_u64().unwrap_or(0) as u32,
+            project: path_base(&cwd),
+            cwd,
+            started: v["started"].as_i64().unwrap_or(0),
+            ts,
+            ready: v["ready"].as_bool().unwrap_or(false),
+            why: v["why"].as_str().unwrap_or("").to_string(),
+            typed: v["typed"].as_bool().unwrap_or(false),
+            idle_in: v["idle_in"].as_u64().unwrap_or(0),
+            idle_out: v["idle_out"].as_u64().unwrap_or(0),
+            user_cmd: v["user_cmd"].as_str().unwrap_or("").to_string(),
+            user_cmd_ts: v["user_cmd_ts"].as_i64().unwrap_or(0),
+        });
+    }
+    out.sort_by_key(|r| r.started);
+    out
+}
+
+/// Última carpeta de una ruta, con las barras normalizadas (Windows mezcla
+/// las dos). Mismo criterio que `cwd_name`, pero sobre una ruta suelta.
+fn path_base(p: &str) -> String {
+    p.replace('\\', "/")
+        .trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .unwrap_or("")
+        .to_string()
+}
+
+#[tauri::command]
+async fn get_relays() -> Result<Vec<Relay>, String> {
+    tauri::async_runtime::spawn_blocking(|| Ok(scan_relays()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 /// Un proceso MCP huérfano detectado. `start` (epoch de arranque) es la
 /// mitad del anti-reciclaje de PID: para cerrar hay que devolverlo y
 /// que siga coincidiendo.
@@ -4346,7 +4473,8 @@ pub fn run() {
             kill_zombie,
             scan_archivable,
             archive_old,
-            get_action_log
+            get_action_log,
+            get_relays
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

@@ -553,25 +553,36 @@ hacer público el repo (o sus releases).
       `rem_debug.json`. ETAPA 3 partida en 3a/3b/3c; **3a COMPLETA Y
       VALIDADA EN VIVO 2026-08-08** (seis pruebas; autopsia de los tres
       fallos en la bitácora): crate APARTE `relevo/` (paquete `michi`,
-      FUERA de src-tauri — la app no gana deps, invariante #4;
-      portable-pty vive solo ahí), ConPTY con paso transparente, canal
-      por ARCHIVOS en `%APPDATA%\<app>\relevo\<pid>.json|.cmd` (no named
-      pipe; tmp+rename añadiendo `.tmp` al nombre ENTERO, si no estado y
-      orden se pisan), sesión viva = estado con <15 s, LISTA BLANCA de
-      dos textos (/compact, /clear) como límite duro, y R2 ("Claude
-      generando") INFERIDA del silencio de la PTY — única señal que no
-      es certeza. REGLAS DURAS del relevo: **ConPTY negocia
-      `win32-input-mode` con el terminal a espaldas de quien está en
-      medio**, así que las teclas NO llegan como caracteres sino como
-      `ESC[Vk;Sc;Uc;Kd;Cs;Rc_` (decodificarlas o no se cuenta ni una);
-      los avisos del terminal (foco, cursor) NO son teclas y no reinician
-      la calma; UNA sola fuente de verdad para "hay texto" (derivada del
-      buffer, nunca un booleano al lado); un Enter no limpia el modelo
-      hasta ver si Claude REACCIONA. El relevo JAMÁS escribe en disco lo
-      tecleado — el diagnóstico `michi status --debug` son CUENTAS y
-      longitudes. Se valida sin panel con `michi status` y `michi inject
-      /compact`. Faltan 3b (el panel descubre sesiones) y 3c (countdown
-      + desbloqueo progresivo).
+      FUERA de src-tauri — la app no gana deps, invariante #4), ConPTY
+      con paso transparente, canal por ARCHIVOS en
+      `%APPDATA%\<app>\relevo\<pid>.json|.cmd` (tmp+rename añadiendo
+      `.tmp` al nombre ENTERO, si no estado y orden se pisan), sesión
+      viva = estado con <15 s, LISTA BLANCA de dos textos (/compact,
+      /clear) como límite duro, R2 ("Claude generando") INFERIDA del
+      silencio de la PTY. REGLAS DURAS: **ConPTY negocia
+      `win32-input-mode` a espaldas de quien está en medio** — las teclas
+      llegan como `ESC[Vk;Sc;Uc;Kd;Cs;Rc_` y hay que decodificarlas o no
+      se cuenta ni una; los avisos del terminal (foco, cursor) NO son
+      teclas y no reinician la calma; UNA sola fuente de verdad para "hay
+      texto" (derivada del buffer); un Enter no limpia el modelo hasta
+      ver si Claude REACCIONA. El relevo JAMÁS escribe lo tecleado —
+      `michi status --debug` son CUENTAS y longitudes; con eso y `michi
+      inject` se valida sin panel. **3b IMPLEMENTADA 2026-08-08** (falta `cargo check` y
+      validación en vivo): `get_relays` (async, lee la carpeta del relevo,
+      viva = <15 s Y alive, borra archivos de >24 h) y el CASADO
+      sesión↔relevo por el `cwd` COMPLETO — para eso el hit `press` lleva
+      el campo aditivo `scwd` (replicado en el exportador, invariante #1;
+      export y findings idénticos byte a byte). FAIL-CLOSED:
+      con dos relevos en la misma carpeta no se afirma nada, y dos
+      sesiones en la misma carpeta (una con relevo, otra sin) es límite
+      asumido — la hora de arranque no sirve, `--resume` la rompe. Se ve
+      en Ajustes → Remediación (proyecto · pid · % de la sesión casada ·
+      listo/motivo; sondeo 5 s SOLO con esa pestaña visible) y como
+      insignia "relevo" en la tarjeta de intención. El % de la fila ES la
+      prueba del casado sin esperar a una sesión al 80%. Falta 3c
+      (countdown + inyección desde la UI + desbloqueo progresivo) y
+      decidir cómo llega `michi.exe` al usuario (hoy a mano, fuera del
+      instalador).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.

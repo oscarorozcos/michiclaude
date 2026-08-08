@@ -829,7 +829,10 @@ def _coach_default():
             # señales del clasificador de tarea viva (réplica del Rust,
             # docs/remediacion.md etapa 1b) — solo hechos, cero veredicto
             "todos_open": 0, "todos_total": 0, "trail": [],
-            "commit_clean": False}
+            "commit_clean": False,
+            # cwd COMPLETO de la sesión (barras normalizadas): con qué se casa
+            # una sesión con un relevo abierto en esa carpeta (etapa 3b)
+            "scwd": ""}
 
 
 def coach_leaks(st):
@@ -906,11 +909,13 @@ def coach_scan(projects_dir):
                             continue
                         ts = parse_ts(v.get("timestamp"))
                         ts_s = int(ts.timestamp()) if ts else None
-                        if not st["proj"]:
+                        if not st["proj"] or not st.get("scwd"):
                             cwd = (v.get("cwd") or "").replace("\\", "/").rstrip("/")
                             base = cwd.rsplit("/", 1)[-1]
-                            if base:
+                            if base and not st["proj"]:
                                 st["proj"] = base
+                            if cwd and not st.get("scwd"):
+                                st["scwd"] = cwd
                         if v.get("type") == "ai-title":
                             t2 = (v.get("aiTitle") or "").strip()
                             if t2:
@@ -1021,7 +1026,8 @@ def coach_scan(projects_dir):
                             cont = len(a & b) * 100 // len(u)
                     hit("press", st["last_ctx"], quiet=quiet_min,
                         topen=st["todos_open"], ttotal=st["todos_total"],
-                        cont=cont, gclean=st["commit_clean"])
+                        cont=cont, gclean=st["commit_clean"],
+                        scwd=st.get("scwd", ""))
                 if (st["pending_tool"] and not st["asked"]
                         and quiet_min >= COACH_ASK_QUIET and st["turns"] >= 1):
                     st["asked"] = True
