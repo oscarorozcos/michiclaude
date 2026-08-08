@@ -500,14 +500,36 @@ fn prices_map() -> &'static std::sync::RwLock<HashMap<String, PriceEntry>> {
     PRICES.get_or_init(|| std::sync::RwLock::new(load_prices_cache().prices))
 }
 
+/// Punto entre dígitos → guión. OpenRouter escribe la versión con PUNTO
+/// ("claude-opus-4.8") donde LiteLLM, models.dev y los propios logs usan
+/// GUIÓN ("claude-opus-4-8"). Sin esto, la tercera fuente de la cascada solo
+/// casaba 6 de sus modelos: si LiteLLM y models.dev caían, ocho modelos
+/// vigentes —Opus 4.5/4.6/4.7/4.8, Sonnet 4.5/4.6, Haiku 4.5, Opus 4.1— se
+/// quedaban sin precio Y sin techo, en silencio (cazado 2026-08-08 auditando
+/// las tres fuentes). Solo entre dígitos: "anthropic.claude-opus-5" no se toca.
+fn dots_to_dashes(s: &str) -> String {
+    let c: Vec<char> = s.chars().collect();
+    let mut out = String::with_capacity(s.len());
+    for (i, ch) in c.iter().enumerate() {
+        let between_digits = *ch == '.'
+            && i > 0
+            && c[i - 1].is_ascii_digit()
+            && c.get(i + 1).map_or(false, |n| n.is_ascii_digit());
+        out.push(if between_digits { '-' } else { *ch });
+    }
+    out
+}
+
 /// Clave normalizada para casar el id del log con el de las tablas públicas:
 /// minúsculas, sin prefijo de proveedor ("anthropic/"), sin variante entre
-/// corchetes ("[1m]") y sin la fecha del snapshot final.
+/// corchetes ("[1m]"), con la versión en guiones y sin la fecha del snapshot.
+/// La usan las DOS partes (guardar y buscar), así que cualquier normalización
+/// nueva tiene que ir aquí dentro o los dos lados dejan de casar.
 fn price_key(model: &str) -> String {
     let lower = model.to_lowercase();
     let base = lower.rsplit('/').next().unwrap_or(&lower);
     let base = base.split('[').next().unwrap_or(base);
-    let mut s = base.trim().to_string();
+    let mut s = dots_to_dashes(base.trim());
     if let Some(i) = s.rfind('-') {
         let tail = &s[i + 1..];
         if tail.len() == 8 && tail.chars().all(|c| c.is_ascii_digit()) {
@@ -588,6 +610,28 @@ fn ctx_for(model: &str) -> u64 {
         Some(p) if p.ctx > 0 => p.ctx,
         _ => ctx_table(model),
     }
+}
+
+/// Escalones de ventana que existen de verdad. NO es una lista de modelos
+/// (invariante #6): son magnitudes, y solo se usan cuando la realidad medida
+/// contradice a la tabla.
+const CTX_LADDER: [u64; 4] = [200_000, 1_000_000, 2_000_000, 5_000_000];
+
+/// Techo que se le manda al panel, corregido con la EVIDENCIA de esta máquina.
+///
+/// Las tablas pueden equivocarse por abajo: `claude-sonnet-4-5` figura como
+/// 200k en LiteLLM y como 1M en models.dev (es de 200k con un beta de 1M), así
+/// que el número depende de qué fuente respondiera ese día. Pero si una sesión
+/// YA superó el techo que dice la tabla, la tabla está demostrablemente mal:
+/// los tokens medidos ganan. Se sube entonces al primer escalón por encima de
+/// lo visto, en vez de devolver lo visto a secas — devolver `seen` dejaría el
+/// manómetro clavado en 100%, que es justo el bug del que venimos.
+fn ctx_full(model: &str, seen: u64) -> u64 {
+    let base = ctx_for(model);
+    if seen <= base {
+        return base;
+    }
+    CTX_LADDER.iter().copied().find(|s| *s > seen).unwrap_or(seen)
 }
 
 /// LiteLLM: mapa plano id -> { litellm_provider, *_cost_per_token }.
@@ -817,6 +861,11 @@ fn get_prices_status() -> serde_json::Value {
         "fetched_at": cache.fetched_at,
         "last_try": cache.last_try,
         "count": cache.prices.len(),
+        // Cuántos de esos modelos traen además el TECHO de contexto. Viaja en
+        // la misma tabla y por la misma cascada que los precios, así que se
+        // enseña en el mismo sitio: si una fuente deja de publicarlo, este
+        // número baja y se ve, en vez de degradarse en silencio.
+        "ctx_count": cache.prices.values().filter(|p| p.ctx > 0).count(),
     })
 }
 
@@ -3054,6 +3103,8 @@ struct CoachSess {
     model: String,      // modelo del último turno: de él sale el TECHO de
                         // contexto del manómetro (ctx_for), que va de 200k a
                         // 1M según el modelo — no es una constante
+    ctx_seen: u64,      // contexto MÁXIMO visto en la sesión: evidencia medida
+                        // que corrige a la tabla cuando esta se queda corta
 }
 
 /// Una fuga detectada al CIERRE de la sesión (mini-auditoría del coach):
@@ -3308,6 +3359,12 @@ fn coach_scan() -> Vec<CoachHit> {
                         }
                         if ctx > 0 {
                             st.last_ctx = ctx;
+                            // el MÁXIMO visto es evidencia dura del techo real
+                            // de esta máquina: ninguna tabla puede afirmar una
+                            // ventana menor que lo que ya se usó (ver ctx_full)
+                            if ctx > st.ctx_seen {
+                                st.ctx_seen = ctx;
+                            }
                         }
                         st.turns += 1;
                         // costo MEDIDO del turno, con la misma tarifa que el
@@ -3483,7 +3540,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     ttotal: st.todos_total,
                     cont,
                     gclean: st.commit_clean,
-                    full: ctx_for(&st.model),
+                    full: ctx_full(&st.model, st.ctx_seen),
                     scwd: st.scwd.clone(),
                     ..Default::default()
                 });

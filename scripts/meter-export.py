@@ -34,8 +34,16 @@ PRICES = {}
 
 def price_key(model):
     """Clave normalizada, igual que price_key() en Rust: minúsculas, sin
-    prefijo de proveedor, sin variante [1m] y sin la fecha del snapshot."""
+    prefijo de proveedor, sin variante [1m], con la versión en GUIONES y sin la
+    fecha del snapshot.
+
+    Lo del punto: OpenRouter escribe "claude-opus-4.8" donde LiteLLM,
+    models.dev y los logs usan "claude-opus-4-8". Sin unificarlo, la tercera
+    fuente de la cascada casaba 6 modelos de 14 y ocho vigentes se quedaban sin
+    precio y sin techo en silencio. Solo entre dígitos, para no tocar
+    "anthropic.claude-opus-5"."""
     s = model.lower().rsplit("/", 1)[-1].split("[", 1)[0].strip()
+    s = re.sub(r"(?<=\d)\.(?=\d)", "-", s)
     head, sep, tail = s.rpartition("-")
     if sep and len(tail) == 8 and tail.isdigit():
         s = head
@@ -105,6 +113,27 @@ def ctx_for(model):
     if ("opus" in m or "sonnet" in m) and (major > 4 or (major == 4 and minor >= 6)):
         return CTX_1M
     return CTX_FALLBACK
+
+
+# Escalones de ventana que existen de verdad. NO es una lista de modelos
+# (invariante #6): son magnitudes, y solo se usan cuando lo MEDIDO contradice
+# a la tabla.
+CTX_LADDER = (200_000, 1_000_000, 2_000_000, 5_000_000)
+
+
+def ctx_full(model, seen):
+    """Techo corregido con la evidencia de esta máquina. Si una sesión ya
+    superó lo que dice la tabla, la tabla está mal y mandan los tokens
+    medidos; se sube al primer escalón por encima de lo visto (devolver lo
+    visto a secas dejaría el manómetro clavado en 100%).
+    MANTENER EN SINCRONÍA con ctx_full() de src-tauri/src/lib.rs."""
+    base = ctx_for(model)
+    if seen <= base:
+        return base
+    for s in CTX_LADDER:
+        if s > seen:
+            return s
+    return seen
 
 
 def parse_ts(s):
@@ -867,7 +896,9 @@ def _coach_default():
             # una sesión con un relevo abierto en esa carpeta (etapa 3b)
             "scwd": "",
             # modelo del último turno: de él sale el techo de contexto
-            "model": ""}
+            "model": "",
+            # contexto máximo visto: evidencia que corrige a la tabla
+            "ctx_seen": 0}
 
 
 def coach_leaks(st):
@@ -971,6 +1002,10 @@ def coach_scan(projects_dir):
                                 st["gaps"] += 1
                             if ctx > 0:
                                 st["last_ctx"] = ctx
+                                # el MÁXIMO visto es evidencia dura del techo
+                                # real de esta máquina (ver ctx_full)
+                                if ctx > st.get("ctx_seen", 0):
+                                    st["ctx_seen"] = ctx
                             st["turns"] += 1
                             # el modelo del ÚLTIMO turno decide el techo del
                             # manómetro; se guarda el id crudo y no el techo ya
@@ -1066,7 +1101,7 @@ def coach_scan(projects_dir):
                     hit("press", st["last_ctx"], quiet=quiet_min,
                         topen=st["todos_open"], ttotal=st["todos_total"],
                         cont=cont, gclean=st["commit_clean"],
-                        full=ctx_for(st.get("model", "")),
+                        full=ctx_full(st.get("model", ""), st.get("ctx_seen", 0)),
                         scwd=st.get("scwd", ""))
                 if (st["pending_tool"] and not st["asked"]
                         and quiet_min >= COACH_ASK_QUIET and st["turns"] >= 1):

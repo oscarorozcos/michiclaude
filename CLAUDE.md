@@ -68,14 +68,22 @@ ventana ni se abren; de los recientes se cachea el PARSEO por tamaño+mtime
 `by_model`), por modelo, coste hoy/ventana y serie `daily` de 30 días. Los
 proyectos remotos llevan el sufijo del nombre que el usuario dio al server.
 
-**Precios:** `price_for()` usa la tabla DESCARGADA (cascada LiteLLM →
-models.dev → OpenRouter, caché 24 h en `prices_cache.json`, es RESPALDO no
-verificación cruzada) y cae a la embebida `price_table()`, que decide por
-VERSIÓN, no familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75;
-Fable/Mythos $10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`,
-la UI marca "~". Los precios frescos viajan al exportador por STDIN
-(`--prices-stdin`). Si la descarga falla >1 semana: aviso ⚠ junto a "costo
-estimado", no toast.
+**Precios Y TECHO DE CONTEXTO:** la misma tabla y la misma cascada
+(LiteLLM → models.dev → OpenRouter, caché 24 h en `prices_cache.json`,
+RESPALDO no verificación cruzada). `price_for()` cae a la embebida
+`price_table()` y `ctx_for()` a `ctx_table()`; las dos deciden por VERSIÓN,
+no familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75; Fable/Mythos
+$10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`, la UI marca
+"~". Viajan al exportador por STDIN (`--prices-stdin`). Descarga fallando
+>1 semana: aviso ⚠ junto a "costo estimado", no toast. La sección de
+Ajustes informa de AMBAS cosas (`ctx_count` = modelos con techo): si una
+fuente deja de publicarlo, el número baja a la vista.
+`price_key()` unifica PUNTO→GUIÓN entre dígitos: OpenRouter escribe
+`claude-opus-4.8` donde el resto y los logs escriben `claude-opus-4-8`, y
+sin eso la 3.ª fuente casaba 6 de 14 modelos —ocho vigentes se quedaban sin
+precio y sin techo en silencio— (auditoría 2026-08-08: las 3 fuentes
+coinciden al céntimo en precios; el único techo discrepante es
+sonnet-4-5, 200k de base con beta de 1M).
 
 **C) Remotas (dentro de `get_local_stats`):** `remotes.json` en
 `%APPDATA%\com.oscarorozco.michiclaude\`; por fuente, `ssh -o BatchMode=yes
@@ -321,15 +329,14 @@ la pestaña si tiene >5 min. Precarga de fondo a los 15 s.
 contador de pestaña encienden cada vez que hay hallazgos NO VISTOS.
 Pasada ligera 1d compartida `fndPass()`: al NACER UN RECIBO (cierre de
 sesión local; freno 15 min `fndEventLast`, marcado ANTES) y periódica
-cada 3 h como respaldo (era 20 h; a 20 h los hallazgos nacidos en el VPS
-—que no disparan cierre local— quedaban invisibles hasta un día entero y
-Oscar los veía antes de que el aviso existiera, 2026-08-06). "LEÍDO" =
+cada 3 h como respaldo (era 20 h: los nacidos en el VPS no disparan
+cierre local y quedaban invisibles un día entero, 2026-08-06). "LEÍDO" =
 CLIC en la tarjeta, estilo Gmail (Oscar 2026-08-07): abrir la pestaña o
 el post-it NO marca nada; contador y post-it descuentan tarjeta por
-tarjeta al clicarla (el clic de plegar/desplegar marca; Ignorar apaga la
-suya; restaurar ignorados revive las no leídas al conteo). Esto ENTERRÓ
-la vieja TRAMPA DEL VIGILANTE (4 mordidas): ya no existe "nace vista por
-estar mirando la pestaña". Los hallazgos
+tarjeta al clicarla (plegar/desplegar marca; Ignorar apaga la suya;
+restaurar ignorados revive las no leídas). Esto ENTERRÓ la TRAMPA DEL
+VIGILANTE (4 mordidas): ya no existe "nace vista por estar mirando la
+pestaña". Los hallazgos
 NUNCA van al celular (privacidad ntfy). El interruptor de Preferencias
 ("Avisarme en el widget — hallazgos y consejos") apaga SOLO el widget;
 los contadores de pestaña quedan siempre. Para re-armar en pruebas:
@@ -359,9 +366,10 @@ sesión y `pressFull()/pressPct()` son el ÚNICO sitio que divide. Sale
 de `ctx_for()` (Rust y exportador en sincronía): tabla DESCARGADA —la
 cascada de precios ya trae `max_input_tokens`— y si no, respaldo por
 VERSIÓN `ctx_table` (Opus/Sonnet 4.6+ y Fable 1M, resto 200k; `[1m]`
-manda y se mira ANTES de price_key, que lo recorta). En la duda 200k:
-quedarse corto avisa de más, pasarse no avisa nunca. Autopsia en la
-bitácora. Gauge SVG en pastilla y gatito; número+proyecto en pcard y
+manda y se mira ANTES de price_key, que lo recorta). En la duda 200k. Y
+si lo MEDIDO supera a la tabla, manda lo medido: `ctx_full` sube al
+siguiente escalón de `CTX_LADDER` (devolver lo visto a secas dejaría el
+manómetro clavado en 100%). Autopsia en la bitácora. Gauge SVG en pastilla y gatito; número+proyecto en pcard y
 en el globo del hover. Nunca viaja a ntfy ni al hub. El motor manda
 HECHOS crudos: el veredicto Alive/Boundary/Uncertain vive UNA sola vez
 en JS (`intentVerdict`, reina = topen>0). Con presión ≥80
@@ -450,40 +458,34 @@ hacer público el repo (o sus releases).
 
 ## Estado / pendientes
 
-- [ ] HUB + RANGOS DE FECHA (diseño ya pensado, 2026-08-05; NO hacer hasta
-      que Oscar tenga una segunda máquina con MichiClaude — hoy no aporta
-      nada y el aviso ni aparece). Problema: la foto del hub son cuatro
-      TOTALES ya cocinados (HUB_WINDOWS 1/7/15/30) y un total no se puede
-      descomponer, así que con rango esas máquinas quedan fuera
-      (`hub_skipped`). Solución: que la foto incluya el DESGLOSE POR DÍA
-      (fecha × proyecto × modelo), que ya existe — es lo que genera el
-      export CSV (`want_rows`/ExportRow) —; con eso cualquier rango se
-      calcula sumando los días que caen dentro, igual que en local.
-      Coste: la foto pasa de pocos KB a 50-150 KB, así que habría que
-      subirla SOLO cuando cambie, no en cada ciclo. Tocar las tres piezas
-      en sincronía y verificar con la prueba de los rangos: dos periodos
-      contiguos deben sumar exactamente el total. Límite: solo dentro de
-      los 30 (o 90) días que se suban.
+- [ ] HUB + RANGOS DE FECHA (2026-08-05; NO hacer hasta que Oscar tenga
+      una segunda máquina con MichiClaude — hoy no aporta nada).
+      Problema: la foto del hub son cuatro TOTALES cocinados (HUB_WINDOWS
+      1/7/15/30) y un total no se descompone, así que con rango esas
+      máquinas quedan fuera (`hub_skipped`). Solución: que la foto lleve
+      el DESGLOSE POR DÍA (fecha × proyecto × modelo), que ya existe —es
+      lo del export CSV, `want_rows`/ExportRow—; con eso cualquier rango
+      se suma igual que en local. Coste: la foto pasa de pocos KB a
+      50-150 KB → subirla SOLO cuando cambie. Tres piezas en sincronía y
+      verificar con la prueba de rangos: dos periodos contiguos suman
+      exactamente el total. Límite: solo los 30 (o 90) días subidos.
 
-- [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05, las 5
-      pestañas con capturas de Oscar). Respaldo en el tag
-      `pre-rediseno-20260805`; el detalle de la ronda, en la bitácora.
-      Cayeron además: coach MULTI-FUENTE, calendario de rango, filtro de
-      proyectos, "cuándo pasó" en hallazgos, Acerca de con versión real y
-      el panel llenando su ventana (margen de sombra 1 px desde
-      2026-08-07 — fue 8→5→3→1, Oscar lo quiere casi invisible; scrollbar
-      fina redondeada global vía ::-webkit-scrollbar).
-      DECISIONES VIGENTES de la ronda: tipografía EMBEBIDA
-      (`src/fonts/`, OFL, sin CDN — una fuente remota rompería CSP y
-      privacidad); `.sect` es TARJETA con fondo; toda tarjeta con fondo
-      propio redefine `--txt-mut`/`--txt-dim` en vez de repintar hijos;
-      en filas con elementos que ocupan dos líneas, FLEX antes que grid;
-      panel a 446 px; nada de `color-mix()` (demasiado reciente para
-      WebView2); al MOVER un bloque de pestaña, buscar qué inicialización
-      dependía de abrir la pestaña vieja. El DETALLE de cada sección, con
-      su porqué, está en `docs/bitacora.md` §"Ronda de rediseño UX/UI".
-      El widget (pastilla/gatito/globos) CONSERVA su estética propia — el
-      rediseño fue solo del panel; si algún día se armoniza, es otra ronda.
+- [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05, tag de
+      respaldo `pre-rediseno-20260805`; el detalle, en la bitácora
+      §"Ronda de rediseño UX/UI"). Cayeron además: coach MULTI-FUENTE,
+      calendario de rango, filtro de proyectos, "cuándo pasó" en
+      hallazgos, Acerca de con versión real y el panel llenando su
+      ventana (margen de sombra 1 px, Oscar lo quiere casi invisible;
+      scrollbar fina global vía ::-webkit-scrollbar).
+      DECISIONES VIGENTES: tipografía EMBEBIDA (`src/fonts/`, OFL, sin
+      CDN — una fuente remota rompería CSP y privacidad); `.sect` es
+      TARJETA con fondo; toda tarjeta con fondo propio redefine
+      `--txt-mut`/`--txt-dim` en vez de repintar hijos; en filas con
+      elementos de dos líneas, FLEX antes que grid; panel a 446 px; nada
+      de `color-mix()` (demasiado reciente para WebView2); al MOVER un
+      bloque de pestaña, buscar qué inicialización dependía de abrir la
+      pestaña vieja. El widget CONSERVA su estética propia — el rediseño
+      fue solo del panel; armonizarlo sería otra ronda.
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
       umbral, 100%, ventana nueva reconocida por trackResets/
       windowChanged), camino completo ntfy (push de alarma real, 100%, el
@@ -555,20 +557,18 @@ hacer público el repo (o sus releases).
       VALIDADA EN VIVO 2026-08-08** (seis pruebas; autopsia de los tres
       fallos en la bitácora): crate APARTE `relevo/` (paquete `michi`,
       FUERA de src-tauri — la app no gana deps, invariante #4), ConPTY
-      con paso transparente, canal por ARCHIVOS en
-      `%APPDATA%\<app>\relevo\<pid>.json|.cmd` (tmp+rename añadiendo
-      `.tmp` al nombre ENTERO, si no estado y orden se pisan), sesión
-      viva = estado con <15 s, LISTA BLANCA de dos textos (/compact,
-      /clear) como límite duro, R2 ("Claude generando") INFERIDA del
-      silencio de la PTY. REGLAS DURAS: **ConPTY negocia
-      `win32-input-mode` a espaldas de quien está en medio** — las teclas
-      llegan como `ESC[Vk;Sc;Uc;Kd;Cs;Rc_` y hay que decodificarlas o no
-      se cuenta ni una; los avisos del terminal (foco, cursor) NO son
-      teclas y no reinician la calma; UNA sola fuente de verdad para "hay
-      texto" (derivada del buffer); un Enter no limpia el modelo hasta
-      ver si Claude REACCIONA. El relevo JAMÁS escribe lo tecleado —
-      `michi status --debug` son CUENTAS y longitudes; con eso y `michi
-      inject` se valida sin panel. **3b IMPLEMENTADA 2026-08-08** (falta `cargo check` y
+      transparente, canal por ARCHIVOS en
+      `%APPDATA%\<app>\relevo\<pid>.json|.cmd` (tmp+rename con `.tmp`
+      sobre el nombre ENTERO, si no estado y orden se pisan), viva =
+      estado <15 s, LISTA BLANCA de dos textos (/compact, /clear) como
+      límite duro, R2 INFERIDA del silencio de la PTY. REGLAS DURAS:
+      **ConPTY negocia `win32-input-mode` a espaldas del que está en
+      medio** — las teclas llegan como `ESC[Vk;Sc;Uc;Kd;Cs;Rc_`, hay que
+      decodificarlas o no se cuenta ni una; los avisos del terminal
+      (foco, cursor) NO son teclas; UNA fuente de verdad para "hay
+      texto" (derivada del buffer); un Enter no limpia hasta ver si
+      Claude REACCIONA. JAMÁS escribe lo tecleado — `michi status
+      --debug` son CUENTAS; con eso y `michi inject` se valida sin panel. **3b IMPLEMENTADA 2026-08-08** (falta `cargo check` y
       validación en vivo): `get_relays` (async, lee la carpeta del
       relevo, misma regla de frescura, borra los de >24 h) y el CASADO
       sesión↔relevo por el `cwd` COMPLETO — para eso el hit `press` lleva
@@ -589,12 +589,12 @@ hacer público el repo (o sus releases).
 
 ## Consumo de recursos (medido en release)
 
-Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB** (la cifra
-honesta es `WorkingSetPrivate` — sumar WorkingSet64 cuenta doble la
-memoria compartida y dio 695). Lecciones: release NO baja la RAM (el
-peso son los ~9 procesos WebView2); el gatito NO es el culpable (dos
-veces lo pareció); cada ventana WebView2 tiene piso ~57 MB — por eso los
-pares de widget se crean/destruyen al cambiar de estilo.
+Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**
+(`WorkingSetPrivate`; sumar WorkingSet64 cuenta doble lo compartido y da
+695). Release NO baja la RAM (el peso son los ~9 procesos WebView2); el
+gatito NO es el culpable (dos veces lo pareció); cada ventana WebView2
+tiene piso ~57 MB — por eso los pares de widget se crean/destruyen al
+cambiar de estilo.
 
 ## Retención de logs
 

@@ -398,6 +398,31 @@ en la bitácora; lo VIGENTE:
   Repartir la división fue lo que dejó vivir el bug tanto tiempo.
 - Esto va ANTES de la 3c a propósito: la 3c ACTÚA sobre este porcentaje.
 
+**Auditoría de las tres fuentes (2026-08-08, a petición de Oscar).** Si el
+techo lo decide "la primera que responda", conviene saber si dicen lo mismo:
+
+- **Precios: coinciden al céntimo** en todos los modelos compartidos.
+- **Techo: una sola discrepancia**, `claude-sonnet-4-5` — LiteLLM 200k,
+  models.dev 1M. Las dos aciertan a medias: es de 200k con un beta de 1M.
+  Por eso existe `ctx_full()`: sin evidencia se queda en 200k (conservador),
+  y si una sesión de esa máquina supera esa cifra, manda lo medido.
+- **Fallo real que venía de antes:** OpenRouter escribe la versión con
+  PUNTO (`claude-opus-4.8`) donde LiteLLM, models.dev y los logs usan
+  GUIÓN. La tercera fuente casaba 6 de sus 14 modelos: si las otras dos
+  caían, ocho modelos vigentes se quedaban sin precio Y sin techo, en
+  silencio. `price_key()` unifica punto→guión entre dígitos (solo entre
+  dígitos: `anthropic.claude-opus-5` no se toca), en el ÚNICO punto por el
+  que pasan guardar y buscar, así que los dos lados siguen casando.
+- Contra el error contrario —una fuente que INFLE el techo y silencie el
+  aviso— la respuesta buena es el detector de auto-compacts (pendiente en
+  `presion-y-rendimiento.md`): Claude Code comprime cerca del límite real,
+  y eso es la medida más honesta que hay. No se hizo ahora.
+- **Regla para la 3c:** el automático se gana con certeza. Si el techo no
+  es de fiar, la 3c aconseja pero NO actúa.
+- El panel informa de las dos cosas en la misma sección de Ajustes
+  (`ctx_count` = cuántos modelos traen techo): si una fuente deja de
+  publicarlo, el número baja a la vista en vez de degradarse callando.
+
 ## Decisiones de la etapa 3b (el panel descubre el relevo, 2026-08-08)
 
 La 3b SOLO MIRA. No hay un solo camino por el que el panel pueda pedirle

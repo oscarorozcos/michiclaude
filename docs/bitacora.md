@@ -2694,3 +2694,72 @@ Lección general: **una constante con el nombre de un límite externo es
 una fecha de caducidad esperando.** No estaba mal escrita — estaba mal
 envejecida, y nada en el código podía avisarlo. Cuando el límite lo
 publica alguien de fuera, el número se busca, no se escribe.
+
+### Auditoría de las tres fuentes de precios (2026-08-08)
+
+Recién metido el techo de contexto en la tabla de precios, Oscar hizo la
+pregunta correcta: *"¿y si mañana una fuente dice 2 millones y otra menos?
+¿coinciden o manejan parámetros distintos?"*. La cascada es de RESPALDO,
+no de verificación cruzada — la primera que responde manda —, así que el
+número puede depender de qué servidor estuviera vivo ese día. Se
+descargaron las tres y se cruzaron modelo por modelo.
+
+**Precios: coinciden al céntimo.** Cero discrepancias en todos los modelos
+que las tres comparten. Fable 5 a 10/50, Opus 5 a 5/25, Sonnet 5 a 2/10.
+
+**Techo: una sola discrepancia.** `claude-sonnet-4-5`: LiteLLM dice 200k,
+models.dev dice 1M. Las dos tienen razón a medias — ese modelo es de 200k
+con un beta de 1M, así que el número correcto depende de si el beta está
+activo. No hay tabla que pueda saberlo; lo sabe la máquina del usuario.
+
+**Y la pregunta destapó un fallo que llevaba ahí desde el principio.**
+OpenRouter escribe la versión con PUNTO —`claude-opus-4.8`— donde LiteLLM,
+models.dev y los propios logs usan GUIÓN. La tercera fuente casaba **6 de
+sus 14** modelos:
+
+```
+casan hoy:                   6
+casarían con punto→guión:   14
+las 8 que faltaban: haiku-4-5, opus-4-1, opus-4-5, opus-4-6,
+                    opus-4-7, opus-4-8, sonnet-4-5, sonnet-4-6
+```
+
+Nunca explotó porque LiteLLM siempre responde primero. Era un tercer
+paracaídas con un agujero que nadie había mirado, y no solo para el techo:
+también para los **precios**. `claude-opus-4-8`, uno de los modelos que
+Oscar usa a diario, era uno de los ocho.
+
+Arreglo: `price_key()` unifica punto→guión **entre dígitos** (para no tocar
+`anthropic.claude-opus-5`). Va dentro de `price_key()` a propósito, que es
+el único punto por el que pasan las dos partes —guardar y buscar—, así que
+ambas quedan con la misma forma y siguen casando. Normalizarlo solo al
+guardar habría roto la búsqueda de `claude-2.1`.
+
+**La evidencia por encima de la tabla.** Para el caso sonnet-4-5 y para
+cualquier fuente que se quede corta, `ctx_full()` compara el techo de la
+tabla con el contexto MÁXIMO que esa máquina ha alcanzado de verdad. Si lo
+medido supera a la tabla, la tabla está demostrablemente mal y mandan los
+tokens. Detalle que costó pensarlo: no se puede devolver lo visto a secas
+—una sesión de 480k daría 480k de techo y el manómetro volvería a marcar
+100%—, así que se sube al primer escalón de `CTX_LADDER`, una lista de
+MAGNITUDES (200k/1M/2M/5M), no de modelos.
+
+Lo que este cambio NO resuelve, dicho para que no se olvide: una fuente que
+INFLE el techo (2M donde son 1M) silenciaría el aviso, y contra eso la
+evidencia no sirve. La respuesta buena es el detector de auto-compacts que
+ya está apuntado como pendiente: Claude Code comprime cerca del límite
+real, y esa es la medida más honesta que existe.
+
+**Lo que cambió de opinión por el camino.** Al calibrar el techo escribí que
+quedarse corto era "el fallo seguro" de un avisador. Eso vale mientras
+Michi solo MIRA. En cuanto la etapa 3c aplique `/compact` sola, equivocarse
+por abajo deja de ser molesto y pasa a ser destructivo: comprimiría un
+historial sano. Con automatización los dos errores duelen, y lo que hace
+falta es puntería, no una dirección segura. De ahí sale una regla para la
+3c: **el automático se gana con certeza; si el techo no es de fiar, la 3c
+aconseja pero no actúa.**
+
+Lección general: **una cascada de respaldo no es una cascada verificada.**
+Mientras la primera fuente responda, las otras dos son código que nadie
+ejecuta — y el código que nadie ejecuta se pudre sin avisar. Si hay
+paracaídas de repuesto, hay que abrirlos de vez en cuando.
