@@ -415,6 +415,14 @@ struct PriceEntry {
     output: f64,
     cache_write: f64,
     cache_read: f64,
+    /// Techo de contexto del modelo en tokens (0 = la fuente no lo dijo).
+    /// Viaja en la MISMA tabla que los precios porque las tres fuentes lo
+    /// publican ahí: ni una descarga nueva ni una dependencia nueva. Es el
+    /// denominador del manómetro de presión — ver `ctx_for()`.
+    /// Aditivo: un caché en disco de una versión anterior no lo trae, se
+    /// queda en 0 y el respaldo embebido responde hasta la próxima descarga.
+    #[serde(default)]
+    ctx: u64,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -529,6 +537,59 @@ fn price_is_estimated(model: &str) -> bool {
     price_lookup(model).is_none() && !family_known(model)
 }
 
+/// Techo de contexto por defecto cuando no hay tabla descargada. 200k era el
+/// techo de TODOS los modelos hasta Opus/Sonnet 4.6, que saltaron a 1M.
+const CTX_FALLBACK: u64 = 200_000;
+const CTX_1M: u64 = 1_000_000;
+
+/// Respaldo embebido del techo de contexto, hermano de `price_table()`: decide
+/// por VERSIÓN y no por lista de modelos (invariante #6), así una versión nueva
+/// de una familia conocida hereda el techo correcto sola.
+///
+/// En la duda devuelve 200k A PROPÓSITO: quedarse corto hace que el manómetro
+/// avise ANTES de tiempo (molesto), mientras que pasarse haría que no avisara
+/// nunca (el usuario choca con el muro sin previo aviso). El fallo seguro de un
+/// avisador es avisar de más.
+fn ctx_table(model: &str) -> u64 {
+    let m = model.to_lowercase();
+    // La variante de contexto largo se marca en el propio id ("…[1m]"), y
+    // `price_key()` la recorta antes de buscar en la tabla — así que se mira
+    // aquí, sobre el id crudo, o se perdería.
+    if m.contains("[1m]") {
+        return CTX_1M;
+    }
+    let mut nums = m
+        .split(|c: char| !c.is_ascii_digit())
+        .filter(|t| !t.is_empty() && t.len() != 8)
+        .filter_map(|t| t.parse::<u32>().ok());
+    let major = nums.next().unwrap_or(0);
+    let minor = nums.next().unwrap_or(0);
+    if m.contains("fable") || m.contains("mythos") {
+        return CTX_1M;
+    }
+    if m.contains("haiku") {
+        return CTX_FALLBACK;
+    }
+    // Opus y Sonnet saltaron a 1M en la 4.6; la 4.5 y anteriores siguen en 200k
+    if (m.contains("opus") || m.contains("sonnet")) && (major > 4 || (major == 4 && minor >= 6)) {
+        return CTX_1M;
+    }
+    CTX_FALLBACK
+}
+
+/// Techo de contexto REAL del modelo: primero la tabla descargada (la misma
+/// cascada de los precios, que ya trae el dato), y si no lo dijo, el respaldo
+/// embebido. Nunca devuelve 0 — es un denominador.
+fn ctx_for(model: &str) -> u64 {
+    if model.to_lowercase().contains("[1m]") {
+        return CTX_1M;
+    }
+    match price_lookup(model) {
+        Some(p) if p.ctx > 0 => p.ctx,
+        _ => ctx_table(model),
+    }
+}
+
 /// LiteLLM: mapa plano id -> { litellm_provider, *_cost_per_token }.
 /// Los precios vienen POR TOKEN; aquí se pasan a USD por millón.
 fn parse_litellm(v: &serde_json::Value) -> HashMap<String, PriceEntry> {
@@ -556,6 +617,7 @@ fn parse_litellm(v: &serde_json::Value) -> HashMap<String, PriceEntry> {
                     .as_f64()
                     .map(|x| x * 1e6)
                     .unwrap_or(inp * 0.1),
+                ctx: m["max_input_tokens"].as_u64().unwrap_or(0),
             },
         );
     }
@@ -581,6 +643,12 @@ fn parse_modelsdev(v: &serde_json::Value) -> HashMap<String, PriceEntry> {
                 output: outp,
                 cache_write: c["cache_write"].as_f64().unwrap_or(inp * 1.25),
                 cache_read: c["cache_read"].as_f64().unwrap_or(inp * 0.1),
+                // models.dev lo pone en `limit.context`; se acepta también un
+                // `context` suelto por si el esquema cambia de sitio.
+                ctx: m["limit"]["context"]
+                    .as_u64()
+                    .or_else(|| m["context"].as_u64())
+                    .unwrap_or(0),
             },
         );
     }
@@ -621,6 +689,10 @@ fn parse_openrouter(v: &serde_json::Value) -> HashMap<String, PriceEntry> {
                 cache_read: num(&p["input_cache_read"])
                     .map(|x| x * 1e6)
                     .unwrap_or(inp * 0.1),
+                ctx: it["context_length"]
+                    .as_u64()
+                    .or_else(|| it["top_provider"]["context_length"].as_u64())
+                    .unwrap_or(0),
             },
         );
     }
@@ -2979,6 +3051,9 @@ struct CoachSess {
     todos_total: u64,   // tareas totales de esa misma lista
     trail: Vec<String>, // últimos archivos tocados (Read/Edit/Write), tope 20
     commit_clean: bool, // hubo `git commit` y NADA se editó después
+    model: String,      // modelo del último turno: de él sale el TECHO de
+                        // contexto del manómetro (ctx_for), que va de 200k a
+                        // 1M según el modelo — no es una constante
 }
 
 /// Una fuga detectada al CIERRE de la sesión (mini-auditoría del coach):
@@ -3050,6 +3125,12 @@ struct CoachHit {
     cont: u64,       // continuidad de archivos: Jaccard % (últimos 10 vs 10
                      // previos del rastro); 0 = sin rastro suficiente
     gclean: bool,    // git commit reciente sin ediciones después
+    full: u64,       // solo "press": techo de contexto del modelo de ESTA
+                     // sesión, en tokens. El motor manda el denominador junto
+                     // al dato porque solo él sabe qué modelo corrió: va de
+                     // 200k (Haiku, modelos ≤4.5) a 1M (Opus/Sonnet 4.6+).
+                     // Aditivo: un exportador viejo manda 0 y el panel cae a
+                     // su constante de siempre.
     scwd: String,    // solo "press": el `cwd` completo de la sesión, para
                      // casarla con un relevo abierto en esa misma carpeta
                      // (etapa 3b). Aditivo: un exportador viejo manda "" y
@@ -3232,6 +3313,12 @@ fn coach_scan() -> Vec<CoachHit> {
                         // costo MEDIDO del turno, con la misma tarifa que el
                         // resto del panel (tabla descargada → embebida)
                         let model = v["message"]["model"].as_str().unwrap_or("unknown");
+                        // El modelo del ÚLTIMO turno decide el techo de
+                        // contexto del manómetro (`full` del hit "press"). Se
+                        // guarda el id crudo, no el techo ya resuelto: así una
+                        // tabla de precios recién descargada corrige la cuenta
+                        // en el siguiente sondeo sin arrastrar un número viejo.
+                        st.model = model.to_string();
                         st.cost += cost_of(
                             model,
                             usage["input_tokens"].as_u64().unwrap_or(0),
@@ -3396,6 +3483,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     ttotal: st.todos_total,
                     cont,
                     gclean: st.commit_clean,
+                    full: ctx_for(&st.model),
                     scwd: st.scwd.clone(),
                     ..Default::default()
                 });

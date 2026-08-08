@@ -74,6 +74,39 @@ def price_for(model):
     return (inp, out, inp * 1.25, inp * 0.1)
 
 
+# Techo de contexto: 200k era el de TODOS los modelos hasta Opus/Sonnet 4.6,
+# que saltaron a 1M. Es el denominador del manómetro de presión.
+CTX_FALLBACK = 200_000
+CTX_1M = 1_000_000
+
+
+def ctx_for(model):
+    """Techo de contexto del modelo en tokens. Primero la tabla descargada que
+    llega por stdin (trae `ctx` junto a los precios), luego el respaldo por
+    VERSIÓN — nunca por lista de modelos.
+
+    En la duda devuelve 200k A PROPÓSITO: quedarse corto hace que el manómetro
+    avise antes de tiempo; pasarse haría que no avisara nunca.
+    MANTENER EN SINCRONÍA con ctx_for() de src-tauri/src/lib.rs."""
+    m = (model or "").lower()
+    # la variante de contexto largo va en el id y price_key() la recorta
+    if "[1m]" in m:
+        return CTX_1M
+    p = PRICES.get(price_key(m))
+    if p and (p.get("ctx") or 0) > 0:
+        return int(p["ctx"])
+    nums = [int(t) for t in re.findall(r"\d+", m) if len(t) != 8]
+    major = nums[0] if nums else 0
+    minor = nums[1] if len(nums) > 1 else 0
+    if "fable" in m or "mythos" in m:
+        return CTX_1M
+    if "haiku" in m:
+        return CTX_FALLBACK
+    if ("opus" in m or "sonnet" in m) and (major > 4 or (major == 4 and minor >= 6)):
+        return CTX_1M
+    return CTX_FALLBACK
+
+
 def parse_ts(s):
     if not isinstance(s, str):
         return None
@@ -832,7 +865,9 @@ def _coach_default():
             "commit_clean": False,
             # cwd COMPLETO de la sesión (barras normalizadas): con qué se casa
             # una sesión con un relevo abierto en esa carpeta (etapa 3b)
-            "scwd": ""}
+            "scwd": "",
+            # modelo del último turno: de él sale el techo de contexto
+            "model": ""}
 
 
 def coach_leaks(st):
@@ -937,7 +972,11 @@ def coach_scan(projects_dir):
                             if ctx > 0:
                                 st["last_ctx"] = ctx
                             st["turns"] += 1
-                            pi, po, pcw, pcr = price_for(msg.get("model") or "unknown")
+                            # el modelo del ÚLTIMO turno decide el techo del
+                            # manómetro; se guarda el id crudo y no el techo ya
+                            # resuelto, para que una tabla nueva lo corrija
+                            st["model"] = msg.get("model") or "unknown"
+                            pi, po, pcw, pcr = price_for(st["model"])
                             st["cost"] += ((usage.get("input_tokens") or 0) * pi
                                            + (usage.get("output_tokens") or 0) * po
                                            + cw * pcw + cr * pcr) / 1e6
@@ -1027,6 +1066,7 @@ def coach_scan(projects_dir):
                     hit("press", st["last_ctx"], quiet=quiet_min,
                         topen=st["todos_open"], ttotal=st["todos_total"],
                         cont=cont, gclean=st["commit_clean"],
+                        full=ctx_for(st.get("model", "")),
                         scwd=st.get("scwd", ""))
                 if (st["pending_tool"] and not st["asked"]
                         and quiet_min >= COACH_ASK_QUIET and st["turns"] >= 1):

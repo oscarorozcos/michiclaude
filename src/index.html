@@ -4960,16 +4960,24 @@ function mascotState(ses, weekPct){
 let lastPillArgs=null;
 // Manómetro de presión de contexto (docs/remediacion.md etapa 1): lo llena
 // coachPoll con el hit "press" más fresco; null = ninguna sesión activa y el
-// widget lo esconde. 200k es el techo de contexto de Claude Code — si algún
-// día cambia, cambia aquí (el backend manda tokens crudos a propósito).
+// widget lo esconde. El backend manda tokens CRUDOS y, desde 2026-08-08, el
+// TECHO de esa sesión en el mismo hit (`full`): no es una constante — va de
+// 200k (Haiku, modelos ≤4.5) a 1M (Opus/Sonnet 4.6+). Ver pressFull().
 let lastPress=null;
 // todos los hits "press" del último sondeo (el manómetro usa el más fresco,
 // pero la lista de relevos necesita casar cada sesión con el suyo — etapa 3b)
 let pressAll=[];
+// Respaldo cuando el hit no trae techo (exportador viejo): 200k era el techo de
+// TODOS los modelos hasta Opus/Sonnet 4.6. Quedarse corto avisa de más, que es
+// el fallo seguro de un avisador; pasarse sería no avisar nunca.
 const PRESS_FULL=200000;
+// Techo de UN hit "press", con su respaldo. Único sitio donde se decide el
+// denominador — si esto se duplica, vuelve el bug del 200k fijo.
+function pressFull(h){ return (h&&h.full>0) ? h.full : PRESS_FULL; }
+function pressPct(h){ return Math.min(100,Math.round((h&&h.value||0)/pressFull(h)*100)); }
 function pressField(){
   if(!lastPress||!lastPress.ctx) return null;
-  return {pct:Math.min(100,Math.round(lastPress.ctx/PRESS_FULL*100)),
+  return {pct:Math.min(100,Math.round(lastPress.ctx/pressFull(lastPress)*100)),
     proj:lastPress.project+(lastPress.origin?" · "+lastPress.origin:"")};
 }
 // Clasificador de tarea viva (docs/remediacion.md etapa 1b): determinista y
@@ -6803,7 +6811,8 @@ async function coachPoll(){
                                                 // casa cada relevo con la suya
     const pr=pressAll
       .slice().sort((a,b)=>(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
-    lastPress=pr?{ctx:pr.value||0,project:pr.project||"",origin:pr.origin||""}:null;
+    lastPress=pr?{ctx:pr.value||0,project:pr.project||"",origin:pr.origin||"",
+      full:pressFull(pr)}:null;
     const hits=all.filter(h=>h.rule!=="done"&&h.rule!=="ask"&&h.rule!=="press");
     // Tarjeta de intención (docs/remediacion.md etapa 1c): con la presión en
     // zona alta nace UNA tarjeta por sesión con las señales medidas del
@@ -6812,12 +6821,12 @@ async function coachPoll(){
     // veredicto lo pone intentVerdict() al pintar.
     let intentHit=null;
     if(pr){
-      const ppct=Math.min(100,Math.round((pr.value||0)/PRESS_FULL*100));
+      const ppct=pressPct(pr);
       if(ppct>=INTENT_PCT){
         intentHit={rule:"intent", session:pr.session||"", value:ppct,
           project:pr.project||"", origin:pr.origin||"", quiet:pr.quiet||0,
           topen:pr.topen||0, ttotal:pr.ttotal||0, cont:pr.cont||0,
-          gclean:!!pr.gclean, scwd:pr.scwd||""};
+          gclean:!!pr.gclean, scwd:pr.scwd||"", full:pressFull(pr)};
         hits.push(intentHit);
       }
     }
@@ -7861,7 +7870,7 @@ function rlyRows(){
                    :`<span class="rly-s">${escapeHtml(rlyWhy(r.why))}</span>`;
     const p=pressForRelay(r);
     const pct=p?` · <span title="${escapeHtml(t("press_lab"))}">${
-      Math.min(100,Math.round((p.value||0)/PRESS_FULL*100))}%</span>`:"";
+      pressPct(p)}%</span>`:"";
     return `<div class="rly-r"><span><b>${escapeHtml(r.project||r.cwd)}</b> · pid ${
       r.pid}${pct}</span>${s}</div>`;
   }).join("");

@@ -374,6 +374,30 @@ La etapa 3 se parte en tres para que cada trozo se valide solo:
 - El hijo recibe `MICHI_RELEVO=<pid>` en el entorno; servirá en 3b para
   casar "esta terminal" con "esta sesión de los logs" junto a cwd + hora.
 
+## El techo del manómetro NO es una constante (corregido 2026-08-08)
+
+La etapa 1 dividía la presión entre 200k fijos. Opus/Sonnet 4.6+ y
+Fable/Mythos son de **1M**, así que sesiones reales de 998k marcaban 100%
+y la tarjeta de intención saltaba al 16% del depósito. Autopsia completa
+en la bitácora; lo VIGENTE:
+
+- El hit `press` trae `full` = techo del modelo de ESA sesión. El motor
+  manda el denominador junto al dato porque solo él sabe qué modelo corrió.
+- `ctx_for()` (Rust y `meter-export.py` en sincronía, invariante #1) lo
+  resuelve: tabla DESCARGADA primero —la cascada de precios ya publica el
+  techo (`max_input_tokens` / `limit.context` / `context_length`), así que
+  no hay ni una descarga ni una dependencia nuevas— y si no, `ctx_table()`,
+  respaldo embebido que decide por VERSIÓN, no por lista (invariante #6).
+- **En la duda, 200k.** Quedarse corto avisa de más; pasarse no avisa
+  nunca. El fallo seguro de un avisador es avisar de más.
+- El sufijo `[1m]` del id manda sobre todo y se mira ANTES de `price_key()`,
+  que lo recorta al normalizar.
+- Se guarda el MODELO en el estado de sesión, no el techo ya resuelto: una
+  tabla nueva corrige la cuenta al siguiente sondeo.
+- En el panel el denominador vive en UN sitio (`pressFull`/`pressPct`).
+  Repartir la división fue lo que dejó vivir el bug tanto tiempo.
+- Esto va ANTES de la 3c a propósito: la 3c ACTÚA sobre este porcentaje.
+
 ## Decisiones de la etapa 3b (el panel descubre el relevo, 2026-08-08)
 
 La 3b SOLO MIRA. No hay un solo camino por el que el panel pueda pedirle

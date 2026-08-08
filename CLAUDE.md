@@ -353,8 +353,15 @@ aditivos `quiet` (min quieta) + señales del clasificador `topen/ttotal`
 previos del rastro `trail` tope 20) y `gclean` (git commit sin
 ediciones después); NO es ficha ni aviso — coachPoll la aparta
 (como done/ask), elige la más fresca y emitPill la monta como campo
-`press` en quota:update (% sobre 200k `PRESS_FULL`, umbrales 60/85).
-Gauge SVG en cápsulas de pastilla y gatito; número+proyecto en pcard y
+`press` en quota:update (umbrales 60/85). EL TECHO NO ES CONSTANTE
+(corregido 2026-08-08): el hit trae `full` = techo del modelo de esa
+sesión y `pressFull()/pressPct()` son el ÚNICO sitio que divide. Sale
+de `ctx_for()` (Rust y exportador en sincronía): tabla DESCARGADA —la
+cascada de precios ya trae `max_input_tokens`— y si no, respaldo por
+VERSIÓN `ctx_table` (Opus/Sonnet 4.6+ y Fable 1M, resto 200k; `[1m]`
+manda y se mira ANTES de price_key, que lo recorta). En la duda 200k:
+quedarse corto avisa de más, pasarse no avisa nunca. Autopsia en la
+bitácora. Gauge SVG en pastilla y gatito; número+proyecto en pcard y
 en el globo del hover. Nunca viaja a ntfy ni al hub. El motor manda
 HECHOS crudos: el veredicto Alive/Boundary/Uncertain vive UNA sola vez
 en JS (`intentVerdict`, reina = topen>0). Con presión ≥80
@@ -453,11 +460,10 @@ hacer público el repo (o sus releases).
       export CSV (`want_rows`/ExportRow) —; con eso cualquier rango se
       calcula sumando los días que caen dentro, igual que en local.
       Coste: la foto pasa de pocos KB a 50-150 KB, así que habría que
-      subirla SOLO cuando cambie y no en cada ciclo de 3 min. Tocar las
-      tres piezas en sincronía (Rust, meter-export.py, panel) y verificar
-      con la misma prueba de los rangos: dos periodos contiguos deben
-      sumar exactamente el total. Límite que quedaría: solo dentro de los
-      30 (o 90) días que se suban.
+      subirla SOLO cuando cambie, no en cada ciclo. Tocar las tres piezas
+      en sincronía y verificar con la prueba de los rangos: dos periodos
+      contiguos deben sumar exactamente el total. Límite: solo dentro de
+      los 30 (o 90) días que se suban.
 
 - [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05, las 5
       pestañas con capturas de Oscar). Respaldo en el tag
@@ -507,23 +513,19 @@ hacer público el repo (o sus releases).
       no viaja a hub ni ntfy). (c) MARCAS DE ARREGLO en localStorage
       (`fndHist`/`fndMarks`, solo hallazgos de estado, escaneos ≥7d sin
       rango; visto ≥3 días + desaparecido ≥2 = arreglado, rastro en
-      flowLog). FASE 2 pestaña Reporte: IMPLEMENTADA 2026-08-06 y pulida
-      2026-08-07 sobre maqueta de Oscar — 6.ª pestaña `rep_tab`, chips
-      Semana/Mes/Personalizado, héroe partido EFICIENCIA/VOLUMEN, "¿te
-      duró más o menos?" del histórico de cuota, gráfica 4 semanas con
-      conmutador tokens/$ y detalle al tocar (repSel), proyectos con
-      delta vs periodo anterior, "qué lo encareció" y "para los días que
-      vienen". REGLAS VIGENTES de esa ronda (el detalle, en el doc):
-      nunca pintar con uturns=0; cobertura mínima 20 fotos de cuota o
-      "juntando datos"; la regla "1M tok ≈ $X" con la tarifa REAL del
-      periodo, jamás fija; la traducción a $ SIEMPRE pegada a su dato de
-      tokens (.as-money); caché POR PERIODO + render PROGRESIVO y
-      re-render al cambiar idioma; sin candado de carga (sello
-      `repStamp`, la petición tardía se descarta). ~72 claves i18n ×8.
-      SI SE RETOMA, lo primero: fase 3, export HTML del mockup A.
-      También en el doc y sin arrancar:
-      manómetro de contexto en pastilla/gatito, detector de
-      auto-compacts, detector de pegado masivo. DESCARTADO con porqué en
+      flowLog). FASE 2 pestaña Reporte (`rep_tab`): IMPLEMENTADA
+      2026-08-06, pulida 2026-08-07 sobre maqueta de Oscar — chips
+      Semana/Mes/Personalizado, héroe EFICIENCIA/VOLUMEN, "¿te duró más
+      o menos?", gráfica 4 semanas tokens/$ con detalle (repSel), deltas
+      por proyecto, "qué lo encareció". REGLAS VIGENTES (detalle en el
+      doc): nunca pintar con uturns=0; mínimo 20 fotos de cuota o
+      "juntando datos"; "1M tok ≈ $X" con la tarifa REAL del periodo,
+      jamás fija; el $ SIEMPRE pegado a su dato de tokens (.as-money);
+      caché POR PERIODO, render PROGRESIVO y re-render al cambiar
+      idioma; sin candado de carga (sello `repStamp`). ~72 claves i18n
+      ×8. SI SE RETOMA, lo primero: fase 3, export HTML del mockup A.
+      También en el doc y sin arrancar: detectores de
+      auto-compacts y de pegado masivo. DESCARTADO con porqué en
       el doc: sesión contaminada, score único, modelo local, telemetría
       colectiva (choca con invariante #3).
 - [ ] REMEDIACIÓN (diseño en `docs/remediacion.md` — LEERLO antes de
@@ -540,11 +542,10 @@ hacer público el repo (o sus releases).
       stdio de ~/.claude.json; huérfano = padre muerto o PID de padre
       reciclado; kill re-verifica PID+exe+arranque), archivado ≥365d a
       `%APPDATA%\<app>\archive`, registro `actions_log.json` (tope 200,
-      d1/d2 crudos y el panel traduce), desbloqueo progresivo en
-      localStorage (`remCfg`/`remFirst`: zombie ON / archive OFF por
-      defecto, primera vez SIEMPRE manual), sección en Ajustes +
-      tarjeta de zombies en Consejos (pipeline normal, clave
-      zombie|arranque-más-nuevo) y sondeo horario `remPoll`. SOLO
+      d1/d2 crudos y el panel traduce), desbloqueo progresivo
+      (`remCfg`/`remFirst`: zombie ON / archive OFF, primera vez SIEMPRE
+      manual), sección en Ajustes + tarjeta de zombies en Consejos
+      (clave zombie|arranque-más-nuevo) y sondeo horario `remPoll`. SOLO
       LOCAL: WSL/SSH quedan para la etapa 4. De ahí: barras
       normalizadas a `/` al casar firmas, y todo script de PowerShell
       escrito desde Rust con saltos de línea REALES (en una línea muere
@@ -568,18 +569,17 @@ hacer público el repo (o sus releases).
       ver si Claude REACCIONA. El relevo JAMÁS escribe lo tecleado —
       `michi status --debug` son CUENTAS y longitudes; con eso y `michi
       inject` se valida sin panel. **3b IMPLEMENTADA 2026-08-08** (falta `cargo check` y
-      validación en vivo): `get_relays` (async, lee la carpeta del relevo,
-      viva = <15 s Y alive, borra archivos de >24 h) y el CASADO
+      validación en vivo): `get_relays` (async, lee la carpeta del
+      relevo, misma regla de frescura, borra los de >24 h) y el CASADO
       sesión↔relevo por el `cwd` COMPLETO — para eso el hit `press` lleva
-      el campo aditivo `scwd` (replicado en el exportador, invariante #1;
-      export y findings idénticos byte a byte). FAIL-CLOSED:
-      con dos relevos en la misma carpeta no se afirma nada, y dos
-      sesiones en la misma carpeta (una con relevo, otra sin) es límite
-      asumido — la hora de arranque no sirve, `--resume` la rompe. Se ve
-      en Ajustes → Remediación (proyecto · pid · % de la sesión casada ·
-      listo/motivo; sondeo 5 s SOLO con esa pestaña visible) y como
-      insignia "relevo" en la tarjeta de intención. El % de la fila ES la
-      prueba del casado sin esperar a una sesión al 80%. Falta 3c
+      el campo aditivo `scwd` (replicado en el exportador, invariante #1).
+      FAIL-CLOSED: con dos relevos en la misma carpeta no se afirma nada,
+      y dos sesiones en la misma carpeta (una con relevo, otra sin) es
+      límite asumido — la hora de arranque no sirve, `--resume` la rompe.
+      Se ve en Ajustes → Remediación (proyecto · pid · % de la sesión
+      casada · listo/motivo; sondeo 5 s SOLO con esa pestaña visible) y
+      como insignia "relevo" en la tarjeta de intención. El % de la fila
+      ES la prueba visible del casado. Falta 3c
       (countdown + inyección desde la UI + desbloqueo progresivo) y
       decidir cómo llega `michi.exe` al usuario (hoy a mano, fuera del
       instalador).

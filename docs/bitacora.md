@@ -2620,3 +2620,77 @@ Reglas que salen de aquí, para no repetirlas:
   real acaba mandando él, y mintiendo.
 - **Fail-closed de verdad:** mientras no se sabe si un Enter envió, se
   cuenta como que hay texto.
+
+### El manómetro llevaba meses clavado: el techo no era 200k (2026-08-08)
+
+Validando la etapa 3b, la cabecera de Claude Code cantó el bug sin querer:
+
+```
+Claude Code v2.1.225
+Opus 5 (1M context) · Claude Max
+```
+
+**1M.** El manómetro de presión dividía entre `PRESS_FULL = 200000`, una
+constante puesta cuando 200k era el techo de TODOS los modelos. Opus y
+Sonnet saltaron a 1M en la 4.6, y Fable/Mythos nacieron ahí.
+
+No hizo falta creerse la cabecera: los propios logs lo tenían medido.
+Contexto máximo alcanzado por modelo en las sesiones de Oscar:
+
+| modelo | máximo real |
+|---|---|
+| claude-opus-5 | **998.248** |
+| claude-fable-5 | 836.644 |
+| claude-opus-4-8 | 641.326 |
+
+Casi un millón. Con el techo viejo esas sesiones marcaban **100%**
+permanente: gauge en rojo, gatito alarmado y tarjeta de intención
+disparada. Y al revés, la tarjeta saltaba en cuanto se cruzaban 160k
+tokens (el 80% de 200k), que en un modelo de 1M es el **16%** del
+depósito. La sesión de trabajo de ese mismo día, medida en el VPS, iba
+por 480.757 tokens: 48% real, 100% según el panel.
+
+**Por qué se arregló ANTES de la etapa 3c y no después.** La 3c es el
+countdown que aplica `/compact` SOLO. Su disparador es este porcentaje.
+Construir el automático encima de una cifra 5× equivocada habría hecho
+que Michi comprimiera el historial —perdiendo contexto real— con el 84%
+del depósito libre. Un número mal calibrado es inofensivo mientras solo
+se mira; deja de serlo en cuanto algo actúa sobre él.
+
+**El arreglo no necesitó ni una descarga nueva.** Las tres fuentes de la
+cascada de precios publican el techo en el MISMO archivo que ya bajamos
+cada 24 h: LiteLLM en `max_input_tokens`, models.dev en `limit.context`,
+OpenRouter en `context_length`. `PriceEntry` gana un campo `ctx` y el
+caché en disco lo hereda; `ctx_for()` lo lee y, si la fuente no lo dijo
+(o el caché es de una versión anterior), cae a `ctx_table()`, respaldo
+embebido que decide por VERSIÓN y no por lista de modelos —invariante
+#6—, hermano de `price_table()`.
+
+Tres detalles que costaron pensarlos:
+
+- **La duda se resuelve hacia abajo.** Sin dato, 200k. Quedarse corto
+  hace que el manómetro avise antes de tiempo (molesto); pasarse haría
+  que no avisara nunca (el usuario choca con el muro sin previo aviso).
+  El fallo seguro de un avisador es avisar de más.
+- **`price_key()` recorta el sufijo `[1m]`** para casar el id del log con
+  las tablas públicas. Si el techo se resolviera después de esa
+  normalización, una variante de contexto largo se leería como su base de
+  200k. Por eso `ctx_for()` mira el id CRUDO antes de buscar en la tabla.
+- **Se guarda el modelo, no el techo ya resuelto.** El estado de la
+  sesión (Rust y Python) recuerda el id del último turno y el techo se
+  calcula en cada sondeo: así una tabla recién descargada corrige la
+  cuenta sola, en vez de arrastrar un número viejo hasta que la sesión
+  muera.
+
+En el panel el denominador vive en UN solo sitio (`pressFull()` /
+`pressPct()`) — la lección de la trampa del booleano resumen, aplicada
+antes de que muerda: tres divisiones repartidas por el archivo eran
+exactamente la forma en que este bug sobrevivió tanto tiempo.
+
+Regresión: export normal y `--findings` idénticos byte a byte; `--coach`
+solo añade la clave nueva.
+
+Lección general: **una constante con el nombre de un límite externo es
+una fecha de caducidad esperando.** No estaba mal escrita — estaba mal
+envejecida, y nada en el código podía avisarlo. Cuando el límite lo
+publica alguien de fuera, el número se busca, no se escribe.
