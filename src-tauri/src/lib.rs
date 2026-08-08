@@ -1084,14 +1084,24 @@ const REMOTE_SCRIPT_PATH: &str = "~/.michiclaude/meter-export.py";
 /// lo mantiene en sincronía con el backend (invariante 1).
 const REMOTE_SCRIPT: &str = include_str!("../../scripts/meter-export.py");
 
-/// Sube el exportador al servidor por SSH (lo escribe desde stdin, sin
-/// necesitar scp ni permisos extra). Idempotente: sobrescribe siempre.
-fn upload_exporter(host: &str) -> Result<(), String> {
+/// El relevo para Linux viaja igual que el exportador: embebido y re-subido
+/// solo. Es PYTHON a propósito — en Linux la PTY vive en la stdlib, y el VPS
+/// no tiene toolchain de Rust; compilar michi.exe para Linux exigiría tocar
+/// el workflow (invariante #9). Réplica de relevo/src/main.rs sin la rama
+/// win32-input-mode (eso es ConPTY de Windows).
+const REMOTE_RELEVO_PATH: &str = "~/.michiclaude/michi-relevo.py";
+const REMOTE_RELEVO: &str = include_str!("../../scripts/michi-relevo.py");
+
+/// Sube un script al servidor por SSH escribiéndolo desde stdin (sin scp ni
+/// permisos extra). Idempotente: sobrescribe siempre.
+fn upload_script(host: &str, path: &str, body: &str) -> Result<(), String> {
     use std::io::Write;
     let mut cmd = std::process::Command::new("ssh");
     cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])
         .arg(host)
-        .arg("mkdir -p ~/.michiclaude && cat > ~/.michiclaude/meter-export.py && chmod +x ~/.michiclaude/meter-export.py")
+        .arg(format!(
+            "mkdir -p ~/.michiclaude && cat > {path} && chmod +x {path}"
+        ))
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
@@ -1108,7 +1118,7 @@ fn upload_exporter(host: &str) -> Result<(), String> {
         // permiso de ejecución y quien pruebe `./meter-export.py` en el
         // servidor se topa con un intérprete llamado "python3\r" y un error
         // que no dice nada (visto 2026-07-28).
-        si.write_all(REMOTE_SCRIPT.replace("\r\n", "\n").as_bytes())
+        si.write_all(body.replace("\r\n", "\n").as_bytes())
             .map_err(|e| format!("No pude enviar el script: {e}"))?;
     }
     let out = child.wait_with_output().map_err(|e| e.to_string())?;
@@ -1121,6 +1131,15 @@ fn upload_exporter(host: &str) -> Result<(), String> {
             .take(200)
             .collect())
     }
+}
+
+/// Los dos scripts que viajan al servidor. El exportador es imprescindible
+/// (sin él no hay datos); el relevo es cortesía — si su subida falla no
+/// tumba el alta, la sesión simplemente no será remediable desde el panel.
+fn upload_exporter(host: &str) -> Result<(), String> {
+    upload_script(host, REMOTE_SCRIPT_PATH, REMOTE_SCRIPT)?;
+    let _ = upload_script(host, REMOTE_RELEVO_PATH, REMOTE_RELEVO);
+    Ok(())
 }
 
 /// Busca en el servidor un Python que sirva (3.7+, que es lo que usa el

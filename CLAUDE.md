@@ -43,9 +43,9 @@ docs/                   # bitacora.md + diseños (leer antes de tocar su área)
 
 **A) Cuota real — `get_quota` (Rust):** token OAuth de
 `~/.claude/.credentials.json` (respeta `CLAUDE_CONFIG_DIR`); si venció,
-respaldo WSL y luego máquinas de `remotes.json` (el PRIMER token vigente
-gana; viaja por SSH, solo vive en memoria). NUNCA llamar a la API con token
-vencido (provoca 429). `GET https://api.anthropic.com/api/oauth/usage` con
+respaldo WSL y luego `remotes.json` (el PRIMER token vigente gana; viaja
+por SSH, solo vive en memoria). NUNCA llamar a la API con token vencido
+(provoca 429). `GET https://api.anthropic.com/api/oauth/usage` con
 `anthropic-beta: oauth-2025-04-20`. Endpoint NO oficial: el frontend extrae
 buckets de forma recursiva y dinámica (`extractBuckets()` busca
 `utilization`/`resets_at`) y pinta los que existan. El endpoint NO envía el
@@ -57,13 +57,13 @@ plan (verificado con quota_debug.json real). Respuesta cruda a
 `<sesión>/subagents/agent-*.jsonl` vía `project_jsonls()` (2026-08-04):
 Claude Code moderno (v2.1.221+) pone ahí los transcripts de subagentes —
 sin entrar a esa subcarpeta ni el costo ni el detector los ven.
-Deduplicación por `message.id + requestId` (los duplicados TAMBIÉN cruzan
-archivos — la dedup global es imprescindible). Tokens "de trabajo" = input
-+ output + cache_write; **cache_read excluido** (infla ~100×) salvo para el
-coste (a 10% del precio de input). `<synthetic>` fuera. Fuente WSL:
+Dedup por `message.id + requestId` (los duplicados TAMBIÉN cruzan
+archivos — la dedup global es imprescindible). Tokens "de trabajo" =
+input + output + cache_write; **cache_read excluido** (infla ~100×) salvo
+para el coste (a 10% del input). `<synthetic>` fuera. Fuente WSL:
 `wsl.exe -l -q` (UTF-16LE) + `\\wsl.localhost\<distro>\{home/*,root}\.claude`,
-sufijo `wsl-<distro>`. Lectura incremental: archivos más viejos que la
-ventana ni se abren; de los recientes se cachea el PARSEO por tamaño+mtime
+sufijo `wsl-<distro>`. Incremental: lo más viejo que la ventana ni se
+abre; de lo reciente se cachea el PARSEO por tamaño+mtime
 (`scan_cache.json`), nunca el coste. Agrega por proyecto (ventana 1/7/30,
 `by_model`), por modelo, coste hoy/ventana y serie `daily` de 30 días. Los
 proyectos remotos llevan el sufijo del nombre que el usuario dio al server.
@@ -572,7 +572,18 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       instalar). PATH por
       `[Environment]::SetEnvironmentVariable`, JAMÁS `setx` (trunca a
       1024); copia en `path_backup.txt` y el interruptor quita EXACTA su
-      entrada. FALTA: que `michi.exe` viaje en el instalador
+      entrada. FAIL-OPEN sin consola: michi ejecuta el claude real con
+      `MICHI_RELEVO=0` (sin la marca, `cmd /c claude` puede resolver a
+      NUESTRO shim y ciclar) — el chat de la extensión de VS Code NO es
+      una terminal y no se envuelve, queda en modo consejero (inv. #8).
+      ETAPA 4 ARRANCADA: 4a = relevo del VPS en PYTHON
+      (`scripts/michi-relevo.py`, stdlib pty; el VPS no tiene Rust),
+      viaja EMBEBIDO como el exportador (`upload_script`, re-subido al
+      arrancar; cortesía, no tumba el alta), mismas constantes/esquema/
+      códigos que main.rs y VALIDADO EN EL VPS con banco de PTY real (12
+      pruebas). Faltan 4b (descubrir remotas por SSH con `origin`), 4c
+      (inyección remota + alias `~/.bashrc` opt-in) y WSL; el automático
+      NO se extiende a remotas aún. FALTA: que `michi.exe` viaje en el instalador
       (workflow, invariante #9) y la etapa 4 (WSL/SSH).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras

@@ -650,6 +650,38 @@ fn set_title(title: &str) {
     let _ = out.flush();
 }
 
+/// `claude` tal cual, con la entrada/salida heredadas — para invocaciones sin
+/// consola. `MICHI_RELEVO=0` SIEMPRE: si el intento directo falla y se pasa
+/// por `cmd.exe /c claude`, cmd resuelve por PATH y puede encontrar NUESTRO
+/// shim — que sin esa marca volvería a llamar a michi, y michi a cmd, en
+/// bucle infinito. El 0 significa "sin relevo" (un pid real nunca es 0).
+fn passthrough(extra: &[String]) -> i32 {
+    let run = |prog: &str, via_cmd: bool| -> std::io::Result<std::process::ExitStatus> {
+        let mut c = std::process::Command::new(prog);
+        if via_cmd {
+            c.arg("/c");
+            c.arg("claude");
+        }
+        c.args(extra);
+        c.env("MICHI_RELEVO", "0");
+        c.status()
+    };
+    match run("claude", false) {
+        Ok(s) => s.code().unwrap_or(1),
+        Err(_) if cfg!(windows) => match run("cmd.exe", true) {
+            Ok(s) => s.code().unwrap_or(1),
+            Err(_) => {
+                eprintln!("michi: no encontré `claude` en el PATH");
+                127
+            }
+        },
+        Err(e) => {
+            eprintln!("michi: no pude lanzar `claude`: {e}");
+            127
+        }
+    }
+}
+
 fn run_relevo(extra: &[String]) -> ! {
     let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let pid = std::process::id();
@@ -673,7 +705,17 @@ fn run_relevo(extra: &[String]) -> ! {
     // parpadearía y rompería el paso transparente, que es sagrado.
     set_title(&format!("michi · {}", path_base_str(&cwd)));
 
+    // SIN consola no hay relevo posible: nadie teclea y nadie mira. Ese es el
+    // caso de todo lo NO interactivo que invoque `claude` a través del atajo
+    // del PATH — el chat de la extensión de VS Code, un script, un pipe.
+    // Envolverlos en una ConPTY les rompería el protocolo (la CLI se creería
+    // en una terminal interactiva), así que se ejecuta el claude real tal
+    // cual. FAIL-OPEN, la misma regla del shim: lo peor permitido es quedarse
+    // sin relevo, jamás sin Claude Code.
     let restore = console::enter_raw();
+    if restore.is_none() {
+        std::process::exit(passthrough(extra));
+    }
     let (cols, rows) = console::size().unwrap_or((100, 30));
 
     let pty = native_pty_system();

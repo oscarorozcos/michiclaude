@@ -653,6 +653,51 @@ sesión no tenía relevo (lo planteó Oscar así).
   como recurso de Tauri, y eso toca el workflow de release (invariante #9: lo
   edita Oscar).
 
+## Etapa 4 — el relevo fuera de Windows (arrancada 2026-08-08)
+
+Lo pidió Oscar con las dos preguntas correctas: "¿podemos cubrir ambos
+casos?" (terminal SSH y desatendido) y, antes, su forma real de trabajar:
+**el chat de la extensión de VS Code**. Eso parte la cobertura en tres casos
+y hay que decirlos sin adornos:
+
+| Caso | ¿Relevo? |
+|---|---|
+| Terminal (local, integrada de VS Code, SSH al VPS) | ✅ es el territorio del relevo |
+| Desatendido (`claude` interactivo lanzado por relevo/alias, tmux…) | ✅ mismo mecanismo |
+| **Chat de la extensión de VS Code** | ❌ NO ES UNA TERMINAL: no hay teclado ni pantalla que envolver. Michi queda en modo consejero (tarjeta + copiar comando). Decirlo es invariante #8; prometer otra cosa sería mentir. |
+
+- **FAIL-OPEN nuevo en michi.exe (el riesgo que destapó la pregunta):** si
+  algo NO interactivo invoca `claude` a través del atajo del PATH —la
+  extensión, un script, un pipe—, envolverlo en ConPTY le rompería el
+  protocolo. Ahora, sin consola (`enter_raw` = None), michi ejecuta el claude
+  real tal cual con `MICHI_RELEVO=0` (el 0 = "sin relevo"; y sin esa marca,
+  el reintento vía `cmd.exe /c claude` podría resolver a NUESTRO shim y
+  entrar en bucle infinito). La misma regla de siempre: lo peor permitido es
+  quedarse sin relevo, jamás sin Claude Code.
+- **4a: el relevo del VPS es PYTHON (`scripts/michi-relevo.py`), no un
+  binario.** En Linux la PTY vive en la stdlib (`pty`, `termios`) y el VPS no
+  tiene toolchain de Rust — un michi-linux exigiría cross-compilar o tocar el
+  workflow (invariante #9). El script viaja EXACTAMENTE como el exportador:
+  embebido (`include_str!`), subido en el alta y re-subido al arrancar
+  (`upload_script`; el del relevo es cortesía — si falla no tumba el alta).
+  Réplica de main.rs con las MISMAS constantes, esquema de estado y códigos
+  `ERR_RELAY_*`; sin la rama win32-input-mode (eso es ConPTY). Estado en
+  `~/.michiclaude/relevo/<pid>.json`.
+- **4a VALIDADA EN EL PROPIO VPS el mismo día, sin gastar ronda de Oscar:**
+  banco de pruebas con PTY real y `cat` de falso claude — 12 comprobaciones:
+  estado y esquema, calma, inyección aplicada y RECIBIDA por el hijo, candado
+  TYPED con `k_print=4` exacto, Enter con reacción limpia el texto, los
+  avisos de foco no reinician la calma, y el estado se borra al salir. Un
+  fallo del banco por el camino que es lección de PTY: un Ctrl+D con bytes
+  pendientes en la línea no es EOF, es "enviar línea" — hacen falta dos.
+- **Falta (en orden):** 4b descubrimiento remoto en el panel (`get_relays`
+  leyendo `~/.michiclaude/relevo/` por SSH, sesiones con `origin`; el casado
+  usa el MISMO `scwd` que ya viaja en el hit press del exportador); 4c
+  inyección remota (escribir el `.cmd` por SSH y esperar el acuse) y el alias
+  de `~/.bashrc` opt-in (bloque con marcas, mismo espíritu que el shim);
+  después WSL. El automático NO se extiende a remotas hasta que 4b/4c tengan
+  kilómetros.
+
 ## Correcciones sobre la propuesta original (para no rediscutir)
 
 - **Contexto falso que traía el handoff:** licencia "MIT/Apache
