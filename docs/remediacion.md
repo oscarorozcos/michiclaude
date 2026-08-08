@@ -554,10 +554,16 @@ lo había, que es el peor final posible.
   lo retenido tal cual. FAIL-OPEN: lo peor que puede pasar es quedarse sin
   marca, jamás comerse la salida. Diez casos probados con un puerto de la
   máquina de estados antes de compilar.
-- **Segunda superficie, pendiente:** una marca en la cápsula del widget.
-  Dicen cosas DISTINTAS y por eso hacen falta las dos — el título dice "esta
-  terminal tiene relevo", el widget dice "la sesión que estoy midiendo tiene
-  relevo". Con una sola sesión coinciden; con varias, no.
+- **Segunda superficie, HECHA:** marca en el widget. Dice algo DISTINTO del
+  título y por eso hacen falta las dos — el título habla de la TERMINAL que
+  tienes delante, el widget de la SESIÓN que Michi mide. Con una sola sesión
+  coinciden; con varias, no, y confundirlas es volver a adivinar.
+  El campo `relay` viaja en `press` dentro de `quota:update`. En las cápsulas
+  (pastilla y gatito) es un punto relleno en el centro del arco del manómetro
+  —dentro y no al lado porque ahí no hay un píxel libre, y relleno para que
+  se lea a 24 px—. En el detalle y en el globo del gatito, donde SÍ hay
+  sitio, se dice con palabras («proyecto · relevo»): un punto solo puede
+  insinuar, y una insinuación que no se entiende no sirve de nada.
 
 ## El atajo del PATH (2026-08-08): que `claude` pase por el relevo
 

@@ -156,6 +156,9 @@
       <path d="M4 17.5a8.5 8.5 0 1 1 16 0" opacity=".3" pathLength="100"/>
       <path id="pgArc" d="M4 17.5a8.5 8.5 0 1 1 16 0" pathLength="100"
         stroke-dasharray="0 100"/>
+      <!-- Punto = esta sesión tiene RELEVO (ver pill.html) -->
+      <circle id="pgRly" cx="12" cy="15" r="2.3" fill="currentColor"
+        stroke="none" hidden/>
     </svg>
   </span>
 </div>
@@ -228,6 +231,7 @@ function apply(d){
   if(pr){
     $("pg").style.color = pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--ink)";
     $("pgArc").setAttribute("stroke-dasharray",Math.max(3,pr.pct)+" 100");
+    $("pgRly").hidden=!pr.relay;
   }
   if(d.ok===false) return;                 // conserva el último % bueno
   const s=d.session;

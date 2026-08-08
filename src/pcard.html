@@ -195,8 +195,10 @@ function render(d){
   // aquí vive el NÚMERO del manómetro de la cápsula; debajo, a qué proyecto
   // pertenece (con su origen si es remota)
   const pr=d.press;
+  // Aquí hay sitio para decirlo con palabras: el punto de la cápsula solo
+  // puede insinuarlo, y una insinuación que no se entiende no sirve.
   if(pr) list.appendChild(row(ICON.press, d.labels?.press||"Context pressure",
-    pr.pct, null, pr.proj||"",
+    pr.pct, null, (pr.proj||"")+(pr.relay?" · "+(d.labels?.relay||"relay"):""),
     pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--acc)"));
   if(w) list.appendChild(row(ICON.week, wkLab, Math.round(w.pct), null, d.wkReset));
   // buckets por modelo: DINÁMICOS, con la etiqueta tal cual la reporta el
@@ -214,9 +216,9 @@ if(EVENT){
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{   // preview suelto en un navegador
   render({ok:true, theme:"dark",
-    labels:{cardSes:"Session",cardWeek:"Weekly",press:"Context pressure"},
+    labels:{cardSes:"Session",cardWeek:"Weekly",press:"Context pressure",relay:"relay"},
     session:{pct:6,pace:30}, weekly:{pct:35}, sesReset:"Reset in 1 h 6 min",
-    wkReset:"Reset in 74 h 56 min", press:{pct:64, proj:"demo"},
+    wkReset:"Reset in 74 h 56 min", press:{pct:64, proj:"demo", relay:true},
     extras:[{label:"Weekly · Fable",pct:28,resets:"Reset in 74 h 56 min"}]});
 }
 

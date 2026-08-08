@@ -151,7 +151,8 @@ function render(d){
     $("pPct").textContent=pr.pct+"%";
     $("pFill").style.width=Math.min(100,pr.pct)+"%";
     $("pFill").style.background=pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--ok)";
-    $("pProj").textContent=pr.proj||"";
+    // con relevo se DICE: el punto de la cápsula solo insinúa
+    $("pProj").textContent=(pr.proj||"")+(pr.relay?" · "+(d.labels?.relay||"relay"):"");
   }
   $("dot").style.background = s ? col(Math.round(s.pct), s.pace) : "var(--mut)";
   // buckets semanales extra (Fable, futuros…): filas dinámicas con la
@@ -181,9 +182,9 @@ if(EVENT){
 }else{
   render({ok:true, session:{pct:51,pace:30}, weekly:{pct:26},
     sesReset:"reset en 19 min", wkReset:"reset en 29 h 49 min",
-    press:{pct:64, proj:"demo"},
+    press:{pct:64, proj:"demo", relay:true},
     extras:[{label:"Semanal · Fable", pct:23, resets:"reset en 29 h 49 min"}],
-    labels:{cardSes:"Sesión",cardWeek:"Semanal",press:"Presión de contexto"}});  // preview en navegador
+    labels:{cardSes:"Sesión",cardWeek:"Semanal",press:"Presión de contexto",relay:"relevo"}});  // preview en navegador
 }
 
 // si el mouse entra al globo y sale, también se pliega

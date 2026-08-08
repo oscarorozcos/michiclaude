@@ -5058,7 +5058,7 @@ let lastPill=null, pillOn=false;
 function getPillStyle(){ return localStorage.getItem("pillStyle")==="cat"?"cat":"plain"; }
 function pillLabels(){
   return {ses:t("pill_ses"), week:t("pill_week"), cardSes:t("card_ses"), cardWeek:t("card_week"),
-    press:t("press_lab")};
+    press:t("press_lab"), relay:t("rly_badge")};
 }
 // Tema del panel (el que manda el botón ◐) y los dos que puede soltar el
 // usuario: el ARTE del gatito y la PIEL de sus globos (cápsula incluida — es
@@ -5107,7 +5107,12 @@ function pressPct(h){ return Math.min(100,Math.round((h&&h.value||0)/pressFull(h
 function pressField(){
   if(!lastPress||!lastPress.ctx) return null;
   return {pct:Math.min(100,Math.round(lastPress.ctx/pressFull(lastPress)*100)),
-    proj:lastPress.project+(lastPress.origin?" · "+lastPress.origin:"")};
+    proj:lastPress.project+(lastPress.origin?" · "+lastPress.origin:""),
+    // ¿la sesión que estamos midiendo tiene relevo? (etapa 3c). Dice algo
+    // DISTINTO de la marca del título de la pestaña: aquella habla de la
+    // terminal que tienes delante, esta de la sesión que Michi mide. Con una
+    // sola sesión coinciden; con varias, no — y confundirlas es adivinar.
+    relay:!!lastPress.relay};
 }
 // Clasificador de tarea viva (docs/remediacion.md etapa 1b): determinista y
 // con UNA sola implementación — el motor (Rust/Python) manda hechos crudos en
@@ -6950,7 +6955,7 @@ async function coachPoll(){
     const pr=pressAll
       .slice().sort((a,b)=>(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
     lastPress=pr?{ctx:pr.value||0,project:pr.project||"",origin:pr.origin||"",
-      full:pressFull(pr)}:null;
+      full:pressFull(pr), relay:!!relayFor(pr)}:null;
     const hits=all.filter(h=>h.rule!=="done"&&h.rule!=="ask"&&h.rule!=="press");
     // Tarjeta de intención (docs/remediacion.md etapa 1c): con la presión en
     // zona alta nace UNA tarjeta por sesión con las señales medidas del
