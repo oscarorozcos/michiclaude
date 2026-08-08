@@ -873,3 +873,78 @@ investigó EN SU PROPIA MÁQUINA (el VPS), no en teoría:
   Windows y se valide en vivo: el relevo construye SOBRE el registro de
   acciones y el desbloqueo progresivo que nacen aquí, y validar por
   etapas es la misma disciplina que funcionó con la 1.
+
+## La auto-compactación de Claude Code (investigada 2026-08-08)
+
+Oscar vio en el chat de la extensión el circulito con "6% of context
+remaining until auto-compact" y preguntó lo correcto: ¿es lo mismo que
+hacemos nosotros?, ¿gasta?, ¿lo apagamos para dejar solo a MichiClaude?,
+¿hay que ganarle por velocidad?
+
+Se comprobó LEYENDO el binario instalado (v2.1.226), no de memoria:
+
+- **Es la misma operación.** `autoCompactEnabled` se describe como
+  "Automatically compact conversation when context fills". Nuestro
+  `/compact` inyectado y el suyo terminan en la misma compactación.
+- **Cuándo salta.** El umbral efectivo es `min(ventana − reserva,
+  precompute)`, con reserva = `min(maxOutputTokens, 20 000)`. La
+  ventana "auto" está afinada por modelo (los de 1M —opus-5, opus-4-8,
+  opus-4-6, sonnet-4-6— llegan cerca del millón). En la práctica salta
+  sobre el ~94% de su ventana: el "6% restante" que se vio.
+- **Se puede apagar**, por tres vías: `/config` → "Auto-compact",
+  `autoCompactEnabled:false` en settings.json, o `DISABLE_AUTO_COMPACT`.
+  Y `/autocompact` mueve la ventana (100k–1M, o
+  `CLAUDE_CODE_AUTO_COMPACT_WINDOW`).
+
+**DECISIÓN: no se apaga, y MichiClaude no lo sugiere jamás.** Tres
+razones, por orden de peso:
+
+1. **Es la red de seguridad.** MichiClaude solo actúa si está abierto,
+   con el widget a la vista, con el relevo enganchado y —si es remota—
+   con el SSH vivo. La auto-compactación no depende de nada de eso. Un
+   producto no apaga el airbag del coche porque él ya frena bien.
+2. **Apagarla encarece nuestro propio /compact.** Con auto-compact ON,
+   Claude Code precomputa el resumen en segundo plano
+   (`precomputeCompactionEnabled`, descrito como "Only applies when
+   auto-compact is on"). Apagarla nos quita ese adelanto a nosotros
+   también.
+3. **No hay carrera que ganar.** Nosotros entramos al 85% y él al ~94%:
+   se le gana POR DISEÑO, con ~9 puntos de margen. El 2026-08-08 quedó
+   demostrado en vivo — nuestro `/compact` liberó 872 960 tokens y la
+   auto-compactación nunca llegó a dispararse.
+
+Lo que sí aporta MichiClaude no es "compactar antes", es **compactar en
+un momento elegido**: la suya salta cuando el contexto se llena, que es
+casi siempre en mitad de una tarea; la nuestra exige sesión quieta y
+avisa con cuenta atrás parable. Ese es el argumento honesto, y es el
+único que hay que contar.
+
+Efecto secundario verificado: **un `/compact` inyectado por el relevo se
+registra con `trigger:"manual"`** (la CLI lo trata como comando del
+usuario). O sea que la regla `acomp` —que solo avisa de las NO
+manuales— nunca se avisa a sí misma. Se auditó sobre el log real: 8
+`compact_boundary` en la sesión, las 8 manuales.
+
+### El manómetro mentía después de compactar (arreglado el mismo día)
+
+Oscar lo cazó: "aún en MichiClaude aparece alto contexto". No era
+retraso, era un fallo. `last_ctx` solo se actualiza cuando llega un
+turno nuevo con `usage`, así que entre la compactación y el siguiente
+turno —hasta 10 minutos— el manómetro seguía marcando lo de ANTES.
+
+Y no era solo cosmético: con la presión falsa por encima del 85%, el
+automático podía disparar un `/compact` redundante sobre una sesión
+recién compactada. Ese es el origen del "Error: No messages to compact"
+que Oscar había visto días antes sin que le encontráramos la causa.
+
+Arreglo, en Rust y en el exportador (invariante #1): **todo
+`compact_boundary` pone `last_ctx = 0`**, lo compactara quien lo
+compactara — fuera del `if trigger != manual`, porque el contexto se
+vacía igual. Cero significa "sin medida", no "cero tokens": el hit
+`press` exige `> 0` y sencillamente no se emite hasta el siguiente
+turno real. Es invariante #8 aplicado: antes ningún manómetro que una
+cifra que ya es mentira. `ctx_seen` NO se toca — es el máximo histórico
+y la evidencia medida del techo real del modelo.
+
+Probado con una sesión sintética que termina justo en la compactación:
+antes daba `press 880000` + ficha `compact`; después, nada.

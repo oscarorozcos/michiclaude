@@ -3370,6 +3370,19 @@ fn coach_scan() -> Vec<CoachHit> {
                             st.acomp_ts = ts.unwrap_or(0);
                             st.acomp_pre = cm["preTokens"].as_u64().unwrap_or(0);
                         }
+                        // El contexto acaba de VACIARSE, y da igual quién
+                        // compactara (por eso va FUERA del if de arriba). Sin
+                        // esta línea el manómetro seguía marcando lo de antes
+                        // hasta el siguiente turno —hasta 10 min— y el
+                        // automático disparaba un /compact redundante sobre una
+                        // sesión recién compactada: el "No messages to compact"
+                        // que vio Oscar el 2026-08-08. Cuánto quedó NO se sabe
+                        // hasta el próximo turno: 0 = "sin medida", el hit
+                        // `press` exige > 0 y no se emite (invariante #8, antes
+                        // que enseñar una cifra que ya es mentira). `ctx_seen`
+                        // NO se toca: es el máximo histórico, la evidencia
+                        // medida del techo real (ver ctx_full).
+                        st.last_ctx = 0;
                     }
                     // título de la sesión: Claude Code lo escribe él mismo en
                     // el log (campo interno — SOLO display, nunca lógica)

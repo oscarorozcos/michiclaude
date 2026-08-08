@@ -991,6 +991,11 @@ def coach_scan(projects_dir):
                             if cm.get("trigger") != "manual":
                                 st["acomp_ts"] = ts_s or 0
                                 st["acomp_pre"] = cm.get("preTokens") or 0
+                            # el contexto acaba de vaciarse, lo compactara quien
+                            # lo compactara (fuera del if): 0 = "sin medida"
+                            # hasta el próximo turno, y el hit press no sale.
+                            # Réplica exacta de lib.rs (invariante #1).
+                            st["last_ctx"] = 0
                         if v.get("type") == "ai-title":
                             t2 = (v.get("aiTitle") or "").strip()
                             if t2:
