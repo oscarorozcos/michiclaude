@@ -366,13 +366,13 @@ avisan: los hiciste tú; los INYECTADOS por el relevo entran como manual
 — se auditan solos, verificado en log real). TODO `compact_boundary`
 —de quien sea— pone `last_ctx = 0`: el contexto se vació y hasta el
 próximo turno no hay medida (`press` exige >0 y no sale, invariante #8).
-Sin eso el manómetro mentía hasta 10 min y el automático inyectaba un
-/compact redundante sobre lo recién compactado ("No messages to
-compact", 2026-08-08). `ctx_seen` NO se toca (máximo histórico).
+Sin eso el manómetro mentía 10 min y el automático inyectaba un
+/compact redundante ("No messages to compact"). `ctx_seen` intacto.
 La auto-compactación de Claude Code (~94% de su ventana) NO se toca ni
 se sugiere apagar: es la red de seguridad cuando MichiClaude no está, y
-apagarla desactiva además su `precomputeCompactionEnabled`. Nosotros
-entramos al 80% (`INTENT_PCT`) — se gana por diseño, no por carrera.
+apagarla desactiva su `precomputeCompactionEnabled`. Entramos al 80%
+(`INTENT_PCT`): se gana por diseño, no por carrera. Y la compactación
+NO lleva `usage` en el log — no se puede facturar, solo se ve en cuota.
 Reglas: ctx≥120k → compact;
 pausa≥6 min con ctx≥30k → cache; mismo archivo leído ≥3 → attach; `ask`
 (tool_use sin tool_result ≥3 min) y `done` (quieta 5 min, 5+ turnos) son
