@@ -520,6 +520,24 @@ impl KeyWatch {
 
 // ---------- el relevo ----------
 
+/// Última carpeta de una ruta, para el título. Sin depender de `file_name()`:
+/// una raíz (`C:\`) devolvería None y el título quedaría vacío.
+fn path_base_str(p: &std::path::Path) -> String {
+    let s = p.to_string_lossy().replace('\\', "/");
+    let base = s.trim_end_matches('/').rsplit('/').next().unwrap_or("");
+    if base.is_empty() { s.to_string() } else { base.to_string() }
+}
+
+/// Título de la pestaña vía OSC 0. Se escribe directo a la salida real, no a
+/// la PTY: es un mensaje para el TERMINAL, no para Claude Code.
+fn set_title(title: &str) {
+    // Los caracteres de control romperían la secuencia; se filtran.
+    let clean: String = title.chars().filter(|c| !c.is_control()).collect();
+    let mut out = std::io::stdout();
+    let _ = out.write_all(format!("\x1b]0;{clean}\x07").as_bytes());
+    let _ = out.flush();
+}
+
 fn run_relevo(extra: &[String]) -> ! {
     let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let pid = std::process::id();
@@ -529,6 +547,19 @@ fn run_relevo(extra: &[String]) -> ! {
     // que hay alguien en medio del cable. Después de esto, la pantalla es de
     // Claude Code y de nadie más.
     println!("michi · relevo activo (sesión {pid}) — MichiClaude puede aplicar /compact y /clear en esta ventana");
+
+    // …y una marca PERSISTENTE en el título de la pestaña. La línea de arriba
+    // se la lleva el primer borrado de pantalla de Claude Code, y entonces no
+    // queda forma de saber si esta terminal tiene relevo sin ir al panel a
+    // comparar pids — que es justo el "me entero al final de que no" que hay
+    // que evitar (Oscar, 2026-08-08).
+    //
+    // OSC 0 pone título de ventana Y de icono; `\x07` (BEL) lo cierra, que es
+    // lo que entienden todas las terminales de Windows. BEST-EFFORT a
+    // propósito: si Claude Code decide cambiar el título después, gana él y
+    // esta marca se pierde. No se re-impone en bucle — pelearse por el título
+    // parpadearía y rompería el paso transparente, que es sagrado.
+    set_title(&format!("michi · {}", path_base_str(&cwd)));
 
     let restore = console::enter_raw();
     let (cols, rows) = console::size().unwrap_or((100, 30));
@@ -714,6 +745,10 @@ fn run_relevo(extra: &[String]) -> ! {
     // Cierre limpio: el archivo de estado desaparece con la sesión.
     let _ = std::fs::remove_file(&state_path);
     let _ = std::fs::remove_file(&cmd_path);
+    // Y el título deja de anunciar un relevo que ya no existe: si se quedara
+    // puesto, la pestaña seguiría diciendo "michi ·" con la sesión muerta —
+    // exactamente la clase de indicador que miente.
+    set_title(&path_base_str(&cwd));
     if let Some(r) = restore.as_ref() {
         console::restore(r);
     }

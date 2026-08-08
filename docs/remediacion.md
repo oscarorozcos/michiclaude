@@ -530,6 +530,28 @@ interruptor de automático: sería prometer algo que no se puede vigilar.
 Y la regla que sale de la auditoría de fuentes: **si el techo de contexto no
 es de fiar, la 3c aconseja pero no actúa.**
 
+## Saber si ESTA terminal tiene relevo (2026-08-08)
+
+Lo levantó Oscar validando el atajo: el indicador estaba en el panel, que
+es donde NO tienes los ojos. Trabajas en la terminal, y enterarte de si hay
+relevo exigía abrir el panel y comparar pids — o descubrir al final que no
+lo había, que es el peor final posible.
+
+- **Título de la pestaña** (`michi · <carpeta>`, OSC 0 al arrancar, quitado
+  al salir). Es la única marca que sobrevive al borrado de pantalla de
+  Claude Code, y no ocupa ni una línea. **Best-effort declarado:** si Claude
+  Code cambia el título después, gana él; el relevo NO lo reimpone en bucle
+  —parpadearía y rompería el paso transparente, que es sagrado—.
+- El título se **quita al cerrar**: una pestaña que siga diciendo «michi ·»
+  con la sesión muerta es un indicador que miente.
+- **Pendiente si el plan A no sobrevive:** el relevo ve pasar todos los
+  bytes, así que puede REESCRIBIR al vuelo el título que ponga Claude Code y
+  anteponerle la marca. Solo si hace falta: deja de ser paso transparente.
+- **Segunda superficie, pendiente:** una marca en la cápsula del widget.
+  Dicen cosas DISTINTAS y por eso hacen falta las dos — el título dice "esta
+  terminal tiene relevo", el widget dice "la sesión que estoy midiendo tiene
+  relevo". Con una sola sesión coinciden; con varias, no.
+
 ## El atajo del PATH (2026-08-08): que `claude` pase por el relevo
 
 Sin esto el relevo depende de un hábito, y un automático que depende de un

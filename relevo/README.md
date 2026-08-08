@@ -27,6 +27,15 @@ michi inject /compact # aplica el comando a la sesión con relevo
 `michi status` e `inject` existen para poder validar el relevo entero
 desde la terminal, antes de que el panel sepa nada de él.
 
+## Cómo saber si esta terminal tiene relevo
+
+El relevo pone **`michi · <carpeta>`** en el título de la pestaña al
+arrancar, y lo quita al salir. Es la única marca que sobrevive al borrado
+de pantalla de Claude Code, así que no hay que ir al panel a comparar
+pids para saberlo. Es *best-effort*: si Claude Code cambia el título
+después, gana él — el relevo no se pelea por el título, porque
+reimponerlo en bucle parpadearía y rompería el paso transparente.
+
 ## Lo que este programa NO hace
 
 - **No guarda lo que tecleas.** Ve cada tecla porque está en medio del
