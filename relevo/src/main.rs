@@ -528,6 +528,118 @@ fn path_base_str(p: &std::path::Path) -> String {
     if base.is_empty() { s.to_string() } else { base.to_string() }
 }
 
+/// Antepone la marca del relevo al título que escriba Claude Code.
+///
+/// PLAN B, y por qué existe: poner el título al arrancar no sobrevive —
+/// Claude Code pone el suyo ("Claude Code") en cuanto arranca y la marca
+/// desaparece (comprobado en vivo, 2026-08-08). Como el relevo ve pasar todos
+/// los bytes, puede reescribir esa secuencia al vuelo.
+///
+/// Es la ÚNICA excepción al paso transparente, y por eso está acotada al
+/// hueso:
+/// - Solo toca `ESC ] 0|1|2 ; …` (título de ventana/icono). Cualquier otra
+///   cosa —incluidas otras OSC— sale byte a byte.
+/// - Si la secuencia ya empieza por la marca, no se toca: nada de marcas
+///   apiladas cuando Claude reescribe su título.
+/// - Tope de `MAX`: si no llega el terminador, se suelta lo retenido tal cual
+///   y se vuelve al paso directo. FAIL-OPEN — ante la duda, transparencia; lo
+///   peor que puede pasar es quedarse sin marca, jamás comerse la salida.
+struct TitleMark {
+    mark: String,
+    /// 0 = fuera, 1 = vi ESC, 2 = vi ESC], 3 = dentro de un título
+    st: u8,
+    buf: Vec<u8>,
+}
+
+impl TitleMark {
+    const MAX: usize = 1024;
+    fn new(mark: String) -> Self {
+        Self { mark, st: 0, buf: Vec::new() }
+    }
+    fn feed(&mut self, data: &[u8]) -> Vec<u8> {
+        let mut out = Vec::with_capacity(data.len() + self.mark.len());
+        for &b in data {
+            match self.st {
+                0 => {
+                    if b == 0x1b {
+                        self.st = 1;
+                        self.buf.clear();
+                        self.buf.push(b);
+                    } else {
+                        out.push(b);
+                    }
+                }
+                1 => {
+                    self.buf.push(b);
+                    if b == b']' {
+                        self.st = 2;
+                    } else {
+                        // no era una OSC: se suelta lo retenido intacto
+                        out.extend_from_slice(&self.buf);
+                        self.buf.clear();
+                        self.st = 0;
+                    }
+                }
+                2 => {
+                    // Se lee el NÚMERO entero, no el primer dígito: `ESC]10;`
+                    // (color de primer plano) empieza por '1' y tratarlo como
+                    // título le metería la marca dentro y lo destrozaría.
+                    self.buf.push(b);
+                    if b.is_ascii_digit() && self.buf.len() < 8 {
+                        // sigue el número
+                    } else if b == b';' {
+                        // OSC de título: 0 (ventana+icono), 1 (icono), 2 (ventana)
+                        let num = &self.buf[2..self.buf.len() - 1];
+                        if matches!(num, b"0" | b"1" | b"2") {
+                            self.st = 3;
+                        } else {
+                            out.extend_from_slice(&self.buf);
+                            self.buf.clear();
+                            self.st = 0;
+                        }
+                    } else {
+                        out.extend_from_slice(&self.buf);
+                        self.buf.clear();
+                        self.st = 0;
+                    }
+                }
+                _ => {
+                    self.buf.push(b);
+                    // BEL o ST (ESC \) cierran la secuencia
+                    let done = b == 0x07
+                        || (b == b'\\' && self.buf.len() >= 2 && self.buf[self.buf.len() - 2] == 0x1b);
+                    if done {
+                        out.extend_from_slice(&self.rewrite());
+                        self.buf.clear();
+                        self.st = 0;
+                    } else if self.buf.len() > Self::MAX {
+                        out.extend_from_slice(&self.buf);
+                        self.buf.clear();
+                        self.st = 0;
+                    }
+                }
+            }
+        }
+        out
+    }
+    /// `ESC ] N ; <texto> <fin>` → `ESC ] N ; <marca><texto> <fin>`. Si algo
+    /// no encaja con esa forma exacta, se devuelve sin tocar.
+    fn rewrite(&self) -> Vec<u8> {
+        let Some(semi) = self.buf.iter().position(|&c| c == b';') else {
+            return self.buf.clone();
+        };
+        let (head, rest) = self.buf.split_at(semi + 1);
+        if rest.starts_with(self.mark.as_bytes()) {
+            return self.buf.clone();
+        }
+        let mut v = Vec::with_capacity(self.buf.len() + self.mark.len());
+        v.extend_from_slice(head);
+        v.extend_from_slice(self.mark.as_bytes());
+        v.extend_from_slice(rest);
+        v
+    }
+}
+
 /// Título de la pestaña vía OSC 0. Se escribe directo a la salida real, no a
 /// la PTY: es un mensaje para el TERMINAL, no para Claude Code.
 fn set_title(title: &str) {
@@ -635,20 +747,23 @@ fn run_relevo(extra: &[String]) -> ! {
         Err(e) => bail(restore.as_ref(), &format!("no pude leer de la consola virtual: {e}"), 1),
     };
 
-    // Hilo 1 — de la PTY a la pantalla. Tal cual, byte a byte.
+    // Hilo 1 — de la PTY a la pantalla. Byte a byte, con UNA excepción: el
+    // título de la ventana (ver TitleMark).
     {
         let sh = sh.clone();
         let mut reader = reader;
+        let mark = format!("michi · {} · ", path_base_str(&cwd));
         std::thread::spawn(move || {
             let mut buf = [0u8; 8192];
             let out = std::io::stdout();
+            let mut tm = TitleMark::new(mark);
             loop {
                 match reader.read(&mut buf) {
                     Ok(0) | Err(_) => break,
                     Ok(n) => {
                         sh.last_out.store(sh.ms(), Ordering::Relaxed);
                         let mut lock = out.lock();
-                        if lock.write_all(&buf[..n]).is_err() {
+                        if lock.write_all(&tm.feed(&buf[..n])).is_err() {
                             break;
                         }
                         let _ = lock.flush();

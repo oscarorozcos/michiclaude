@@ -544,9 +544,16 @@ lo había, que es el peor final posible.
   —parpadearía y rompería el paso transparente, que es sagrado—.
 - El título se **quita al cerrar**: una pestaña que siga diciendo «michi ·»
   con la sesión muerta es un indicador que miente.
-- **Pendiente si el plan A no sobrevive:** el relevo ve pasar todos los
-  bytes, así que puede REESCRIBIR al vuelo el título que ponga Claude Code y
-  anteponerle la marca. Solo si hace falta: deja de ser paso transparente.
+- **El plan A NO sobrevivió** (probado el mismo día): Claude Code pone
+  «Claude Code» al arrancar y la marca desaparece. PLAN B en marcha —
+  `TitleMark` reescribe al vuelo el título que escriba Claude y le antepone
+  la marca. Es la ÚNICA excepción al paso transparente, y va acotada al
+  hueso: solo `ESC ] 0|1|2 ;` (se lee el NÚMERO ENTERO, no el primer dígito
+  — `ESC]10;` es color de primer plano y tratarlo como título lo
+  destrozaría), no re-marca lo ya marcado, y con tope de 1024 bytes suelta
+  lo retenido tal cual. FAIL-OPEN: lo peor que puede pasar es quedarse sin
+  marca, jamás comerse la salida. Diez casos probados con un puerto de la
+  máquina de estados antes de compilar.
 - **Segunda superficie, pendiente:** una marca en la cápsula del widget.
   Dicen cosas DISTINTAS y por eso hacen falta las dos — el título dice "esta
   terminal tiene relevo", el widget dice "la sesión que estoy midiendo tiene
