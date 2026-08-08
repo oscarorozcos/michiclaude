@@ -260,6 +260,18 @@ mod console {
 
 // ---------- lector de teclas: de dónde salen `typed` y `user_cmd` ----------
 
+/// Lo que sacamos de un puñado de bytes que llegaron por el teclado.
+struct Keys {
+    /// el usuario envió él mismo uno de los comandos de la lista blanca
+    cmd: Option<String>,
+    /// hubo actividad HUMANA de verdad. Por el mismo cable llegan avisos
+    /// del TERMINAL que nadie tecleó (cambio de foco al pasar a otra
+    /// ventana, respuestas a consultas del programa…) y esos NO pueden
+    /// reiniciar la ventana de calma: si contaran, bastaría con hacer clic
+    /// en el panel de MichiClaude para que nunca se pudiera inyectar.
+    human: bool,
+}
+
 /// Máquina de estados mínima sobre el flujo de teclas. Solo mira la FORMA
 /// de lo tecleado (¿hay algo escrito?, ¿se envió?); el contenido se queda
 /// en memoria y muere con el proceso.
@@ -279,10 +291,11 @@ impl KeyWatch {
         }
     }
 
-    /// Devuelve el comando de la lista blanca si el usuario acaba de
-    /// enviarlo él mismo (para que el panel cancele su countdown).
-    fn feed(&mut self, buf: &[u8], sh: &Shared) -> Option<String> {
-        let mut mine = None;
+    fn feed(&mut self, buf: &[u8], sh: &Shared) -> Keys {
+        let mut r = Keys {
+            cmd: None,
+            human: false,
+        };
         for &b in buf {
             match self.esc {
                 // --- dentro de una secuencia de escape ---
@@ -294,23 +307,38 @@ impl KeyWatch {
                     self.esc = match b {
                         b'[' => 2,
                         b']' => 3,
-                        _ => 0,
+                        _ => {
+                            r.human = true;
+                            0
+                        }
                     };
                 }
                 2 => {
                     if (0x40..=0x7e).contains(&b) {
+                        // Estos finales son RESPUESTAS DEL TERMINAL, no teclas:
+                        // I/O foco ganado o perdido, R posición del cursor,
+                        // c identificación, n estado, t medidas de la ventana.
+                        // Todo lo demás (flechas, inicio/fin, pegado, F1…) sí
+                        // lo tecleó una persona.
+                        if !matches!(b, b'I' | b'O' | b'R' | b'c' | b'n' | b't') {
+                            r.human = true;
+                        }
                         self.esc = 0;
                     }
                 }
                 3 => {
+                    // OSC en dirección entrante = el terminal contestando algo.
                     if b == 0x07 || b == 0x1b {
                         self.esc = 0;
                     }
                 }
                 // --- flujo normal ---
                 _ => match b {
+                    // El ESC solo se marca como humano al ver qué venía
+                    // detrás (o al acabar el bloque: ver más abajo).
                     0x1b => self.esc = 1,
                     b'\r' | b'\n' => {
+                        r.human = true;
                         // Una línea que acaba en "\" es continuación: Claude
                         // Code no la envía, así que el texto SIGUE ahí.
                         if self.line.last() == Some(&b'\\') {
@@ -319,33 +347,43 @@ impl KeyWatch {
                         let txt = String::from_utf8_lossy(&self.line).trim().to_string();
                         for a in ALLOWED {
                             if txt == a || txt.starts_with(&format!("{a} ")) {
-                                mine = Some(a.to_string());
+                                r.cmd = Some(a.to_string());
                             }
                         }
                         self.line.clear();
                         sh.typed.store(false, Ordering::Relaxed);
                     }
                     0x08 | 0x7f => {
+                        r.human = true;
                         self.line.pop();
                         sh.typed.store(!self.line.is_empty(), Ordering::Relaxed);
                     }
                     // Ctrl+C y Ctrl+U dejan el prompt limpio
                     0x03 | 0x15 => {
+                        r.human = true;
                         self.line.clear();
                         sh.typed.store(false, Ordering::Relaxed);
                     }
                     _ if b >= 0x20 => {
+                        r.human = true;
                         // tope defensivo: una pegada enorme no debe comerse RAM
                         if self.line.len() < 64 * 1024 {
                             self.line.push(b);
                         }
                         sh.typed.store(true, Ordering::Relaxed);
                     }
-                    _ => {}
+                    _ => r.human = true,
                 },
             }
         }
-        mine
+        // Un ESC suelto (la tecla Escape, que en Claude Code cancela) llega
+        // solo en su propio bloque: si al acabar seguimos esperando lo que
+        // venía detrás, es que no venía nada y fue una tecla de verdad.
+        if self.esc == 1 {
+            self.esc = 0;
+            r.human = true;
+        }
+        r
     }
 }
 
@@ -472,8 +510,14 @@ fn run_relevo(extra: &[String]) -> ! {
                     Ok(0) | Err(_) => break,
                     Ok(n) => n,
                 };
-                sh.last_in.store(sh.ms(), Ordering::Relaxed);
-                if let Some(cmd) = watch.feed(&buf[..n], &sh) {
+                let keys = watch.feed(&buf[..n], &sh);
+                // La ventana de calma solo la reinicia una PERSONA: los avisos
+                // del terminal (foco, respuestas a consultas) llegan por aquí
+                // y no cuentan.
+                if keys.human {
+                    sh.last_in.store(sh.ms(), Ordering::Relaxed);
+                }
+                if let Some(cmd) = keys.cmd {
                     // El usuario se adelantó: que el panel cancele lo suyo.
                     *sh.user_cmd.lock().unwrap() = Some((now_epoch(), cmd));
                 }

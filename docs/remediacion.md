@@ -300,6 +300,16 @@ La etapa 3 se parte en tres para que cada trozo se valide solo:
   en esos dos casos, el relevo creería la línea enviada. Lo peor posible
   sigue siendo que el texto del usuario y el comando salgan juntos — R5
   garantiza que **jamás se borra nada**.
+- **Por el cable del teclado no solo llegan teclas** (cazado en la primera
+  prueba en Windows, 2026-08-08): el terminal mete sus propios avisos —
+  cambio de foco (`ESC [ I` / `ESC [ O`), posición del cursor (`R`),
+  identificación (`c`), estado (`n`), medidas de ventana (`t`)— y si
+  contaran como actividad, la ventana de calma se reiniciaría CADA VEZ que
+  el usuario sale de la terminal… que es exactamente lo que hace para ir al
+  panel de MichiClaude. Nunca se podría inyectar. `KeyWatch::feed` devuelve
+  ahora `human` y solo eso mueve el reloj de calma. Todo lo demás de una
+  secuencia CSI (flechas, inicio/fin, pegado, F1…) sí es humano, y un `ESC`
+  suelto también (llega solo en su propio bloque de lectura).
 - **R2 es la única señal que NO es certeza** y hay que decirlo: "Claude está
   generando" se deduce de que la PTY siga escupiendo bytes (`QUIET_MS` 2 s).
   El diseño original prometía saberlo; en realidad se infiere. Es
