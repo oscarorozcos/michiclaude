@@ -908,10 +908,26 @@ razones, por orden de peso:
    (`precomputeCompactionEnabled`, descrito como "Only applies when
    auto-compact is on"). Apagarla nos quita ese adelanto a nosotros
    también.
-3. **No hay carrera que ganar.** Nosotros entramos al 85% y él al ~94%:
-   se le gana POR DISEÑO, con ~9 puntos de margen. El 2026-08-08 quedó
-   demostrado en vivo — nuestro `/compact` liberó 872 960 tokens y la
-   auto-compactación nunca llegó a dispararse.
+3. **No hay carrera que ganar.** Nosotros entramos al 80%
+   (`INTENT_PCT`, el mismo umbral de la tarjeta de intención) y él al
+   ~94%: se le gana POR DISEÑO, con ~14 puntos de margen. El 2026-08-08
+   quedó demostrado en vivo — nuestro `/compact` liberó 872 960 tokens y
+   la auto-compactación nunca llegó a dispararse.
+
+**Y el ahorro NO es la razón.** Medido sobre el log real: la
+compactación resume lo que haya en contexto, así que entrar al 80%
+(~800k) en vez del ~94% (~940k) ahorra ~140k de lectura cacheada,
+céntimos. Vender MichiClaude como "te ahorra dinero compactando antes"
+sería exagerar. Lo que aporta es el MOMENTO y el aviso.
+
+**Cuidado — la compactación no se puede facturar desde el log.** Su
+turno NO lleva `usage`: el resumen se guarda como un mensaje `user` con
+`isCompactSummary` y nada más (verificado en el log del 2026-08-08). O
+sea que ni MichiClaude ni ninguna herramienta que lea los .jsonl puede
+poner un precio a una compactación — solo se ve en la CUOTA, que sí la
+mide el endpoint. Si algún día se quiere enseñar ese coste, hay que
+decir que es ESTIMADO (contexto × tarifa de caché + resumen × salida) o
+callarlo (invariante #8). Hoy se calla.
 
 Lo que sí aporta MichiClaude no es "compactar antes", es **compactar en
 un momento elegido**: la suya salta cuando el contexto se llena, que es

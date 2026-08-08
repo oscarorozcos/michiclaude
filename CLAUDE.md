@@ -372,7 +372,7 @@ compact", 2026-08-08). `ctx_seen` NO se toca (máximo histórico).
 La auto-compactación de Claude Code (~94% de su ventana) NO se toca ni
 se sugiere apagar: es la red de seguridad cuando MichiClaude no está, y
 apagarla desactiva además su `precomputeCompactionEnabled`. Nosotros
-entramos al 85% — se le gana por diseño, no por carrera.
+entramos al 80% (`INTENT_PCT`) — se gana por diseño, no por carrera.
 Reglas: ctx≥120k → compact;
 pausa≥6 min con ctx≥30k → cache; mismo archivo leído ≥3 → attach; `ask`
 (tool_use sin tool_result ≥3 min) y `done` (quieta 5 min, 5+ turnos) son
