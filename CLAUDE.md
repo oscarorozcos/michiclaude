@@ -606,10 +606,10 @@ historial: `cleanupPeriodDays: 365` en VPS y Windows (2026-07-29).
 
 ```powershell
 npm install        # CLI de Tauri (solo devDependency)
-npm run icons      # regenera iconos desde app-icon.png
+npm run icons      # iconos desde app-icon.png
 npm run dev        # desarrollo
 npm run build      # release: NSIS en src-tauri/target/release/bundle/nsis/
-cd src-tauri; cargo check   # verificación rápida del backend
+cd src-tauri; cargo check          # verificación rápida del backend
 cd relevo; cargo build --release   # el relevo (michi.exe), crate aparte
 ```
 
@@ -637,17 +637,15 @@ control sin `t()`.
   verificar: commit (Conventional Commits en español) y push.
 - La parte de negocio del analizador vive FUERA del repo
   (`~/.michiclaude/notas-negocio-analizador.md`): el historial de git se
-  publica con el repo.
+  publica.
 
 ## Contexto de producto
 
 - Usuario objetivo: suscriptores Pro/Max de Claude Code que quieren saber
-  cuánto les queda, cuándo se les acaba al ritmo actual y qué proyecto/
-  modelo consume más.
-- El coste en $ es NOCIONAL (equiv. API) para suscriptores; la UI lo
-  etiqueta así.
+  cuánto les queda, cuándo se acaba al ritmo actual y qué proyecto/modelo
+  consume más.
+- El coste en $ es NOCIONAL (equiv. API); la UI lo etiqueta así.
 - Diferenciadores vs ccusage/claudeusagewin: cuota real + costo por
-  proyecto + multi-máquina + gatito (nadie tiene mascota). GPL-3.0 con
-  excepción de assets Bongo Cat; releases automáticas por tag. La
-  confianza es prioridad: transparencia total sobre el token y el
-  endpoint no oficial.
+  proyecto + multi-máquina + gatito. GPL-3.0 con excepción de assets
+  Bongo Cat; releases por tag. La confianza es prioridad: transparencia
+  total sobre el token y el endpoint no oficial.
