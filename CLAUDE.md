@@ -560,16 +560,14 @@ hacer público el repo (o sus releases).
       defecto, primera vez SIEMPRE manual), sección en Ajustes +
       tarjeta de zombies en Consejos (pipeline normal, clave
       zombie|arranque-más-nuevo) y sondeo horario `remPoll`. SOLO
-      LOCAL: WSL/SSH quedan para etapas 3-4. ZOMBIES VALIDADOS EN VIVO
-      (2026-08-07, autopsia y receta del zombie de laboratorio en la
-      bitácora). De ahí dos REGLAS: firmas y líneas de comando se
-      comparan con las barras normalizadas a `/`, y todo script de
-      PowerShell escrito desde Rust lleva saltos de línea REALES (en
-      una línea muere en el parser: hacía fallar TODO cierre). El
-      veredicto del kill sale de re-consultar el PID, nunca de `$?`;
-      lo raro deja `rem_debug.json`. ETAPA 2 CERRADA: el archivado
-      también quedó validado (mueve conservando la estructura de
-      carpetas). Siguiente: etapa 3, el relevo.
+      LOCAL: WSL/SSH quedan para etapas 3-4. ETAPA 2 CERRADA Y VALIDADA
+      EN VIVO (2026-08-07: zombies y archivado; autopsia, receta del
+      zombie de laboratorio y reglas nuevas en la bitácora). De ahí:
+      barras normalizadas a `/` al casar firmas, y todo script de
+      PowerShell escrito desde Rust con saltos de línea REALES (en una
+      línea muere en el parser: hacía fallar TODO cierre). El veredicto
+      del kill sale de re-consultar el PID, nunca de `$?`; lo raro deja
+      `rem_debug.json`. Siguiente: etapa 3, el relevo.
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
