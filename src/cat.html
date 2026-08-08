@@ -82,6 +82,12 @@
      y el proyecto viven en el globo del hover. */
   .pgauge{display:inline-flex;align-self:center}
   .pgauge svg{width:13px;height:13px;display:block}
+  /* INVARIANTE 10bis, ahora también aquí: cualquier regla con `display`
+     anula a [hidden] en silencio. Pasó el 2026-08-08 — la cuenta atrás del
+     automático (.m.auto / .pauto) traía display propio, escrito DESPUÉS de
+     las reglas por clase de abajo, y se quedaba pegada como un círculo
+     ámbar vacío en la cápsula. Con la global no puede repetirse. */
+  [hidden]{display:none !important}
   .pgauge[hidden]{display:none}
   body.hovering .plabel{opacity:0}
   /* Al arrancar (o sin token) todavía no hay % que enseñar. Mejor que el

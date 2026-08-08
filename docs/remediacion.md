@@ -545,6 +545,14 @@ superficie visible con el panel cerrado — ver "lo que falta" al final.
   usuario se puso a teclear durante la cuenta, la orden se rechaza. Sus manos
   siempre ganan, y no hace falta que cancele nada para ello.
 - Todo lo aplicado en automático va al registro marcado como `auto`.
+- **Mordida del invariante 10bis, otra vez** (2026-08-08): `pill.html` y
+  `cat.html` ocultaban POR CLASE (`.m[hidden]`, `.pgauge[hidden]`), no con la
+  regla global que sí tiene `index.html`. La cuenta atrás traía `display`
+  propio escrito después, le ganaba por orden a igual especificidad, y se
+  quedaba pegada como un círculo ámbar vacío en la cápsula. Arreglado
+  metiendo `[hidden]{display:none !important}` en las dos ventanas: mientras
+  se oculte por clase, el siguiente que añada un elemento con `display`
+  vuelve a pisarlo.
 
 **Lo que falta después de la 3c-2, y por qué no se hizo de una:** el modo automático
 necesita que el countdown se vea con el panel CERRADO, que es como está el
