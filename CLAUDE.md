@@ -362,8 +362,8 @@ directo (capability `clipboard-manager:allow-write-text`, sin wrapper
 npm). Exportador viejo: ignora --coach → cero hits, se
 degrada solo (validado en vivo en el VPS, sondeo ~80 ms). Regla `acomp` (2026-08-08): `compact_boundary`
 con trigger≠manual y <30 min → ficha con los preTokens (los manuales no
-avisan: los hiciste tú; los INYECTADOS por el relevo entran como manual
-— se auditan solos, verificado en log real). TODO `compact_boundary`
+avisan: los hiciste tú; los INYECTADOS por el relevo entran como
+manual, se auditan solos). TODO `compact_boundary`
 —de quien sea— pone `last_ctx = 0`: el contexto se vació y hasta el
 próximo turno no hay medida (`press` exige >0 y no sale, invariante #8).
 Sin eso el manómetro mentía 10 min y el automático inyectaba un
