@@ -508,37 +508,21 @@ hacer público el repo (o sus releases).
       no viaja a hub ni ntfy). (c) MARCAS DE ARREGLO en localStorage
       (`fndHist`/`fndMarks`, solo hallazgos de estado, escaneos ≥7d sin
       rango; visto ≥3 días + desaparecido ≥2 = arreglado, rastro en
-      flowLog). FASE 2 pestaña Reporte: IMPLEMENTADA el 2026-08-06
-      (pendiente de capturas de Oscar) — 6.ª pestaña `rep_tab`, chips
-      Semana/Mes/Personalizado (el calendario compartido ganó el target
-      "rep"; Borrar = volver a Semana), secciones: héroe rendimiento
-      (nunca pinta con uturns=0), "¿te duró más o menos?" del histórico
-      de cuota (cobertura mínima 20 fotos o dice "juntando datos";
-      ventanas de sesión agrupadas por reset con tolerancia 10 min),
-      gráfica 4 semanas (serie daily, se oculta con <2 semanas con
-      datos), proyectos con delta vs periodo ANTERIOR (misma anchura
-      terminando donde empieza el actual; umbral 10% o $0.50) y "qué lo
-      encareció" SOLO de hallazgos reales, marcas con antes/después
-      (mínimo 5 días de datos tras el arreglo o dice "midiendo"), y
-      "para los días que vienen" (top 2 fugas por costo, cada una CON su
-      recomendación `fnd_<kind>_f` y una intro que dice qué es — lista de
-      tareas de ahorro, no alarma). Ronda 2026-08-06 tras capturas: caché
-      POR PERIODO + render PROGRESIVO (stats primero, hallazgos re-pintan
-      sus 2 secciones al llegar), y re-render al cambiar idioma. Ronda
-      2026-08-07 sobre maqueta de Oscar (michiclaude-hero-grafica.html):
-      héroe partido en EFICIENCIA arriba / VOLUMEN abajo (raya punteada;
-      "Cuánto trabajaste en total" con ≈$ real, día más pesado, nota
-      "no es contradicción" SOLO cuando volumen y costo/msj divergen, y
-      la regla "1M tok ≈ $X" con la tarifa REAL del periodo — cost/tok
-      medidos, nunca tarifa fija); la traducción a $ SIEMPRE pegada a su
-      dato de tokens (clase .as-money); gráfica GRANDE (viewBox 430×252,
-      píldoras de valor legibles) con conmutador tokens/«$ estimado»
-      (`repUnit` persistido; el $ semanal es el costo real de esa semana
-      ÷ sus mensajes), barras de volumen abajo y DETALLE al tocar punto o
-      barra (repSel). Sin candado de carga: peticiones con sello
-      (repStamp), la tardía se descarta. ~72 claves i18n ×8 (paridad por
-      script). SI SE RETOMA, lo primero sería: fase 3
-      export HTML del mockup A. También en el doc y sin arrancar:
+      flowLog). FASE 2 pestaña Reporte: IMPLEMENTADA 2026-08-06 y pulida
+      2026-08-07 sobre maqueta de Oscar — 6.ª pestaña `rep_tab`, chips
+      Semana/Mes/Personalizado, héroe partido EFICIENCIA/VOLUMEN, "¿te
+      duró más o menos?" del histórico de cuota, gráfica 4 semanas con
+      conmutador tokens/$ y detalle al tocar (repSel), proyectos con
+      delta vs periodo anterior, "qué lo encareció" y "para los días que
+      vienen". REGLAS VIGENTES de esa ronda (el detalle, en el doc):
+      nunca pintar con uturns=0; cobertura mínima 20 fotos de cuota o
+      "juntando datos"; la regla "1M tok ≈ $X" con la tarifa REAL del
+      periodo, jamás fija; la traducción a $ SIEMPRE pegada a su dato de
+      tokens (.as-money); caché POR PERIODO + render PROGRESIVO y
+      re-render al cambiar idioma; sin candado de carga (sello
+      `repStamp`, la petición tardía se descarta). ~72 claves i18n ×8.
+      SI SE RETOMA, lo primero: fase 3, export HTML del mockup A.
+      También en el doc y sin arrancar:
       manómetro de contexto en pastilla/gatito, detector de
       auto-compacts, detector de pegado masivo. DESCARTADO con porqué en
       el doc: sesión contaminada, score único, modelo local, telemetría
@@ -550,7 +534,9 @@ hacer público el repo (o sus releases).
       relevo ConPTY `michi claude`, 4 relevo en WSL/SSH. ETAPA 1
       COMPLETA Y VALIDADA EN VIVO (2026-08-07, detalle en el doc y la
       bitácora). ETAPA 2 IMPLEMENTADA (2026-08-07, con el go explícito
-      de Oscar — matar procesos era decisión suya): zombies MCP por
+      de Oscar — matar procesos era decisión suya) y CERRADA/VALIDADA EN
+      VIVO el mismo día (zombies y archivado; autopsia y receta del
+      zombie de laboratorio en la bitácora): zombies MCP por
       PowerShell/CIM sin deps nuevas (firma = arg más largo de cada MCP
       stdio de ~/.claude.json; huérfano = padre muerto o PID de padre
       reciclado; kill re-verifica PID+exe+arranque), archivado ≥365d a
@@ -560,14 +546,25 @@ hacer público el repo (o sus releases).
       defecto, primera vez SIEMPRE manual), sección en Ajustes +
       tarjeta de zombies en Consejos (pipeline normal, clave
       zombie|arranque-más-nuevo) y sondeo horario `remPoll`. SOLO
-      LOCAL: WSL/SSH quedan para etapas 3-4. ETAPA 2 CERRADA Y VALIDADA
-      EN VIVO (2026-08-07: zombies y archivado; autopsia, receta del
-      zombie de laboratorio y reglas nuevas en la bitácora). De ahí:
-      barras normalizadas a `/` al casar firmas, y todo script de
-      PowerShell escrito desde Rust con saltos de línea REALES (en una
-      línea muere en el parser: hacía fallar TODO cierre). El veredicto
-      del kill sale de re-consultar el PID, nunca de `$?`; lo raro deja
-      `rem_debug.json`. Siguiente: etapa 3, el relevo.
+      LOCAL: WSL/SSH quedan para la etapa 4. De ahí: barras
+      normalizadas a `/` al casar firmas, y todo script de PowerShell
+      escrito desde Rust con saltos de línea REALES (en una línea muere
+      en el parser: hacía fallar TODO cierre); el veredicto del kill
+      sale de re-consultar el PID, nunca de `$?`, y lo raro deja
+      `rem_debug.json`. ETAPA 3 partida en 3a/3b/3c; **3a HECHA
+      2026-08-08 y SIN COMPILAR todavía** (no hay Rust en el VPS):
+      crate APARTE `relevo/` (paquete `michi`, FUERA de src-tauri — la
+      app no gana deps, invariante #4; portable-pty vive solo ahí),
+      ConPTY con paso transparente, canal por ARCHIVOS en
+      `%APPDATA%\<app>\relevo\<pid>.json|.cmd` (no named pipe;
+      tmp+rename añadiendo `.tmp` al nombre ENTERO, si no estado y
+      orden se pisan), sesión viva = estado con <15 s, LISTA BLANCA de
+      dos textos (/compact, /clear) como límite duro, R1 por máquina de
+      estados del teclado y R2 ("Claude generando") INFERIDA del
+      silencio de la PTY — única señal que no es certeza. El relevo
+      JAMÁS escribe en disco lo tecleado. Se valida sin panel con
+      `michi status` y `michi inject /compact`. Faltan 3b (el panel
+      descubre sesiones) y 3c (countdown + desbloqueo progresivo).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
@@ -594,6 +591,7 @@ npm run icons      # regenera iconos desde app-icon.png
 npm run dev        # desarrollo
 npm run build      # release: NSIS en src-tauri/target/release/bundle/nsis/
 cd src-tauri; cargo check   # verificación rápida del backend
+cd relevo; cargo build --release   # el relevo (michi.exe), crate aparte
 ```
 
 Verificación obligatoria al terminar cualquier cambio en Rust: `cargo

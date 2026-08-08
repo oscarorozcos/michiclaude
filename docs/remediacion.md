@@ -160,7 +160,12 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
    [IMPLEMENTADA 2026-08-07 con el go explícito de Oscar; pendiente de
    `cargo check` en Windows y de validación en vivo. Decisiones de la
    implementación en §"Decisiones de la etapa 2".]
-3. **El relevo** (`michi claude`): inyección real de /compact//clear con
+3. **El relevo** (`michi claude`) [3a IMPLEMENTADA 2026-08-08: crate
+   `relevo/`, paso transparente por ConPTY, canal por archivos, reglas
+   R1-R5 y subcomandos `status`/`inject` para validar sin panel; pendiente
+   de `cargo build` y prueba en el Windows de Oscar. Decisiones en
+   §"Decisiones de la etapa 3a". Faltan 3b (descubrimiento en el panel) y
+   3c (countdown + desbloqueo progresivo)]: inyección real de /compact//clear con
    countdown, solo sesiones del relevo; los checks "Aplicar" APARECEN
    solo cuando existen sesiones inyectables. El countdown va en una
    SUPERFICIE PROPIA (tarjeta del panel o ventana nueva) — NUNCA
@@ -251,6 +256,69 @@ que no sirven): un `mcp-fantasma.js` con `setInterval(function(){},
 lanzado con `powershell -Command "Start-Process node -ArgumentList
 '<ruta>' -WindowStyle Hidden"` — ese powershell intermedio muere en el
 acto y deja al node huérfano de nacimiento.
+
+## Decisiones de la etapa 3a (el relevo, 2026-08-08)
+
+La etapa 3 se parte en tres para que cada trozo se valide solo:
+**3a** el relevo que envuelve Claude Code sin que se note (ESTO),
+**3b** el panel descubre sesiones con relevo y las enseña,
+**3c** countdown, inyección desde la UI y desbloqueo progresivo
+(/compact 2 manuales, /clear 3 y solo en `Boundary`).
+
+- **Crate APARTE** (`relevo/`, paquete `michi`, binario `michi.exe`), no un
+  binario del crate de Tauri y **fuera de `src-tauri/`**. Tres motivos: la
+  app no gana ni una dependencia (invariante #4 — `portable-pty` vive solo
+  ahí); si el relevo no compila, la app sigue compilando y publicándose; y
+  dentro de `src-tauri/` sería un paquete Cargo anidado que el vigilante de
+  `npm run dev` recompilaría sin motivo.
+- **El canal son ARCHIVOS, no un named pipe** (corrección al diseño). Un
+  pipe con nombre exige `CreateNamedPipeW` + `ConnectNamedPipe` a mano:
+  código `unsafe` que nadie puede compilar en el VPS. Los archivos viven en
+  `%APPDATA%\com.oscarorozco.michiclaude\relevo\` — misma frontera de
+  seguridad (el perfil del usuario), cero `unsafe`, y sobreviven a que la
+  app se reinicie. `<pid>.json` = estado (lo escribe el relevo cada 500 ms),
+  `<pid>.cmd` = una orden (la escribe la app, el relevo la borra al leerla).
+  Ambos con tmp+rename; el temporal AÑADE `.tmp` al nombre entero, porque
+  con `with_extension` estado y orden compartirían `<pid>.tmp` y se
+  pisarían.
+- **Sesión viva = estado con menos de 15 s.** Un relevo matado de golpe deja
+  su archivo; la frescura es lo único fiable. Misma regla en el panel.
+- **Lista blanca de DOS textos** (`/compact`, `/clear`), comparados
+  literalmente. Es el límite duro: aunque algo escribiera en esa carpeta, no
+  hay forma de que el relevo teclee otra cosa dentro de la sesión.
+- **Privacidad:** el relevo ve cada tecla porque está en medio del cable,
+  pero NUNCA la escribe en disco. Del tecleo solo salen del proceso un
+  booleano (`typed`), relojes de inactividad y —si el usuario escribió él
+  mismo uno de los dos comandos— cuál de los dos fue. Ni una letra del
+  contenido.
+- **R1 se cuenta con una máquina de estados sobre el flujo de teclas**
+  (secuencias de escape aparte, para que una flecha no cuente como texto).
+  Dos trampas ya cubiertas: una línea que acaba en `\` es continuación y NO
+  se toma como enviada, y `ESC`+`CR` (Shift+Enter en varias terminales) cae
+  dentro del estado de escape, así que tampoco. Riesgo residual honesto: si
+  alguna terminal envía un salto que Claude Code no ejecuta y que no encaja
+  en esos dos casos, el relevo creería la línea enviada. Lo peor posible
+  sigue siendo que el texto del usuario y el comando salgan juntos — R5
+  garantiza que **jamás se borra nada**.
+- **R2 es la única señal que NO es certeza** y hay que decirlo: "Claude está
+  generando" se deduce de que la PTY siga escupiendo bytes (`QUIET_MS` 2 s).
+  El diseño original prometía saberlo; en realidad se infiere. Es
+  fail-closed y se combina con la calma de teclado (`CALM_MS` 8 s) y un
+  enfriamiento de 15 s tras inyectar.
+- **R4 vive repartido:** el countdown lo pinta el panel (etapa 3c), pero
+  quien decide es el relevo — `attend()` vuelve a comprobar R1-R3 en el
+  instante de escribir. Que el countdown termine no es un permiso.
+- **Se valida sin panel.** El binario trae `michi status` (sesiones vivas y
+  por qué están o no listas) y `michi inject /compact`. Con eso la etapa 3a
+  se prueba entera desde la terminal, antes de escribir una línea de UI.
+- Motivos del "no" en código (`ERR_RELAY_TYPED`, `_BUSY`, `_NOISY`,
+  `_COOLDOWN`, `_GONE`, `_BADCMD`, `_WRITE`): los traduce el panel,
+  invariante #10.
+- Arranque de `claude`: primero directo y, si falla, a través de
+  `cmd.exe /c` (el `claude.cmd` de npm). Directo es preferible — cmd.exe en
+  medio se queda con el Ctrl+C ("¿Terminar trabajo por lotes?").
+- El hijo recibe `MICHI_RELEVO=<pid>` en el entorno; servirá en 3b para
+  casar "esta terminal" con "esta sesión de los logs" junto a cwd + hora.
 
 ## Correcciones sobre la propuesta original (para no rediscutir)
 
