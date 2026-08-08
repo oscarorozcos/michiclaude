@@ -535,44 +535,35 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       escrito desde Rust con saltos de línea REALES (en una línea muere
       en el parser: hacía fallar TODO cierre); el veredicto del kill
       sale de re-consultar el PID, nunca de `$?`, y lo raro deja
-      `rem_debug.json`. ETAPA 3 partida en 3a/3b/3c; **3a COMPLETA Y
-      VALIDADA EN VIVO 2026-08-08** (seis pruebas; autopsia de los tres
-      fallos en la bitácora): crate APARTE `relevo/` (paquete `michi`,
-      FUERA de src-tauri — la app no gana deps, invariante #4), ConPTY
-      transparente, canal por ARCHIVOS en
-      `%APPDATA%\<app>\relevo\<pid>.json|.cmd` (tmp+rename con `.tmp`
-      sobre el nombre ENTERO, si no estado y orden se pisan), viva =
-      estado <15 s, LISTA BLANCA de dos textos (/compact, /clear) como
-      límite duro, R2 INFERIDA del silencio de la PTY. REGLAS DURAS:
-      **ConPTY negocia `win32-input-mode` a espaldas del que está en
-      medio** — las teclas llegan como `ESC[Vk;Sc;Uc;Kd;Cs;Rc_`, hay que
-      decodificarlas o no se cuenta ni una; los avisos del terminal
-      (foco, cursor) NO son teclas; UNA fuente de verdad para "hay
-      texto" (derivada del buffer); un Enter no limpia hasta ver si
-      Claude REACCIONA. JAMÁS escribe lo tecleado — `michi status
-      --debug` son CUENTAS; con eso y `michi inject` se valida sin panel. **3b IMPLEMENTADA 2026-08-08** (falta `cargo check` y
-      validación en vivo): `get_relays` (async, lee la carpeta del
-      relevo, misma regla de frescura, borra los de >24 h) y el CASADO
-      sesión↔relevo por el `cwd` COMPLETO — para eso el hit `press` lleva
-      el campo aditivo `scwd` (replicado en el exportador, invariante #1).
-      FAIL-CLOSED: con dos relevos en la misma carpeta no se afirma nada,
-      y dos sesiones en la misma carpeta (una con relevo, otra sin) es
-      límite asumido — la hora de arranque no sirve, `--resume` la rompe.
-      Se ve en Ajustes → Remediación (proyecto · pid · % de la sesión
-      casada · listo/motivo; sondeo 5 s SOLO con esa pestaña visible) y
-      como insignia "relevo" en la tarjeta de intención. El % de la fila
-      ES la prueba visible del casado. **3c-1
-      COMPLETA Y VALIDADA EN VIVO 2026-08-08** (manual): `relay_inject`
-      escribe la orden y espera acuse 8 s; lista blanca en LOS DOS
-      lados; countdown de
-      5 s donde el propio botón es el de parar; `relayBusy` impide
-      repintar con una cuenta viva (si no, el botón se va y la orden se
-      aplica a ciegas); botón en la tarjeta de intención y en Ajustes
-      (ahí SOLO /compact — `/clear` necesita su contexto); todo al
-      registro (`kind:"relay"`); desbloqueo en
-      `relayDone` (/compact 2, /clear 3). El motivo del rechazo va en
-      línea propia, NUNCA dentro del botón (lo estiraba fuera del
-      panel). ATAJO DEL PATH
+      `rem_debug.json`. ETAPA 3 (relevo) COMPLETA salvo la 4;
+      TODO VALIDADO EN VIVO 2026-08-08, detalle y autopsias en
+      `docs/remediacion.md` y la bitácora. REGLAS DURAS que hay que
+      conocer antes de tocarlo:
+      crate APARTE `relevo/` (la app no gana deps, invariante #4);
+      canal por ARCHIVOS `%APPDATA%\<app>\relevo\<pid>.json|.cmd`
+      (tmp+rename con `.tmp` sobre el nombre ENTERO o estado y orden se
+      pisan); viva = estado <15 s; LISTA BLANCA (/compact, /clear) como
+      límite duro, comprobada en LOS DOS lados; R2 se INFIERE del
+      silencio de la PTY. **ConPTY negocia `win32-input-mode` a espaldas
+      del que está en medio** — las teclas llegan como
+      `ESC[Vk;Sc;Uc;Kd;Cs;Rc_` y hay que decodificarlas; los avisos del
+      terminal (foco, cursor) NO son teclas; UNA fuente de verdad para
+      "hay texto"; un Enter no limpia hasta ver si Claude REACCIONA; el
+      relevo JAMÁS escribe lo tecleado (`--debug` son CUENTAS).
+      `TitleMark` antepone la marca al título que escribe Claude: ÚNICA
+      excepción al paso transparente, lee el número OSC ENTERO
+      (`ESC]10;` es color) y es fail-open con tope. Casado
+      sesión↔relevo por el `cwd` COMPLETO (campo `scwd` del hit `press`,
+      replicado en el exportador) y FAIL-CLOSED ante ambigüedad. Quien
+      DECIDE es el relevo: `attend()` revuelve R1-R3 al escribir, que el
+      countdown acabe no es permiso. `relayBusy` impide repintar con una
+      cuenta viva (si no, el botón se va y la orden se aplica a ciegas).
+      El motivo del rechazo va en línea propia, nunca dentro del botón.
+      Desbloqueo en `relayDone` (/compact 2, /clear 3) y `/clear` NO se
+      automatiza aunque se gane. El AUTOMÁTICO exige widget A LA VISTA
+      —la cuenta atrás vive en la cápsula—, dura 15 s, cualquier toque
+      la para (en el gatito el manejador va en CAPTURA) y se marca ANTES
+      de empezar para que un fallo no teclee en bucle. ATAJO DEL PATH
       (`set_relay_alias`): un `claude.cmd` en `%APPDATA%\<app>\bin`
       DELANTE del PATH de usuario — resuelve Windows, no el shell, así
       que vale para cualquier terminal/editor; NO alcanza WSL/SSH ni
@@ -581,9 +572,8 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       instalar). PATH por
       `[Environment]::SetEnvironmentVariable`, JAMÁS `setx` (trunca a
       1024); copia en `path_backup.txt` y el interruptor quita EXACTA su
-      entrada. Falta 3c-2, el AUTOMÁTICO: el countdown va a la cápsula
-      del widget (un clic lo para) y con el widget oculto NO actúa. Y
-      `michi.exe` debe viajar en el instalador (workflow, invariante #9).
+      entrada. FALTA: que `michi.exe` viaje en el instalador
+      (workflow, invariante #9) y la etapa 4 (WSL/SSH).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.

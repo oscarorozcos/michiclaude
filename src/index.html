@@ -1488,6 +1488,12 @@
         <span data-i18n="rly_alias_on"></span><input type="checkbox" id="rlyAliasChk">
       </label>
       <div class="cfg-note" id="rlyAliasMsg"></div>
+      <!-- Automático (3c-2). Nace APAGADO y con candado: la cuenta atrás vive
+           en la cápsula del widget, así que con el widget oculto no actúa. -->
+      <label class="cfg-row" style="cursor:pointer;margin-top:6px">
+        <span data-i18n="rly_auto_on"></span><input type="checkbox" id="rlyAutoChk">
+      </label>
+      <div class="cfg-note" id="rlyAutoLock" hidden style="color:var(--warn)"></div>
       <div class="cfg-note" id="rlyUnlock"></div>
       <div class="cfg-lbl" data-i18n="rem_log_label"></div>
       <div id="remLog" class="cfg-note"></div>
@@ -1995,6 +2001,9 @@ en:{
   rly_applied:"Applied ✓",
   rly_failed:w=>`Not applied: ${w}`,
   rly_unlock:(a,b,c,d)=>`Applied by you: /compact ${a} of ${b} · /clear ${c} of ${d} — automatic mode unlocks once you complete them.`,
+  rly_auto_on:"Apply /compact automatically",
+  rly_auto_lock:n=>`Michi does not automate what you have not seen: apply it yourself ${n} more ${n===1?"time":"times"} and automatic mode unlocks.`,
+  rly_auto_msg:(cmd,s)=>`Michi will apply ${cmd} in ${s} s — tap to stop`,
   rly_alias_on:"Make «claude» go through the relay",
   rly_alias_ok:"On: typing «claude» in any terminal opens it with relay.",
   rly_alias_off:"Off: to get relay you have to type «michi claude».",
@@ -2409,6 +2418,9 @@ es:{
   rly_applied:"Aplicado ✓",
   rly_failed:w=>`No se aplicó: ${w}`,
   rly_unlock:(a,b,c,d)=>`Aplicado por ti: /compact ${a} de ${b} · /clear ${c} de ${d} — el automático se desbloquea al completarlos.`,
+  rly_auto_on:"Aplicar /compact en automático",
+  rly_auto_lock:n=>`Michi no automatiza lo que no has visto: aplícalo tú ${n} ${n===1?"vez":"veces"} más y el automático se desbloquea.`,
+  rly_auto_msg:(cmd,s)=>`Michi va a aplicar ${cmd} en ${s} s — toca para parar`,
   rly_alias_on:"Hacer que «claude» pase por el relevo",
   rly_alias_ok:"Activado: escribir «claude» en cualquier terminal lo abre con relevo.",
   rly_alias_off:"Desactivado: para tener relevo hay que escribir «michi claude».",
@@ -2823,6 +2835,9 @@ pt:{
   rly_applied:"Aplicado ✓",
   rly_failed:w=>`Não aplicado: ${w}`,
   rly_unlock:(a,b,c,d)=>`Aplicado por você: /compact ${a} de ${b} · /clear ${c} de ${d} — o automático libera ao completá-los.`,
+  rly_auto_on:"Aplicar /compact automaticamente",
+  rly_auto_lock:n=>`O Michi não automatiza o que você não viu: aplique você mesmo mais ${n} ${n===1?"vez":"vezes"} e o automático libera.`,
+  rly_auto_msg:(cmd,s)=>`O Michi vai aplicar ${cmd} em ${s} s — toque para parar`,
   rly_alias_on:"Fazer o «claude» passar pelo revezamento",
   rly_alias_ok:"Ativado: digitar «claude» em qualquer terminal abre com revezamento.",
   rly_alias_off:"Desativado: para ter revezamento é preciso digitar «michi claude».",
@@ -3237,6 +3252,9 @@ fr:{
   rly_applied:"Appliqué ✓",
   rly_failed:w=>`Non appliqué : ${w}`,
   rly_unlock:(a,b,c,d)=>`Appliqué par toi : /compact ${a} sur ${b} · /clear ${c} sur ${d} — le mode automatique se débloque une fois complétés.`,
+  rly_auto_on:"Appliquer /compact automatiquement",
+  rly_auto_lock:n=>`Michi n’automatise pas ce que tu n’as pas vu : applique-le ${n} fois de plus et le mode automatique se débloque.`,
+  rly_auto_msg:(cmd,s)=>`Michi va appliquer ${cmd} dans ${s} s — touche pour arrêter`,
   rly_alias_on:"Faire passer «claude» par le relais",
   rly_alias_ok:"Activé : taper «claude» dans n’importe quel terminal l’ouvre avec relais.",
   rly_alias_off:"Désactivé : pour avoir le relais il faut taper «michi claude».",
@@ -3651,6 +3669,9 @@ de:{
   rly_applied:"Angewendet ✓",
   rly_failed:w=>`Nicht angewendet: ${w}`,
   rly_unlock:(a,b,c,d)=>`Von dir angewendet: /compact ${a} von ${b} · /clear ${c} von ${d} — der Automatikmodus wird danach freigeschaltet.`,
+  rly_auto_on:"/compact automatisch anwenden",
+  rly_auto_lock:n=>`Michi automatisiert nichts, was du nicht gesehen hast: wende es noch ${n}× selbst an und der Automatikmodus wird freigeschaltet.`,
+  rly_auto_msg:(cmd,s)=>`Michi wendet ${cmd} in ${s} s an — zum Stoppen tippen`,
   rly_alias_on:"«claude» über das Relais laufen lassen",
   rly_alias_ok:"An: «claude» in einem beliebigen Terminal startet es mit Relais.",
   rly_alias_off:"Aus: für das Relais musst du «michi claude» tippen.",
@@ -4065,6 +4086,9 @@ ja:{
   rly_applied:"適用しました ✓",
   rly_failed:w=>`適用できませんでした: ${w}`,
   rly_unlock:(a,b,c,d)=>`あなたが適用した回数: /compact ${a}/${b} · /clear ${c}/${d} — すべて満たすと自動モードが解放されます。`,
+  rly_auto_on:"/compact を自動で適用する",
+  rly_auto_lock:n=>`Michi は見ていないことを自動化しません: あと ${n} 回自分で適用すると自動モードが解放されます。`,
+  rly_auto_msg:(cmd,s)=>`${s} 秒後に ${cmd} を適用します — 止めるにはタップ`,
   rly_alias_on:"「claude」をリレー経由にする",
   rly_alias_ok:"オン: どのターミナルでも「claude」でリレー付きで起動します。",
   rly_alias_off:"オフ: リレーを使うには「michi claude」と入力する必要があります。",
@@ -4479,6 +4503,9 @@ ko:{
   rly_applied:"적용됨 ✓",
   rly_failed:w=>`적용하지 못했습니다: ${w}`,
   rly_unlock:(a,b,c,d)=>`직접 적용한 횟수: /compact ${a}/${b} · /clear ${c}/${d} — 모두 채우면 자동 모드가 열립니다.`,
+  rly_auto_on:"/compact 자동으로 적용",
+  rly_auto_lock:n=>`Michi는 당신이 보지 않은 것을 자동화하지 않습니다: ${n}번 더 직접 적용하면 자동 모드가 열립니다.`,
+  rly_auto_msg:(cmd,s)=>`${s}초 후 ${cmd}를 적용합니다 — 멈추려면 탭하세요`,
   rly_alias_on:"「claude」를 릴레이로 통하게 하기",
   rly_alias_ok:"켜짐: 어떤 터미널에서든 「claude」를 치면 릴레이로 열립니다.",
   rly_alias_off:"꺼짐: 릴레이를 쓰려면 「michi claude」를 입력해야 합니다.",
@@ -4893,6 +4920,9 @@ zh:{
   rly_applied:"已应用 ✓",
   rly_failed:w=>`未应用：${w}`,
   rly_unlock:(a,b,c,d)=>`你已手动应用：/compact ${a}/${b} · /clear ${c}/${d} — 全部完成后解锁自动模式。`,
+  rly_auto_on:"自动应用 /compact",
+  rly_auto_lock:n=>`Michi 不会自动化你没看过的事：再手动应用 ${n} 次即可解锁自动模式。`,
+  rly_auto_msg:(cmd,s)=>`Michi 将在 ${s} 秒后应用 ${cmd} — 点一下即可停止`,
   rly_alias_on:"让「claude」走接力",
   rly_alias_ok:"已开启：在任何终端输入「claude」都会带接力启动。",
   rly_alias_off:"已关闭：要用接力需要输入「michi claude」。",
@@ -6973,6 +7003,7 @@ async function coachPoll(){
         hits.push(intentHit);
       }
     }
+    relayAutoCheck(pr);            // ¿toca aplicar /compact solo? (3c-2)
     ntfyDone(all.filter(h=>h.rule==="done"));
     ntfyAsk(all.filter(h=>h.rule==="ask"));
     const seen=tipSeenSet();
@@ -7826,7 +7857,19 @@ function remUi(){
   const c=relayCount();
   $("rlyUnlock").textContent=t("rly_unlock",
     c["/compact"]||0, RELAY_UNLOCK["/compact"], c["/clear"]||0, RELAY_UNLOCK["/clear"]);
+  $("rlyAutoChk").checked=remOn("relay");
+  // el candado solo se explica cuando el automático está PEDIDO y aún no
+  // ganado; con el interruptor apagado no hay nada que aclarar
+  const falta=Math.max(0,RELAY_UNLOCK["/compact"]-(c["/compact"]||0));
+  $("rlyAutoLock").hidden=!(remOn("relay")&&falta>0);
+  $("rlyAutoLock").textContent=t("rly_auto_lock",falta);
 }
+$("rlyAutoChk").addEventListener("change",()=>{
+  const cf=remCfg(); cf.relay=$("rlyAutoChk").checked;
+  localStorage.setItem("remCfg",JSON.stringify(cf));
+  flog("relevo: automático → "+(cf.relay?"on":"off"));
+  remUi();
+});
 for(const [id,k] of [["remZombieChk","zombie"],["remArchChk","archive"]])
   $(id).addEventListener("change",()=>{
     const c=remCfg(); c[k]=$(id).checked;
@@ -8125,6 +8168,68 @@ function relayApply(btn){
     }
   },1000);
   btn.dataset.timer=String(tick);
+}
+
+// ---------- el automático (etapa 3c-2) ----------
+// Michi aplica /compact sin que pulses. Cuatro condiciones, todas duras:
+// interruptor encendido, desbloqueo ganado a mano, relevo casado sin
+// ambigüedad, y WIDGET A LA VISTA — porque la cuenta atrás vive en la
+// cápsula y una cuenta atrás que nadie puede ver no es una cuenta atrás,
+// es Michi tecleando a tus espaldas con un adorno.
+//
+// `/clear` NO se automatiza aquí aunque se desbloquee: borra la memoria de
+// la conversación y no se deshace. Queda para cuando el automático tenga
+// kilómetros.
+const RELAY_AUTO_WAIT=15;   // más larga que la manual: esto no lo pediste tú
+let autoRun=null;           // {cmd,pid,timer} mientras corre la cuenta
+function autoSeen(){ try{ return new Set(JSON.parse(localStorage.getItem("relayAuto")||"[]")); }catch(_){ return new Set(); } }
+function autoMark(sid){
+  const s=autoSeen(); s.add(sid);
+  localStorage.setItem("relayAuto",JSON.stringify([...s].slice(-100)));
+}
+// Le dice al widget qué pintar. Payload nulo = quitar la cuenta.
+function autoBeam(left,cmd){
+  EVENT?.emit("relay:auto", left==null?null:{left,cmd,
+    msg:t("rly_auto_msg",cmd,left)});
+}
+function autoStop(why){
+  if(!autoRun) return;
+  clearInterval(autoRun.timer);
+  flog("relevo auto: cancelado ("+why+")");
+  autoRun=null;
+  autoBeam(null);
+}
+// El widget manda parar (un toque en la cápsula). También lo paran las manos
+// del usuario: si teclea, el relevo rechaza la orden al re-verificar R1.
+EVENT?.listen("relay:stop",()=>autoStop("el usuario"));
+async function relayAutoCheck(pr){
+  if(autoRun||simFnd||!invoke||!pr) return;
+  if(!remOn("relay")||!relayUnlocked("/compact")) return;
+  if(pressPct(pr)<INTENT_PCT) return;
+  const sid=pr.session||"";
+  if(!sid||autoSeen().has(sid)) return;      // una vez por sesión y basta
+  const rly=relayFor(pr);
+  if(!rly) return;                           // sin pareja inequívoca, nada
+  if(!pillOn) return;                        // sin widget no hay cuenta atrás
+  autoMark(sid);                             // se marca ANTES: un fallo no
+                                             // puede convertirse en un bucle
+  let left=RELAY_AUTO_WAIT;
+  flog("relevo auto: cuenta atrás para /compact en pid "+rly.pid);
+  autoBeam(left,"/compact");
+  autoRun={cmd:"/compact",pid:rly.pid,timer:setInterval(async ()=>{
+    left--;
+    if(left>0){ autoBeam(left,"/compact"); return; }
+    clearInterval(autoRun.timer);
+    autoRun=null;
+    autoBeam(null);
+    // R4: el relevo vuelve a comprobar R1-R3 al escribir. Si el usuario se
+    // puso a teclear durante la cuenta, esto se rechaza — y está bien.
+    try{
+      await invoke("relay_inject",{pid:rly.pid,text:"/compact",auto:true});
+      flog("relevo auto: aplicado /compact");
+    }catch(e){ flog("relevo auto: NO aplicado — "+e); }
+    remLogLoad();
+  },1000)};
 }
 
 // ---------- el atajo: que `claude` pase por el relevo ----------

@@ -521,7 +521,32 @@ superficie visible con el panel cerrado — ver "lo que falta" al final.
   deshace—. El marcador se enseña en Ajustes para que se vea acumular, en vez
   de que un día aparezca un automático de la nada.
 
-**Lo que falta (3c-2), y por qué no se hizo de una:** el modo automático
+## La etapa 3c-2: el automático (2026-08-08)
+
+- **Cuatro condiciones, todas duras:** interruptor encendido (nace APAGADO),
+  desbloqueo ganado a mano (2 aplicaciones de `/compact`), relevo casado sin
+  ambigüedad, y **widget A LA VISTA**. Esta última es la que manda: la cuenta
+  atrás vive en la cápsula, así que con el widget oculto NO se actúa — una
+  cuenta atrás que nadie puede ver no es una cuenta atrás, es Michi tecleando
+  a tus espaldas con un adorno.
+- **`/clear` no se automatiza**, aunque se desbloquee. Borra la memoria de la
+  conversación y no se deshace; queda para cuando el automático tenga
+  kilómetros.
+- **15 s de cuenta**, el triple que la manual: esto no lo pediste tú.
+- **Cualquier toque en la cápsula (o en el gatito) la para.** En el gatito el
+  manejador va en fase de CAPTURA para ganarle a todos los demás: recuperar
+  el control no puede depender de acertar la zona correcta.
+- **Una vez por sesión, y se marca ANTES de empezar** (`relayAuto` en
+  localStorage). Si algo falla, no puede convertirse en un bucle que teclee
+  en la terminal del usuario. Consecuencia asumida: si cancelas, esa sesión
+  no vuelve a intentarlo — la tarjeta de intención sigue ahí para hacerlo a
+  mano.
+- El relevo **vuelve a comprobar R1-R3 al escribir** (R4), así que si el
+  usuario se puso a teclear durante la cuenta, la orden se rechaza. Sus manos
+  siempre ganan, y no hace falta que cancele nada para ello.
+- Todo lo aplicado en automático va al registro marcado como `auto`.
+
+**Lo que falta después de la 3c-2, y por qué no se hizo de una:** el modo automático
 necesita que el countdown se vea con el panel CERRADO, que es como está el
 panel casi siempre. Una cuenta atrás que nadie puede ver no es una cuenta
 atrás. La superficie correcta es el widget (pastilla/gatito), que ya recibe

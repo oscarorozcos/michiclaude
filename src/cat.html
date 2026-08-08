@@ -142,6 +142,10 @@
     width:9px;height:4.5px;transform:translateX(-50%) rotate(-4deg);
     background:rgba(255,255,255,.6);border:1px solid var(--ink);
     border-radius:1px}
+  .pauto{display:inline-flex;align-items:center;justify-content:center;
+    min-width:20px;height:16px;padding:0 5px;margin-left:4px;border-radius:999px;
+    background:var(--warn);color:#1a1206;font-weight:700;font-size:10.5px;
+    font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body class="nodata">
@@ -150,6 +154,7 @@
 <div class="fstack" id="fstack"><i class="fn2"></i><i class="fn1"></i><button class="fbadge" id="fbadge">!</button></div>
 <div class="tstack" id="tstack"><i class="tn2"></i><i class="tn1"></i><button class="tbadge" id="tbadge">!</button></div>
 <div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b>
+  <span class="pauto" id="cAuto" hidden><b id="cNum"></b></span>
   <span class="pgauge" id="pg" hidden aria-hidden="true">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
       stroke-linecap="round">
@@ -243,6 +248,13 @@ function apply(d){
 
 if(EVENT){
   EVENT.listen("quota:update", e=>apply(e.payload));
+  // Cuenta atrás del automático (3c-2): mientras corre, tocar al gatito PARA.
+  EVENT.listen("relay:auto", e=>{
+    const a=e.payload;
+    $("cAuto").hidden=!a;
+    document.body.classList.toggle("autorun",!!a);
+    if(a) $("cNum").textContent=a.left;
+  });
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }
 
@@ -281,6 +293,15 @@ document.body.addEventListener("mousedown",e=>{
   foldBubble();
   APPWIN?.startDragging();
 });
+// Con la cuenta atrás del automático en marcha, cualquier clic en el gatito
+// la PARA y no hace nada más. Se pone en captura para ganarle a todos los
+// demás manejadores: recuperar el control no puede depender de acertar la
+// zona correcta.
+document.addEventListener("click",e=>{
+  if(!document.body.classList.contains("autorun")) return;
+  e.stopPropagation(); e.preventDefault();
+  EVENT?.emit("relay:stop");
+},true);
 // clic en la cabeza del gato = abrir el panel (el globo se pliega antes)
 $("head").addEventListener("mousedown",e=>e.stopPropagation());
 $("head").addEventListener("click",e=>{

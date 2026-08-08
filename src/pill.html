@@ -82,6 +82,10 @@
   .tbulb svg{width:16px;height:16px;display:block}
   .tbulb[hidden]{display:none}
   body.loading .pct,body.stale .pct{color:var(--dim)}
+  .m.auto{display:flex;align-items:center;justify-content:center;min-width:22px;
+    height:18px;padding:0 6px;border-radius:999px;background:var(--warn);
+    color:#1a1206;font-weight:700;font-size:11px;font-variant-numeric:tabular-nums}
+  body.autorun .cap{box-shadow:0 0 0 1.5px var(--warn) inset}
 </style>
 </head>
 <body class="loading">
@@ -93,6 +97,10 @@
        arco diminuto que se llena con el % de contexto de la sesión activa.
        Solo aparece con una sesión de Claude Code bajo los dedos; sin texto
        ni tooltip (regla de la cápsula) — el número vive en el detalle. -->
+  <!-- Cuenta atrás del automático (3c-2): mientras corre, la cápsula ENTERA
+       es el botón de parar. Un solo control y sin texto largo: aquí no cabe.
+       El segundero es la promesa de que puedes intervenir. -->
+  <span class="m auto" id="aBox" hidden><b id="aNum"></b></span>
   <span class="m" id="pBox" hidden aria-hidden="true">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
       stroke-linecap="round">
@@ -218,6 +226,15 @@ if(EVENT){
   EVENT.listen("quota:update", e=>render(e.payload));
   // el detalle avisa cuando se cierra, para voltear la flecha
   EVENT.listen("pcard:closed", ()=>{ open=false; syncChev(); });
+  // Cuenta atrás del automático. Con ella en marcha la cápsula no despliega
+  // el detalle: cualquier toque PARA. Recuperar el control tiene que ser la
+  // acción más fácil de la pantalla, no una que compita con otra.
+  EVENT.listen("relay:auto", e=>{
+    const a=e.payload;
+    $("aBox").hidden=!a;
+    document.body.classList.toggle("autorun",!!a);
+    if(a) $("aNum").textContent=a.left;
+  });
   EVENT.emit("pill:ready");   // pide el último dato conocido al panel
 }else{   // preview suelto en un navegador
   render({ok:true, session:{pct:6,pace:30}, weekly:{pct:35},
@@ -231,6 +248,9 @@ let open=false, dragging=false;
 function syncChev(){ $("chev").style.transform = open?"rotate(180deg)":""; }
 $("cap").addEventListener("click",e=>{
   if(dragging || e.target.closest("#grip")) return;
+  // Con la cuenta atrás en marcha, CUALQUIER toque para el automático y no
+  // hace nada más. Recuperar el control es lo más fácil de la pantalla.
+  if(document.body.classList.contains("autorun")){ EVENT?.emit("relay:stop"); return; }
   if(e.target.closest("#mkbtn")){ invoke?.("show_panel"); return; }  // la marca abre el panel
   if(e.target.closest("#fdot")){  // la campana abre el panel YA en Hallazgos
     $("fdot").animate([{transform:"rotate(0)"},{transform:"rotate(-14deg)"},
