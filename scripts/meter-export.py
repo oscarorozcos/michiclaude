@@ -898,7 +898,9 @@ def _coach_default():
             # modelo del último turno: de él sale el techo de contexto
             "model": "",
             # contexto máximo visto: evidencia que corrige a la tabla
-            "ctx_seen": 0}
+            "ctx_seen": 0,
+            # último compact_boundary AUTOMÁTICO (los manuales los hiciste tú)
+            "acomp_ts": 0, "acomp_pre": 0, "acomp_done": 0}
 
 
 def coach_leaks(st):
@@ -982,6 +984,13 @@ def coach_scan(projects_dir):
                                 st["proj"] = base
                             if cwd and not st.get("scwd"):
                                 st["scwd"] = cwd
+                        if (v.get("type") == "system"
+                                and v.get("subtype") == "compact_boundary"):
+                            # solo las AUTOMÁTICAS: una manual la hiciste tú
+                            cm = v.get("compactMetadata") or {}
+                            if cm.get("trigger") != "manual":
+                                st["acomp_ts"] = ts_s or 0
+                                st["acomp_pre"] = cm.get("preTokens") or 0
                         if v.get("type") == "ai-title":
                             t2 = (v.get("aiTitle") or "").strip()
                             if t2:
@@ -1103,6 +1112,12 @@ def coach_scan(projects_dir):
                         cont=cont, gclean=st["commit_clean"],
                         full=ctx_full(st.get("model", ""), st.get("ctx_seen", 0)),
                         scwd=st.get("scwd", ""))
+                # auto-compact reciente y sin avisar (30 min: no revivir
+                # compactaciones viejas si el estado se reconstruye de cero)
+                if (st["acomp_ts"] and st["acomp_ts"] != st["acomp_done"]
+                        and now - st["acomp_ts"] < 30 * 60):
+                    st["acomp_done"] = st["acomp_ts"]
+                    hit("acomp", st["acomp_pre"] // 1000)
                 if (st["pending_tool"] and not st["asked"]
                         and quiet_min >= COACH_ASK_QUIET and st["turns"] >= 1):
                     st["asked"] = True

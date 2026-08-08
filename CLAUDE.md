@@ -249,32 +249,30 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 
 ## Reglas de comportamiento — no regresionar
 
-- `resets_at` trae JITTER: detección de ventana nueva SIEMPRE con
-  tolerancia (`windowChanged`, 10 min sesión / 360 semana), nunca
-  comparación exacta (re-disparaba alarmas cada ciclo).
-- Alarmas de sesión configurables (chips, localStorage `alarms`): el aviso
-  se REPITE cada 5 min hasta abrir el panel; varios umbrales de golpe →
-  solo el más alto. Límite semanal al 100%: un aviso por ventana. Avisos
-  de restablecimiento solo si la anterior llegó al 100% (`hit:*`); con
-  confirmación (abrir/enfocar el panel limpia `ackPending:*`). Sin banners
-  dentro de la app. Nunca quitar el mecanismo de confirmación.
+- `resets_at` trae JITTER: ventana nueva SIEMPRE con tolerancia
+  (`windowChanged`, 10 min sesión / 360 semana), nunca comparación
+  exacta (re-disparaba alarmas cada ciclo).
+- Alarmas de sesión configurables (chips, `alarms`): el aviso se REPITE
+  cada 5 min hasta abrir el panel; varios umbrales de golpe → solo el más
+  alto. Semanal al 100%: un aviso por ventana. Avisos de restablecimiento
+  solo si la anterior llegó al 100% (`hit:*`), con confirmación
+  (abrir/enfocar limpia `ackPending:*`). Sin banners en la app. Nunca
+  quitar la confirmación.
 - 429: espera 5 min respetando Retry-After (backoff rápido solo para
-  errores de red; NUNCA reintentar rápido un rate-limit); cuerpo a
-  quota_debug.json; cadencia de cuota 3 min (60 s disparaba 429); el
-  gauge conserva el último dato bueno hasta 15 min. OJO: muchos arranques
-  seguidos (compilar-probar) acaban en 429 de 60 MINUTOS.
+  red; NUNCA reintentar rápido un rate-limit); cuerpo a quota_debug.json;
+  cadencia de cuota 3 min (60 s disparaba 429); el gauge conserva el
+  último dato bueno 15 min. OJO: muchos arranques seguidos
+  (compilar-probar) acaban en 429 de 60 MINUTOS.
 - Instancia única (tauri-plugin-single-instance, registrado primero).
-- Si se toca algo que `emitPill()` calcula, se llama
-  `emitPill(...lastPillArgs)` — NUNCA parchear un campo suelto de
-  `lastPill` (dejaba el tema del ciclo pasado).
+- Si se toca algo que `emitPill()` calcula: `emitPill(...lastPillArgs)`,
+  NUNCA parchear un campo suelto de `lastPill` (dejaba el tema viejo).
 - Export CSV/JSON: UNA fila por hecho (fecha × proyecto × modelo ×
   origen); BOM en el CSV; campos entre comillas; filas solo al exportar
-  (`want_rows`); el ORIGEN remoto lo pone quien lee; sin fila de totales;
-  periodo propio (1/7/15/30). Un export es una foto, no un cierre.
-- Presupuesto semanal: se compara contra la suma de los últimos 7 días de
-  la serie diaria, no contra la ventana elegida.
-- Autostart solo release, una única vez (marker); si el usuario lo apaga,
-  se respeta.
+  (`want_rows`); el ORIGEN lo pone quien lee; sin fila de totales;
+  periodo propio (1/7/15/30). Un export es una foto.
+- Presupuesto semanal: contra la suma de los últimos 7 días de la serie
+  diaria, no contra la ventana elegida.
+- Autostart solo release, una vez (marker); si lo apagan, se respeta.
 
 ## Analizador de fugas (pestaña Hallazgos)
 
@@ -284,25 +282,24 @@ Tres piezas en sincronía (invariante #1): motor en `meter-export.py`
 `get_findings`, async doble), pestaña con severidad por costo (rojo ≥$10,
 ámbar ≥$1 o MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
 
-**Detectores y umbrales** (constantes; el detalle, en el doc): reread (≥3
-lecturas y ~2k tok — MIDE chars devueltos, no tamaño de archivo), inflate
-(+50k y 10+ turnos), cachebreak (≥300k reescritos; excluye isSidechain y
-compactaciones ±120 s), mech (≥5; git/pytest/cargo/npm), subagents (≥50k
-tok de sidechain), hooks_noise (≥15 disparos y ≥10k tok; mira attachments
-hook_success, no texto), mcp_unused (resta de conjuntos), skills_unused y
-claudemd (solo 7d+; identificadores por línea contra el texto crudo, gris
-sin identificadores, rojo solo si NINGUNA mención; costo PISO chars/4 ×
-sesiones, NUNCA líneas × turnos), y claudemdsize (CLAUDE.md >
-CLAUDEMD_LOAD_LIMIT 40k: lo que sobra Claude Code NO lo carga; tarjeta de
-estado costo 0, solo 7d+; nos pasó con 118.8k).
+**Detectores y umbrales** (constantes; detalle en el doc): reread (≥3
+lecturas y ~2k tok — MIDE chars devueltos), inflate (+50k y 10+ turnos),
+cachebreak (≥300k reescritos; excluye isSidechain y compactaciones
+±120 s), mech (≥5; git/pytest/cargo/npm), subagents (≥50k de sidechain),
+hooks_noise (≥15 disparos y ≥10k tok; mira attachments hook_success),
+mcp_unused (resta de conjuntos), skills_unused y claudemd (solo 7d+;
+identificadores por línea contra el texto crudo, rojo solo si NINGUNA
+mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos), y
+claudemdsize (CLAUDE.md > 40k `CLAUDEMD_LOAD_LIMIT`: lo que sobra no se
+carga; tarjeta de estado costo 0, solo 7d+; nos pasó con 118.8k).
 Tope 12 por costo en el backend. REGLA: los de "lo instalado" señalan lo
 que NO se usa y lo que cuesta cargarlo — nunca califican si algo que sí
 se usa "gastó de más".
 
-**Orden:** por `ts` desc (última actividad) y luego costo. Llevan ts los
-de sesión (reread/inflate/cachebreak) Y los agregados con actividad
-(hooks_noise/subagents/mech); solo los de estado puro (mcp, skills,
-claudemd) van abajo por costo. En Python `parse_ts` da datetime — va
+**Orden:** `ts` desc y luego costo. Llevan ts los de sesión
+(reread/inflate/cachebreak) y los agregados con actividad
+(hooks_noise/subagents/mech); los de estado puro (mcp, skills, claudemd)
+van abajo por costo. En Python `parse_ts` da datetime — va
 `int(ts.timestamp())`.
 
 **Subagentes:** sus turnos llevan el sessionId de la sesión MADRE y NO
@@ -317,12 +314,12 @@ Ignorar lleva stopPropagation). Primera apertura: enseña lo guardado al
 instante con "Analizando…" mientras corre el fresco; se refresca al abrir
 la pestaña si tiene >5 min. Precarga de fondo a los 15 s.
 
-**Avisos (sin globo — se eliminó 2026-08-04):** post-it rojo / campana /
-contador de pestaña encienden cada vez que hay hallazgos NO VISTOS.
-Pasada ligera 1d compartida `fndPass()`: al NACER UN RECIBO (cierre de
-sesión local; freno 15 min `fndEventLast`, marcado ANTES) y periódica
-cada 3 h como respaldo (era 20 h: los nacidos en el VPS no disparan
-cierre local y quedaban invisibles un día entero, 2026-08-06). "LEÍDO" =
+**Avisos (sin globo desde 2026-08-04):** post-it rojo / campana /
+contador encienden con hallazgos NO VISTOS. Pasada ligera 1d compartida
+`fndPass()`: al NACER UN RECIBO (cierre local; freno 15 min
+`fndEventLast`, marcado ANTES) y cada 3 h de respaldo (era 20 h: los
+nacidos en el VPS no disparan cierre local y quedaban invisibles un día,
+2026-08-06). "LEÍDO" =
 CLIC en la tarjeta, estilo Gmail (Oscar 2026-08-07): abrir la pestaña o
 el post-it NO marca nada; contador y post-it descuentan tarjeta por
 tarjeta al clicarla (plegar/desplegar marca; Ignorar apaga la suya;
@@ -373,7 +370,11 @@ veredicto (unsure = sin insignia), advertencia si hay pendientes, botón
 "Copiar comando" → `plugin:clipboard-manager|write_text` invocado
 directo (dep `tauri-plugin-clipboard-manager`, capability
 `clipboard-manager:allow-write-text`, sin wrapper npm). Exportador viejo: ignora --coach → cero hits, se
-degrada solo (validado en vivo en el VPS, sondeo ~80 ms). Reglas: ctx≥120k → compact;
+degrada solo (validado en vivo en el VPS, sondeo ~80 ms). Regla `acomp` (2026-08-08, LA pieza para
+el chat de la extensión de VS Code, donde NO se inyecta: claude va por
+ruta absoluta con stdin en socket privado, y sin ver el borrador del
+chat R1 es inverificable): `compact_boundary` con trigger≠manual y
+<30 min → ficha con los preTokens (los manuales no avisan). Reglas: ctx≥120k → compact;
 pausa≥6 min con ctx≥30k → cache; mismo archivo leído ≥3 → attach; `ask`
 (tool_use sin tool_result ≥3 min) y `done` (quieta 5 min, 5+ turnos) son
 SOLO push al celular, no fichas; `sum` (quieta 10 min) = recibo con

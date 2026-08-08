@@ -690,6 +690,40 @@ y hay que decirlos sin adornos:
   avisos de foco no reinician la calma, y el estado se borra al salir. Un
   fallo del banco por el camino que es lección de PTY: un Ctrl+D con bytes
   pendientes en la línea no es EOF, es "enviar línea" — hacen falta dos.
+## El chat de la extensión de VS Code: el veredicto (2026-08-08)
+
+Es el día a día de Oscar y pidió "hazlo compatible o ve la manera". Se
+investigó EN SU PROPIA MÁQUINA (el VPS), no en teoría:
+
+- La extensión lanza claude por **ruta absoluta**
+  (`~/.vscode-server/extensions/anthropic.claude-code-*/resources/native-binary/claude`)
+  con `--input-format stream-json` y **stdin/stdout conectados a sockets
+  privados** del host de la extensión (verificado en /proc). Ni PATH, ni PTY,
+  ni canal alcanzable: el shim no lo ve (bien: tampoco puede romperlo) y el
+  relevo no tiene dónde engancharse.
+- **Y aunque hubiera canal, no se inyectaría.** Michi no puede ver el
+  borrador del cuadro de chat, así que R1 (jamás teclear encima del usuario)
+  es INVERIFICABLE ahí. Regla de oro: en la duda no se actúa. Este es el
+  motivo de principio; el técnico es solo el segundo.
+- Lo que SÍ funciona en la extensión, demostrado hoy con la sesión real de
+  Oscar al 78%: todo el circuito consejero — manómetro, tarjeta de intención,
+  copiar comando (un pegado en el mismo cuadro donde ya escribe).
+- **La compensación construida el mismo día: el detector de auto-compacts**
+  (regla `acomp`, adelantada de presion-y-rendimiento.md). Claude Code se
+  compacta SOLO al llegar al límite — ese es el airbag de la extensión — y
+  deja en el log un `compact_boundary` con `trigger` (manual/auto) y
+  `preTokens`. Michi avisa SOLO de las automáticas (una manual la hiciste tú;
+  avisar sería ruido), explica por qué el manómetro bajó de golpe y enseña a
+  elegir el momento con /compact en una pausa natural. Tres piezas en
+  sincronía (Rust + exportador, invariante #1; ficha `tip_acomp_*` ×8).
+  Ventana de 30 min para no revivir compactaciones viejas si el estado se
+  reconstruye desde cero. Verificado en vivo: los compactos manuales de hoy
+  NO dispararon.
+- La propia extensión tiene un **modo "Terminal experience"** (banner
+  "Prefer the Terminal experience?"). Si corre claude en la terminal
+  integrada resolviendo por PATH, el atajo y el relevo aplicarían — POR
+  VALIDAR, no prometido.
+
 - **Falta (en orden):** 4b descubrimiento remoto en el panel (`get_relays`
   leyendo `~/.michiclaude/relevo/` por SSH, sesiones con `origin`; el casado
   usa el MISMO `scwd` que ya viaja en el hit press del exportador); 4c

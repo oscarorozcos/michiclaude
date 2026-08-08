@@ -1915,6 +1915,9 @@ en:{
   tip_model_b:"Renaming, formatting, running tests, writing a commit message: a small model (Haiku) does it just as well for a fraction. Switch with /model for that task and go back to the big one for work that actually needs thinking.",
   tip_now_compact:n=>`Now: this session carries ~${n}k tokens of context`,
   tip_now_cache:n=>`Now: ${n} min pause with a big context — the cache has expired`,
+  tip_acomp_t:"Claude Code compacted on its own",
+  tip_acomp_b:"When a session hits its context ceiling, Claude Code compresses the conversation by itself so it can keep going — that is why the pressure gauge just dropped. It works, but the machine picks the moment, right in the middle of whatever you were doing. If you run /compact yourself at a natural pause (a task just finished), you pick the moment and the summary comes out better.",
+  tip_now_acomp:v=>`Now: it self-compacted carrying ~${v}k tokens`,
   tip_now_attach:n=>`Now: one file was read ${n} times in this session`,
   tip_sum_t:"Session recap",
   tip_sum_line:(m,c,e)=>`${m} min · ${c} commands · ${e} files edited`,
@@ -2332,6 +2335,9 @@ es:{
   tip_model_b:"Renombrar, formatear, correr tests, redactar un commit: un modelo chico (Haiku) lo hace igual por una fracción. Cámbialo con /model para esa tarea y regresa al grande para lo que sí requiere pensar.",
   tip_now_compact:n=>`Ahora: esta sesión lleva ~${n}k tokens de contexto`,
   tip_now_cache:n=>`Ahora: ${n} min de pausa con contexto grande — el caché ya venció`,
+  tip_acomp_t:"Claude Code compactó por su cuenta",
+  tip_acomp_b:"Cuando una sesión llega a su techo de contexto, Claude Code comprime la conversación él solo para poder seguir — por eso el manómetro bajó de golpe. Funciona, pero el momento lo elige la máquina, en mitad de lo que estuvieras haciendo. Si aplicas /compact tú en una pausa natural (una tarea recién terminada), el momento lo eliges tú y el resumen sale mejor.",
+  tip_now_acomp:v=>`Ahora: se compactó solo llevando ~${v}k tokens`,
   tip_now_attach:n=>`Ahora: un mismo archivo se leyó ${n} veces en esta sesión`,
   tip_sum_t:"Resumen de la sesión",
   tip_sum_line:(m,c,e)=>`${m} min · ${c} comandos · ${e} archivos editados`,
@@ -2749,6 +2755,9 @@ pt:{
   tip_model_b:"Renomear, formatar, rodar testes, escrever um commit: um modelo pequeno (Haiku) faz igual por uma fração. Troque com /model para essa tarefa e volte ao grande para o que exige pensar.",
   tip_now_compact:n=>`Agora: esta sessão carrega ~${n}k tokens de contexto`,
   tip_now_cache:n=>`Agora: ${n} min de pausa com contexto grande — o cache já venceu`,
+  tip_acomp_t:"O Claude Code compactou sozinho",
+  tip_acomp_b:"Quando uma sessão chega ao teto de contexto, o Claude Code comprime a conversa sozinho para poder continuar — por isso o manômetro caiu de repente. Funciona, mas o momento é escolhido pela máquina, no meio do que você estava fazendo. Se você aplicar /compact numa pausa natural (uma tarefa recém-terminada), o momento é seu e o resumo sai melhor.",
+  tip_now_acomp:v=>`Agora: compactou sozinho carregando ~${v}k tokens`,
   tip_now_attach:n=>`Agora: um mesmo arquivo foi lido ${n} vezes nesta sessão`,
   tip_sum_t:"Resumo da sessão",
   tip_sum_line:(m,c,e)=>`${m} min · ${c} comandos · ${e} arquivos editados`,
@@ -3166,6 +3175,9 @@ fr:{
   tip_model_b:"Renommer, formater, lancer des tests, rédiger un commit : un petit modèle (Haiku) le fait aussi bien pour une fraction. Passez avec /model pour cette tâche, puis revenez au grand pour ce qui demande de réfléchir.",
   tip_now_compact:n=>`Maintenant : cette session porte ~${n}k tokens de contexte`,
   tip_now_cache:n=>`Maintenant : ${n} min de pause avec un gros contexte — le cache a expiré`,
+  tip_acomp_t:"Claude Code a compacté tout seul",
+  tip_acomp_b:"Quand une session atteint son plafond de contexte, Claude Code compresse la conversation lui-même pour continuer — c’est pour ça que la jauge vient de chuter. Ça marche, mais c’est la machine qui choisit le moment, en plein milieu de ce que tu faisais. Si tu lances /compact toi-même à une pause naturelle (une tâche qui vient de se terminer), tu choisis le moment et le résumé est meilleur.",
+  tip_now_acomp:v=>`Maintenant : auto-compacté avec ~${v}k tokens`,
   tip_now_attach:n=>`Maintenant : un même fichier a été lu ${n} fois dans cette session`,
   tip_sum_t:"Résumé de la session",
   tip_sum_line:(m,c,e)=>`${m} min · ${c} commandes · ${e} fichiers modifiés`,
@@ -3583,6 +3595,9 @@ de:{
   tip_model_b:"Umbenennen, Formatieren, Tests laufen lassen, Commit-Text schreiben: ein kleines Modell (Haiku) macht das genauso gut für einen Bruchteil. Mit /model für die Aufgabe wechseln und für echtes Denken zurück zum großen.",
   tip_now_compact:n=>`Jetzt: diese Sitzung trägt ~${n}k Tokens Kontext`,
   tip_now_cache:n=>`Jetzt: ${n} Min. Pause mit großem Kontext — der Cache ist abgelaufen`,
+  tip_acomp_t:"Claude Code hat von selbst kompaktiert",
+  tip_acomp_b:"Erreicht eine Sitzung ihre Kontextgrenze, komprimiert Claude Code die Unterhaltung selbst, um weitermachen zu können — deshalb ist die Druckanzeige gerade eingebrochen. Es funktioniert, aber den Moment wählt die Maschine, mitten in dem, was du gerade tatest. Wendest du /compact selbst in einer natürlichen Pause an (eine gerade abgeschlossene Aufgabe), wählst du den Moment und die Zusammenfassung wird besser.",
+  tip_now_acomp:v=>`Jetzt: selbst kompaktiert mit ~${v}k Tokens`,
   tip_now_attach:n=>`Jetzt: dieselbe Datei wurde in dieser Sitzung ${n}-mal gelesen`,
   tip_sum_t:"Sitzungsüberblick",
   tip_sum_line:(m,c,e)=>`${m} Min. · ${c} Befehle · ${e} Dateien bearbeitet`,
@@ -4000,6 +4015,9 @@ ja:{
   tip_model_b:"リネーム、フォーマット、テスト実行、コミット文: 小さいモデル（Haiku）でも同じようにでき、費用はごく一部です。その作業だけ /model で切り替え、考える仕事では大きいモデルに戻しましょう。",
   tip_now_compact:n=>`いま: このセッションのコンテキストは約${n}kトークン`,
   tip_now_cache:n=>`いま: 大きなコンテキストのまま${n}分の休止 — キャッシュは切れています`,
+  tip_acomp_t:"Claude Code が自動でコンパクトしました",
+  tip_acomp_b:"セッションがコンテキストの上限に達すると、Claude Code は続行のために会話を自分で圧縮します — プレッシャー計が急に下がったのはそのためです。機能はしますが、タイミングは作業の途中でマシンが決めます。区切りのよい所（タスクを終えた直後）で自分で /compact をかければ、タイミングを選べて要約の質も上がります。",
+  tip_now_acomp:v=>`いま: 約${v}kトークンで自動コンパクトされました`,
   tip_now_attach:n=>`いま: 同じファイルがこのセッションで${n}回読まれました`,
   tip_sum_t:"セッションのまとめ",
   tip_sum_line:(m,c,e)=>`${m}分 · コマンド${c}回 · 編集ファイル${e}件`,
@@ -4417,6 +4435,9 @@ ko:{
   tip_model_b:"이름 바꾸기, 포맷, 테스트 실행, 커밋 메시지: 작은 모델(Haiku)도 똑같이 해내며 비용은 극히 일부입니다. 그 작업만 /model 로 바꾸고, 생각이 필요한 일은 큰 모델로 돌아가세요.",
   tip_now_compact:n=>`지금: 이 세션의 컨텍스트는 약 ${n}k 토큰`,
   tip_now_cache:n=>`지금: 큰 컨텍스트로 ${n}분 휴지 — 캐시가 만료되었습니다`,
+  tip_acomp_t:"Claude Code가 스스로 컴팩트했습니다",
+  tip_acomp_b:"세션이 컨텍스트 상한에 도달하면 Claude Code는 계속하기 위해 대화를 스스로 압축합니다 — 압력 게이지가 갑자기 내려간 이유입니다. 동작은 하지만 시점은 작업 도중에 기계가 정합니다. 자연스러운 멈춤(작업을 막 끝낸 때)에 직접 /compact 를 실행하면 시점을 당신이 고르고 요약도 더 좋아집니다.",
+  tip_now_acomp:v=>`지금: 약 ${v}k 토큰에서 자동 컴팩트됨`,
   tip_now_attach:n=>`지금: 같은 파일을 이 세션에서 ${n}번 읽었습니다`,
   tip_sum_t:"세션 요약",
   tip_sum_line:(m,c,e)=>`${m}분 · 명령 ${c}회 · 편집한 파일 ${e}개`,
@@ -4834,6 +4855,9 @@ zh:{
   tip_model_b:"重命名、格式化、跑测试、写提交信息: 小模型（Haiku）同样能做，费用只是零头。用 /model 切换去做这件事，需要思考的工作再换回大模型。",
   tip_now_compact:n=>`现在: 这个会话已带着约 ${n}k token 的上下文`,
   tip_now_cache:n=>`现在: 带着大上下文暂停了 ${n} 分钟——缓存已过期`,
+  tip_acomp_t:"Claude Code 自行进行了压缩",
+  tip_acomp_b:"会话到达上下文上限时，Claude Code 会自己压缩对话以便继续——这就是压力表突然下降的原因。它有效，但时机由机器决定，往往在你正做到一半的时候。如果你在自然的停顿点（刚完成一个任务）自己执行 /compact，时机由你选，摘要质量也更好。",
+  tip_now_acomp:v=>`现在: 携带约 ${v}k tokens 时自行压缩`,
   tip_now_attach:n=>`现在: 同一个文件在这个会话里被读了 ${n} 次`,
   tip_sum_t:"会话小结",
   tip_sum_line:(m,c,e)=>`${m} 分钟 · ${c} 条命令 · 编辑了 ${e} 个文件`,
@@ -6595,7 +6619,7 @@ function renderRemotes(){
 // Catálogo de fichas curadas (docs/consejos-coach.md). El contenido vive en
 // I18N como todo texto visible; aquí solo van los ids, en el orden en que
 // se muestran. Acordeón + filtro del lado del cliente — cero red, cero IA.
-const TIPS=["clear","compact","cache","attach","ask","model"];
+const TIPS=["clear","compact","cache","attach","ask","model","acomp"];
 function renderTips(){
   const q=($("tipFilter").value||"").toLowerCase();
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));

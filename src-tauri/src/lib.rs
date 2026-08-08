@@ -3124,6 +3124,14 @@ struct CoachSess {
                         // 1M según el modelo — no es una constante
     ctx_seen: u64,      // contexto MÁXIMO visto en la sesión: evidencia medida
                         // que corrige a la tabla cuando esta se queda corta
+    // Último `compact_boundary` AUTOMÁTICO visto en el log (los manuales no
+    // avisan: los hiciste tú). Es la pieza clave para el chat de la extensión
+    // de VS Code, donde no se puede inyectar nada: Claude Code compacta solo
+    // al llegar al límite, y Michi al menos te lo cuenta y te enseña a
+    // elegir el momento tú. `acomp_done` evita re-avisar el mismo.
+    acomp_ts: i64,
+    acomp_pre: u64,     // tokens que llevaba la sesión al compactarse
+    acomp_done: i64,
 }
 
 /// Una fuga detectada al CIERRE de la sesión (mini-auditoría del coach):
@@ -3340,6 +3348,22 @@ fn coach_scan() -> Vec<CoachHit> {
                     if st.scwd.is_empty() {
                         if let Some(c) = v["cwd"].as_str().filter(|c| !c.trim().is_empty()) {
                             st.scwd = c.replace('\\', "/").trim_end_matches('/').to_string();
+                        }
+                    }
+                    // Compactación: Claude Code deja un `compact_boundary` con
+                    // el disparador y los tokens de antes. Solo interesan las
+                    // AUTOMÁTICAS — una manual la hiciste tú y avisarte sería
+                    // ruido. Detector de auto-compacts (pendiente de
+                    // presion-y-rendimiento.md, adelantado el 2026-08-08
+                    // porque es LA pieza para el chat de la extensión de VS
+                    // Code, donde no se puede inyectar nada).
+                    if v["type"].as_str() == Some("system")
+                        && v["subtype"].as_str() == Some("compact_boundary")
+                    {
+                        let cm = &v["compactMetadata"];
+                        if cm["trigger"].as_str() != Some("manual") {
+                            st.acomp_ts = ts.unwrap_or(0);
+                            st.acomp_pre = cm["preTokens"].as_u64().unwrap_or(0);
                         }
                     }
                     // título de la sesión: Claude Code lo escribe él mismo en
@@ -3561,6 +3585,20 @@ fn coach_scan() -> Vec<CoachHit> {
                     gclean: st.commit_clean,
                     full: ctx_full(&st.model, st.ctx_seen),
                     scwd: st.scwd.clone(),
+                    ..Default::default()
+                });
+            }
+            // Auto-compact reciente y aún sin avisar: una tarjeta que explica
+            // por qué el manómetro bajó de golpe y enseña a elegir el momento.
+            // Los 30 min evitan revivir compactaciones viejas si el estado se
+            // reconstruye desde cero (offset 0 relee el archivo entero).
+            if st.acomp_ts > 0 && st.acomp_ts != st.acomp_done && now - st.acomp_ts < 30 * 60 {
+                st.acomp_done = st.acomp_ts;
+                hits.push(CoachHit {
+                    rule: "acomp".into(),
+                    session: sid.clone(),
+                    value: st.acomp_pre / 1000,
+                    project: pname(st, &proj_name),
                     ..Default::default()
                 });
             }
