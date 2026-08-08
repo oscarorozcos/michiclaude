@@ -475,6 +475,55 @@ real (señalar la sesión equivocada).
   "aplicar por ti", el binario tiene que existir en la máquina y estar en
   el PATH.
 
+## Decisiones de la etapa 3c (aplicar desde la interfaz, 2026-08-08)
+
+Va en dos pasadas. **3c-1 (ESTO): manual con countdown**, que es lo que se
+puede probar y validar entero hoy. **3c-2: el automático**, que necesita una
+superficie visible con el panel cerrado — ver "lo que falta" al final.
+
+- **`relay_inject(pid, text, auto)`** (Rust, async + `spawn_blocking`):
+  escribe `<pid>.cmd` con tmp+rename —`.tmp` sobre el nombre ENTERO, misma
+  regla que el relevo— y ESPERA el acuse en `<pid>.json` hasta 8 s. Devuelve
+  el `ERR_RELAY_*` del relevo sin traducir (invariante #10); `ERR_RELAY_NOACK`
+  es nuestro: la orden se escribió y nadie contestó.
+- **La lista blanca se comprueba en los DOS lados.** Aquí para no escribir
+  una orden imposible; en el relevo porque es el límite duro y no se fía de
+  quien le escriba.
+- **El panel pide, el relevo decide.** `attend()` vuelve a comprobar R1-R3
+  en el instante de escribir: si el usuario se puso a teclear durante la
+  cuenta atrás, la orden se rechaza y el botón dice por qué. Que el countdown
+  termine NO es un permiso — eso es R4.
+- **El countdown es de 5 s y el propio botón es el de parar.** Un solo
+  control, imposible confundirse. Cancelar no escribe nada en ninguna parte.
+- **NADIE repinta mientras hay una cuenta atrás viva** (`relayBusy`): un
+  re-render se llevaría el botón, el temporizador seguiría sobre un nodo
+  huérfano y la orden se aplicaría sin que el usuario viera nada. El
+  countdown es su única ventana para parar; si desaparece de la pantalla,
+  deja de ser una ventana.
+- **Dónde está el botón.** En la tarjeta de intención, junto a cada comando
+  (donde ya está el veredicto y el aviso de pendientes), y en la lista de
+  Ajustes → Sesiones con relevo, pero **ahí solo `/compact`**: `/clear` borra
+  la memoria de la conversación y esa decisión necesita el contexto de la
+  tarjeta, no una fila suelta. El de Ajustes hace además de banco de
+  pruebas: no hay que esperar a una sesión al 80% para ejercitar
+  el camino entero.
+- **Todo lo aplicado va al registro de acciones** (`kind: "relay"`, d1 =
+  comando, d2 = proyecto, crudos y traducidos por el panel). Si Michi teclea
+  en tu terminal, queda escrito.
+- **Desbloqueo progresivo** en `localStorage.relayDone`: `/compact` 2
+  aplicaciones manuales, `/clear` 3 —una más porque borra memoria y no se
+  deshace—. El marcador se enseña en Ajustes para que se vea acumular, en vez
+  de que un día aparezca un automático de la nada.
+
+**Lo que falta (3c-2), y por qué no se hizo de una:** el modo automático
+necesita que el countdown se vea con el panel CERRADO, que es como está el
+panel casi siempre. Una cuenta atrás que nadie puede ver no es una cuenta
+atrás. La superficie correcta es el widget (pastilla/gatito), que ya recibe
+`press` en `quota:update` y está siempre a la vista. Hasta entonces no hay
+interruptor de automático: sería prometer algo que no se puede vigilar.
+Y la regla que sale de la auditoría de fuentes: **si el techo de contexto no
+es de fiar, la 3c aconseja pero no actúa.**
+
 ## Correcciones sobre la propuesta original (para no rediscutir)
 
 - **Contexto falso que traía el handoff:** licencia "MIT/Apache

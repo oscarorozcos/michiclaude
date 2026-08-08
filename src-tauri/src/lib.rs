@@ -4163,6 +4163,90 @@ async fn get_relays() -> Result<Vec<Relay>, String> {
         .map_err(|e| e.to_string())?
 }
 
+/// La MISMA lista blanca que el relevo. Se comprueba en los dos lados a
+/// propósito: aquí para no escribir nunca una orden que no se pueda cumplir,
+/// y allí porque es el límite duro — el relevo no se fía de quien le escriba.
+const RELAY_ALLOWED: [&str; 2] = ["/compact", "/clear"];
+
+/// Escritura atómica en el canal del relevo. El temporal AÑADE `.tmp` al
+/// nombre ENTERO: con `with_extension`, `<pid>.cmd` y `<pid>.json`
+/// compartirían `<pid>.tmp` y se pisarían (misma regla que en el relevo).
+fn relay_write_cmd(path: &PathBuf, data: &str) -> bool {
+    let Some(name) = path.file_name().and_then(|x| x.to_str()) else {
+        return false;
+    };
+    let tmp = path.with_file_name(format!("{name}.tmp"));
+    fs::write(&tmp, data).is_ok() && fs::rename(&tmp, path).is_ok()
+}
+
+/// Pide al relevo que teclee uno de los dos comandos y ESPERA su veredicto.
+///
+/// El panel pide; quien decide es el relevo: `attend()` vuelve a comprobar
+/// R1-R3 (texto sin enviar, Claude generando, calma de teclado) en el instante
+/// de escribir. Que el countdown de la UI haya terminado NO es un permiso —
+/// entre que el usuario ve el aviso y el relevo actúa puede haber empezado a
+/// teclear, y ese caso tiene que perder.
+///
+/// Devuelve el código `ERR_RELAY_*` que dé el relevo, sin traducir
+/// (invariante #10). `ERR_RELAY_NOACK` es nuestro: la orden se escribió pero
+/// nadie contestó — un relevo que murió justo en medio.
+#[tauri::command]
+async fn relay_inject(pid: u32, text: String, auto: bool) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if !RELAY_ALLOWED.contains(&text.as_str()) {
+            return Err("ERR_RELAY_BADCMD".to_string());
+        }
+        let dir = relay_dir();
+        // Nombre del proyecto para el registro, del estado del propio relevo.
+        let proj = fs::read_to_string(dir.join(format!("{pid}.json")))
+            .ok()
+            .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+            .map(|v| path_base(v["cwd"].as_str().unwrap_or("")))
+            .unwrap_or_default();
+        // Lo aplicado queda en el registro de acciones igual que los zombies y
+        // el archivado: si Michi teclea en tu terminal, tiene que quedar
+        // escrito. Crudo — lo traduce el panel (invariante #10).
+        let id = format!("app-{}", Utc::now().timestamp_millis());
+        let wrote = relay_write_cmd(
+            &dir.join(format!("{pid}.cmd")),
+            &serde_json::json!({"id": &id, "op": "inject", "text": &text}).to_string(),
+        );
+        if !wrote {
+            log_action("relay", auto, false, text.clone(), proj.clone());
+            return Err("ERR_RELAY_WRITE".to_string());
+        }
+        // El relevo mira su buzón cada 250 ms y publica el acuse en el estado.
+        // 8 s de margen: si en ese tiempo no contestó, no está vivo.
+        let state = dir.join(format!("{pid}.json"));
+        for _ in 0..40 {
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            let Ok(raw) = fs::read_to_string(&state) else {
+                continue;
+            };
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else {
+                continue;
+            };
+            if v["last"]["id"].as_str() != Some(id.as_str()) {
+                continue;
+            }
+            let good = v["last"]["ok"].as_bool().unwrap_or(false);
+            log_action("relay", auto, good, text.clone(), proj.clone());
+            return if good {
+                Ok(())
+            } else {
+                Err(v["last"]["err"]
+                    .as_str()
+                    .unwrap_or("ERR_RELAY_NOACK")
+                    .to_string())
+            };
+        }
+        log_action("relay", auto, false, text.clone(), proj.clone());
+        Err("ERR_RELAY_NOACK".to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Un proceso MCP huérfano detectado. `start` (epoch de arranque) es la
 /// mitad del anti-reciclaje de PID: para cerrar hay que devolverlo y
 /// que siga coincidiendo.
@@ -4619,7 +4703,8 @@ pub fn run() {
             scan_archivable,
             archive_old,
             get_action_log,
-            get_relays
+            get_relays,
+            relay_inject
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

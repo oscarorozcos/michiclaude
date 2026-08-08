@@ -169,11 +169,11 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   se mete 40 px en el gatito y 8 en la cápsula (`notif_overlap`). Globo y
   detalle de la pastilla NUNCA a la vez (el globo gana y pliega).
 - **Capa** (`PillConfig.layer`): top/normal/bottom. `apply_layer()` +
-  `reassert_layers()` en cada ciclo + `win_taskbar::force_topmost()`
+  `reassert_layers()` cada ciclo + `win_taskbar::force_topmost()`
   (SetWindowPos HWND_TOPMOST con SWP_NOACTIVATE — Windows degrada el
   always-on-top y la llamada de Tauri se vuelve no-op). REGLA: widget y
-  globos van SIEMPRE en la misma capa; el panel no participa. Si el bug
-  de hundirse reapareciera: SetWinEventHook (EVENT_SYSTEM_FOREGROUND).
+  globos SIEMPRE en la misma capa; el panel no participa. Si el bug de
+  hundirse volviera: SetWinEventHook (EVENT_SYSTEM_FOREGROUND).
 - **CRÍTICO — ventanas transparentes:** NUNCA redimensionar en vivo
   (`set_size`): WebView2 deja de pintar. Patrón correcto: ventanas de
   tamaño fijo que se muestran/ocultan.
@@ -288,20 +288,17 @@ Tres piezas en sincronía (invariante #1): motor en `meter-export.py`
 `get_findings`, async doble), pestaña con severidad por costo (rojo ≥$10,
 ámbar ≥$1 o MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
 
-**Detectores y umbrales** (constantes): reread (≥3 lecturas y ~2k tok
-apilados — MIDE chars devueltos, no tamaño de archivo), inflate (+50k y
-10+ turnos), cachebreak (≥300k reescritos; excluye isSidechain y
-compactaciones ±120 s), mech (≥5; lista corta git/pytest/cargo/npm),
-subagents (≥50k tok de sidechain), hooks_noise (≥15 disparos y ≥10k tok;
-mira attachments hook_success, no texto), mcp_unused (resta de conjuntos),
-skills_unused y claudemd (solo ventana 7+; claudemd: identificadores por
-línea contra el texto crudo, gris sin identificadores, rojo solo si
-NINGUNA mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos), y
-claudemdsize (detector 10, 2026-08-04: CLAUDE.md > CLAUDEMD_LOAD_LIMIT
-40k chars — lo que sobra Claude Code NO lo carga y las reglas del fondo
-no llegan al modelo; tarjeta de estado costo 0, tokens ~ del tramo sin
-leer, solo 7d+ porque reutiliza la enumeración de claudemd; nos pasó en
-carne propia con 118.8k).
+**Detectores y umbrales** (constantes; el detalle, en el doc): reread (≥3
+lecturas y ~2k tok — MIDE chars devueltos, no tamaño de archivo), inflate
+(+50k y 10+ turnos), cachebreak (≥300k reescritos; excluye isSidechain y
+compactaciones ±120 s), mech (≥5; git/pytest/cargo/npm), subagents (≥50k
+tok de sidechain), hooks_noise (≥15 disparos y ≥10k tok; mira attachments
+hook_success, no texto), mcp_unused (resta de conjuntos), skills_unused y
+claudemd (solo 7d+; identificadores por línea contra el texto crudo, gris
+sin identificadores, rojo solo si NINGUNA mención; costo PISO chars/4 ×
+sesiones, NUNCA líneas × turnos), y claudemdsize (CLAUDE.md >
+CLAUDEMD_LOAD_LIMIT 40k: lo que sobra Claude Code NO lo carga; tarjeta de
+estado costo 0, solo 7d+; nos pasó con 118.8k).
 Tope 12 por costo en el backend. REGLA: los de "lo instalado" señalan lo
 que NO se usa y lo que cuesta cargarlo — nunca califican si algo que sí
 se usa "gastó de más".
@@ -319,10 +316,9 @@ coach queda plano a propósito. `proj` (carpeta de logs, para casar con
 claudemd) y `disp` (cwd real, para enseñar) son campos SEPARADOS —
 unificarlos dejaría claudemd en costo 0 en silencio.
 
-**Tarjetas:** contraíbles con clic (se pliega solo la recomendación; pose
-en `fndMin`, guard !simFnd; Ignorar lleva stopPropagation). Primera
-apertura: enseña el último resultado guardado al instante con
-"Analizando…" mientras corre el fresco; el reporte se refresca al abrir
+**Tarjetas:** contraíbles con clic (pose en `fndMin`, guard !simFnd;
+Ignorar lleva stopPropagation). Primera apertura: enseña lo guardado al
+instante con "Analizando…" mientras corre el fresco; se refresca al abrir
 la pestaña si tiene >5 min. Precarga de fondo a los 15 s.
 
 **Avisos (sin globo — se eliminó 2026-08-04):** post-it rojo / campana /
@@ -380,10 +376,8 @@ opciones en llano con comando al lado, insignia "Recomendado" solo con
 veredicto (unsure = sin insignia), advertencia si hay pendientes, botón
 "Copiar comando" → `plugin:clipboard-manager|write_text` invocado
 directo (dep `tauri-plugin-clipboard-manager`, capability
-`clipboard-manager:allow-write-text`, sin wrapper npm). Exportador viejo: ignora --coach y devuelve
-el JSON grande sin clave `coach` → cero hits, se degrada solo. VALIDADO
-en vivo en el VPS el mismo día: detectó la propia sesión de trabajo
-(compact 802k, attach 26) y el sondeo incremental cuesta ~80 ms. Reglas: ctx≥120k → compact;
+`clipboard-manager:allow-write-text`, sin wrapper npm). Exportador viejo: ignora --coach → cero hits, se
+degrada solo (validado en vivo en el VPS, sondeo ~80 ms). Reglas: ctx≥120k → compact;
 pausa≥6 min con ctx≥30k → cache; mismo archivo leído ≥3 → attach; `ask`
 (tool_use sin tool_result ≥3 min) y `done` (quieta 5 min, 5+ turnos) son
 SOLO push al celular, no fichas; `sum` (quieta 10 min) = recibo con
@@ -416,15 +410,14 @@ horas de reset, conteos y frases del diccionario — nunca proyectos,
 rutas ni dólares (los topics son públicos). El nombre del proyecto es
 casilla aparte (`names`, apagada, con advertencia). Rust no redacta
 avisos (códigos, invariante #10). Publicación JSON a la raíz (headers no
-aguantan UTF-8). Al 100%: aviso inmediato + "ya volvió" PROGRAMADO
-(header delay +120 s de colchón) que llega con la PC APAGADA; si el
-reset no cabe en los 3 días del servidor público, no se promete. Un push
-por ventana (banderines notifS/notifW). El simulador NUNCA manda pushes
-(guard simRunning). "Canal nuevo" regenera el topic en dos pasos (Sí/No
-explícito). ntfy NO viaja en los ajustes compartidos del hub (esa
-pantalla promete no guardar contraseñas). Dedup de done/ask:
-localStorage ntfyDone/ntfyAsked, máx 3 por sondeo. Fallos a
-ntfy_debug.json sin bloquear nada.
+aguantan UTF-8). Al 100%: aviso inmediato + "ya volvió" PROGRAMADO (header delay +120 s de
+colchón) que llega con la PC APAGADA; si el reset no cabe en los 3 días
+del servidor público, no se promete. Un push por ventana (notifS/notifW).
+El simulador NUNCA manda pushes (guard simRunning). "Canal nuevo"
+regenera el topic en dos pasos. ntfy NO viaja en los ajustes compartidos
+del hub (esa pantalla promete no guardar contraseñas). Dedup de done/ask:
+ntfyDone/ntfyAsked, máx 3 por sondeo. Fallos a ntfy_debug.json sin
+bloquear nada.
 
 ## Modo HUB (multi-máquina)
 
@@ -439,22 +432,20 @@ selector del panel); quien lee no puede recortar un resumen ajeno.
 (recibir lo propio = contarlo doble). Nada se descarta por antigüedad.
 Config compartida: MANUAL a propósito (dos botones en Fuentes de datos);
 al guardar escribe en TODOS los servidores, al traer gana el primero;
-los servidores se FUSIONAN por host, nunca se reemplazan; NO viajan
-posición del widget, identidad, llaves SSH ni ntfy. Traer va en dos
+los servidores se FUSIONAN por host; NO viajan posición del widget,
+identidad, llaves SSH ni ntfy. Traer va en dos
 pasos con la fecha de lo guardado.
 
 ## Auto-updater
 
 Implementado, SIN probar (falta publicar un tag). Comandos propios Rust
 (`check_update`/`install_update`/`open_releases`) — sin API JS del
-plugin (invariante #4). Franja fija en cabecera + globo persistente.
-Fallo al instalar → "descárgala a mano" con botón a `RELEASES_URL`, que
-es CONSTANTE en Rust y jamás sale de un archivo descargado. Llave
-pública en tauri.conf.json; la privada en secretos del repo y copias de
-Oscar (si se pierde: llave nueva + instalar a mano UNA vez). El workflow
-ya firma; secretos cargados. BLOQUEADO por decisión: el repo es PRIVADO
-y las releases privadas dan 404 sin auth — el updater no funciona hasta
-hacer público el repo (o sus releases).
+plugin (invariante #4). Franja en cabecera + globo persistente. Fallo al
+instalar → "descárgala a mano" con botón a `RELEASES_URL`, CONSTANTE en
+Rust y que jamás sale de un archivo descargado. Llave pública en
+tauri.conf.json; la privada en secretos del repo y copias de Oscar (si se
+pierde: llave nueva + instalar a mano UNA vez). El workflow ya firma.
+BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
 
 ## Estado / pendientes
 
@@ -579,10 +570,19 @@ hacer público el repo (o sus releases).
       Se ve en Ajustes → Remediación (proyecto · pid · % de la sesión
       casada · listo/motivo; sondeo 5 s SOLO con esa pestaña visible) y
       como insignia "relevo" en la tarjeta de intención. El % de la fila
-      ES la prueba visible del casado. Falta 3c
-      (countdown + inyección desde la UI + desbloqueo progresivo) y
-      decidir cómo llega `michi.exe` al usuario (hoy a mano, fuera del
-      instalador).
+      ES la prueba visible del casado. **3c-1
+      IMPLEMENTADA 2026-08-08** (manual; falta validar): `relay_inject`
+      escribe la orden y espera acuse 8 s; lista blanca en LOS DOS
+      lados; countdown de
+      5 s donde el propio botón es el de parar; `relayBusy` impide
+      repintar con una cuenta viva (si no, el botón se va y la orden se
+      aplica a ciegas); botón en la tarjeta de intención y en Ajustes
+      (ahí SOLO /compact — `/clear` necesita su contexto); todo al
+      registro (`kind:"relay"`); desbloqueo en
+      `relayDone` (/compact 2, /clear 3). Falta 3c-2, el AUTOMÁTICO: el
+      countdown tiene que verse con el panel CERRADO, así que va al
+      widget; sin eso no hay interruptor. Y decidir cómo llega
+      `michi.exe` (hoy a mano, fuera del instalador).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
@@ -598,8 +598,8 @@ cambiar de estilo.
 
 ## Retención de logs
 
-Claude Code borra los .jsonl a los 30 días; el analizador necesita
-historial. `cleanupPeriodDays: 365` puesto en VPS y Windows (2026-07-29).
+Claude Code borra los .jsonl a los 30 días y el analizador necesita
+historial: `cleanupPeriodDays: 365` en VPS y Windows (2026-07-29).
 
 ## Comandos
 

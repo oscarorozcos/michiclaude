@@ -293,6 +293,15 @@
     color:var(--txt);background:transparent;border:1px solid var(--stroke-soft);
     border-radius:999px;padding:4px 11px;cursor:pointer;transition:.15s}
   .int-copy:hover{border-color:var(--accent-line);color:var(--accent)}
+  /* "Aplicar" (etapa 3c): relleno de acento porque es el único botón de la
+     app que TECLEA en la terminal del usuario — tiene que distinguirse del
+     de copiar a simple vista. Sin margin-left:auto: lo empuja el de copiar. */
+  .int-apply{font-size:11px;font-weight:600;font-family:var(--font);
+    color:var(--accent-ink);background:var(--accent);border:1px solid transparent;
+    border-radius:999px;padding:4px 11px;cursor:pointer;transition:.15s;
+    white-space:nowrap}
+  .int-apply:hover{filter:brightness(1.08)}
+  .int-apply[data-running]{background:var(--warn);color:#1a1206}
   .int-later{margin-top:10px;text-align:right;font-size:11px;color:var(--txt-dim);
     cursor:pointer}
   .int-later:hover{color:var(--txt)}
@@ -1464,6 +1473,7 @@
       <div class="cfg-lbl" data-i18n="rly_label"></div>
       <div class="cfg-note" id="rlyHint" data-i18n="rly_hint"></div>
       <div id="rlyList"></div>
+      <div class="cfg-note" id="rlyUnlock"></div>
       <div class="cfg-lbl" data-i18n="rem_log_label"></div>
       <div id="remLog" class="cfg-note"></div>
     </div>
@@ -1965,6 +1975,12 @@ en:{
   rly_e_gone:"closing",
   rly_e_badcmd:"command not allowed",
   rly_e_write:"couldn't write",
+  rly_apply:"Apply",
+  rly_applying:s=>`Applying in ${s}… (stop)`,
+  rly_applied:"Applied ✓",
+  rly_failed:w=>`Not applied: ${w}`,
+  rly_unlock:(a,b,c,d)=>`Applied by you: /compact ${a} of ${b} · /clear ${c} of ${d} — automatic mode unlocks once you complete them.`,
+  rem_log_relay:(cmd,proj)=>`applied ${cmd} in «${proj}»`,
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
   pill_layer_normal:"Normal window",
@@ -2366,6 +2382,12 @@ es:{
   rly_e_gone:"cerrándose",
   rly_e_badcmd:"comando no permitido",
   rly_e_write:"no se pudo escribir",
+  rly_apply:"Aplicar",
+  rly_applying:s=>`Aplicando en ${s}… (parar)`,
+  rly_applied:"Aplicado ✓",
+  rly_failed:w=>`No se aplicó: ${w}`,
+  rly_unlock:(a,b,c,d)=>`Aplicado por ti: /compact ${a} de ${b} · /clear ${c} de ${d} — el automático se desbloquea al completarlos.`,
+  rem_log_relay:(cmd,proj)=>`aplicó ${cmd} en «${proj}»`,
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
   pill_layer_normal:"Ventana normal",
@@ -2767,6 +2789,12 @@ pt:{
   rly_e_gone:"fechando",
   rly_e_badcmd:"comando não permitido",
   rly_e_write:"não deu para escrever",
+  rly_apply:"Aplicar",
+  rly_applying:s=>`Aplicando em ${s}… (parar)`,
+  rly_applied:"Aplicado ✓",
+  rly_failed:w=>`Não aplicado: ${w}`,
+  rly_unlock:(a,b,c,d)=>`Aplicado por você: /compact ${a} de ${b} · /clear ${c} de ${d} — o automático libera ao completá-los.`,
+  rem_log_relay:(cmd,proj)=>`aplicou ${cmd} em «${proj}»`,
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
   pill_layer_normal:"Janela normal",
@@ -3168,6 +3196,12 @@ fr:{
   rly_e_gone:"fermeture en cours",
   rly_e_badcmd:"commande non autorisée",
   rly_e_write:"écriture impossible",
+  rly_apply:"Appliquer",
+  rly_applying:s=>`Application dans ${s}… (arrêter)`,
+  rly_applied:"Appliqué ✓",
+  rly_failed:w=>`Non appliqué : ${w}`,
+  rly_unlock:(a,b,c,d)=>`Appliqué par toi : /compact ${a} sur ${b} · /clear ${c} sur ${d} — le mode automatique se débloque une fois complétés.`,
+  rem_log_relay:(cmd,proj)=>`a appliqué ${cmd} dans «${proj}»`,
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
   pill_layer_normal:"Fenêtre normale",
@@ -3569,6 +3603,12 @@ de:{
   rly_e_gone:"wird beendet",
   rly_e_badcmd:"Befehl nicht erlaubt",
   rly_e_write:"konnte nicht schreiben",
+  rly_apply:"Anwenden",
+  rly_applying:s=>`Wird in ${s} angewendet… (stoppen)`,
+  rly_applied:"Angewendet ✓",
+  rly_failed:w=>`Nicht angewendet: ${w}`,
+  rly_unlock:(a,b,c,d)=>`Von dir angewendet: /compact ${a} von ${b} · /clear ${c} von ${d} — der Automatikmodus wird danach freigeschaltet.`,
+  rem_log_relay:(cmd,proj)=>`${cmd} in «${proj}» angewendet`,
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
   pill_layer_normal:"Normales Fenster",
@@ -3970,6 +4010,12 @@ ja:{
   rly_e_gone:"終了中です",
   rly_e_badcmd:"許可されていないコマンドです",
   rly_e_write:"書き込めませんでした",
+  rly_apply:"適用",
+  rly_applying:s=>`${s} 秒後に適用…（中止）`,
+  rly_applied:"適用しました ✓",
+  rly_failed:w=>`適用できませんでした: ${w}`,
+  rly_unlock:(a,b,c,d)=>`あなたが適用した回数: /compact ${a}/${b} · /clear ${c}/${d} — すべて満たすと自動モードが解放されます。`,
+  rem_log_relay:(cmd,proj)=>`「${proj}」で ${cmd} を適用`,
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
   pill_layer_normal:"通常ウィンドウ",
@@ -4371,6 +4417,12 @@ ko:{
   rly_e_gone:"닫히는 중입니다",
   rly_e_badcmd:"허용되지 않은 명령입니다",
   rly_e_write:"쓸 수 없었습니다",
+  rly_apply:"적용",
+  rly_applying:s=>`${s}초 후 적용… (중지)`,
+  rly_applied:"적용됨 ✓",
+  rly_failed:w=>`적용하지 못했습니다: ${w}`,
+  rly_unlock:(a,b,c,d)=>`직접 적용한 횟수: /compact ${a}/${b} · /clear ${c}/${d} — 모두 채우면 자동 모드가 열립니다.`,
+  rem_log_relay:(cmd,proj)=>`「${proj}」에 ${cmd} 적용`,
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
   pill_layer_normal:"일반 창",
@@ -4772,6 +4824,12 @@ zh:{
   rly_e_gone:"正在关闭",
   rly_e_badcmd:"不允许的命令",
   rly_e_write:"无法写入",
+  rly_apply:"应用",
+  rly_applying:s=>`${s} 秒后应用…（停止）`,
+  rly_applied:"已应用 ✓",
+  rly_failed:w=>`未应用：${w}`,
+  rly_unlock:(a,b,c,d)=>`你已手动应用：/compact ${a}/${b} · /clear ${c}/${d} — 全部完成后解锁自动模式。`,
+  rem_log_relay:(cmd,proj)=>`在「${proj}」应用了 ${cmd}`,
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
   pill_layer_normal:"普通窗口",
@@ -6484,10 +6542,15 @@ function renderTips(){
       if((h.cont||0)>=40) ev.push(t("int_ev_cont"));
       if(h.gclean) ev.push(t("int_ev_commit"));
       ev.push(t("int_ev_quiet",h.quiet||0));
+      // etapa 3c: con relevo casado, además de copiar el comando se puede
+      // PEDIR que lo aplique. El botón solo aparece si hay relevo — sin él
+      // no hay nada que pulsar, y prometerlo sería vender humo.
       const opt=(cmd,tt,bb,rec,extra)=>`<div class="int-opt${rec?" rec":""}">${
           rec?`<span class="int-badge">${t("int_rec")}</span>`:""
         }<div class="int-ot">${tt}</div><div class="int-ob">${bb}</div>${extra||""
-        }<div class="int-row"><code>${cmd}</code><button class="int-copy" data-cmd="${cmd}">${t("int_copy")}</button></div></div>`;
+        }<div class="int-row"><code>${cmd}</code><button class="int-copy" data-cmd="${cmd}">${t("int_copy")}</button>${
+          rly?`<button class="int-apply" data-cmd="${cmd}" data-pid="${rly.pid}">${t("rly_apply")}</button>`:""
+        }</div></div>`;
       live.push({born:c.born||0, html:`<div class="fnd tip int${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
       <button class="tip-x" aria-label="✕">✕</button>
       <div class="fnd-t">${t("int_t")} · <span class="int-pct${h.value>=85?" hot":""}">${Math.round(h.value)}%</span></div>
@@ -6597,6 +6660,10 @@ function renderTips(){
       }catch(_){ b.textContent="✕"; }
       setTimeout(()=>{ b.textContent=t("int_copy"); },1600);
     }));
+  // "Aplicar" (etapa 3c): countdown con opción de parar y, al terminar, la
+  // orden al relevo. El clic no pliega la tarjeta ni la marca leída.
+  $("tipList").querySelectorAll(".int-apply").forEach(b=>
+    b.addEventListener("click",e=>{ e.stopPropagation(); relayApply(b); }));
   // "Ahora no" = despachar, igual que el ✕. tipSeen impide que renazca en
   // esta sesión; si mañana la presión sube en OTRA sesión, esa trae la suya.
   $("tipList").querySelectorAll(".int-later").forEach(bt=>
@@ -6880,7 +6947,7 @@ async function coachPoll(){
     if(dirty) saveCoachCards(cards);
     renderTipsDot();
     if(lastPillArgs) emitPill(...lastPillArgs);   // el widget lo ve al instante
-    if(!$("tab-tips").hidden) renderTips();
+    if(!$("tab-tips").hidden && !relayBusy) renderTips();
     // sesión local terminada = el momento en que nacen hallazgos: pasada
     // ligera para encender la campana/post-it el MISMO día (Oscar
     // 2026-08-04; el freno de 15 min vive dentro de fndEventScan)
@@ -7677,6 +7744,12 @@ function remUi(){
   // no ganado — con el interruptor apagado no hay nada que explicar
   $("remZombieLock").hidden=!(remOn("zombie")&&!remUnlocked("zombie"));
   $("remArchLock").hidden=!(remOn("archive")&&!remUnlocked("archive"));
+  // Desbloqueo progresivo del relevo (etapa 3c): se enseña el marcador para
+  // que el usuario vea que va acumulando, en vez de un automático que
+  // aparece de la nada un día.
+  const c=relayCount();
+  $("rlyUnlock").textContent=t("rly_unlock",
+    c["/compact"]||0, RELAY_UNLOCK["/compact"], c["/clear"]||0, RELAY_UNLOCK["/clear"]);
 }
 for(const [id,k] of [["remZombieChk","zombie"],["remArchChk","archive"]])
   $(id).addEventListener("change",()=>{
@@ -7761,7 +7834,9 @@ async function remLogLoad(){
       const d=new Date(a.ts*1000);
       const when=d.toLocaleDateString(undefined,{day:"2-digit",month:"2-digit"})+" "+
         d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
-      const what=a.kind==="zombie"?t("rem_log_zombie",a.d1):t("rem_log_arch",a.d1,a.d2);
+      const what=a.kind==="zombie"?t("rem_log_zombie",a.d1)
+        : a.kind==="relay"?t("rem_log_relay",a.d1,a.d2)
+        : t("rem_log_arch",a.d1,a.d2);
       return `<div class="rem-l">${when} · ${a.auto?t("rem_auto_lab"):t("rem_man_lab")} · ${
         escapeHtml(what)}${a.ok?"":" · ⚠ "+t("rem_fail_lab")}</div>`;
     }).join("");
@@ -7871,9 +7946,15 @@ function rlyRows(){
     const p=pressForRelay(r);
     const pct=p?` · <span title="${escapeHtml(t("press_lab"))}">${
       pressPct(p)}%</span>`:"";
+    // Aquí SOLO /compact. `/clear` borra la memoria de la conversación y esa
+    // decisión necesita el contexto de la tarjeta de intención —el veredicto
+    // y el aviso de pendientes—, no una fila suelta en Ajustes.
     return `<div class="rly-r"><span><b>${escapeHtml(r.project||r.cwd)}</b> · pid ${
-      r.pid}${pct}</span>${s}</div>`;
+      r.pid}${pct}</span><span style="display:flex;gap:8px;align-items:center">${s}<button
+      class="int-apply" data-cmd="/compact" data-pid="${r.pid}">${t("rly_apply")} /compact</button></span></div>`;
   }).join("");
+  el.querySelectorAll(".int-apply").forEach(b=>
+    b.addEventListener("click",()=>relayApply(b)));
   $("rlyHint").textContent=relays.length?t("rly_hint"):t("rly_none");
 }
 // Sondeo CORTO (5 s) y solo con Ajustes a la vista: el estado del relevo
@@ -7885,8 +7966,80 @@ async function rlyPoll(){
   try{ relays=await invoke("get_relays")||[]; }
   catch(_){ relays=[]; }              // sin backend: como si no hubiera relevo
 }
+// ---------- relevo: aplicar desde la interfaz (etapa 3c) ----------
+// Segundos de countdown antes de teclear. Es la única ventana que tiene el
+// usuario para parar a Michi, así que existe SIEMPRE, aunque acabe de pulsar
+// él mismo. Corto en el manual (acaba de pedirlo y sabe qué va a pasar).
+const RELAY_WAIT=5;
+// Cuántas veces tiene que aplicarlo el usuario A MANO antes de que el
+// automático se desbloquee. Mismo principio que los zombies de la etapa 2:
+// Michi no automatiza lo que no has visto hacer. /clear pide una más porque
+// borra la memoria de la conversación y eso no se deshace.
+const RELAY_UNLOCK={"/compact":2,"/clear":3};
+// Cuentas atrás en marcha. Mientras haya una, NADIE repinta las superficies
+// que la contienen: un re-render se llevaría el botón por delante, el
+// temporizador seguiría vivo sobre un nodo huérfano y la orden se aplicaría
+// sin que el usuario viera nada. El countdown es su única ventana para
+// pararlo; si desaparece de la pantalla, deja de ser una ventana.
+let relayBusy=0;
+function relayCount(){ try{ return JSON.parse(localStorage.getItem("relayDone")||"{}"); }catch(_){ return {}; } }
+function relayUnlocked(cmd){ return (relayCount()[cmd]||0) >= (RELAY_UNLOCK[cmd]||99); }
+function relayMark(cmd){
+  const c=relayCount(); c[cmd]=(c[cmd]||0)+1;
+  localStorage.setItem("relayDone",JSON.stringify(c));
+  flog("relevo: "+cmd+" aplicado a mano ("+c[cmd]+"/"+(RELAY_UNLOCK[cmd]||"?")+")");
+  if(!$("tab-prefs").hidden) remUi();
+}
+// Traduce el veredicto del relevo. Los códigos vienen crudos del backend
+// (invariante #10) y rlyWhy ya sabe convertirlos; aquí solo se enmarca.
+function relayFail(code){ return t("rly_failed", rlyWhy(code)); }
+// Cuenta atrás sobre el propio botón y, al llegar a cero, la orden. Mientras
+// corre, el botón ES el botón de cancelar: un solo control, imposible
+// confundirse. Si el usuario cancela, no se escribe nada en ningún sitio.
+function relayApply(btn){
+  const label=btn.dataset.label||btn.textContent;
+  btn.dataset.label=label;
+  if(btn.dataset.running){                 // segundo clic = parar
+    clearInterval(+btn.dataset.timer);
+    delete btn.dataset.running;
+    relayBusy=Math.max(0,relayBusy-1);
+    btn.textContent=label;
+    flog("relevo: cancelado por el usuario");
+    return;
+  }
+  const cmd=btn.dataset.cmd||"", pid=+btn.dataset.pid||0;
+  let left=RELAY_WAIT;
+  relayBusy++;
+  btn.dataset.running="1";
+  btn.textContent=t("rly_applying",left);
+  const tick=setInterval(async ()=>{
+    left--;
+    if(left>0){ btn.textContent=t("rly_applying",left); return; }
+    clearInterval(tick);
+    delete btn.dataset.running;
+    btn.textContent="…";
+    relayBusy=Math.max(0,relayBusy-1);
+    // R4: que el countdown termine NO es un permiso. El relevo vuelve a
+    // comprobar el candado en el instante de escribir y puede negarse — por
+    // ejemplo si el usuario se puso a teclear durante la cuenta atrás.
+    try{
+      await invoke("relay_inject",{pid,text:cmd,auto:false});
+      btn.textContent=t("rly_applied");
+      relayMark(cmd);
+      flog("relevo: aplicado "+cmd+" en pid "+pid);
+      remLogLoad();
+    }catch(err){
+      btn.textContent=relayFail(String(err));
+      flog("relevo: NO aplicado "+cmd+" — "+err);
+      setTimeout(()=>{ btn.textContent=label; },4000);
+    }
+  },1000);
+  btn.dataset.timer=String(tick);
+}
+
 async function rlyPollUi(){
   if($("tab-prefs").hidden||document.hidden) return;
+  if(relayBusy) return;                 // no repintar con un countdown vivo
   const antes=relays.map(r=>r.pid+":"+r.ready+":"+r.why).join("|");
   await rlyPoll();
   if(relays.map(r=>r.pid+":"+r.ready+":"+r.why).join("|")!==antes) rlyRows();
