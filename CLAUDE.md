@@ -65,8 +65,8 @@ para el coste (a 10% del input). `<synthetic>` fuera. Fuente WSL:
 sufijo `wsl-<distro>`. Incremental: lo más viejo que la ventana ni se
 abre; de lo reciente se cachea el PARSEO por tamaño+mtime
 (`scan_cache.json`), nunca el coste. Agrega por proyecto (ventana 1/7/30,
-`by_model`), por modelo, coste hoy/ventana y serie `daily` de 30 días. Los
-proyectos remotos llevan el sufijo del nombre que el usuario dio al server.
+`by_model`), por modelo, coste hoy/ventana y serie `daily` de 30 días.
+Los proyectos remotos llevan el sufijo del nombre dado al server.
 
 **Precios Y TECHO DE CONTEXTO:** la misma tabla y la misma cascada
 (LiteLLM → models.dev → OpenRouter, caché 24 h en `prices_cache.json`,
