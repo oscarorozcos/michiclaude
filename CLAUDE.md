@@ -79,18 +79,17 @@ $10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`, la UI marca
 Ajustes informa de AMBAS cosas (`ctx_count` = modelos con techo): si una
 fuente deja de publicarlo, el número baja a la vista.
 `price_key()` unifica PUNTO→GUIÓN entre dígitos: OpenRouter escribe
-`claude-opus-4.8` donde el resto y los logs escriben `claude-opus-4-8`, y
-sin eso la 3.ª fuente casaba 6 de 14 modelos —ocho vigentes se quedaban sin
-precio y sin techo en silencio— (auditoría 2026-08-08: las 3 fuentes
-coinciden al céntimo en precios; el único techo discrepante es
-sonnet-4-5, 200k de base con beta de 1M).
+`claude-opus-4.8` y el resto `claude-opus-4-8`; sin eso la 3.ª fuente
+casaba 6 de 14 modelos, ocho vigentes sin precio ni techo en silencio.
+Auditoría 2026-08-08: las 3 coinciden al céntimo; el único techo
+discrepante es sonnet-4-5 (200k de base, beta de 1M).
 
 **C) Remotas (dentro de `get_local_stats`):** `remotes.json` en
 `%APPDATA%\com.oscarorozco.michiclaude\`; por fuente, `ssh -o BatchMode=yes
 <host> <command>`. `meter-export.py` replica la MISMA agregación
-(**mantener AMBOS lados en sincronía** — invariante #1). Fusión: totales
-sumados, proyectos etiquetados. SSH falla → se ignora en silencio. El alta
-sube el exportador EMBEBIDO (include_str!, saltos normalizados a LF) a
+(**AMBOS lados en sincronía** — invariante #1). Fusión: totales sumados,
+proyectos etiquetados. SSH falla → se ignora en silencio. El alta sube el
+exportador EMBEBIDO (include_str!, saltos a LF) a
 `~/.michiclaude/meter-export.py` y lo re-sube al arrancar — editar el .py
 en el VPS NO tiene efecto, hay que recompilar. `install_remote(host,python)`
 verifica el binario de Python (`verify_python`); sin Python debe fallar con
@@ -478,35 +477,27 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
       `docs/presion-y-rendimiento.md` — LEERLO antes de tocar). CERRADO
       HASTA DONDE ESTÁ (Oscar, 2026-08-07): fases 1 y 2 implementadas y
-      funcionando; queda como pendiente SOLO por si al usarlo falta algo
-      o pide ajustes — no hay obra activa. La fase 1 (motor de datos) se
-      implementó el 2026-08-06, pendiente de
-      `cargo check` en Windows y de validación en vivo. Qué existe ya:
-      (a) TURNOS ÚTILES `uturns` en LocalStats/proyectos/daily (mensajes
-      HUMANOS: fuera meta, sidechain, tool_result, comandos locales e
-      inyecciones `<ide_…`; `is_user_turn` réplica exacta Rust/Python,
-      invariante #1; caché v2 se reconstruye solo); 0 turnos = "sin
-      datos", NUNCA dividir (invariante #8); un exportador viejo manda 0
-      y se degrada honesto. (b) HISTÓRICO DE CUOTA `quota_history.json`
-      (90 días, una foto por ciclo, `log_quota`/`get_quota_history`;
-      solo lecturas BUENAS, nunca simulador; local, no viaja a hub ni
-      ntfy). (c) MARCAS DE ARREGLO (`fndHist`/`fndMarks`, solo hallazgos
-      de estado, escaneos ≥7d sin rango; visto ≥3 días + desaparecido ≥2
-      = arreglado). FASE 2 pestaña Reporte (`rep_tab`): IMPLEMENTADA
-      2026-08-06, pulida 2026-08-07 sobre maqueta de Oscar — chips
-      Semana/Mes/Personalizado, héroe EFICIENCIA/VOLUMEN, "¿te duró más
-      o menos?", gráfica 4 semanas tokens/$ con detalle (repSel), deltas
-      por proyecto, "qué lo encareció". REGLAS VIGENTES (detalle en el
-      doc): nunca pintar con uturns=0; mínimo 20 fotos de cuota o
-      "juntando datos"; "1M tok ≈ $X" con la tarifa REAL del periodo,
-      jamás fija; el $ SIEMPRE pegado a su dato de tokens (.as-money);
-      caché POR PERIODO, render PROGRESIVO y re-render al cambiar
-      idioma; sin candado de carga (sello `repStamp`). ~72 claves i18n
-      ×8. SI SE RETOMA, lo primero: fase 3, export HTML del mockup A.
-      También en el doc y sin arrancar: detectores de
-      auto-compacts y de pegado masivo. DESCARTADO con porqué en
-      el doc: sesión contaminada, score único, modelo local, telemetría
-      colectiva (choca con invariante #3).
+      funcionando; queda como pendiente por si al usarlo falta algo. Qué
+      existe: (a) TURNOS ÚTILES `uturns` en LocalStats/proyectos/daily
+      (mensajes HUMANOS: fuera meta, sidechain, tool_result, comandos
+      locales e inyecciones `<ide_…`; `is_user_turn` réplica exacta
+      Rust/Python, invariante #1); 0 turnos = "sin datos", NUNCA dividir
+      (invariante #8). (b) HISTÓRICO DE CUOTA `quota_history.json` (90
+      días, una foto por ciclo; solo lecturas BUENAS, nunca simulador;
+      local, no viaja a hub ni ntfy). (c) MARCAS DE ARREGLO
+      (`fndHist`/`fndMarks`, solo hallazgos de estado; visto ≥3 días +
+      desaparecido ≥2 = arreglado). FASE 2 pestaña Reporte (`rep_tab`):
+      chips Semana/Mes/Personalizado, héroe EFICIENCIA/VOLUMEN, "¿te duró
+      más o menos?", gráfica 4 semanas tokens/$ con detalle, deltas por
+      proyecto, "qué lo encareció". REGLAS VIGENTES (detalle en el doc):
+      nunca pintar con uturns=0; mínimo 20 fotos de cuota o "juntando
+      datos"; "1M tok ≈ $X" con la tarifa REAL del periodo, jamás fija; el
+      $ SIEMPRE pegado a su dato de tokens (.as-money); caché POR PERIODO,
+      render PROGRESIVO y re-render al cambiar idioma; sin candado de
+      carga (`repStamp`). ~72 claves i18n ×8. SI SE RETOMA: fase 3, export
+      HTML del mockup A. Sin arrancar: detector de pegado masivo.
+      DESCARTADO con porqué en el doc: sesión contaminada, score único,
+      modelo local, telemetría colectiva (choca con invariante #3).
 - [ ] REMEDIACIÓN (diseño en `docs/remediacion.md` — LEERLO antes de
       tocar; ahí está lo que chocaba con invariantes y su porqué, y los
       prompts de maquetas en `docs/prompts-diseno-remediacion.md`).
@@ -579,9 +570,15 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       ETAPA 4: 4a = relevo del VPS en PYTHON (`michi-relevo.py`, stdlib
       pty; el VPS no tiene Rust), embebido y re-subido como el exportador
       junto a `michi-wrap.sh`; mismas constantes/esquema/códigos que
-      main.rs, validado con banco de PTY real. Faltan 4b (descubrir
-      remotas por SSH), 4c (inyección remota + alias `~/.bashrc`) y WSL;
-      el automático NO llega a remotas aún. FALTA: que `michi.exe` viaje en el instalador
+      main.rs, validado con banco de PTY real. 4b/4c HECHAS y validadas 6/6 contra el
+      relevo de chat vivo: `scan_relays_remote` lee los estados por SSH
+      con UNA conexión por servidor (solo en el compás del coach, 3 min;
+      el sondeo de 5 s conserva las remotas), y `relay_inject_remote`
+      escribe el `.cmd` con tmp+rename EN el servidor pasando el comando
+      por STDIN, nunca interpolado en la línea de shell. El casado va en
+      dos niveles: `sid` EXACTO (solo en modo chat) y si no el `cwd`, y
+      los dos exigen la MISMA máquina (`origin` vacío = esta). Faltan el
+      alias `~/.bashrc` y WSL; el automático NO llega a remotas aún. FALTA: que `michi.exe` viaje en el instalador
       (workflow, invariante #9) y la etapa 4 (WSL/SSH).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras

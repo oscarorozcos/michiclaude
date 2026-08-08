@@ -1990,6 +1990,7 @@ en:{
   rly_hint:"Claude Code opened with «michi claude»: Michi sees the state of each session and whether it would accept a command right now.",
   rly_none:"No session opened with «michi claude».",
   rly_ready:"ready",
+  rly_chat:"chat",
   rly_badge:"relay",
   rly_badge_tip:"This session is open with «michi claude».",
   rly_e_typed:"you have unsent text",
@@ -2410,6 +2411,7 @@ es:{
   rly_hint:"Claude Code abierto con «michi claude»: Michi ve en qué estado está cada sesión y si aceptaría un comando ahora mismo.",
   rly_none:"Ninguna sesión abierta con «michi claude».",
   rly_ready:"listo",
+  rly_chat:"chat",
   rly_badge:"relevo",
   rly_badge_tip:"Esta sesión está abierta con «michi claude».",
   rly_e_typed:"tienes texto sin enviar",
@@ -2830,6 +2832,7 @@ pt:{
   rly_hint:"Claude Code aberto com «michi claude»: Michi vê em que estado está cada sessão e se ela aceitaria um comando agora.",
   rly_none:"Nenhuma sessão aberta com «michi claude».",
   rly_ready:"pronto",
+  rly_chat:"chat",
   rly_badge:"revezamento",
   rly_badge_tip:"Esta sessão está aberta com «michi claude».",
   rly_e_typed:"você tem texto não enviado",
@@ -3250,6 +3253,7 @@ fr:{
   rly_hint:"Claude Code ouvert avec «michi claude» : Michi voit l'état de chaque session et si elle accepterait une commande maintenant.",
   rly_none:"Aucune session ouverte avec «michi claude».",
   rly_ready:"prêt",
+  rly_chat:"chat",
   rly_badge:"relais",
   rly_badge_tip:"Cette session est ouverte avec «michi claude».",
   rly_e_typed:"tu as du texte non envoyé",
@@ -3670,6 +3674,7 @@ de:{
   rly_hint:"Mit «michi claude» geöffnetes Claude Code: Michi sieht den Zustand jeder Sitzung und ob sie gerade einen Befehl annehmen würde.",
   rly_none:"Keine Sitzung mit «michi claude» geöffnet.",
   rly_ready:"bereit",
+  rly_chat:"Chat",
   rly_badge:"Relais",
   rly_badge_tip:"Diese Sitzung ist mit «michi claude» geöffnet.",
   rly_e_typed:"du hast ungesendeten Text",
@@ -4090,6 +4095,7 @@ ja:{
   rly_hint:"「michi claude」で開いた Claude Code。Michi は各セッションの状態と、いまコマンドを受け付けられるかどうかを把握します。",
   rly_none:"「michi claude」で開いたセッションはありません。",
   rly_ready:"準備完了",
+  rly_chat:"チャット",
   rly_badge:"リレー",
   rly_badge_tip:"このセッションは「michi claude」で開かれています。",
   rly_e_typed:"未送信のテキストがあります",
@@ -4510,6 +4516,7 @@ ko:{
   rly_hint:"「michi claude」로 연 Claude Code. Michi가 각 세션의 상태와 지금 명령을 받을 수 있는지 확인합니다.",
   rly_none:"「michi claude」로 연 세션이 없습니다.",
   rly_ready:"준비됨",
+  rly_chat:"채팅",
   rly_badge:"릴레이",
   rly_badge_tip:"이 세션은 「michi claude」로 열려 있습니다.",
   rly_e_typed:"보내지 않은 텍스트가 있습니다",
@@ -4930,6 +4937,7 @@ zh:{
   rly_hint:"用「michi claude」打开的 Claude Code。Michi 能看到每个会话的状态，以及此刻是否能接受命令。",
   rly_none:"没有用「michi claude」打开的会话。",
   rly_ready:"就绪",
+  rly_chat:"聊天",
   rly_badge:"接力",
   rly_badge_tip:"该会话是用「michi claude」打开的。",
   rly_e_typed:"你有未发送的文本",
@@ -6679,7 +6687,7 @@ function renderTips(){
           rec?`<span class="int-badge">${t("int_rec")}</span>`:""
         }<div class="int-ot">${tt}</div><div class="int-ob">${bb}</div>${extra||""
         }<div class="int-row"><code>${cmd}</code><button class="int-copy" data-cmd="${cmd}">${t("int_copy")}</button>${
-          rly?`<button class="int-apply" data-cmd="${cmd}" data-pid="${rly.pid}">${t("rly_apply")}</button>`:""
+          rly?`<button class="int-apply" data-cmd="${cmd}" data-pid="${rly.pid}" data-origin="${esc(rly.origin||"")}">${t("rly_apply")}</button>`:""
         }</div></div>`;
       live.push({born:c.born||0, html:`<div class="fnd tip int${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
       <button class="tip-x" aria-label="✕">✕</button>
@@ -6995,7 +7003,7 @@ async function coachPoll(){
     // las sesiones con relevo, al mismo compás: la tarjeta de intención dice
     // si ESTA sesión tiene relevo, y para eso la lista tiene que estar puesta
     // antes de que nazca la tarjeta (etapa 3b)
-    await rlyPoll();
+    await rlyPoll(true);           // incluye las de otras máquinas (4b)
     const all=await invoke("get_coach")||[];
     // "tu agente terminó" y "te está esperando" NO son fichas: son avisos al
     // celular. Se apartan antes del filtro para que no gasten el tope diario
@@ -7636,7 +7644,7 @@ function showTab(name){
   // Consejos: la lista de relevos decide la insignia de la tarjeta de
   // intención, así que se refresca ANTES de pintar (y otra vez al llegar,
   // porque la primera pasada no espera)
-  if(name==="tips"){ renderTips(); renderTipFoot(); rlyPoll().then(renderTips); }
+  if(name==="tips"){ renderTips(); renderTipFoot(); rlyPoll(false).then(renderTips); }
   if(name==="report") loadReport(false);          // TTL de 5 min, como Hallazgos
   if(name==="prefs"){ renderPricesStatus();       // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
@@ -8059,10 +8067,19 @@ function cwdKey(p){ return String(p||"").replace(/\\/g,"/").replace(/\/+$/,"").t
 // relevos comparten carpeta no hay forma de saber cuál es esta sesión, y
 // adivinar sería teclear en la terminal equivocada.
 function relayFor(h){
-  if(!h||h.origin) return null;       // el relevo es local; WSL/SSH = etapa 4
+  if(!h) return null;
+  // La MÁQUINA tiene que ser la misma: un hit del VPS solo puede casar con un
+  // relevo del VPS. `origin` vacío = esta máquina, en los dos lados.
+  const mismos=relays.filter(r=>(r.origin||"")===(h.origin||""));
+  // 1) por session_id: EXACTO, sin heurística. Solo lo trae el modo chat,
+  //    donde el protocolo lo regala. Es el casado bueno.
+  const porSid=mismos.filter(r=>r.sid && h.session &&
+    r.sid.slice(0,8)===String(h.session).slice(0,8));
+  if(porSid.length===1) return porSid[0];
+  // 2) por carpeta: lo de siempre, fail-closed ante ambigüedad
   const k=cwdKey(h.scwd);
-  if(!k) return null;                 // exportador viejo o sesión sin cwd
-  const c=relays.filter(r=>cwdKey(r.cwd)===k);
+  if(!k) return null;
+  const c=mismos.filter(r=>cwdKey(r.cwd)===k);
   return c.length===1?c[0]:null;
 }
 // Motivo del "no" en llano. El backend manda códigos y el panel traduce
@@ -8077,8 +8094,12 @@ function rlyWhy(code){
 // enseñar en la fila cuánto contexto lleva esa sesión: es la prueba visible de
 // que el casado funciona sin tener que esperar a una sesión al 80%.
 function pressForRelay(r){
+  const mismos=pressAll.filter(h=>(h.origin||"")===(r.origin||""));
+  const porSid=mismos.filter(h=>r.sid && h.session &&
+    r.sid.slice(0,8)===String(h.session).slice(0,8));
+  if(porSid.length===1) return porSid[0];
   const k=cwdKey(r.cwd); if(!k) return null;
-  const c=pressAll.filter(h=>!h.origin&&cwdKey(h.scwd)===k);
+  const c=mismos.filter(h=>cwdKey(h.scwd)===k);
   return c.length===1?c[0]:null;
 }
 function rlyRows(){
@@ -8092,9 +8113,13 @@ function rlyRows(){
     // Aquí SOLO /compact. `/clear` borra la memoria de la conversación y esa
     // decisión necesita el contexto de la tarjeta de intención —el veredicto
     // y el aviso de pendientes—, no una fila suelta en Ajustes.
-    return `<div class="rly-r"><span><b>${escapeHtml(r.project||r.cwd)}</b> · pid ${
-      r.pid}${pct}</span><span class="rly-act">${s}<button
-      class="int-apply" data-cmd="/compact" data-pid="${r.pid}">${t("rly_apply")} /compact</button></span></div>`;
+    // de qué máquina y por qué vía: "vps · chat" dice más que un pid suelto
+    const donde=[r.origin||t("src_local"), r.mode==="chat"?t("rly_chat"):null]
+      .filter(Boolean).join(" · ");
+    return `<div class="rly-r"><span><b>${escapeHtml(r.project||r.cwd)}</b> · ${
+      escapeHtml(donde)} · pid ${r.pid}${pct}</span><span class="rly-act">${s}<button
+      class="int-apply" data-cmd="/compact" data-pid="${r.pid}" data-origin="${
+      escapeHtml(r.origin||"")}">${t("rly_apply")} /compact</button></span></div>`;
   }).join("");
   el.querySelectorAll(".int-apply").forEach(b=>
     b.addEventListener("click",()=>relayApply(b)));
@@ -8104,10 +8129,17 @@ function rlyRows(){
 // caduca en 15 s, así que enseñarlo viejo sería peor que no enseñarlo. Fuera
 // de esa pestaña basta el ritmo del coach, que es quien necesita saber si la
 // sesión bajo presión tiene relevo.
-async function rlyPoll(){
+// `remote` cuesta una conexión SSH por servidor, así que solo se pide en el
+// compás lento del coach (3 min). El sondeo de 5 s de la pestaña mira solo lo
+// local y conserva las remotas que ya había: mejor un dato de hace un par de
+// minutos que una pestaña que congela cada 5 segundos.
+async function rlyPoll(remote){
   if(!invoke) return;
-  try{ relays=await invoke("get_relays")||[]; }
-  catch(_){ relays=[]; }              // sin backend: como si no hubiera relevo
+  const previas=relays.filter(r=>r.origin);
+  try{
+    const v=await invoke("get_relays",{remote:!!remote})||[];
+    relays = remote ? v : v.concat(previas);
+  }catch(_){ relays=[]; }             // sin backend: como si no hubiera relevo
   relayUserCmds();
 }
 // Un /compact o /clear que TECLEAS TÚ cuenta para el desbloqueo igual que el
@@ -8205,7 +8237,7 @@ function relayApply(btn){
     // comprobar el candado en el instante de escribir y puede negarse — por
     // ejemplo si el usuario se puso a teclear durante la cuenta atrás.
     try{
-      await invoke("relay_inject",{pid,text:cmd,auto:false});
+      await invoke("relay_inject",{pid,text:cmd,auto:false,origin:btn.dataset.origin||""});
       btn.textContent=t("rly_applied");
       relayMsg(btn,"");
       relayMark(cmd);
@@ -8278,7 +8310,7 @@ async function relayAutoCheck(pr){
     // R4: el relevo vuelve a comprobar R1-R3 al escribir. Si el usuario se
     // puso a teclear durante la cuenta, esto se rechaza — y está bien.
     try{
-      await invoke("relay_inject",{pid:rly.pid,text:"/compact",auto:true});
+      await invoke("relay_inject",{pid:rly.pid,text:"/compact",auto:true,origin:rly.origin||""});
       flog("relevo auto: aplicado /compact");
     }catch(e){ flog("relevo auto: NO aplicado — "+e); }
     remLogLoad();
@@ -8328,7 +8360,7 @@ async function rlyPollUi(){
   if($("tab-prefs").hidden||document.hidden) return;
   if(relayBusy) return;                 // no repintar con un countdown vivo
   const antes=relays.map(r=>r.pid+":"+r.ready+":"+r.why).join("|");
-  await rlyPoll();
+  await rlyPoll(false);
   if(relays.map(r=>r.pid+":"+r.ready+":"+r.why).join("|")!==antes) rlyRows();
 }
 setInterval(rlyPollUi,5*1000);

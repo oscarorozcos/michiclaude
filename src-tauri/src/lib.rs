@@ -4158,6 +4158,16 @@ struct Relay {
     /// blanca (para el desbloqueo progresivo de la 3c)
     user_cmd: String,
     user_cmd_ts: i64,
+    /// "terminal" (ConPTY/PTY) o "chat" (proxy stream-json de la extensión
+    /// de VS Code). Cambia lo que se puede afirmar: en chat no hay borrador
+    /// visible, y el casado es exacto por `sid`.
+    mode: String,
+    /// session_id del log — solo en modo chat, donde el protocolo lo da.
+    /// Con esto el casado deja de ser heurística.
+    sid: String,
+    /// De qué máquina viene: vacío = esta. Lo pone quien lee, igual que el
+    /// origen de los hits del coach (invariante del hub).
+    origin: String,
 }
 
 /// Lee la carpeta del relevo y devuelve las sesiones VIVAS. Nunca falla:
@@ -4201,6 +4211,9 @@ fn scan_relays() -> Vec<Relay> {
             idle_out: v["idle_out"].as_u64().unwrap_or(0),
             user_cmd: v["user_cmd"].as_str().unwrap_or("").to_string(),
             user_cmd_ts: v["user_cmd_ts"].as_i64().unwrap_or(0),
+            mode: v["mode"].as_str().unwrap_or("terminal").to_string(),
+            sid: v["sid"].as_str().unwrap_or("").to_string(),
+            origin: String::new(),
         });
     }
     out.sort_by_key(|r| r.started);
@@ -4218,11 +4231,90 @@ fn path_base(p: &str) -> String {
         .to_string()
 }
 
+/// Un comando por SSH, con la MISMA tubería que el resto del hub. Devuelve
+/// None en silencio si el servidor no responde: una fuente remota caída no
+/// puede entorpecer al panel (misma regla que `fetch_remote`).
+fn ssh_out(host: &str, command: &str, secs: &str) -> Option<String> {
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o"])
+        .arg(format!("ConnectTimeout={secs}"))
+        .arg(host)
+        .arg(command);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let out = cmd.output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    String::from_utf8(out.stdout).ok()
+}
+
+/// Etapa 4b: los relevos que viven en OTRA máquina. Se leen por SSH con un
+/// `cat` de la carpeta remota — el mismo patrón que el exportador, sin
+/// inventar protocolo. El `origin` (nombre que el usuario le dio al servidor)
+/// viaja en el Relay igual que en los hits del coach: lo etiqueta quien lee.
+///
+/// Coste: una conexión SSH por servidor. Por eso NO va en el sondeo de 5 s de
+/// la pestaña, sino en el compás del coach (3 min) — y el panel se queda con
+/// lo último bueno mientras tanto.
+fn scan_relays_remote() -> Vec<Relay> {
+    let mut out = Vec::new();
+    for r in load_remotes() {
+        // una sola llamada por servidor: todos los .json de golpe, separados
+        // por una marca que no puede aparecer dentro de un JSON de una línea
+        let Some(raw) = ssh_out(
+            &r.host,
+            "for f in ~/.michiclaude/relevo/*.json; do [ -f \"$f\" ] && cat \"$f\" && echo; done",
+            "5",
+        ) else {
+            continue;
+        };
+        let now = Utc::now().timestamp();
+        for line in raw.lines() {
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(line.trim()) else {
+                continue;
+            };
+            let ts = v["ts"].as_i64().unwrap_or(0);
+            if now - ts > RELAY_FRESH || !v["alive"].as_bool().unwrap_or(false) {
+                continue;
+            }
+            let cwd = v["cwd"].as_str().unwrap_or("").to_string();
+            out.push(Relay {
+                pid: v["pid"].as_u64().unwrap_or(0) as u32,
+                project: path_base(&cwd),
+                cwd,
+                started: v["started"].as_i64().unwrap_or(0),
+                ts,
+                ready: v["ready"].as_bool().unwrap_or(false),
+                why: v["why"].as_str().unwrap_or("").to_string(),
+                typed: v["typed"].as_bool().unwrap_or(false),
+                idle_in: v["idle_in"].as_u64().unwrap_or(0),
+                idle_out: v["idle_out"].as_u64().unwrap_or(0),
+                user_cmd: v["user_cmd"].as_str().unwrap_or("").to_string(),
+                user_cmd_ts: v["user_cmd_ts"].as_i64().unwrap_or(0),
+                mode: v["mode"].as_str().unwrap_or("terminal").to_string(),
+                sid: v["sid"].as_str().unwrap_or("").to_string(),
+                origin: r.name.clone(),
+            });
+        }
+    }
+    out
+}
+
 #[tauri::command]
-async fn get_relays() -> Result<Vec<Relay>, String> {
-    tauri::async_runtime::spawn_blocking(|| Ok(scan_relays()))
-        .await
-        .map_err(|e| e.to_string())?
+async fn get_relays(remote: bool) -> Result<Vec<Relay>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut v = scan_relays();
+        if remote {
+            v.extend(scan_relays_remote());
+        }
+        Ok(v)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// La MISMA lista blanca que el relevo. Se comprueba en los dos lados a
@@ -4252,11 +4344,85 @@ fn relay_write_cmd(path: &PathBuf, data: &str) -> bool {
 /// Devuelve el código `ERR_RELAY_*` que dé el relevo, sin traducir
 /// (invariante #10). `ERR_RELAY_NOACK` es nuestro: la orden se escribió pero
 /// nadie contestó — un relevo que murió justo en medio.
+/// Etapa 4c: la misma orden, pero a una máquina remota. Se escribe el `.cmd`
+/// por SSH (tmp+rename EN EL SERVIDOR, para que el relevo no lea un archivo a
+/// medias) y se espera el acuse releyendo su estado.
+///
+/// El comando se pasa por STDIN, nunca interpolado en la línea de shell: el
+/// texto sale de una lista blanca de dos elementos, pero un día alguien
+/// ampliará esa lista y no quiero que ese día una comilla se convierta en
+/// ejecución remota. Se cierra la puerta antes de que exista.
+fn relay_inject_remote(host: &str, pid: u32, text: &str, id: &str) -> Result<(), String> {
+    use std::io::Write;
+    let body = serde_json::json!({"id": id, "op": "inject", "text": text}).to_string();
+    let script = format!(
+        "d=$HOME/.michiclaude/relevo; mkdir -p $d; cat > $d/{pid}.cmd.tmp && \
+         mv $d/{pid}.cmd.tmp $d/{pid}.cmd"
+    );
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+        .arg(host)
+        .arg(&script)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let mut child = cmd.spawn().map_err(|_| "ERR_RELAY_WRITE".to_string())?;
+    if let Some(mut si) = child.stdin.take() {
+        let _ = si.write_all(body.as_bytes());
+    }
+    let out = child.wait_with_output().map_err(|_| "ERR_RELAY_WRITE".to_string())?;
+    if !out.status.success() {
+        return Err("ERR_RELAY_WRITE".to_string());
+    }
+    // el acuse: el relevo remoto lo publica en su estado, igual que el local
+    for _ in 0..16 {
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        let Some(raw) = ssh_out(host, &format!("cat ~/.michiclaude/relevo/{pid}.json"), "5")
+        else {
+            continue;
+        };
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(raw.trim()) else {
+            continue;
+        };
+        if v["last"]["id"].as_str() != Some(id) {
+            continue;
+        }
+        return if v["last"]["ok"].as_bool().unwrap_or(false) {
+            Ok(())
+        } else {
+            Err(v["last"]["err"].as_str().unwrap_or("ERR_RELAY_NOACK").to_string())
+        };
+    }
+    Err("ERR_RELAY_NOACK".to_string())
+}
+
 #[tauri::command]
-async fn relay_inject(pid: u32, text: String, auto: bool) -> Result<(), String> {
+async fn relay_inject(
+    pid: u32,
+    text: String,
+    auto: bool,
+    origin: Option<String>,
+) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         if !RELAY_ALLOWED.contains(&text.as_str()) {
             return Err("ERR_RELAY_BADCMD".to_string());
+        }
+        // ¿en otra máquina? El origen es el nombre que el usuario le dio al
+        // servidor; se traduce a host aquí y no se acepta uno desconocido.
+        let origin = origin.unwrap_or_default();
+        if !origin.is_empty() {
+            let Some(r) = load_remotes().into_iter().find(|r| r.name == origin) else {
+                return Err("ERR_RELAY_GONE".to_string());
+            };
+            let id = format!("app-{}", Utc::now().timestamp_millis());
+            let res = relay_inject_remote(&r.host, pid, &text, &id);
+            log_action("relay", auto, res.is_ok(), text.clone(), origin);
+            return res;
         }
         let dir = relay_dir();
         // Nombre del proyecto para el registro, del estado del propio relevo.

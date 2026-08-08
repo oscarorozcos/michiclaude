@@ -781,13 +781,37 @@ investigó EN SU PROPIA MÁQUINA (el VPS), no en teoría:
   integrada resolviendo por PATH, el atajo y el relevo aplicarían — POR
   VALIDAR, no prometido.
 
-- **Falta (en orden):** 4b descubrimiento remoto en el panel (`get_relays`
-  leyendo `~/.michiclaude/relevo/` por SSH, sesiones con `origin`; el casado
-  usa el MISMO `scwd` que ya viaja en el hit press del exportador); 4c
-  inyección remota (escribir el `.cmd` por SSH y esperar el acuse) y el alias
-  de `~/.bashrc` opt-in (bloque con marcas, mismo espíritu que el shim);
-  después WSL. El automático NO se extiende a remotas hasta que 4b/4c tengan
-  kilómetros.
+### 4b y 4c: el panel alcanza las sesiones de otra máquina (2026-08-08)
+
+- **4b (leer):** `scan_relays_remote()` lee `~/.michiclaude/relevo/*.json` por
+  SSH con UNA sola conexión por servidor (un `for … cat` que emite una línea
+  JSON por sesión), la misma tubería del exportador — sin protocolo nuevo. El
+  `Relay` gana `origin` (lo etiqueta quien lee, como en el hub), `mode`
+  (terminal/chat) y `sid`.
+- **Coste y cadencia:** una conexión SSH por servidor, así que las remotas
+  SOLO se piden en el compás del coach (3 min). El sondeo de 5 s de la pestaña
+  mira lo local y **conserva** las remotas ya conocidas: mejor un dato de hace
+  dos minutos que una pestaña que se congela cada cinco segundos.
+- **4c (escribir):** `relay_inject_remote()` deja el `.cmd` con **tmp+rename
+  en el servidor** (si no, el relevo puede leer un archivo a medias) y espera
+  el acuse releyendo su estado. El comando viaja por **stdin, jamás
+  interpolado en la línea de shell**: hoy sale de una lista blanca de dos
+  elementos, pero alguien la ampliará algún día y no quiero que ese día una
+  comilla se convierta en ejecución remota. La puerta se cierra antes de que
+  exista.
+- **El casado, ahora en dos niveles.** Primero `sid` (EXACTO — solo lo trae el
+  modo chat, donde el protocolo lo regala); si no, el `cwd` de siempre. Y
+  ambos exigen la MISMA máquina: un hit del VPS solo puede casar con un relevo
+  del VPS. `origin` vacío significa "esta máquina" en los dos lados.
+- **VALIDADO 6/6 contra el relevo de chat vivo**, con las mismas órdenes de
+  shell que ejecuta el Rust. El último caso vale por todos: la inyección
+  remota devolvió `ERR_RELAY_BUSY` porque el modelo estaba generando en ese
+  instante — el candado funcionando a través de SSH, no una simulación.
+
+- **Falta:** el alias de `~/.bashrc` opt-in para las terminales del VPS
+  (bloque con marcas, mismo espíritu que el shim) y WSL. El automático NO se
+  extiende a remotas hasta que la 4b/4c tengan kilómetros: hoy el botón
+  remoto es manual.
 
 ## Correcciones sobre la propuesta original (para no rediscutir)
 
