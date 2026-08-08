@@ -295,6 +295,8 @@ struct KeyWatch {
     line: Vec<u8>,
     /// dentro de una secuencia de escape (flechas, Alt+tecla, pegado…)
     esc: u8, // 0 = no, 1 = acaba de ver ESC, 2 = dentro de CSI, 3 = dentro de OSC
+    /// parámetros de la CSI en curso (los necesita win32-input-mode)
+    csi: Vec<u8>,
     /// Un Enter VISTO pero todavía sin confirmar que Claude lo aceptó:
     /// (lo que había escrito, ms del Enter). Mientras no se resuelva
     /// cuenta como que SÍ hay texto. Ver `resolve`.
@@ -306,6 +308,9 @@ struct KeyWatch {
     k_enter: u64,
     k_esc: u64,
     k_other: u64,
+    /// cuántas teclas llegaron codificadas en win32-input-mode. Si esto
+    /// sube y `k_print` no, el decodificador se ha vuelto a quedar corto.
+    k_win32: u64,
 }
 
 impl KeyWatch {
@@ -313,11 +318,100 @@ impl KeyWatch {
         KeyWatch {
             line: Vec::new(),
             esc: 0,
+            csi: Vec::new(),
             pending: None,
             k_print: 0,
             k_enter: 0,
             k_esc: 0,
             k_other: 0,
+            k_win32: 0,
+        }
+    }
+
+    /// Una tecla, ya sea un byte suelto o el carácter que venía dentro de una
+    /// secuencia win32-input-mode. UN solo sitio donde se decide qué le pasa
+    /// al modelo del prompt.
+    fn key_char(&mut self, uc: u32, now: u64, r: &mut Keys) {
+        match uc {
+            13 | 10 => {
+                self.k_enter += 1;
+                self.on_enter(now, r);
+            }
+            8 | 127 => {
+                self.k_other += 1;
+                // Quitar el último CARÁCTER, no el último byte: con acentos
+                // o emoji, un carácter ocupa varios.
+                while self.line.pop().map_or(false, |b| b & 0xc0 == 0x80) {}
+            }
+            // Ctrl+C y Ctrl+U dejan el prompt limpio de verdad
+            3 | 21 => {
+                self.k_other += 1;
+                self.line.clear();
+                self.pending = None;
+            }
+            c if c >= 32 => {
+                self.k_print += 1;
+                if self.line.len() < 64 * 1024 {
+                    if let Some(ch) = char::from_u32(c) {
+                        let mut b = [0u8; 4];
+                        self.line
+                            .extend_from_slice(ch.encode_utf8(&mut b).as_bytes());
+                    }
+                }
+            }
+            _ => self.k_other += 1,
+        }
+    }
+
+    /// Un Enter no limpia el modelo: aparta la línea y espera a ver si Claude
+    /// reacciona (ver `resolve`).
+    fn on_enter(&mut self, now: u64, r: &mut Keys) {
+        // Una línea que acaba en "\" es continuación: Claude Code no la
+        // envía, así que el texto SIGUE ahí.
+        if self.line.last() == Some(&b'\\') {
+            return;
+        }
+        let txt = String::from_utf8_lossy(&self.line).trim().to_string();
+        for a in ALLOWED {
+            if txt == a || txt.starts_with(&format!("{a} ")) {
+                r.cmd = Some(a.to_string());
+            }
+        }
+        let mut old = std::mem::take(&mut self.line);
+        if let Some((prev, _)) = self.pending.take() {
+            let mut m = prev;
+            m.extend_from_slice(&old);
+            old = m;
+        }
+        self.pending = Some((old, now));
+    }
+
+    /// win32-input-mode: `ESC [ Vk ; Sc ; Uc ; Kd ; Cs ; Rc _`.
+    /// Lo activa la propia consola virtual (ConPTY pide el modo al arrancar,
+    /// y el terminal se lo concede a TODA la ventana, o sea también a
+    /// nosotros). Con él, ni una sola tecla llega como carácter suelto: el
+    /// relevo veía 38 secuencias de escape y CERO letras (2026-08-08).
+    /// Solo interesa `Uc` (el carácter en decimal) cuando `Kd` dice que es
+    /// una pulsación; soltar una tecla no escribe nada.
+    fn win32_key(&mut self, now: u64, r: &mut Keys) {
+        self.k_win32 += 1;
+        let s = String::from_utf8_lossy(&self.csi).to_string();
+        let f: Vec<&str> = s.split(';').collect();
+        let num = |i: usize| -> u32 {
+            f.get(i)
+                .and_then(|x| x.trim().parse::<u32>().ok())
+                .unwrap_or(0)
+        };
+        if num(3) == 0 {
+            return; // soltar la tecla
+        }
+        r.human = true;
+        let uc = num(2);
+        if uc == 0 {
+            return; // teclas sin carácter: flechas, Mayús, F1…
+        }
+        for _ in 0..num(5).clamp(1, 64) {
+            self.key_char(uc, now, r);
         }
     }
 
@@ -364,6 +458,7 @@ impl KeyWatch {
                     // cae aquí y NO se toma como envío — que es justo lo que
                     // queremos: el texto sigue ahí.
                     self.k_esc += 1;
+                    self.csi.clear();
                     self.esc = match b {
                         b'[' => 2,
                         b']' => 3,
@@ -375,15 +470,20 @@ impl KeyWatch {
                 }
                 2 => {
                     if (0x40..=0x7e).contains(&b) {
-                        // Estos finales son RESPUESTAS DEL TERMINAL, no teclas:
-                        // I/O foco ganado o perdido, R posición del cursor,
-                        // c identificación, n estado, t medidas de la ventana.
-                        // Todo lo demás (flechas, inicio/fin, pegado, F1…) sí
-                        // lo tecleó una persona.
-                        if !matches!(b, b'I' | b'O' | b'R' | b'c' | b'n' | b't') {
+                        self.esc = 0;
+                        if b == b'_' {
+                            // una tecla de verdad, codificada por el terminal
+                            self.win32_key(now, &mut r);
+                        } else if !matches!(b, b'I' | b'O' | b'R' | b'c' | b'n' | b't') {
+                            // Esos finales son RESPUESTAS DEL TERMINAL, no
+                            // teclas: I/O foco ganado o perdido, R posición
+                            // del cursor, c identificación, n estado, t
+                            // medidas de la ventana. El resto (flechas,
+                            // inicio/fin, pegado, F1…) sí lo tecleó alguien.
                             r.human = true;
                         }
-                        self.esc = 0;
+                    } else if self.csi.len() < 64 {
+                        self.csi.push(b);
                     }
                 }
                 3 => {
@@ -392,59 +492,17 @@ impl KeyWatch {
                         self.esc = 0;
                     }
                 }
-                // --- flujo normal ---
+                // --- flujo normal: bytes sueltos ---
+                // Sigue haciendo falta: win32-input-mode solo está activo
+                // mientras el terminal lo concede, y hay terminales (y
+                // pegados) que mandan los caracteres a pelo.
                 _ => match b {
                     // El ESC solo se marca como humano al ver qué venía
                     // detrás (o al acabar el bloque: ver más abajo).
                     0x1b => self.esc = 1,
-                    b'\r' | b'\n' => {
-                        r.human = true;
-                        self.k_enter += 1;
-                        // Una línea que acaba en "\" es continuación: Claude
-                        // Code no la envía, así que el texto SIGUE ahí.
-                        if self.line.last() == Some(&b'\\') {
-                            continue;
-                        }
-                        let txt = String::from_utf8_lossy(&self.line).trim().to_string();
-                        for a in ALLOWED {
-                            if txt == a || txt.starts_with(&format!("{a} ")) {
-                                r.cmd = Some(a.to_string());
-                            }
-                        }
-                        // NO se limpia aquí: solo se aparta a la espera de
-                        // que Claude reaccione (`resolve`). Hasta entonces
-                        // se sigue contando como texto vivo.
-                        let mut old = std::mem::take(&mut self.line);
-                        if let Some((prev, _)) = self.pending.take() {
-                            let mut m = prev;
-                            m.extend_from_slice(&old);
-                            old = m;
-                        }
-                        self.pending = Some((old, now));
-                    }
-                    0x08 | 0x7f => {
-                        r.human = true;
-                        self.k_other += 1;
-                        self.line.pop();
-                    }
-                    // Ctrl+C y Ctrl+U dejan el prompt limpio de verdad
-                    0x03 | 0x15 => {
-                        r.human = true;
-                        self.k_other += 1;
-                        self.line.clear();
-                        self.pending = None;
-                    }
-                    _ if b >= 0x20 => {
-                        r.human = true;
-                        self.k_print += 1;
-                        // tope defensivo: una pegada enorme no debe comerse RAM
-                        if self.line.len() < 64 * 1024 {
-                            self.line.push(b);
-                        }
-                    }
                     _ => {
                         r.human = true;
-                        self.k_other += 1;
+                        self.key_char(b as u32, now, &mut r);
                     }
                 },
             }
@@ -681,6 +739,7 @@ fn snapshot(sh: &Shared, pid: u32, started: i64, cwd: &PathBuf) -> String {
             "k_enter": k.k_enter,
             "k_esc": k.k_esc,
             "k_other": k.k_other,
+            "k_win32": k.k_win32,
         })
     };
     serde_json::json!({

@@ -326,11 +326,28 @@ La etapa 3 se parte en tres para que cada trozo se valide solo:
      REACCIONA — si salen bytes por la PTY después del Enter, se envió; si
      en `SUBMIT_WAIT_MS` (3 s) no sale nada, no se envió y la línea VUELVE.
      Mientras está sin decidir cuenta como texto vivo (fail-closed).
-  Lección general: **no se puede saber si el prompt está vacío mirando solo
-  lo que entra**; hay que cruzarlo con lo que sale. Y de ahí salió
-  `michi status --debug`, que enseña `line_len` y las CUENTAS de teclas
-  (imprimibles/Enter/escapes/controles) — nunca el contenido — para poder
-  diagnosticar un desfase sin ver lo que el usuario escribió.
+  De ahí salió `michi status --debug`, que enseña `line_len` y las CUENTAS
+  de teclas (imprimibles/Enter/escapes/controles) — nunca el contenido —
+  para poder diagnosticar sin ver lo que el usuario escribió.
+- **Y el diagnóstico destapó la causa REAL, que no era ninguna de las dos:
+  `k_print: 0`, `k_esc: 38` con `hola` escrito.** El relevo no había
+  contado una sola tecla en su vida. En Windows Terminal, **ConPTY pide
+  `win32-input-mode` (`ESC [ ? 9001 h`) al arrancar y el terminal se lo
+  concede a TODA la ventana** — incluida la nuestra, que es quien reenvía
+  esa petición sin saberlo. Con ese modo, cada tecla viaja como
+  `ESC [ Vk ; Sc ; Uc ; Kd ; Cs ; Rc _`: ni un carácter suelto. Las letras
+  llegaban a Claude porque el relevo reenvía los bytes intactos, pero para
+  el contador eran ruido — y encima el terminador `_` cae dentro de
+  `0x40..0x7e`, así que las secuencias se cerraban limpiamente y nada
+  chirriaba. `KeyWatch::win32_key` las decodifica: `Uc` es el carácter en
+  decimal, y solo cuenta con `Kd` = pulsación (soltar una tecla no
+  escribe). El camino de bytes sueltos SE QUEDA: el modo solo está activo
+  mientras el terminal lo concede.
+  Lecciones: **(a)** envolver una terminal no es solo reenviar bytes — hay
+  un protocolo negociado a tus espaldas entre el terminal y la ConPTY, y
+  quien se mete en medio hereda esa negociación; **(b)** un guardián que
+  cuenta cosas necesita EXPONER sus cuentas: aquí `k_print: 0` valía más
+  que tres rondas de teoría.
 - **R2 es la única señal que NO es certeza** y hay que decirlo: "Claude está
   generando" se deduce de que la PTY siga escupiendo bytes (`QUIET_MS` 2 s).
   El diseño original prometía saberlo; en realidad se infiere. Es
