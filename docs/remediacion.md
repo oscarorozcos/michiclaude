@@ -160,12 +160,15 @@ pierde — la línea "qué vas a ver" es la clave anti-susto).
    [IMPLEMENTADA 2026-08-07 con el go explícito de Oscar; pendiente de
    `cargo check` en Windows y de validación en vivo. Decisiones de la
    implementación en §"Decisiones de la etapa 2".]
-3. **El relevo** (`michi claude`) [3a IMPLEMENTADA 2026-08-08: crate
-   `relevo/`, paso transparente por ConPTY, canal por archivos, reglas
-   R1-R5 y subcomandos `status`/`inject` para validar sin panel; pendiente
-   de `cargo build` y prueba en el Windows de Oscar. Decisiones en
-   §"Decisiones de la etapa 3a". Faltan 3b (descubrimiento en el panel) y
-   3c (countdown + desbloqueo progresivo)]: inyección real de /compact//clear con
+3. **El relevo** (`michi claude`) [3a COMPLETA Y VALIDADA EN VIVO
+   2026-08-08 en el Windows de Oscar, seis pruebas: transparencia (con
+   `/login` y navegador incluidos), `michi status` desde otra terminal,
+   inyección real de `/compact` y el candado negándose con texto vivo en
+   el prompt. Crate `relevo/`, ConPTY, canal por archivos, reglas R1-R5 y
+   subcomandos `status`/`inject` para validar sin panel. Decisiones y los
+   TRES fallos que cayó por el camino en §"Decisiones de la etapa 3a";
+   autopsia completa en la bitácora. Faltan 3b (descubrimiento en el
+   panel) y 3c (countdown + desbloqueo progresivo)]: inyección real de /compact//clear con
    countdown, solo sesiones del relevo; los checks "Aplicar" APARECEN
    solo cuando existen sesiones inyectables. El countdown va en una
    SUPERFICIE PROPIA (tarjeta del panel o ventana nueva) — NUNCA

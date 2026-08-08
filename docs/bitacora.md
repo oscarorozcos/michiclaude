@@ -2561,3 +2561,62 @@ estructura, con su línea en el registro. ETAPA 2 CERRADA.
 De la validación salieron además dos arreglos de i18n: "1 archivos" y
 "1 logs" — todos los textos con contador necesitan su ternario de
 singular (los 5 idiomas que lo distinguen; ja/ko/zh no).
+
+### Etapa 3a — el relevo `michi claude`, validado en vivo (2026-08-08)
+
+Crate aparte `relevo/` (paquete `michi`, fuera de `src-tauri` para que la
+app no gane dependencias ni el vigilante de `npm run dev` lo recompile).
+Compiló a la PRIMERA en el Windows de Oscar y el paso transparente
+funcionó de entrada: Claude Code entero dentro de la ConPTY —colores,
+flechas, resize, `/login` con navegador— sin enterarse de que hay alguien
+en medio del cable. Seis pruebas, todas pasadas: transparencia, `michi
+status` desde otra terminal, inyección real de `/compact` (se escribió y
+se ejecutó sola), y el candado negándose con texto vivo en el prompt.
+
+Por el camino cayeron TRES fallos, y los tres enseñan algo distinto.
+
+**1. Los avisos del terminal no son teclas.** Por el mismo cable de
+entrada llegan cambios de foco (`ESC [ I` / `ESC [ O`), respuestas de
+posición del cursor (`R`), identificación (`c`), estado (`n`) y medidas
+(`t`). Contaban como actividad humana y reiniciaban la ventana de calma,
+así que bastaba con SALIR de la terminal —justo lo que hace el usuario
+para ir al panel de MichiClaude— para que nunca se pudiera inyectar.
+`KeyWatch::feed` devuelve ahora `human` y solo eso mueve el reloj.
+
+**2. El prompt no se puede modelar solo con lo que entra.** Con `hola`
+sin enviar, `status` decía `texto: no` y la inyección se aplicó: salió
+`hola/compact` como un solo mensaje. R5 aguantó —no se borró nada, que
+era el peor caso previsto— pero el guardián falló. Dos causas de diseño:
+`typed` era un booleano APARTE del buffer de la línea (dos fuentes de
+verdad; al desincronizarse mandó el booleano, ahora se DERIVA del
+buffer), y el Enter limpiaba el modelo a ciegas (ahora aparta la línea a
+`pending` y espera a ver si Claude REACCIONA: bytes por la PTY después
+del Enter = enviado; 3 s de silencio = no se envió y la línea vuelve).
+
+**3. La causa REAL, que no era ninguna de las dos.** El diagnóstico
+nuevo (`michi status --debug`, que enseña CUENTAS de teclas y `line_len`,
+nunca contenido) lo destapó en una ronda: con `hola` escrito, `k_print:
+0` y `k_esc: 38`. El relevo no había contado una sola tecla en su vida.
+En Windows Terminal, **ConPTY pide `win32-input-mode` (`ESC [ ? 9001 h`)
+al arrancar y el terminal se lo concede a TODA la ventana** — incluida la
+nuestra, que es quien reenvía esa petición sin saberlo. Con ese modo cada
+tecla viaja como `ESC [ Vk ; Sc ; Uc ; Kd ; Cs ; Rc _` y no llega ni un
+carácter suelto. Las letras alcanzaban a Claude porque el relevo reenvía
+los bytes intactos; el contador las veía como ruido. Y el terminador `_`
+cae dentro de `0x40..0x7e`, así que las secuencias cerraban limpias y
+nada chirriaba. `KeyWatch::win32_key` las decodifica (`Uc` es el carácter
+en decimal, solo con `Kd` = pulsación). Validado: `hola oscar` = 10, y
+`k_print: 10`, `line_len: 10`, `typed: true`, `ERR_RELAY_TYPED`.
+
+Reglas que salen de aquí, para no repetirlas:
+
+- **Envolver una terminal no es reenviar bytes.** Hay un protocolo que el
+  terminal y la ConPTY negocian a espaldas de quien está en medio, y el
+  de en medio HEREDA esa negociación sin enterarse.
+- **Un guardián que cuenta cosas tiene que exponer sus cuentas.** Un
+  `k_print: 0` valió más que tres rondas de teoría. Y se puede hacer sin
+  romper la privacidad: cuentas y longitudes, jamás contenido.
+- **Una sola fuente de verdad.** Un booleano "resumen" al lado del dato
+  real acaba mandando él, y mintiendo.
+- **Fail-closed de verdad:** mientras no se sabe si un Enter envió, se
+  cuenta como que hay texto.

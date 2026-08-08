@@ -551,20 +551,28 @@ hacer público el repo (o sus releases).
       escrito desde Rust con saltos de línea REALES (en una línea muere
       en el parser: hacía fallar TODO cierre); el veredicto del kill
       sale de re-consultar el PID, nunca de `$?`, y lo raro deja
-      `rem_debug.json`. ETAPA 3 partida en 3a/3b/3c; **3a HECHA
-      2026-08-08 y SIN COMPILAR todavía** (no hay Rust en el VPS):
-      crate APARTE `relevo/` (paquete `michi`, FUERA de src-tauri — la
-      app no gana deps, invariante #4; portable-pty vive solo ahí),
-      ConPTY con paso transparente, canal por ARCHIVOS en
-      `%APPDATA%\<app>\relevo\<pid>.json|.cmd` (no named pipe;
-      tmp+rename añadiendo `.tmp` al nombre ENTERO, si no estado y
+      `rem_debug.json`. ETAPA 3 partida en 3a/3b/3c; **3a COMPLETA Y
+      VALIDADA EN VIVO 2026-08-08** (seis pruebas; autopsia de los tres
+      fallos en la bitácora): crate APARTE `relevo/` (paquete `michi`,
+      FUERA de src-tauri — la app no gana deps, invariante #4;
+      portable-pty vive solo ahí), ConPTY con paso transparente, canal
+      por ARCHIVOS en `%APPDATA%\<app>\relevo\<pid>.json|.cmd` (no named
+      pipe; tmp+rename añadiendo `.tmp` al nombre ENTERO, si no estado y
       orden se pisan), sesión viva = estado con <15 s, LISTA BLANCA de
-      dos textos (/compact, /clear) como límite duro, R1 por máquina de
-      estados del teclado y R2 ("Claude generando") INFERIDA del
-      silencio de la PTY — única señal que no es certeza. El relevo
-      JAMÁS escribe en disco lo tecleado. Se valida sin panel con
-      `michi status` y `michi inject /compact`. Faltan 3b (el panel
-      descubre sesiones) y 3c (countdown + desbloqueo progresivo).
+      dos textos (/compact, /clear) como límite duro, y R2 ("Claude
+      generando") INFERIDA del silencio de la PTY — única señal que no
+      es certeza. REGLAS DURAS del relevo: **ConPTY negocia
+      `win32-input-mode` con el terminal a espaldas de quien está en
+      medio**, así que las teclas NO llegan como caracteres sino como
+      `ESC[Vk;Sc;Uc;Kd;Cs;Rc_` (decodificarlas o no se cuenta ni una);
+      los avisos del terminal (foco, cursor) NO son teclas y no reinician
+      la calma; UNA sola fuente de verdad para "hay texto" (derivada del
+      buffer, nunca un booleano al lado); un Enter no limpia el modelo
+      hasta ver si Claude REACCIONA. El relevo JAMÁS escribe en disco lo
+      tecleado — el diagnóstico `michi status --debug` son CUENTAS y
+      longitudes. Se valida sin panel con `michi status` y `michi inject
+      /compact`. Faltan 3b (el panel descubre sesiones) y 3c (countdown
+      + desbloqueo progresivo).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
