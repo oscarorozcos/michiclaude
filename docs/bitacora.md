@@ -2551,3 +2551,13 @@ con huecos tipo `<PID>` o `EL_NUMERO_NUEVO` — los pega literales y
 PowerShell escupe un error que no dice nada útil. O el número ya
 puesto, o un comando que busque por nombre y no necesite sustituir
 nada.
+
+Archivado validado el mismo día con un .jsonl de laboratorio (copia de
+uno real con `LastWriteTime` a -400 días): lo detectó, apareció el botón
+"Archivar ahora" —que solo nace cuando hay algo que archivar— y el
+archivo acabó en `%APPDATA%\<app>\archive\C--Users-oscar\` conservando la
+estructura, con su línea en el registro. ETAPA 2 CERRADA.
+
+De la validación salieron además dos arreglos de i18n: "1 archivos" y
+"1 logs" — todos los textos con contador necesitan su ternario de
+singular (los 5 idiomas que lo distinguen; ja/ko/zh no).

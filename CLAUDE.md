@@ -567,8 +567,9 @@ hacer público el repo (o sus releases).
       PowerShell escrito desde Rust lleva saltos de línea REALES (en
       una línea muere en el parser: hacía fallar TODO cierre). El
       veredicto del kill sale de re-consultar el PID, nunca de `$?`;
-      lo raro deja `rem_debug.json`. PENDIENTE: probar el archivado;
-      etapas 3-4 tras eso.
+      lo raro deja `rem_debug.json`. ETAPA 2 CERRADA: el archivado
+      también quedó validado (mueve conservando la estructura de
+      carpetas). Siguiente: etapa 3, el relevo.
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
