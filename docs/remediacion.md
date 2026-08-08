@@ -310,6 +310,27 @@ La etapa 3 se parte en tres para que cada trozo se valide solo:
   ahora `human` y solo eso mueve el reloj de calma. Todo lo demás de una
   secuencia CSI (flechas, inicio/fin, pegado, F1…) sí es humano, y un `ESC`
   suelto también (llega solo en su propio bloque de lectura).
+- **R1 FALLÓ en la primera validación en vivo (2026-08-08) y así se
+  arregló.** Con `hola` sin enviar en el prompt, `michi status` decía
+  `texto: no` y la inyección se aplicó: salió `hola/compact` como un solo
+  mensaje. R5 aguantó (no se borró nada — el peor caso previsto), pero el
+  guardián no hizo su trabajo. Dos causas de fondo, las dos de diseño:
+  1. **Dos fuentes de verdad.** `typed` era un `AtomicBool` aparte del
+     buffer de la línea; en cuanto se desincronizaron, mandó el booleano.
+     Ahora `typed` se DERIVA del buffer (`KeyWatch::has_text`), fuente
+     única.
+  2. **El Enter limpiaba el modelo a ciegas.** Un Enter que Claude Code no
+     ejecuta (Shift+Enter según terminal, un modo del REPL, lo que sea)
+     dejaba el modelo vacío con el texto todavía en pantalla. Ahora un
+     Enter no limpia: aparta la línea a `pending` y espera a ver si Claude
+     REACCIONA — si salen bytes por la PTY después del Enter, se envió; si
+     en `SUBMIT_WAIT_MS` (3 s) no sale nada, no se envió y la línea VUELVE.
+     Mientras está sin decidir cuenta como texto vivo (fail-closed).
+  Lección general: **no se puede saber si el prompt está vacío mirando solo
+  lo que entra**; hay que cruzarlo con lo que sale. Y de ahí salió
+  `michi status --debug`, que enseña `line_len` y las CUENTAS de teclas
+  (imprimibles/Enter/escapes/controles) — nunca el contenido — para poder
+  diagnosticar un desfase sin ver lo que el usuario escribió.
 - **R2 es la única señal que NO es certeza** y hay que decirlo: "Claude está
   generando" se deduce de que la PTY siga escupiendo bytes (`QUIET_MS` 2 s).
   El diseño original prometía saberlo; en realidad se infiere. Es

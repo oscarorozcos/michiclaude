@@ -32,7 +32,7 @@
 
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -54,6 +54,10 @@ const CALM_MS: u64 = 8_000;
 const QUIET_MS: u64 = 2_000;
 // Tras inyectar, nada más durante este rato.
 const COOLDOWN_MS: u64 = 15_000;
+// Cuánto se espera a que Claude REACCIONE a un Enter antes de dar por hecho
+// que aquel Enter no envió nada y el texto sigue en el prompt. Ver
+// `KeyWatch::resolve` — de aquí salió el fallo del 2026-08-08.
+const SUBMIT_WAIT_MS: u64 = 3_000;
 // Cada cuánto se refresca el estado y se mira si hay una orden.
 const TICK_MS: u64 = 250;
 const STATE_EVERY_MS: u64 = 500;
@@ -114,8 +118,11 @@ struct Shared {
     last_in: AtomicU64,
     /// ms del último byte que escupió la PTY
     last_out: AtomicU64,
-    /// R1: hay texto del usuario desde su último Enter
-    typed: AtomicBool,
+    /// R1 vive aquí: el modelo de lo que hay en el prompt. Es UNA sola
+    /// fuente de verdad a propósito — cuando `typed` era un booleano
+    /// aparte se desincronizó del buffer y dejó pasar una inyección con
+    /// texto del usuario delante (2026-08-08).
+    keys: Mutex<KeyWatch>,
     /// ms de la última inyección (0 = ninguna)
     inject_at: AtomicU64,
     /// código de salida del hijo (-1 = sigue vivo)
@@ -144,12 +151,19 @@ impl Shared {
             self.ms().saturating_sub(at)
         }
     }
+    /// ¿Hay texto del usuario en el prompt? Resuelve antes los Enter
+    /// pendientes, que es lo que necesita el reloj de salida de la PTY.
+    fn has_text(&self) -> bool {
+        let mut k = self.keys.lock().unwrap();
+        k.resolve(self.ms(), self.last_out.load(Ordering::Relaxed));
+        k.has_text()
+    }
     /// ¿Se puede inyectar AHORA MISMO? R1 + R2 + R3 + enfriamiento + hijo vivo.
     /// Se vuelve a llamar en el instante de inyectar (R4): el countdown del
     /// panel no es un permiso, es solo un aviso.
     fn ready(&self) -> bool {
         self.exit.load(Ordering::Relaxed) < 0
-            && !self.typed.load(Ordering::Relaxed)
+            && !self.has_text()
             && self.since_in() >= CALM_MS
             && self.since_out() >= QUIET_MS
             && self.since_inject() >= COOLDOWN_MS
@@ -158,7 +172,7 @@ impl Shared {
     fn why_not(&self) -> &'static str {
         if self.exit.load(Ordering::Relaxed) >= 0 {
             "ERR_RELAY_GONE"
-        } else if self.typed.load(Ordering::Relaxed) {
+        } else if self.has_text() {
             "ERR_RELAY_TYPED"
         } else if self.since_out() < QUIET_MS {
             "ERR_RELAY_BUSY"
@@ -281,6 +295,17 @@ struct KeyWatch {
     line: Vec<u8>,
     /// dentro de una secuencia de escape (flechas, Alt+tecla, pegado…)
     esc: u8, // 0 = no, 1 = acaba de ver ESC, 2 = dentro de CSI, 3 = dentro de OSC
+    /// Un Enter VISTO pero todavía sin confirmar que Claude lo aceptó:
+    /// (lo que había escrito, ms del Enter). Mientras no se resuelva
+    /// cuenta como que SÍ hay texto. Ver `resolve`.
+    pending: Option<(Vec<u8>, u64)>,
+    /// Contadores para diagnóstico. Son CUENTAS, no contenido: cuántas
+    /// teclas imprimibles, cuántos Enter, cuántas secuencias de escape y
+    /// cuántos controles. Nada de lo tecleado sale de aquí.
+    k_print: u64,
+    k_enter: u64,
+    k_esc: u64,
+    k_other: u64,
 }
 
 impl KeyWatch {
@@ -288,10 +313,44 @@ impl KeyWatch {
         KeyWatch {
             line: Vec::new(),
             esc: 0,
+            pending: None,
+            k_print: 0,
+            k_enter: 0,
+            k_esc: 0,
+            k_other: 0,
         }
     }
 
-    fn feed(&mut self, buf: &[u8], sh: &Shared) -> Keys {
+    /// ¿Damos por hecho que hay texto del usuario en el prompt?
+    fn has_text(&self) -> bool {
+        !self.line.is_empty() || self.pending.is_some()
+    }
+
+    /// Decide qué pasó con el último Enter. No se puede saber tecleando: hay
+    /// que mirar si Claude REACCIONÓ. Si salieron bytes por la PTY después
+    /// del Enter, la línea se envió. Si en 3 s no salió nada, aquel Enter no
+    /// hizo nada (Shift+Enter mal interpretado, un modo del REPL, lo que
+    /// sea) y el texto SIGUE en el prompt — así que vuelve.
+    ///
+    /// Esto es exactamente lo que faltaba el 2026-08-08: el Enter limpiaba
+    /// el modelo a ciegas y el relevo inyectaba encima de un `hola` vivo.
+    fn resolve(&mut self, now: u64, last_out: u64) {
+        let Some((line, at)) = self.pending.take() else {
+            return;
+        };
+        if last_out > at {
+            return; // Claude reaccionó: la línea se fue de verdad
+        }
+        if now.saturating_sub(at) >= SUBMIT_WAIT_MS {
+            let mut back = line;
+            back.extend_from_slice(&self.line);
+            self.line = back;
+            return;
+        }
+        self.pending = Some((line, at)); // todavía sin decidir → fail-closed
+    }
+
+    fn feed(&mut self, buf: &[u8], now: u64) -> Keys {
         let mut r = Keys {
             cmd: None,
             human: false,
@@ -304,6 +363,7 @@ impl KeyWatch {
                     // OJO: ESC seguido de CR (Shift+Enter en varias terminales)
                     // cae aquí y NO se toma como envío — que es justo lo que
                     // queremos: el texto sigue ahí.
+                    self.k_esc += 1;
                     self.esc = match b {
                         b'[' => 2,
                         b']' => 3,
@@ -339,6 +399,7 @@ impl KeyWatch {
                     0x1b => self.esc = 1,
                     b'\r' | b'\n' => {
                         r.human = true;
+                        self.k_enter += 1;
                         // Una línea que acaba en "\" es continuación: Claude
                         // Code no la envía, así que el texto SIGUE ahí.
                         if self.line.last() == Some(&b'\\') {
@@ -350,29 +411,41 @@ impl KeyWatch {
                                 r.cmd = Some(a.to_string());
                             }
                         }
-                        self.line.clear();
-                        sh.typed.store(false, Ordering::Relaxed);
+                        // NO se limpia aquí: solo se aparta a la espera de
+                        // que Claude reaccione (`resolve`). Hasta entonces
+                        // se sigue contando como texto vivo.
+                        let mut old = std::mem::take(&mut self.line);
+                        if let Some((prev, _)) = self.pending.take() {
+                            let mut m = prev;
+                            m.extend_from_slice(&old);
+                            old = m;
+                        }
+                        self.pending = Some((old, now));
                     }
                     0x08 | 0x7f => {
                         r.human = true;
+                        self.k_other += 1;
                         self.line.pop();
-                        sh.typed.store(!self.line.is_empty(), Ordering::Relaxed);
                     }
-                    // Ctrl+C y Ctrl+U dejan el prompt limpio
+                    // Ctrl+C y Ctrl+U dejan el prompt limpio de verdad
                     0x03 | 0x15 => {
                         r.human = true;
+                        self.k_other += 1;
                         self.line.clear();
-                        sh.typed.store(false, Ordering::Relaxed);
+                        self.pending = None;
                     }
                     _ if b >= 0x20 => {
                         r.human = true;
+                        self.k_print += 1;
                         // tope defensivo: una pegada enorme no debe comerse RAM
                         if self.line.len() < 64 * 1024 {
                             self.line.push(b);
                         }
-                        sh.typed.store(true, Ordering::Relaxed);
                     }
-                    _ => r.human = true,
+                    _ => {
+                        r.human = true;
+                        self.k_other += 1;
+                    }
                 },
             }
         }
@@ -457,7 +530,7 @@ fn run_relevo(extra: &[String]) -> ! {
         base: Instant::now(),
         last_in: AtomicU64::new(0),
         last_out: AtomicU64::new(0),
-        typed: AtomicBool::new(false),
+        keys: Mutex::new(KeyWatch::new()),
         inject_at: AtomicU64::new(0),
         exit: AtomicI64::new(-1),
         user_cmd: Mutex::new(None),
@@ -503,14 +576,14 @@ fn run_relevo(extra: &[String]) -> ! {
         let writer = writer.clone();
         std::thread::spawn(move || {
             let mut buf = [0u8; 4096];
-            let mut watch = KeyWatch::new();
             let inp = std::io::stdin();
             loop {
                 let n = match inp.lock().read(&mut buf) {
                     Ok(0) | Err(_) => break,
                     Ok(n) => n,
                 };
-                let keys = watch.feed(&buf[..n], &sh);
+                let now = sh.ms();
+                let keys = sh.keys.lock().unwrap().feed(&buf[..n], now);
                 // La ventana de calma solo la reinicia una PERSONA: los avisos
                 // del terminal (foco, respuestas a consultas) llegan por aquí
                 // y no cuentan.
@@ -594,6 +667,22 @@ fn run_relevo(extra: &[String]) -> ! {
 fn snapshot(sh: &Shared, pid: u32, started: i64, cwd: &PathBuf) -> String {
     let uc = sh.user_cmd.lock().unwrap().clone();
     let ack = sh.ack.lock().unwrap().clone();
+    // Ojo al orden: has_text() toma el mismo cerrojo que el bloque de abajo,
+    // así que primero se pregunta y DESPUÉS se lee el detalle.
+    let typed = sh.has_text();
+    let ready = sh.ready();
+    let why = sh.why_not();
+    let diag = {
+        let k = sh.keys.lock().unwrap();
+        serde_json::json!({
+            "line_len": k.line.len(),
+            "pending": k.pending.is_some(),
+            "k_print": k.k_print,
+            "k_enter": k.k_enter,
+            "k_esc": k.k_esc,
+            "k_other": k.k_other,
+        })
+    };
     serde_json::json!({
         "v": STATE_V,
         "pid": pid,
@@ -601,11 +690,13 @@ fn snapshot(sh: &Shared, pid: u32, started: i64, cwd: &PathBuf) -> String {
         "cwd": cwd.to_string_lossy(),
         "ts": now_epoch(),
         "alive": sh.exit.load(Ordering::Relaxed) < 0,
-        "typed": sh.typed.load(Ordering::Relaxed),
+        "typed": typed,
         "idle_in": sh.since_in() / 1000,
         "idle_out": sh.since_out() / 1000,
-        "ready": sh.ready(),
-        "why": sh.why_not(),
+        "ready": ready,
+        "why": why,
+        // Cuentas, nunca contenido. Para diagnosticar sin ver lo tecleado.
+        "diag": diag,
         // último comando de la lista que el usuario aplicó por su cuenta
         "user_cmd": uc.as_ref().map(|(_, c)| c.clone()),
         "user_cmd_ts": uc.as_ref().map(|(t, _)| *t),
@@ -690,10 +781,20 @@ fn live_sessions() -> Vec<serde_json::Value> {
     out
 }
 
-fn cmd_status() {
+fn cmd_status(args: &[String]) {
     let list = live_sessions();
     if list.is_empty() {
         println!("Ninguna sesión con relevo. Abre una con:  michi claude");
+        return;
+    }
+    // `michi status --debug` saca la foto cruda, con las CUENTAS de teclas.
+    // Es lo que hay que pedir cuando el guardián se equivoca: dice si las
+    // teclas llegaron y cómo quedó el modelo del prompt, sin enseñar ni una
+    // letra de lo escrito.
+    if args.iter().any(|a| a == "--debug") {
+        for v in &list {
+            println!("{}", serde_json::to_string_pretty(v).unwrap_or_default());
+        }
         return;
     }
     // El motivo va en columna propia: metido dentro de "listo" descuadraba
@@ -781,6 +882,7 @@ fn usage() {
          \n\
            michi claude [...]   abre Claude Code con relevo (todo funciona igual)\n\
            michi status         sesiones con relevo abiertas ahora\n\
+           michi status --debug foto cruda (cuentas de teclas, sin contenido)\n\
            michi inject /compact\n\
                                 aplica un comando a la sesión con relevo\n\
          \n\
@@ -794,7 +896,7 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(|s| s.as_str()) {
         Some("claude") => run_relevo(&args[1..]),
-        Some("status") => cmd_status(),
+        Some("status") => cmd_status(&args[1..]),
         Some("inject") => cmd_inject(&args[1..]),
         Some("--version") | Some("-v") => println!("michi {}", env!("CARGO_PKG_VERSION")),
         _ => usage(),
