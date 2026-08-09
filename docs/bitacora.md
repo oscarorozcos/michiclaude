@@ -3027,3 +3027,55 @@ Lecciones:
 - **Al guiar a alguien por comandos, pedir la hora del binario después
   de compilar.** Es una línea y corta en seco toda esta clase de
   diagnóstico fantasma.
+
+## 2026-08-09 (cierre) — el /clear automático nace, y dos bugs que lo tapaban
+
+Jornada larga que empezó con una pregunta de Oscar ("¿puede Michi decidir
+el /clear como decide el /compact?") y acabó con la función construida,
+validada a mano en Windows y esperando su primer disparo automático.
+
+**Lo entregado** (6 commits, todos con su porqué):
+
+- `8b4bd40` auto-/clear con red: `/export` verificado antes de borrar.
+  Detalle y decisiones en remediacion.md §El auto-/clear con red.
+- `0e9a283` el Enter va SEPARADO del texto. Bug real que también
+  amenazaba al /compact ya validado — vivía de suerte por ser corto.
+- `c53cf7f` la lección del binario que no se recompiló (empate de mtime).
+- `65f391f` validación en vivo en Windows.
+- `5d7c6be` botón «abrir la copia» en el registro de acciones.
+- `137d881` regla de lectura de archivos grandes en CLAUDE.md.
+
+**Estado del auto-/clear al cerrar** (medido, no supuesto): interruptores
+ON, desbloqueo ganado (/compact 2/2, /clear 5/3), relevo del chat del VPS
+vivo en v2 y casado por `sid` EXACTO, veredicto **Boundary** (topen 0,
+ttotal 5, gclean true). Lo único que falta es presión: **676k de 1M =
+68%**, y el umbral son 80. Oscar decidió NO bajar `INTENT_PCT` para
+forzarlo — se gana por diseño, no por carrera.
+
+**Idea de producto de Oscar, anotada para cuando haya datos:** que
+MichiClaude no solo señale la fuga sino que enseñe la práctica, con un
+bloque copiable para el CLAUDE.md. Tres fichas candidatas, cada una
+colgada de un detector que YA existe: claudemdsize (partir el archivo en
+índice + historial), reread (leer por rangos) y la fuga al cierre. Regla
+de diseño acordada: **una ficha entra solo si hay una señal medible que
+la dispare** — un consejo sin dato medido es un post de blog, y eso no es
+lo que hace fuerte a este producto. La regla anti-relectura que se puso
+hoy en CLAUDE.md es el banco de pruebas: si el detector `reread` deja de
+dispararse, la ficha se escribe con el antes y el después.
+
+**Qué queda vivo, por orden:** ver el auto-/clear dispararse solo; medir
+el efecto de la regla de lectura; el indicador de relevo en el widget
+(lo pidió Oscar al ver que el chat de VS Code no dice si está relevado);
+el alias de `~/.bashrc` en el VPS; `michi.exe` en el instalador (toca el
+workflow, invariante #9); WSL y el chat del Windows local. Bloqueados por
+decisión: updater (repo público + tag) y capturas del README.
+
+Lecciones:
+
+- **Un bug que depende del largo de la entrada es un bug dormido**: el
+  /compact "funcionaba" y escondía exactamente el mismo defecto.
+- **Antes de dudar del arreglo, comprobar que el arreglo se ejecutó.**
+- **Un banco prueba tu código contra tu idea del mundo; solo el programa
+  real prueba tu idea del mundo.**
+- **A una prohibición sana no se le quita el candado: se le construye la
+  condición que le faltaba.**
