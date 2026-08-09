@@ -1005,3 +1005,48 @@ en Windows no hay ninguno de los dos garantizado. Cubrirlo pide un modo
 `wrap` en el michi.exe de Rust (stream-json proxy, factible: es el
 mismo protocolo que ya habla el Python). Anotado en pendientes; para
 Oscar no cambia nada porque su chat vive en el VPS vía Remote-SSH.
+
+## Por qué la lista blanca se queda en 2 (analizado 2026-08-09)
+
+Oscar preguntó si "los otros comandos" también se aplicarían en
+automático, y si los nativos de Claude Code (/doctor y parecidos)
+ayudarían. Investigado sobre el binario instalado (v2.1.226).
+
+**No hay 10 comandos del relevo: hay 2.** `RELAY_ALLOWED = ["/compact",
+"/clear"]`, idéntica en las tres piezas (main.rs del michi.exe,
+michi-relevo.py, lib.rs del panel) y comprobada en LOS DOS lados de
+cada inyección. El "10" que recordaba Oscar es otra cosa: el tope
+diario de fichas del coach (10) o las ~8 fichas curadas.
+
+De los 2, solo `/compact` se automatiza. `/clear` jamás, ni ganado el
+desbloqueo: su descripción oficial es "Start a new session with empty
+context" — borra la conversación de la vista. Recuperable con /resume,
+pero una máquina no decide por ti cerrar tu sesión. Es el espíritu de
+R5 (jamás borrar lo del usuario) aplicado a nivel de sesión.
+
+**Los nativos de medición no entran, y la razón es de producto.** El
+binario trae `/usage` ("Show session cost, plan usage, and activity
+stats"), `/context` ("Visualize current context usage as a colored
+grid") y `/cost` (alias de /usage). Son EXACTAMENTE lo que MichiClaude
+ya enseña — pero para verlos tienes que interrumpir la sesión y
+escribir un comando, y la respuesta se queda vieja al momento. El
+widget lo enseña continuo, fuera de banda y sin gastar un turno. Es
+decir: MichiClaude no compite con esos comandos, los VUELVE
+INNECESARIOS. Inyectarlos sería imprimirle al usuario en su chat algo
+que ya tiene flotando en la pantalla.
+
+**`/doctor` no es de esta familia**: "Check the health of your Claude
+Code installation" — diagnóstico de instalación (settings, npm/nativo,
+permisos). Útil para un humano cuando algo va mal; inyectado no remedia
+nada (no libera contexto ni cuota) y su reporte interrumpe en medio del
+trabajo. Si algún día MichiClaude detecta una instalación rota, lo
+correcto es una FICHA del coach que diga "corre /doctor", no teclearlo.
+
+**Regla para el futuro**: un comando entra a la lista blanca solo si
+(a) LIBERA un recurso (contexto, cuota, procesos), (b) no destruye
+nada del usuario y (c) su efecto es verificable desde fuera. Hoy solo
+/compact cumple las tres; /clear cumple a y c pero no b, por eso existe
+pero no se automatiza. Candidato razonable si algún día se automatiza
+/clear para ALGUIEN que lo pida: inyectar `/export` antes como red (la
+arquitectura lo permite — misma lista en tres sitios), pero hoy es
+alcance que nadie ha pedido.
