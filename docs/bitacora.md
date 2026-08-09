@@ -2992,3 +2992,38 @@ Lecciones:
   los permisos también, el comando también.
 - **Un fallo que depende del largo de la entrada es un fallo dormido**:
   el /compact "funcionaba" y solo escondía el mismo defecto.
+
+## 2026-08-09 (tercera) — el binario que no se recompiló: empate de mtime
+
+Tras subir el arreglo del Enter, Oscar hizo `git pull` (confirmado:
+`git log` en `0e9a283`), recompiló y el fallo SEGUÍA. Media hora de
+diagnóstico para algo que no estaba en el código:
+
+- `Select-String ENTER_GAP_MS src\main.rs` → el fuente SÍ traía el
+  arreglo (tres coincidencias).
+- `cargo build --release` → `Finished` en **0.11 s**, sin ninguna línea
+  `Compiling`.
+- `cargo clean -p michi` → **"Removed 0 files"**.
+- `dir michi.exe` → `08:26`. `dir src\main.rs` → **`08:26` también**.
+
+El `git pull` cayó en el MISMO MINUTO que la compilación anterior.
+Cargo decide por fecha de modificación y ante un empate no recompila:
+el `.exe` que se ejecutaba seguía siendo el de antes del arreglo. El
+"sigue sin funcionar" era literalmente cierto — nunca llegó a probarse
+el código nuevo.
+
+Arreglo: `(Get-Item src\main.rs).LastWriteTime = Get-Date` + `cargo
+build --release` → `Compiling michi v0.1.0` en 7,55 s y binario de las
+08:40. Anotado como regla en CLAUDE.md §Comandos.
+
+Lecciones:
+
+- **Antes de dudar del arreglo, comprobar que el arreglo se ejecutó.**
+  Tres señales lo decían y ninguna era el mensaje de error: build
+  instantáneo, `clean` que no borra nada, y la hora del binario.
+- **`cargo clean -p <paquete>` no es garantía**: dijo "Removed 0 files"
+  y nadie se alarmó. La prueba buena es la HORA del ejecutable, no lo
+  que diga la herramienta.
+- **Al guiar a alguien por comandos, pedir la hora del binario después
+  de compilar.** Es una línea y corta en seco toda esta clase de
+  diagnóstico fantasma.

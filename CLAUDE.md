@@ -101,23 +101,21 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   alwaysOnTop, skipTaskbar. Clic en tray abre; se oculta al perder foco
   (salvo drag); ✕ oculta a bandeja; arrastrable del encabezado. Pestañas
   (Principal · Fuentes de datos · Hallazgos · Consejos · Reporte ·
-  Ajustes), encabezado+pestañas sticky en `.p-top` (el padding superior vive AHÍ, no
-  en `.panel` — devolverlo abre una rendija transparente al hacer scroll).
+  Ajustes), encabezado+pestañas sticky en `.p-top` (el padding superior
+  vive AHÍ, no en `.panel` — si no, rendija al hacer scroll).
   Pie Hoy/Semana solo en Principal. El panel es el ÚNICO que llama al
   endpoint; el tray se actualiza desde su ciclo (`updateTray`).
 - **Pastilla** (`pill`, 280x54) + **detalle** (`pcard`, 280x300): cápsula
   de cristal con asa ⠿, gatito como MARCA, "Sesión X%", hueco semanal y
-  hueco semanal POR MODELO (VARIABLE: si el endpoint no lo reporta no se
-  pinta). Clic en cápsula = desplegar detalle; clic en la MARCA = abrir
+  hueco semanal POR MODELO (si el endpoint no lo reporta no se pinta). Clic en cápsula = desplegar detalle; clic en la MARCA = abrir
   panel; ⠿ arrastra (pliega antes); clic derecho oculta. NO robar foco
   (WS_EX_NOACTIVATE). NUNCA llama al endpoint: el panel emite
   `quota:update` y cada ventana pide el último dato con `pill:ready` al
-  cargar (toda ventana nueva DEBE emitirlo). El detalle son DOS
-  ventanas (mostrar/ocultar, parece que crece);
+  cargar (toda ventana nueva DEBE emitirlo). El detalle son DOS ventanas;
   `toggle_pill_card()` elige pose (abajo si cabe; si no `body.up`
   invierte). Cabecera del detalle = geometría IDÉNTICA a la cápsula (el
-  margen de 6 px en ambas las alinea; sin él el halo del box-shadow se
-  corta en recto); con el detalle abierto esconde números. Es funcional:
+  margen de 6 px las alinea; sin él el halo del box-shadow se corta en
+  recto); con el detalle abierto esconde números. Es funcional:
   gatito abre panel, asa arrastra vía `drag_pill_from_card`. SIN tooltips
   en la cápsula. El hover para desplegar se probó y se DEVOLVIÓ a clic —
   no reintroducir. El % en color: acento en "todo bien", ÁMBAR y ROJO se
@@ -130,16 +128,14 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   cat-zzz (`hit:week`) / cat-break (`hit:session`) / cat-fire
   (`ackPending:alarm`) / normal; los banderines `hit:*` los limpia
   `trackResets()` con ventana nueva. Cápsula nace OCULTA (`body.nodata`)
-  hasta tener lectura real; sin arte de un estado, cae al gif normal.
-  Zona `.head` en vars CSS `--hx:50% --hy:52% --hw:37% --hh:36%`
-  (medidas sobre el gif; para recalibrar, pintar .head de rojo). El
-  HOVER del globo resumen vive SOLO en `.head` (la laptop no lo
-  despliega; salir de la ventana pliega; rozar <300ms cancela el
-  temporizador). Laptop y márgenes arrastran. Post-its en la tapa:
-  pilita ROJA de hallazgos (`.fstack`, vars `--bx/--by/--bs`, rojo FIJO
-  sin tinte por severidad) y pilita TURQUESA del coach (`.tstack`,
-  #128097 profundo para que el número blanco dé ~4.7:1, tamaño .95bs,
-  offset 1.8bs). Clic en post-it = panel directo en su pestaña
+  hasta tener lectura real; sin arte, cae al gif normal.
+  Zona `.head` en vars CSS `--hx:50% --hy:52% --hw:37% --hh:36%` (para
+  recalibrar, pintar .head de rojo). El HOVER del globo resumen vive SOLO
+  en `.head` (salir de la ventana pliega; rozar <300ms lo cancela).
+  Laptop y márgenes arrastran. Post-its en la tapa:
+  pilita ROJA de hallazgos (`.fstack`, vars `--bx/--by/--bs`, rojo FIJO)
+  y pilita TURQUESA del coach (`.tstack`, #128097 para que el número
+  blanco dé ~4.7:1, tamaño .95bs, offset 1.8bs). Clic en post-it = panel directo en su pestaña
   (`panel:findings` / `panel:tips`). Gifs 400² transparentes en variantes
   -black/-white por tema, recortados por CSS EN PORCENTAJES — NO editar
   los archivos; `cat-break-black.gif` vino en lienzo distinto y se
@@ -147,15 +143,15 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   gatito y piel de los globos se eligen POR SEPARADO (`catArt`/`catSkin`,
   viajan como `artTheme`/`skinTheme` en el resumen); la cápsula del % va
   con los globos.
-- **Globos** (`notif`): REGLA ÚNICA — el globo se queda hasta ✕ o abrir el
-  panel, y no vuelve. NADA de auto-cierre por temporizador. Hover lo
-  oculta pero NO cuenta como leído (`notif:ready` lo restaura). Un globo a la vez;
+- **Globos** (`notif`): REGLA ÚNICA — se queda hasta ✕ o abrir el panel, y
+  no vuelve. NADA de auto-cierre. Hover lo oculta pero NO cuenta como
+  leído (`notif:ready` lo restaura). Un globo a la vez;
   gana el primero de `ACK_KINDS`. SEGUNDA REGLA: cerrar el globo
   NO cambia el dibujo del gatito (refleja el estado REAL; solo la alarma
   lo calma). NINGÚN aviso va a toast de Windows con widget; el toast queda
   SOLO sin widget (y ahí se repite cada 5 min). Con la pastilla el globo
-  es POPOVER (`body.cap`): severidad en `--sev`, fondo OPACO a propósito,
-  cola pequeña; sigue al tema del panel. Si notif.html se ve "sin estilo",
+  es POPOVER (`body.cap`): severidad en `--sev`, fondo OPACO, cola
+  pequeña; sigue al tema del panel. Si notif.html se ve "sin estilo",
   verificar `*{box-sizing}`, `.box`, `.msg`, `.x` — `body.cap` las
   ESPECIALIZA. `place_balloon()` ancla al widget (cola 62% gato / 50%
   pastilla), pose automática multi-monitor; la punta se mete 40 px en el
@@ -164,18 +160,17 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 - **Capa** (`PillConfig.layer`): top/normal/bottom. `apply_layer()` +
   `reassert_layers()` cada ciclo + `win_taskbar::force_topmost()`
   (SetWindowPos HWND_TOPMOST con SWP_NOACTIVATE — Windows degrada el
-  always-on-top y la llamada de Tauri se vuelve no-op). REGLA: widget y
+  always-on-top y la llamada de Tauri es no-op). REGLA: widget y
   globos SIEMPRE en la misma capa; el panel no participa. Si el bug de
   hundirse volviera: SetWinEventHook (EVENT_SYSTEM_FOREGROUND).
 - **CRÍTICO — ventanas transparentes:** NUNCA redimensionar en vivo
   (`set_size`): WebView2 deja de pintar. Tamaño fijo que se muestra/oculta.
 - **Creación en caliente:** `pill`/`pcard`/`cat`/`card` NO están en
   tauri.conf.json — las crea `ensure_widget_windows()` (solo el par del
-  estilo elegido; al cambiar de widget se crea el nuevo y se DESTRUYE el
-  viejo — ahorra ~115 MB). Sus tamaños se tocan en Rust. Las capabilities
+  estilo elegido; al cambiar se DESTRUYE el viejo, ahorra ~115 MB). Sus tamaños se tocan en Rust. Las capabilities
   siguen listando las 6 etiquetas (los permisos van por etiqueta).
 - **Tray dinámico:** número a 24 px con contorno de 4 px (legible en barra
-  clara/oscura sin detectar tema) + barrita semanal. Con cuota en error:
+  clara u oscura sin detectar tema) + barrita semanal. Con cuota en error:
   "–" gris, nunca datos inventados. El menú lo construye Rust pero el
   panel se lo manda TRADUCIDO vía `set_tray_menu` desde `applyI18n()` —
   todo texto que Rust dibuje llega así. Windows CORTA el tooltip a 128 chars:
@@ -268,11 +263,11 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 
 ## Analizador de fugas (pestaña Hallazgos)
 
-Diseño completo en `docs/analizador-fugas.md` — LEERLO antes de tocar.
-Tres piezas en sincronía (invariante #1): motor en `meter-export.py`
+Diseño en `docs/analizador-fugas.md` — LEERLO antes de tocar. Tres piezas
+en sincronía (invariante #1): motor en `meter-export.py`
 (`scan_findings`, `--findings`), réplica Rust (`scan_local_findings` +
-`get_findings`), pestaña con severidad por costo (rojo ≥$10, ámbar ≥$1
-o MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
+`get_findings`), pestaña con severidad por costo (rojo ≥$10, ámbar ≥$1 o
+MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
 
 **Detectores y umbrales** (constantes; detalle en el doc): reread (≥3
 lecturas y ~2k tok — MIDE chars devueltos), inflate (+50k y 10+ turnos),
@@ -304,8 +299,8 @@ Ignorar lleva stopPropagation). Primera apertura: enseña lo guardado al
 instante con "Analizando…" mientras corre el fresco; se refresca al abrir
 la pestaña si tiene >5 min. Precarga de fondo a los 15 s.
 
-**Avisos (sin globo desde 2026-08-04):** post-it rojo / campana /
-contador encienden con hallazgos NO VISTOS. Pasada ligera 1d compartida
+**Avisos (sin globo desde 2026-08-04):** post-it rojo / campana / contador
+encienden con hallazgos NO VISTOS. Pasada ligera 1d compartida
 `fndPass()`: al NACER UN RECIBO (cierre local; freno 15 min
 `fndEventLast`, marcado ANTES) y cada 3 h de respaldo (era 20 h: los
 nacidos en el VPS no disparan cierre local y quedaban invisibles un día,
@@ -313,8 +308,8 @@ nacidos en el VPS no disparan cierre local y quedaban invisibles un día,
 2026-08-07): abrir la pestaña o el post-it NO marca nada; contador y
 post-it descuentan tarjeta por tarjeta al clicarla (plegar/desplegar
 marca; Ignorar apaga la suya; restaurar ignorados revive las no leídas).
-Esto ENTIERRA la TRAMPA DEL VIGILANTE (4 mordidas): nada "nace visto"
-por estar mirando la pestaña. Los hallazgos NUNCA van al celular
+Esto ENTIERRA la TRAMPA DEL VIGILANTE (4 mordidas): nada nace visto por
+estar mirando la pestaña. Los hallazgos NUNCA van al celular
 (privacidad ntfy). El interruptor de Ajustes ("Avisarme en el widget")
 apaga SOLO el widget; los contadores de pestaña quedan siempre. Para
 re-armar en pruebas: borrar fndSeen y fndAutoLast.
@@ -374,9 +369,8 @@ pausa≥6 min con ctx≥30k → cache; mismo archivo leído ≥3 → attach; `as
 SOLO push al celular, no fichas; `sum` (quieta 10 min) = recibo con
 título AI, min/comandos/archivos, `· ~$X` y ⚠ de `coach_leaks()` (kinds
 attach/compact/cache; ctx y cache EXCLUYENTES; cerrar con ctx≥30k es fuga
-al cierre). Anti-spam: tope diario 10 (`tipDay`, sum EXENTO), una tarjeta
-viva por regla (la nueva reemplaza), `tipSeen` se marca al ENTRAR al
-almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`),
+al cierre). Anti-spam: tope diario 10 (`tipDay`, sum EXENTO), una tarjeta viva por
+regla (la nueva reemplaza), `tipSeen` se marca al ENTRAR al almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`),
 leído (`v`) apaga el aviso sin despachar, caducidad 24 h (TIP_TTL).
 "LEÍDO" = CLIC en la tarjeta (regla Gmail, ver Hallazgos); el ✕ además
 la despacha. Las tarjetas vivas
@@ -469,8 +463,8 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       aviso de hallazgos naciendo natural (fuga nueva, panel cerrado,
       sin re-armar fndSeen). El auto-/compact ya pasó la suya en vivo
       (2026-08-09); el AUTO-/CLEAR con red, aún no.
-- [ ] Updater: decidir repo público + publicar tag v* y probar completo.
-- [ ] Capturas del README (las hace Oscar).
+- [ ] Updater: repo público + tag v* y probar completo.
+- [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
       `docs/presion-y-rendimiento.md` — LEERLO antes de tocar). CERRADO
       HASTA DONDE ESTÁ (Oscar, 2026-08-07): fases 1 y 2 implementadas y
@@ -584,16 +578,15 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       viaje en el instalador (workflow, invariante #9).
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO hacer: rastrear otras herramientas, BD de
-  historial, modo equipo/empresa.
+  historial, modo equipo.
 
 ## Consumo de recursos (medido en release)
 
 Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**
-(`WorkingSetPrivate`; sumar WorkingSet64 cuenta doble lo compartido y da
-695). Release NO baja la RAM (el peso son los ~9 procesos WebView2); el
-gatito NO es el culpable (dos veces lo pareció); cada ventana WebView2
-tiene piso ~57 MB — por eso los pares de widget se crean/destruyen al
-cambiar de estilo.
+(`WorkingSetPrivate`; WorkingSet64 cuenta doble lo compartido: 695).
+Release NO baja la RAM (el peso son los ~9 procesos WebView2); el gatito
+NO es el culpable (dos veces lo pareció); cada ventana WebView2 tiene
+piso ~57 MB — de ahí que los pares de widget se creen/destruyan.
 
 ## Retención de logs
 
@@ -617,31 +610,35 @@ toolchain de Rust (espejo de código; `cargo check` corre en el Windows de
 Oscar) — al cambiar la FIRMA de una función, grep de TODOS sus usos antes
 de subir: el compilador no está para avisar.
 
+TRAS `git pull`, COMPROBAR LA HORA DEL BINARIO (2026-08-09): si el pull
+cae en el MISMO MINUTO que la última compilación, Cargo ve empate de
+fechas y NO recompila (`Finished` en 0.1 s, sin `Compiling`) — se ejecuta
+el exe viejo y el bug parece no arreglarse. Arreglo: `(Get-Item
+src\main.rs).LastWriteTime = Get-Date` y recompilar; `cargo clean -p` NO
+basta ("Removed 0 files").
+
 **Simulador** (solo dev, `is_dev`): estados del gatito / avisos de la
 pastilla / hallazgos. `simRunning` es la bandera (NO simMascot). NUNCA
-tocan localStorage ni mandan pushes; al parar, `processAcks()` restaura
-lo real. Pausa `simMin` (mínimo 5 s). Único control sin `t()`.
+toca localStorage ni manda pushes; al parar, `processAcks()` restaura lo
+real. Pausa `simMin` (mín. 5 s). Único control sin `t()`.
 
 ## Flujo de trabajo del repo
 
 - Remoto: `https://github.com/oscarorozcos/michiclaude` — **PRIVADO**.
-- Desarrollo y pruebas en el Windows de Oscar
-  (`C:\Users\oscar\Claude\MichiClaude`); en el VPS un clon espejo
-  (`/opt/projects/michiclaude`). Al mover un clon en Windows: `target/`
-  guarda rutas absolutas → `cargo clean`.
+- Windows de Oscar (`C:\Users\oscar\Claude\MichiClaude`) para desarrollo y
+  pruebas; VPS un clon espejo (`/opt/projects/michiclaude`). Al mover un
+  clon en Windows: `target/` guarda rutas absolutas → `cargo clean`.
 - Antes de trabajar en cualquier lado: `git pull`. Al terminar y
   verificar: commit (Conventional Commits en español) y push.
 - La parte de negocio del analizador vive FUERA del repo
-  (`~/.michiclaude/notas-negocio-analizador.md`): el historial de git se
-  publica.
+  (`~/.michiclaude/notas-negocio-analizador.md`): el git se publica.
 
 ## Contexto de producto
 
 - Usuario objetivo: suscriptores Pro/Max de Claude Code que quieren saber
-  cuánto les queda, cuándo se acaba al ritmo actual y qué proyecto/modelo
-  consume más.
+  cuánto les queda, cuándo se acaba al ritmo actual y qué consume más.
 - El coste en $ es NOCIONAL (equiv. API); la UI lo etiqueta así.
 - Diferenciadores vs ccusage/claudeusagewin: cuota real + costo por
   proyecto + multi-máquina + gatito. GPL-3.0 con excepción de assets
   Bongo Cat; releases por tag. La confianza es prioridad: transparencia
-  total sobre el token y el endpoint no oficial.
+  sobre el token y el endpoint no oficial.
