@@ -1113,6 +1113,18 @@ destruye si antes existe una copia VERIFICADA de la conversación.
 - **Las copias caducan a los 90 días** (`HANDOFF_KEEP_DAYS`, limpieza
   al arrancar el relevo). No viajan a ningún sitio: disco local de la
   máquina donde corre la sesión.
+- **Botón "abrir la copia" en el registro de acciones** (2026-08-09,
+  pedido de Oscar). Sin él la copia queda en una ruta de AppData que
+  nadie se sabe de memoria, y una red que no puedes ver a un clic es una
+  red en la que no se confía. `RemAction` gana el campo `file`
+  (`#[serde(default)]`, invariante #1) con el NOMBRE del archivo — no la
+  ruta: `open_handoff(name)` rechaza separadores, `..` y `:`, y compone
+  contra `handoff_dir()`, así que solo puede abrir lo que esta misma app
+  escribió en su propia carpeta (la regla de `open_export`, que existe
+  justo para que "abrir lo que diga el frontend" no sea "abrir lo que
+  diga cualquiera que consiga hablarle"). Abre el explorador con el
+  archivo SEÑALADO, no la app asociada a .md. Las inyecciones remotas no
+  traen nombre: esa copia vive en el servidor y aquí no hay qué abrir.
 - `michi inject /clear --export` (y lo mismo en el .py) valida la
   secuencia sin la app en medio; el acuse enseña la ruta de la copia.
 

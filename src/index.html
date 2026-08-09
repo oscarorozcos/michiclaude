@@ -318,6 +318,11 @@
   .rem-z b{color:var(--txt)}
   .rem-z span{overflow-wrap:anywhere}
   .rem-l{font-size:10.5px;color:var(--txt-dim);padding:2px 0;overflow-wrap:anywhere}
+  /* Enlace a la copia del /clear: va DENTRO de la línea del registro, así que
+     es texto con acento, no un botón con caja (una caja aquí rompería el
+     renglón y descuadraría la lista). */
+  .lnk{background:none;border:0;padding:0;font:inherit;color:var(--accent);
+    cursor:pointer;text-decoration:underline}
   /* Relevo etapa 3b: una fila por sesión de Claude Code abierta con relevo */
   .rly-r{display:flex;align-items:center;justify-content:space-between;gap:8px;
     font-size:11px;color:var(--txt-mut);padding:3px 0;min-width:0;flex-wrap:wrap}
@@ -1997,6 +2002,8 @@ en:{
   rem_log_empty:"Nothing applied yet",
   rem_log_zombie:s=>`closed orphaned MCP «${s}»`,
   rem_log_arch:(n,mb)=>`archived ${n===1?"1 log":n+" logs"} (${mb} MB)`,
+  rem_log_copy:"open the copy",
+  rem_log_copy_gone:"copy no longer exists",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
   rem_fail_lab:"failed",
@@ -2427,6 +2434,8 @@ es:{
   rem_log_empty:"Aún no se ha aplicado nada",
   rem_log_zombie:s=>`cerró el MCP huérfano «${s}»`,
   rem_log_arch:(n,mb)=>`archivó ${n===1?"1 log":n+" logs"} (${mb} MB)`,
+  rem_log_copy:"abrir la copia",
+  rem_log_copy_gone:"la copia ya no existe",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
   rem_fail_lab:"falló",
@@ -2857,6 +2866,8 @@ pt:{
   rem_log_empty:"Nada aplicado ainda",
   rem_log_zombie:s=>`fechou o MCP órfão «${s}»`,
   rem_log_arch:(n,mb)=>`arquivou ${n===1?"1 log":n+" logs"} (${mb} MB)`,
+  rem_log_copy:"abrir a cópia",
+  rem_log_copy_gone:"a cópia não existe mais",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
   rem_fail_lab:"falhou",
@@ -3287,6 +3298,8 @@ fr:{
   rem_log_empty:"Rien d'appliqué pour l'instant",
   rem_log_zombie:s=>`a fermé le MCP orphelin « ${s} »`,
   rem_log_arch:(n,mb)=>`a archivé ${n===1?"1 journal":n+" journaux"} (${mb} Mo)`,
+  rem_log_copy:"ouvrir la copie",
+  rem_log_copy_gone:"la copie n'existe plus",
   rem_auto_lab:"auto",
   rem_man_lab:"manuel",
   rem_fail_lab:"échec",
@@ -3717,6 +3730,8 @@ de:{
   rem_log_empty:"Noch nichts angewendet",
   rem_log_zombie:s=>`verwaisten MCP „${s}“ beendet`,
   rem_log_arch:(n,mb)=>`${n===1?"1 Log":n+" Logs"} archiviert (${mb} MB)`,
+  rem_log_copy:"Kopie öffnen",
+  rem_log_copy_gone:"Kopie existiert nicht mehr",
   rem_auto_lab:"auto",
   rem_man_lab:"manuell",
   rem_fail_lab:"fehlgeschlagen",
@@ -4147,6 +4162,8 @@ ja:{
   rem_log_empty:"まだ何も適用されていません",
   rem_log_zombie:s=>`孤立 MCP「${s}」を終了`,
   rem_log_arch:(n,mb)=>`ログ ${n} 件をアーカイブ（${mb} MB）`,
+  rem_log_copy:"コピーを開く",
+  rem_log_copy_gone:"コピーはもうありません",
   rem_auto_lab:"自動",
   rem_man_lab:"手動",
   rem_fail_lab:"失敗",
@@ -4577,6 +4594,8 @@ ko:{
   rem_log_empty:"아직 적용된 작업 없음",
   rem_log_zombie:s=>`고아 MCP «${s}» 종료`,
   rem_log_arch:(n,mb)=>`로그 ${n}개 보관 (${mb} MB)`,
+  rem_log_copy:"사본 열기",
+  rem_log_copy_gone:"사본이 더 이상 없습니다",
   rem_auto_lab:"자동",
   rem_man_lab:"수동",
   rem_fail_lab:"실패",
@@ -5007,6 +5026,8 @@ zh:{
   rem_log_empty:"尚未执行任何操作",
   rem_log_zombie:s=>`关闭了孤立 MCP «${s}»`,
   rem_log_arch:(n,mb)=>`归档了 ${n} 个日志（${mb} MB）`,
+  rem_log_copy:"打开副本",
+  rem_log_copy_gone:"副本已不存在",
   rem_auto_lab:"自动",
   rem_man_lab:"手动",
   rem_fail_lab:"失败",
@@ -8089,9 +8110,20 @@ async function remLogLoad(){
       const what=a.kind==="zombie"?t("rem_log_zombie",a.d1)
         : a.kind==="relay"?t("rem_log_relay",a.d1,a.d2)
         : t("rem_log_arch",a.d1,a.d2);
+      // Botón a la copia del /clear con red: sin él la copia queda en una
+      // ruta de AppData que nadie se sabe, y una red que no puedes ver a un
+      // clic es una red en la que no se confía. Solo con nombre de archivo
+      // (las remotas no lo traen: esa copia vive en el servidor).
+      const copia=a.file?` <button class="lnk hnd-open" data-f="${escapeHtml(a.file)}">${
+        t("rem_log_copy")}</button>`:"";
       return `<div class="rem-l">${when} · ${a.auto?t("rem_auto_lab"):t("rem_man_lab")} · ${
-        escapeHtml(what)}${a.ok?"":" · ⚠ "+t("rem_fail_lab")}</div>`;
+        escapeHtml(what)}${a.ok?"":" · ⚠ "+t("rem_fail_lab")}${copia}</div>`;
     }).join("");
+    el.querySelectorAll(".hnd-open").forEach(b=>
+      b.addEventListener("click",async ()=>{
+        try{ await invoke("open_handoff",{name:b.dataset.f}); }
+        catch(e){ b.textContent=String(e).includes("GONE")?t("rem_log_copy_gone"):"✕"; }
+      }));
   }catch(_){ el.innerHTML=""; }
 }
 // Sondeo de fondo: cada hora (la foto de procesos vía PowerShell cuesta

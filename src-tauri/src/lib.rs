@@ -4082,6 +4082,13 @@ struct RemAction {
     /// zombie: ejecutable · archive: MB movidos
     #[serde(default)]
     d2: String,
+    /// relay + /clear con red: NOMBRE del archivo de copia (sin ruta), para
+    /// que el panel pueda ofrecer "abrir la copia". Solo el nombre a
+    /// propósito: la carpeta la pone el backend y así una ruta del panel no
+    /// puede abrir nada de fuera (misma regla que LAST_EXPORT). Vacío en
+    /// remotas — esa copia vive en el servidor y aquí no hay qué abrir.
+    #[serde(default)]
+    file: String,
 }
 
 fn actions_log_path() -> PathBuf {
@@ -4091,6 +4098,11 @@ fn actions_log_path() -> PathBuf {
 /// Añade una entrada al registro (tope 200 — es una bitácora, no un
 /// histórico infinito). Nunca viaja a ntfy ni al hub: contiene nombres.
 fn log_action(kind: &str, auto: bool, ok: bool, d1: String, d2: String) {
+    log_action_file(kind, auto, ok, d1, d2, String::new())
+}
+
+/// Igual, pero apuntando además el archivo de copia (ver RemAction.file).
+fn log_action_file(kind: &str, auto: bool, ok: bool, d1: String, d2: String, file: String) {
     let mut list: Vec<RemAction> = fs::read_to_string(actions_log_path())
         .ok()
         .and_then(|x| serde_json::from_str(&x).ok())
@@ -4102,6 +4114,7 @@ fn log_action(kind: &str, auto: bool, ok: bool, d1: String, d2: String) {
         ok,
         d1,
         d2,
+        file,
     });
     let skip = list.len().saturating_sub(200);
     let list: Vec<_> = list.into_iter().skip(skip).collect();
@@ -4109,6 +4122,55 @@ fn log_action(kind: &str, auto: bool, ok: bool, d1: String, d2: String) {
     if let Ok(j) = serde_json::to_string(&list) {
         let _ = fs::write(actions_log_path(), j);
     }
+}
+
+/// Carpeta de las copias que deja el /clear con red. La MISMA que usa el
+/// relevo (`<datos>/handoff`), calculada aquí para no fiarse de nadie.
+fn handoff_dir() -> PathBuf {
+    app_data_dir().join("handoff")
+}
+
+/// Abre la copia que guardó un /clear con red.
+///
+/// SEGURIDAD, misma regla que `open_export`: el panel manda un NOMBRE de
+/// archivo, nunca una ruta. Aquí se rechaza cualquier nombre con separadores
+/// o `..` y se compone la ruta contra `handoff_dir()`, así que solo puede
+/// abrirse algo que esta misma app escribió en su propia carpeta. Sin esto,
+/// "abrir lo que diga el frontend" sería abrir lo que diga cualquiera que
+/// consiga hablarle.
+#[tauri::command]
+fn open_handoff(name: String) -> Result<(), String> {
+    if name.is_empty()
+        || name.contains('/')
+        || name.contains('\\')
+        || name.contains("..")
+        || name.contains(':')
+    {
+        return Err("ERR_HANDOFF_NAME".into());
+    }
+    let p = handoff_dir().join(&name);
+    if !p.is_file() {
+        return Err("ERR_HANDOFF_GONE".into());
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // /select deja el archivo señalado en el explorador; abrirlo con la
+        // app asociada sería ejecutar lo que decida el sistema para .md.
+        std::process::Command::new("explorer")
+            .arg(format!("/select,{}", p.display()))
+            .creation_flags(0x0800_0000)
+            .spawn()
+            .map_err(|_| "ERR_HANDOFF_OPEN".to_string())?;
+    }
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(p.parent().unwrap_or(&p))
+            .spawn()
+            .map_err(|_| "ERR_HANDOFF_OPEN".to_string())?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -4494,7 +4556,14 @@ async fn relay_inject(
                 continue;
             }
             let good = v["last"]["ok"].as_bool().unwrap_or(false);
-            log_action("relay", auto, good, text.clone(), proj.clone());
+            // La copia del /clear con red, para el botón "abrir la copia".
+            // Se guarda SOLO el nombre (ver RemAction.file); la carpeta la
+            // vuelve a poner el backend al abrir.
+            let copia = v["last"]["export"]
+                .as_str()
+                .map(path_base)
+                .unwrap_or_default();
+            log_action_file("relay", auto, good, text.clone(), proj.clone(), copia);
             return if good {
                 Ok(())
             } else {
@@ -5344,6 +5413,7 @@ pub fn run() {
             install_update,
             open_releases,
             open_export,
+            open_handoff,
             is_dev,
             app_version,
             get_pill_layer,
