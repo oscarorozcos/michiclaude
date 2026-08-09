@@ -97,9 +97,9 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 
 ## Ventanas
 
-- **Panel** (`main`, 446x660): flyout sin decoraciones, transparente, alwaysOnTop,
-  skipTaskbar. Clic en tray abre; se oculta al perder foco (salvo drag);
-  ✕ oculta a bandeja; arrastrable desde el encabezado. Pestañas
+- **Panel** (`main`, 446x660): flyout sin decoraciones, transparente,
+  alwaysOnTop, skipTaskbar. Clic en tray abre; se oculta al perder foco
+  (salvo drag); ✕ oculta a bandeja; arrastrable del encabezado. Pestañas
   (Principal · Fuentes de datos · Hallazgos · Consejos · Reporte ·
   Ajustes), encabezado+pestañas sticky en `.p-top` (el padding superior vive AHÍ, no
   en `.panel` — devolverlo abre una rendija transparente al hacer scroll).
@@ -112,7 +112,8 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   panel; ⠿ arrastra (pliega antes); clic derecho oculta. NO robar foco
   (WS_EX_NOACTIVATE). NUNCA llama al endpoint: el panel emite
   `quota:update` y cada ventana pide el último dato con `pill:ready` al
-  cargar (toda ventana nueva del widget DEBE emitirlo). El detalle son DOS ventanas (mostrar/ocultar, parece que crece);
+  cargar (toda ventana nueva DEBE emitirlo). El detalle son DOS
+  ventanas (mostrar/ocultar, parece que crece);
   `toggle_pill_card()` elige pose (abajo si cabe; si no `body.up`
   invierte). Cabecera del detalle = geometría IDÉNTICA a la cápsula (el
   margen de 6 px en ambas las alinea; sin él el halo del box-shadow se
@@ -122,7 +123,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   no reintroducir. El % en color: acento en "todo bien", ÁMBAR y ROJO se
   conservan. Los tamaños se definen en `ensure_widget_windows`, NO en el
   json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos),
-  ambos SVG inline (la CSP no permite fuentes externas).
+  SVG inline (la CSP no permite fuentes externas).
 - **Gatito** (estilo `cat`): 4 ventanas — `cat` (gif + cápsula "Sesión X%"
   + zona `.head`), `card` (globo resumen al hover), `notif` (globo de
   alarma), pastilla oculta. Estados por gravedad (`mascotState()`):
@@ -148,8 +149,8 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   con los globos.
 - **Globos** (`notif`): REGLA ÚNICA — el globo se queda hasta ✕ o abrir el
   panel, y no vuelve. NADA de auto-cierre por temporizador. Hover lo
-  oculta pero NO cuenta como leído (`notif:ready` lo restaura). Un globo a
-  la vez; gana el primero de `ACK_KINDS`. SEGUNDA REGLA: cerrar el globo
+  oculta pero NO cuenta como leído (`notif:ready` lo restaura). Un globo a la vez;
+  gana el primero de `ACK_KINDS`. SEGUNDA REGLA: cerrar el globo
   NO cambia el dibujo del gatito (refleja el estado REAL; solo la alarma
   lo calma). NINGÚN aviso va a toast de Windows con widget; el toast queda
   SOLO sin widget (y ahí se repite cada 5 min). Con la pastilla el globo
@@ -167,8 +168,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   globos SIEMPRE en la misma capa; el panel no participa. Si el bug de
   hundirse volviera: SetWinEventHook (EVENT_SYSTEM_FOREGROUND).
 - **CRÍTICO — ventanas transparentes:** NUNCA redimensionar en vivo
-  (`set_size`): WebView2 deja de pintar. Patrón: tamaño fijo que se
-  muestra/oculta.
+  (`set_size`): WebView2 deja de pintar. Tamaño fijo que se muestra/oculta.
 - **Creación en caliente:** `pill`/`pcard`/`cat`/`card` NO están en
   tauri.conf.json — las crea `ensure_widget_windows()` (solo el par del
   estilo elegido; al cambiar de widget se crea el nuevo y se DESTRUYE el
@@ -178,8 +178,8 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   clara/oscura sin detectar tema) + barrita semanal. Con cuota en error:
   "–" gris, nunca datos inventados. El menú lo construye Rust pero el
   panel se lo manda TRADUCIDO vía `set_tray_menu` desde `applyI18n()` —
-  todo texto que Rust dibuje llega así. Windows CORTA el tooltip a 128
-  chars: si el motivo no cabe, solo la primera frase (`firstSentence`).
+  todo texto que Rust dibuje llega así. Windows CORTA el tooltip a 128 chars:
+  si no cabe, solo la primera frase (`firstSentence`).
 
 ## INVARIANTES — no romper nunca
 
@@ -255,7 +255,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   cadencia de cuota 3 min (60 s disparaba 429); el gauge conserva el
   último dato bueno 15 min. OJO: muchos arranques seguidos
   (compilar-probar) acaban en 429 de 60 MINUTOS.
-- Instancia única (tauri-plugin-single-instance, registrado primero).
+- Instancia única (single-instance, registrado primero).
 - Si se toca algo que `emitPill()` calcula: `emitPill(...lastPillArgs)`,
   NUNCA parchear un campo suelto de `lastPill` (dejaba el tema viejo).
 - Export CSV/JSON: UNA fila por hecho (fecha × proyecto × modelo ×
@@ -285,8 +285,7 @@ mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos), y
 claudemdsize (CLAUDE.md > 40k `CLAUDEMD_LOAD_LIMIT`: lo que sobra no se
 carga; tarjeta de estado costo 0, solo 7d+).
 Tope 12 por costo en el backend. REGLA: los de "lo instalado" señalan lo
-que NO se usa y lo que cuesta cargarlo — nunca califican si algo que sí
-se usa "gastó de más".
+que NO se usa y lo que cuesta cargarlo, nunca si algo usado "gastó de más".
 
 **Orden:** `ts` desc y luego costo. Llevan ts los de sesión
 (reread/inflate/cachebreak) y los agregados con actividad
@@ -296,8 +295,7 @@ van abajo por costo. En Python `parse_ts` da datetime — va
 
 **Subagentes:** sus turnos llevan el sessionId de la MADRE y NO tocan el
 estado de sesión (turns/first_cr/last_cr/cr_cost/cb) — solo suman a su
-tarjeta; sus tool_use SÍ cuentan (MCP usado es usado). El coach queda
-plano a propósito. `proj` (carpeta de logs, para casar con
+tarjeta; sus tool_use SÍ cuentan. El coach queda plano a propósito. `proj` (carpeta de logs, para casar con
 claudemd) y `disp` (cwd real, para enseñar) van SEPARADOS — unificarlos
 dejaría claudemd en costo 0 en silencio.
 
@@ -513,20 +511,18 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       bitácora). REGLAS DURAS:
       crate APARTE `relevo/` (la app no gana deps, invariante #4);
       canal por ARCHIVOS `%APPDATA%\<app>\relevo\<pid>.json|.cmd`
-      (tmp+rename con `.tmp` sobre el nombre ENTERO o estado y orden se
-      pisan); viva = estado <15 s; LISTA BLANCA (/compact, /clear) como
-      límite duro, comprobada en LOS DOS lados; R2 se INFIERE del
-      silencio de la PTY. **ConPTY negocia `win32-input-mode`** — las
+      (tmp+rename con `.tmp` sobre el nombre ENTERO); viva = estado
+      <15 s; LISTA BLANCA (/compact, /clear) comprobada en LOS DOS
+      lados; R2 se INFIERE del silencio de la PTY. **ConPTY negocia `win32-input-mode`** — las
       teclas llegan como `ESC[…_` y hay que decodificarlas; los avisos del
       terminal (foco, cursor) NO son teclas; UNA fuente de verdad para
       "hay texto"; un Enter no limpia hasta ver si Claude REACCIONA;
       JAMÁS escribe lo tecleado.
-      `TitleMark` antepone la marca al título de Claude: ÚNICA excepción
-      al paso transparente, lee el número OSC ENTERO (`ESC]10;` es
-      color), fail-open con tope. Casado sesión↔relevo por el `cwd` COMPLETO (`scwd` del hit `press`)
-      y FAIL-CLOSED ante ambigüedad. Quien
-      DECIDE es el relevo: `attend()` revuelve R1-R3 al escribir, que el
-      countdown acabe no es permiso. `relayBusy` impide repintar con una
+      `TitleMark` antepone la marca al título: ÚNICA excepción al paso
+      transparente, lee el número OSC ENTERO (`ESC]10;` es color),
+      fail-open con tope. Casado sesión↔relevo por `cwd` COMPLETO
+      (`scwd` del hit `press`), FAIL-CLOSED ante ambigüedad. DECIDE el
+      relevo: `attend()` revuelve R1-R3 al escribir. `relayBusy` impide repintar con una
       cuenta viva.
       El motivo del rechazo va en línea propia, nunca en el botón.
       Desbloqueo en `relayDone` (/compact 2, /clear 3; lo que TECLEAS TÚ
@@ -538,7 +534,10 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       canal; la lista sigue en 2), copia VERIFICADA en disco
       (`<datos>/handoff/`, 90 días) o NO hay /clear (`ERR_RELAY_EXPORT`);
       secuencia en hilo propio; `/export` sin ruta abre MENÚ — jamás a
-      secas. PENDIENTE cargo check y vivo en Windows. El
+      secas. **El Enter va SEPARADO del texto** (`type_line`,
+      ENTER_GAP_MS 250): juntos, la TUI los toma por PEGADO y la línea
+      se queda escrita sin ejecutarse — con /compact colaba por corto,
+      con la ruta del /export fallaba siempre (autopsia en el doc). El
       AUTOMÁTICO exige widget A LA VISTA —la cuenta atrás vive en la
       cápsula—, dura 15 s, cualquier toque la para (en el gatito el
       manejador va en CAPTURA) y se marca ANTES de empezar. Un rechazo del
@@ -599,7 +598,7 @@ cambiar de estilo.
 ## Retención de logs
 
 Claude Code borra los .jsonl a los 30 días y el analizador necesita
-historial: `cleanupPeriodDays: 365` en VPS y Windows.
+historial: `cleanupPeriodDays: 365` (VPS y Windows).
 
 ## Comandos
 

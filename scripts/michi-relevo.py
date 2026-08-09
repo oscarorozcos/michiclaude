@@ -49,6 +49,12 @@ SUBMIT_WAIT_MS = 3_000  # un Enter no limpia hasta ver si Claude REACCIONA
 # silencio de la PTY exigido tras verlo aparecer (el REPL asentado)
 EXPORT_WAIT_MS = 12_000
 EXPORT_SETTLE_MS = 1_500
+# Pausa entre el texto y su Enter. NO es cosmética: la TUI de Claude Code
+# trata texto+Enter en la MISMA ráfaga como un pegado y NO ejecuta la línea
+# — se queda escrita en el prompt. Con /compact (9 bytes) colaba; con
+# /export <ruta> (~110) el Enter se lo tragaba SIEMPRE (cazado en vivo,
+# 2026-08-09). Se separan para todos: el fallo dependía del largo.
+ENTER_GAP_S = 0.25
 HANDOFF_KEEP_DAYS = 90  # una copia más vieja ya cumplió su papel de red
 TICK_S = 0.25
 STATE_EVERY_S = 0.5
@@ -431,6 +437,13 @@ def run_relevo(extra):
             "last": last_ack,
         })
 
+    def type_line(txt):
+        """Teclea una línea: el texto, una pausa, y el Enter APARTE (ver
+        ENTER_GAP_S). R5 intacta: solo se AÑADE, ni un borrado."""
+        os.write(master, txt.encode())
+        time.sleep(ENTER_GAP_S)
+        os.write(master, b"\r")
+
     def do_handoff(rid, text):
         """La red del /clear, en su hilo: `/export <copia>` → verificar que
         la copia existe con contenido y el REPL se calló → re-verificar que
@@ -439,7 +452,7 @@ def run_relevo(extra):
         nonlocal inject_at, last_ack
         path = handoff_path()
         try:
-            os.write(master, (f"/export {path}\r").encode())
+            type_line(f"/export {path}")
         except OSError:
             last_ack = ack_row(rid, text, False, "ERR_RELAY_WRITE")
             hand["on"] = False
@@ -474,7 +487,7 @@ def run_relevo(extra):
             hand["on"] = False
             return
         try:
-            os.write(master, (text + "\r").encode())
+            type_line(text)
         except OSError:
             last_ack = ack_row(rid, text, False, "ERR_RELAY_WRITE", path)
             hand["on"] = False
@@ -508,7 +521,7 @@ def run_relevo(extra):
                              daemon=True).start()
             return None
         try:
-            os.write(master, (text + "\r").encode())
+            type_line(text)
         except OSError:
             return ack_row(rid, text, False, "ERR_RELAY_WRITE")
         inject_at = now_ms()

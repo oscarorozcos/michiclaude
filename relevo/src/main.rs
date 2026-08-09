@@ -72,6 +72,15 @@ const SUBMIT_WAIT_MS: u64 = 3_000;
 // PTY se exige tras verlo aparecer para dar el REPL por asentado.
 const EXPORT_WAIT_MS: u64 = 12_000;
 const EXPORT_SETTLE_MS: u64 = 1_500;
+// Pausa entre el texto y su Enter. NO es cosmética: la TUI de Claude Code
+// trata el texto y el Enter que llegan en la MISMA ráfaga de lectura como
+// un pegado y NO ejecuta la línea — se queda escrita en el prompt. Con
+// `/compact` (9 bytes) colaba; con `/export <ruta>` (~110) el Enter se lo
+// tragaba siempre y la red fallaba entera con ERR_RELAY_EXPORT sin que
+// nada saliera por pantalla (cazado en vivo, 2026-08-09). Separarlos lo
+// arregla, y se hace para TODOS los comandos: el fallo dependía del largo
+// de la línea y de la máquina, o sea que el /compact vivía de suerte.
+const ENTER_GAP_MS: u64 = 250;
 // Las copias del /clear ya cumplieron su papel pasado este tiempo.
 const HANDOFF_KEEP_DAYS: u64 = 90;
 // Cada cuánto se refresca el estado y se mira si hay una orden.
@@ -1014,6 +1023,26 @@ fn snapshot(sh: &Shared, pid: u32, started: i64, cwd: &PathBuf) -> String {
     .to_string()
 }
 
+/// Teclea una línea en la sesión: el texto, una pausa, y el Enter aparte
+/// (ver ENTER_GAP_MS — juntos, la TUI los toma por un pegado y no ejecuta).
+/// R5 intacta: solo se AÑADE, ni un borrado.
+fn type_line(writer: &Arc<Mutex<Box<dyn Write + Send>>>, text: &str) -> bool {
+    {
+        let mut w = writer.lock().unwrap();
+        if w.write_all(text.as_bytes()).is_err() {
+            return false;
+        }
+        let _ = w.flush();
+    }
+    std::thread::sleep(Duration::from_millis(ENTER_GAP_MS));
+    let mut w = writer.lock().unwrap();
+    if w.write_all(b"\r").is_err() {
+        return false;
+    }
+    let _ = w.flush();
+    true
+}
+
 /// El acuse con la misma forma en todos los caminos. `export` = ruta de la
 /// copia, si la hubo (además del ok/err — un TYPED tras exportar deja copia
 /// pero no /clear, y las dos cosas tienen que poder decirse).
@@ -1068,11 +1097,9 @@ fn attend(
     // R5 (sagrada): solo se AÑADE texto. Ni un backspace, ni un Ctrl+U, ni
     // nada que pueda borrar lo del usuario. Si hubiera texto suyo, ya
     // habríamos salido por ERR_RELAY_TYPED.
-    let mut w = writer.lock().unwrap();
-    if w.write_all(format!("{text}\r").as_bytes()).is_err() {
+    if !type_line(writer, &text) {
         return Some(ack_json(&id, &text, false, "ERR_RELAY_WRITE", None));
     }
-    let _ = w.flush();
     sh.inject_at.store(sh.ms(), Ordering::Relaxed);
     Some(ack_json(&id, &text, true, "", None))
 }
@@ -1092,12 +1119,8 @@ fn handoff(
     let _ = std::fs::create_dir_all(&dir);
     let path = dir.join(format!("handoff-{}-{}.md", std::process::id(), now_epoch()));
     let ps = path.to_string_lossy().to_string();
-    {
-        let mut w = writer.lock().unwrap();
-        if w.write_all(format!("/export {ps}\r").as_bytes()).is_err() {
-            return ack_json(id, text, false, "ERR_RELAY_WRITE", None);
-        }
-        let _ = w.flush();
+    if !type_line(writer, &format!("/export {ps}")) {
+        return ack_json(id, text, false, "ERR_RELAY_WRITE", None);
     }
     sh.inject_at.store(sh.ms(), Ordering::Relaxed);
     // Esperar la copia: el archivo existe con contenido Y el REPL volvió a
@@ -1125,11 +1148,9 @@ fn handoff(
     if sh.has_text() {
         return ack_json(id, text, false, "ERR_RELAY_TYPED", Some(&ps));
     }
-    let mut w = writer.lock().unwrap();
-    if w.write_all(format!("{text}\r").as_bytes()).is_err() {
+    if !type_line(writer, text) {
         return ack_json(id, text, false, "ERR_RELAY_WRITE", Some(&ps));
     }
-    let _ = w.flush();
     sh.inject_at.store(sh.ms(), Ordering::Relaxed);
     ack_json(id, text, true, "", Some(&ps))
 }

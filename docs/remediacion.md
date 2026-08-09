@@ -1125,6 +1125,39 @@ tiene toolchain), y ver de verdad que `/export` del chat en vivo escribe
 el archivo (en el banco lo hace el falso claude; si el real no lo
 escribiera, el fallo es el bueno: ERR_RELAY_EXPORT y nada borrado).
 
+### El Enter NO puede ir pegado al texto (autopsia, 2026-08-09)
+
+La primera prueba en vivo de Oscar devolvió `ERR_RELAY_EXPORT` con la
+sesión en verde (`v:2`, `ready:true`, `idle_out:4`). La red hizo lo suyo
+—no se borró nada— pero la copia no aparecía y en pantalla no salía ni
+un error. Reproducido en el VPS contra Claude Code REAL:
+
+**La línea se quedaba ESCRITA en el prompt, sin ejecutarse.** La TUI de
+Claude Code trata el texto y el Enter que llegan en la MISMA ráfaga de
+lectura como un PEGADO, y un pegado no se envía solo. Con `/compact`
+(9 bytes) colaba; con `/export <ruta>` (~110 bytes) fallaba siempre.
+
+Comprobado con dos sondas idénticas salvo en eso: `"/export <ruta>\r"`
+de una vez → nada, la línea en el prompt; texto, pausa de 0,6 s, y `\r`
+aparte → `Conversation exported to:` y archivo de 762 bytes en disco.
+
+Arreglo: `type_line()` en las dos piezas de PTY (Rust y Python) escribe
+el texto, duerme `ENTER_GAP_MS` (250 ms) y manda el Enter aparte. Se
+aplica a TODOS los comandos, no solo al /export: el fallo dependía del
+LARGO de la línea y de la velocidad de la máquina, o sea que el
+/compact de la 3c-2 estaba vivo de suerte. El modo chat no lo necesita
+(ahí un mensaje es una línea JSON, no teclas).
+
+Validado end-to-end contra Claude Code real (relevo Python + sesión de
+verdad): `aplicado: /clear (copia: …)` con copia de 912 bytes que
+CONTIENE la conversación. Regresión del banco de falso claude: 13/13.
+
+**Lección para la próxima integración con una TUI:** escribir en una PTY
+no es "mandar bytes", es imitar a un humano — y un humano no teclea 110
+caracteres y el Enter en el mismo instante. Cuando la TUI no reacciona a
+algo que se ve escrito en pantalla, sospechar del RITMO antes que del
+contenido.
+
 **Residual honesto:** el veredicto Boundary se evalúa al ARMAR la cuenta
 atrás; si en esos 15 s el usuario retoma la tarea, el clasificador no se
 re-consulta — lo cubren R1-R3 (tecleó → se rechaza) y que la cuenta se

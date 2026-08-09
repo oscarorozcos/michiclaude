@@ -2947,3 +2947,48 @@ Lecciones:
   idioma y de versión; los archivos no.
 - **Todo lo que espera dentro del relevo va en su hilo**: la misma
   lección que el 10ter de la app (síncrono congela), versión PTY.
+
+## 2026-08-09 (segunda) — el Enter pegado al texto: por qué falló la red en la primera prueba real
+
+Oscar compiló, abrió sesión con relevo (`v:2`, `ready:true`) y corrió
+`michi inject /clear --export`. Respuesta: `ERR_RELAY_EXPORT`. La red
+hizo exactamente lo que promete —no se borró nada— pero la copia no
+aparecía y en pantalla no salía ningún error.
+
+Reproducido en el VPS contra Claude Code REAL (dos sondas de PTY que
+solo se diferencian en el ritmo del tecleo):
+
+- `"/export <ruta>\r"` escrito de una vez → la línea se queda ESCRITA
+  en el prompt y no se ejecuta. Cero salida, cero error.
+- El texto, 0,6 s de pausa, y el `\r` aparte → `Conversation exported
+  to:` y archivo de 762 bytes en disco.
+
+Causa: la TUI de Claude Code trata el texto y el Enter que llegan en la
+MISMA ráfaga de lectura como un PEGADO, y un pegado no se envía solo.
+Con `/compact` (9 bytes) colaba; con una ruta de ~110 bytes, jamás.
+
+Arreglo: `type_line()` en las dos piezas de PTY escribe el texto, duerme
+250 ms (`ENTER_GAP_MS`) y manda el Enter aparte. Se aplica a TODOS los
+comandos: el fallo dependía del largo de la línea y de la velocidad de
+la máquina, así que el `/compact` validado el 2026-08-08 estaba vivo de
+suerte y podía morder en cualquier momento. El modo chat no lo necesita
+(ahí un mensaje es una línea JSON, no teclas).
+
+Validado end-to-end contra Claude Code real: `aplicado: /clear (copia:
+…)` con una copia de 912 bytes que CONTIENE la conversación. Banco de
+falso claude: 13/13 sin regresión.
+
+Nota de método: el banco de falso claude NO podía cazar esto — su
+"claude" lee líneas de stdin, así que el ritmo le da igual. Un banco
+prueba tu código contra tu idea del mundo; solo el programa real prueba
+tu idea del mundo.
+
+Lecciones:
+
+- **Escribir en una PTY no es mandar bytes: es imitar a un humano.** Y
+  un humano no teclea 110 caracteres y el Enter en el mismo instante.
+- **Si la TUI no reacciona a algo que SE VE escrito en pantalla,
+  sospechar del RITMO antes que del contenido.** La ruta era correcta,
+  los permisos también, el comando también.
+- **Un fallo que depende del largo de la entrada es un fallo dormido**:
+  el /compact "funcionaba" y solo escondía el mismo defecto.
