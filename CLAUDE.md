@@ -22,8 +22,7 @@ el uso de Claude (suscripción):
   locales. Nota `spend_only_cc`: los $ son SOLO de Claude Code; claude.ai
   gasta cuota pero no es medible en dinero.
 - **Icono de bandeja dinámico** (% de sesión dibujado en canvas).
-- **Analizador de fugas** (Hallazgos) y **coach** (Consejos) — ver sus
-  secciones.
+- **Analizador de fugas** (Hallazgos) y **coach** (Consejos).
 - **Modo HUB** multi-máquina y **avisos al celular** (ntfy).
 
 ## Arquitectura
@@ -55,32 +54,30 @@ plan (verificado con quota_debug.json real). Respuesta cruda a
 **B) Detalle local — `get_local_stats` (Rust):** parsea
 `~/.claude/projects/**/*.jsonl`. "**/*" incluye
 `<sesión>/subagents/agent-*.jsonl` vía `project_jsonls()` (2026-08-04):
-Claude Code moderno (v2.1.221+) pone ahí los transcripts de subagentes —
-sin entrar a esa subcarpeta ni el costo ni el detector los ven.
+Claude Code v2.1.221+ pone ahí los transcripts de subagentes — sin entrar
+ahí ni el costo ni el detector los ven.
 Dedup por `message.id + requestId` (los duplicados TAMBIÉN cruzan
 archivos — la dedup global es imprescindible). Tokens "de trabajo" =
 input + output + cache_write; **cache_read excluido** (infla ~100×) salvo
 para el coste (a 10% del input). `<synthetic>` fuera. Fuente WSL:
 `wsl.exe -l -q` (UTF-16LE) + `\\wsl.localhost\<distro>\{home/*,root}\.claude`,
-sufijo `wsl-<distro>`. Incremental: lo más viejo que la ventana ni se
-abre; de lo reciente se cachea el PARSEO por tamaño+mtime
-(`scan_cache.json`), nunca el coste. Agrega por proyecto (ventana 1/7/30,
+sufijo `wsl-<distro>`. Incremental: lo más viejo que la ventana ni se abre; de lo reciente se
+cachea el PARSEO por tamaño+mtime (`scan_cache.json`), nunca el coste. Agrega por proyecto (ventana 1/7/30,
 `by_model`), por modelo, coste hoy/ventana y serie `daily` de 30 días.
-Los proyectos remotos llevan el sufijo del nombre dado al server.
+Los proyectos remotos llevan el sufijo del nombre del server.
 
 **Precios Y TECHO DE CONTEXTO:** la misma tabla y la misma cascada
 (LiteLLM → models.dev → OpenRouter, caché 24 h en `prices_cache.json`,
 RESPALDO no verificación cruzada). `price_for()` cae a la embebida
 `price_table()` y `ctx_for()` a `ctx_table()`; las dos deciden por VERSIÓN,
 no familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75; Fable/Mythos
-$10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`, la UI marca
-"~". Viajan al exportador por STDIN (`--prices-stdin`). Descarga fallando
+$10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`, la UI marca "~". Viajan al exportador por STDIN (`--prices-stdin`). Descarga fallando
 >1 semana: aviso ⚠ junto a "costo estimado", no toast. La sección de
 Ajustes informa de AMBAS cosas (`ctx_count` = modelos con techo): si una
 fuente deja de publicarlo, el número baja a la vista.
 `price_key()` unifica PUNTO→GUIÓN entre dígitos (OpenRouter escribe
 `claude-opus-4.8`, el resto `claude-opus-4-8`): sin eso la 3.ª fuente
-casaba 6 de 14, ocho modelos vigentes sin precio ni techo en silencio.
+casaba 6 de 14, ocho modelos sin precio ni techo en silencio.
 Auditoría 2026-08-08: las 3 coinciden al céntimo; el techo
 discrepante es sonnet-4-5 (200k base, beta de 1M).
 
@@ -278,26 +275,25 @@ mcp_unused (resta de conjuntos), skills_unused y claudemd (solo 7d+;
 identificadores por línea contra el texto crudo, rojo solo si NINGUNA
 mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos), y
 claudemdsize (CLAUDE.md > 40k `CLAUDEMD_LOAD_LIMIT`: lo que sobra no se
-carga; tarjeta de estado costo 0, solo 7d+).
+carga; costo 0, solo 7d+).
 Tope 12 por costo en el backend. REGLA: los de "lo instalado" señalan lo
 que NO se usa y lo que cuesta cargarlo, nunca si algo usado "gastó de más".
 
 **Orden:** `ts` desc y luego costo. Llevan ts los de sesión
 (reread/inflate/cachebreak) y los agregados con actividad
-(hooks_noise/subagents/mech); los de estado puro (mcp, skills, claudemd)
-van abajo por costo. En Python `parse_ts` da datetime — va
-`int(ts.timestamp())`.
+(hooks_noise/subagents/mech); los de estado puro van abajo por costo. En
+Python `parse_ts` da datetime — va `int(ts.timestamp())`.
 
 **Subagentes:** sus turnos llevan el sessionId de la MADRE y NO tocan el
 estado de sesión (turns/first_cr/last_cr/cr_cost/cb) — solo suman a su
-tarjeta; sus tool_use SÍ cuentan. El coach queda plano a propósito. `proj` (carpeta de logs, para casar con
-claudemd) y `disp` (cwd real, para enseñar) van SEPARADOS — unificarlos
-dejaría claudemd en costo 0 en silencio.
+tarjeta; sus tool_use SÍ cuentan. `proj` (carpeta de logs, para casar con
+claudemd) y `disp` (cwd real) van SEPARADOS — unificarlos dejaría
+claudemd en costo 0 en silencio.
 
 **Tarjetas:** contraíbles con clic (pose en `fndMin`, guard !simFnd;
 Ignorar lleva stopPropagation). Primera apertura: enseña lo guardado al
 instante con "Analizando…" mientras corre el fresco; se refresca al abrir
-la pestaña si tiene >5 min. Precarga de fondo a los 15 s.
+la pestaña si tiene >5 min. Precarga a los 15 s.
 
 **Avisos (sin globo desde 2026-08-04):** post-it rojo / campana / contador
 encienden con hallazgos NO VISTOS. Pasada ligera 1d compartida
@@ -349,10 +345,9 @@ veredicto (unsure = sin insignia), advertencia si hay pendientes, botón
 "Copiar comando" → `plugin:clipboard-manager|write_text` invocado
 directo (capability `clipboard-manager:allow-write-text`, sin wrapper
 npm). Exportador viejo: ignora --coach → cero hits, se
-degrada solo (validado en vivo en el VPS, sondeo ~80 ms). Regla `acomp` (2026-08-08): `compact_boundary`
-con trigger≠manual y <30 min → ficha con los preTokens (los manuales no
-avisan: los hiciste tú; los INYECTADOS por el relevo entran como
-manual, se auditan solos). TODO `compact_boundary`
+degrada solo (validado en vivo en el VPS, sondeo ~80 ms). Regla `acomp` (2026-08-08): `compact_boundary` con trigger≠manual y
+<30 min → ficha con los preTokens (los manuales no avisan: los hiciste
+tú; los INYECTADOS por el relevo entran como manual y se auditan solos). TODO `compact_boundary`
 —de quien sea— pone `last_ctx = 0`: el contexto se vació y hasta el
 próximo turno no hay medida (`press` exige >0 y no sale, invariante #8).
 Sin eso el manómetro mentía 10 min y el automático inyectaba un
@@ -368,7 +363,7 @@ archivo leído ≥3 → attach; `ask` (tool_use sin tool_result ≥3 min) y
 título AI, min/comandos/archivos, `· ~$X` y ⚠ de `coach_leaks()` (kinds
 attach/compact/cache; ctx y cache EXCLUYENTES; cerrar con ctx≥30k es fuga
 al cierre). Anti-spam: tope diario 10 (`tipDay`, sum EXENTO), una tarjeta viva por
-regla (la nueva reemplaza), `tipSeen` se marca al ENTRAR al almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`), leído
+regla, `tipSeen` se marca al ENTRAR al almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`), leído
 (`v`) apaga el aviso sin despachar, caducidad 24 h (TIP_TTL).
 "LEÍDO" = CLIC en la tarjeta (regla Gmail, ver Hallazgos); el ✕ además
 la despacha. Las tarjetas vivas
@@ -383,16 +378,15 @@ copia, Mayús+clic vacía). coachHits queda SOLO para el simulador.
 
 ## Avisos al celular (ntfy)
 
-Diseño en `docs/avisos-ntfy.md` — LEERLO antes de tocar. Opt-in APAGADO
-por defecto; `ntfy_config.json` (topic = CONTRASEÑA del canal, CSPRNG,
-"michi-"+12). REGLA DE PRIVACIDAD: por ntfy viajan SOLO porcentajes,
+Diseño en `docs/avisos-ntfy.md` — LEERLO antes de tocar. Opt-in APAGADO;
+`ntfy_config.json` (topic = CONTRASEÑA del canal, CSPRNG, "michi-"+12). REGLA DE PRIVACIDAD: por ntfy viajan SOLO porcentajes,
 horas de reset, conteos y frases del diccionario — nunca proyectos,
 rutas ni dólares (los topics son públicos). El nombre del proyecto es
 casilla aparte (`names`, apagada, con advertencia). Rust no redacta
 avisos (códigos, invariante #10). Publicación JSON a la raíz (headers no
-aguantan UTF-8). Al 100%: aviso inmediato + "ya volvió" PROGRAMADO
-(header delay +120 s de colchón) que llega con la PC APAGADA; si el reset
-no cabe en los 3 días del servidor público, no se promete. Un push por
+aguantan UTF-8). Al 100%: aviso inmediato + "ya volvió" PROGRAMADO (header delay +120 s)
+que llega con la PC APAGADA; si el reset no cabe en los 3 días del
+servidor público, no se promete. Un push por
 ventana (notifS/notifW). El simulador NUNCA manda pushes (guard
 simRunning). "Canal nuevo" regenera el topic en dos pasos. ntfy NO viaja
 en los ajustes compartidos del hub (esa pantalla promete no guardar
@@ -402,29 +396,25 @@ Fallos a ntfy_debug.json sin bloquear nada.
 ## Modo HUB (multi-máquina)
 
 TERMINADO y verificado. Análisis en `docs/hub-modo-equipo.md` — LEERLO
-antes de tocar el hub. Cada ciclo sube la foto LOCAL A SECAS (subir lo
-fusionado haría eco) a `~/.michiclaude/hosts/<máquina>.json` por SSH;
-identidad en `hub_identity.json`, guard por id EN el servidor (código 3
-si otro id). UNA FOTO POR VENTANA (`HUB_WINDOWS` = 1/7/15/30, DEBE
+antes de tocarlo. Cada ciclo sube la foto LOCAL A SECAS (subir lo fusionado haría eco) a
+`~/.michiclaude/hosts/<máquina>.json` por SSH; identidad en
+`hub_identity.json`, guard por id EN el servidor (código 3 si otro id). UNA FOTO POR VENTANA (`HUB_WINDOWS` = 1/7/15/30, DEBE
 coincidir con el selector); quien lee no puede recortar un resumen
 ajeno. `fetch_remote` pasa `--exclude-host <id>` y Rust re-filtra
 (recibir lo propio = contarlo doble). Nada se descarta por antigüedad.
 Config compartida: MANUAL a propósito (dos botones en Fuentes de datos);
 al guardar escribe en TODOS los servidores, al traer gana el primero;
 los servidores se FUSIONAN por host; NO viajan posición del widget,
-identidad, llaves SSH ni ntfy. Traer va en dos
-pasos con la fecha de lo guardado.
+identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 
 ## Auto-updater
 
 Implementado, SIN probar (falta publicar un tag). Comandos propios Rust
-(`check_update`/`install_update`/`open_releases`) — sin API JS del
-plugin (invariante #4). Franja en cabecera + globo persistente. Fallo al
-instalar → "descárgala a mano" con botón a `RELEASES_URL`, CONSTANTE en
-Rust y que jamás sale de un archivo descargado. Llave pública en
-tauri.conf.json, privada en secretos del repo y copias de Oscar (si se
-pierde: llave nueva + instalar a mano UNA vez). El workflow ya firma.
-BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
+(`check_update`/`install_update`/`open_releases`), sin API JS del plugin
+(invariante #4). Franja en cabecera + globo persistente. Fallo al instalar → "descárgala a mano" con botón a `RELEASES_URL`,
+CONSTANTE en Rust y que jamás sale de un archivo descargado. Llave pública en tauri.conf.json, privada en secretos del repo y copias
+de Oscar (si se pierde: llave nueva + instalar a mano UNA vez). El
+workflow ya firma. BLOQUEADO: repo PRIVADO → releases dan 404 sin auth.
 
 ## Estado / pendientes
 
@@ -608,6 +598,11 @@ toolchain de Rust (espejo de código; `cargo check` corre en el Windows de
 Oscar) — al cambiar la FIRMA de una función, grep de TODOS sus usos antes
 de subir: el compilador no está para avisar.
 
+LECTURA DE ARCHIVOS GRANDES (2026-08-09): antes de abrir entero uno de
+miles de líneas (`index.html` ≈ 137k tokens), buscar con grep la parte y
+leer SOLO ese rango — lo leído viaja en cada turno siguiente. Medido: 7
+relecturas en una sesión de $96.86.
+
 TRAS `git pull`, COMPROBAR LA HORA DEL BINARIO (2026-08-09): si el pull
 cae en el MISMO MINUTO que la última compilación, Cargo ve empate de
 fechas y NO recompila (`Finished` en 0.1 s, sin `Compiling`) — se ejecuta
@@ -634,7 +629,7 @@ real. Pausa `simMin` (mín. 5 s). Único control sin `t()`.
 ## Contexto de producto
 
 - Usuario objetivo: suscriptores Pro/Max de Claude Code que quieren saber
-  cuánto les queda, cuándo se acaba al ritmo actual y qué consume más.
+  cuánto les queda, cuándo se acaba y qué consume más.
 - El coste en $ es NOCIONAL (equiv. API); la UI lo etiqueta así.
 - Diferenciadores vs ccusage/claudeusagewin: cuota real + costo por
   proyecto + multi-máquina + gatito. GPL-3.0 con excepción de assets
