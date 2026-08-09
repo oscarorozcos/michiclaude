@@ -2820,3 +2820,80 @@ Lecciones:
 - **Un indicador va donde están los ojos**, no donde es cómodo ponerlo.
 - **Declarar "best-effort" antes de probar** convirtió un fallo en un paso
   previsto: el plan B ya estaba pensado cuando el plan A cayó.
+
+## 2026-08-08/09 (cierre) — el automático se prueba solo en vivo y foto completa de pendientes
+
+VALIDADO EN VIVO, y con la mejor evidencia posible: el ciclo completo del
+automático sobre la sesión de chat del VPS (Windows → SSH → relevo →
+extensión). Primera corrida: countdown y silencio — dos fallos de UX
+(rechazo `ERR_RELAY_BUSY` quemaba la sesión para siempre; la cuenta
+acababa sin veredicto). Arreglados (reintento a 10 min + cierre ✓/✕) y la
+SEGUNDA corrida la vivió Oscar sin tocar nada: cuenta atrás, ✓ verde,
+`auto · aplicó /compact en «VPS-EU»` en el registro, 872 960 tokens
+liberados — y ese /compact cayó sobre la conversación de trabajo real.
+
+También de estas sesiones:
+- **Manómetro tras compactar**: todo `compact_boundary` pone `last_ctx=0`
+  (mentía hasta 10 min y causaba el /compact redundante "No messages to
+  compact"). Rust + exportador, regresión byte a byte.
+- **Auto-compactación de Claude Code** investigada sobre el binario
+  v2.1.226 y decisión tomada: no se apaga ni se sugiere (red de
+  seguridad + precompute); entramos al 80% vs su ~94%. Un /compact
+  inyectado se registra `manual` → `acomp` nunca se avisa a sí mismo.
+- **La compactación no deja `usage`** en el log: no es facturable desde
+  los .jsonl; solo se ve en cuota. Si un día se enseña: estimado o nada.
+- **Interruptor del chat** (`set_chat_relay` + `CHAT_WRAP_PY`): el
+  wrapper de VS Code en servidores SSH se enciende desde Ajustes; 8
+  casos en banco (ajeno no se pisa, ilegible no se toca, backup,
+  NOWRAP). Validado por Oscar: "VPS-EU ✓".
+- **Lista blanca analizada y cerrada en 2** con regla de entrada
+  (libera + no destruye + verificable); /usage//context//cost nativos
+  son lo que el widget vuelve innecesario; /doctor se recomienda, jamás
+  se inyecta.
+- **presion-y-rendimiento.md** llevaba desde el 05 diciendo "sin
+  arrancar" con las fases 1-2 vivas: corregido y añadida la sección
+  "Qué queda vivo de este doc".
+
+FOTO DE PENDIENTES al cierre (consolidada por Oscar, 2026-08-09):
+
+- BLOQUEADOS POR DECISIÓN DE OSCAR: updater (repo público + tag v* +
+  probar), michi.exe en el instalador (release.yml, solo desde la web),
+  capturas del README, lanzamiento (repo privado hasta que diga).
+- CÓDIGO DEL RELEVO: alias `~/.bashrc` del VPS (el más corto; cierra
+  chat ✓ + terminal SSH ✗), WSL entero (relevo en la distro + alias),
+  chat del Windows local (modo wrap en michi.exe).
+- VALIDACIÓN PASIVA (usar la app): alarmas reales (umbral/100%/ventana
+  nueva), camino ntfy completo (con PC apagada), hallazgo naciendo
+  natural con panel cerrado, y el automático arreglado (✓/✕ + reintento)
+  — la primera ya pasó en vivo este mismo día.
+- APARCADOS CON DISEÑO: HUB+rangos (espera 2.ª máquina), Reporte fase 3
+  (export HTML mockup A), detector de pegado masivo, apuesta #2 (tarjeta
+  del gatito + gamificación), /export como red pre-/clear, ficha
+  recomendando /doctor.
+- DE presion-y-rendimiento §"Qué queda vivo" (orden de valor): fórmula
+  del % de desperdicio (DISEÑO previo), botón "copiar resumen de
+  traspaso", frecuencia de auto-compacts como hallazgo (la señal ya
+  está; con el relevo debería BAJAR — prueba medible de que Michi
+  trabaja), push ntfy "reporte listo", hábito sin /clear, marcas de
+  arreglo manuales, auditoría semántica de CLAUDE.md (pide modelo).
+- DE consejos-coach.md: hooks opt-in ("futuro, quizá nunca"), fix
+  personalizado por entrypoint (cimiento puesto), botón de issues útil
+  al hacerse público el repo.
+- DECISIONES CERRADAS (no rediscutir sin leer su doc): lista blanca de
+  2, auto-compact no se apaga, compactación no facturable, marketing
+  honesto (cuota real + momento elegido + fugas medibles, jamás "ahorra
+  compactando"), y los descartes de raíz (score único, modelo local,
+  telemetría, rastrear otras herramientas, BD historial, modo empresa,
+  podar CLAUDE.md automático).
+
+Lecciones:
+
+- **Una cuenta atrás que acaba sin decir qué pasó es peor que no haber
+  avisado**: deja al usuario adivinando si actuaste.
+- **Un rechazo transitorio no puede costar un castigo permanente**:
+  `done` solo tras aplicar de verdad.
+- **Las cabeceras de estado de los docs también se regresionan**: un
+  "sin arrancar" viejo esconde pendientes reales y hace rediscutir lo
+  hecho. Al cerrar etapa, actualizar el doc que la diseñó.
+- **"$0" sin decir QUÉ cuesta cero confunde**: la inyección es gratis,
+  la compactación no — y la diferencia importa para el pitch.

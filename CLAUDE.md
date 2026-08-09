@@ -440,6 +440,9 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
 
 ## Estado / pendientes
 
+FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
+2026-08-08/09"; métricas: presion-y-rendimiento §"Qué queda vivo".
+
 - [ ] HUB + RANGOS DE FECHA (2026-08-05; NO hacer hasta que Oscar tenga
       una segunda máquina con MichiClaude — hoy no aporta nada).
       Problema: la foto del hub son cuatro TOTALES cocinados (HUB_WINDOWS
@@ -463,12 +466,11 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       bloque de pestaña, buscar qué inicialización dependía de abrir la
       pestaña vieja. El widget CONSERVA su estética propia — el rediseño
       fue solo del panel; armonizarlo sería otra ronda.
-- [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (cruzar
-      umbral, 100%, ventana nueva por trackResets/windowChanged), camino
-      ntfy completo (alarma real, 100%, el programado con PC apagada) y
-      el aviso de hallazgos al cierre de sesión SIN re-armar nada (el
-      mecanismo se validó el 2026-08-05 re-armando fndSeen; falta verlo
-      nacer natural, con una fuga nueva y el panel cerrado).
+- [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (umbral,
+      100%, ventana nueva), camino ntfy completo (con PC apagada) y el
+      aviso de hallazgos naciendo natural (fuga nueva, panel cerrado,
+      sin re-armar fndSeen). El automático del relevo ya pasó la suya
+      en vivo (2026-08-09: ✓ verde y registro).
 - [ ] Updater: decidir repo público + publicar tag v* y probar completo.
 - [ ] Capturas del README (las hace Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
@@ -486,9 +488,9 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       desaparecido ≥2 = arreglado). FASE 2 = pestaña Reporte (`rep_tab`);
       qué pinta, en el doc. REGLAS VIGENTES (detalle en el doc):
       nunca pintar con uturns=0; mínimo 20 fotos de cuota o "juntando
-      datos"; "1M tok ≈ $X" con la tarifa REAL del periodo, jamás fija; el
-      $ SIEMPRE pegado a su dato de tokens (.as-money); caché POR PERIODO
-      y render PROGRESIVO. SI SE RETOMA: fase 3, export HTML del mockup A.
+      datos"; "1M tok ≈ $X" con la tarifa REAL del periodo, jamás fija;
+      el $ SIEMPRE pegado a su dato de tokens (.as-money); caché POR
+      PERIODO y render PROGRESIVO. SI SE RETOMA: fase 3 (export HTML).
       DESCARTADO con porqué en el doc: sesión contaminada, score único,
       modelo local, telemetría colectiva (choca con invariante #3).
 - [ ] REMEDIACIÓN (diseño en `docs/remediacion.md` — LEERLO antes de
@@ -578,9 +580,9 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       inexistente = chat muerto). FALTAN: alias `~/.bashrc`, WSL, chat
       del Windows local (pide modo wrap en michi.exe) y que `michi.exe`
       viaje en el instalador (workflow, invariante #9).
-- APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
-  gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
-  herramientas, base de datos de historial, modo equipo/empresa.
+- APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
+  gamificación ligera. NO hacer: rastrear otras herramientas, BD de
+  historial, modo equipo/empresa.
 
 ## Consumo de recursos (medido en release)
 
