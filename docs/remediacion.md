@@ -1119,11 +1119,19 @@ destruye si antes existe una copia VERIFICADA de la conversación.
 **Validado en banco de PTY real (VPS, 2026-08-09):** terminal 13/13
 (regresión /compact intacta; /export ANTES de /clear con copia en disco;
 claude sordo → ERR_RELAY_EXPORT y cero /clear) y chat 6/6 (sid casado,
-orden de inyecciones, eco de AMBAS visibles en el chat). PENDIENTE:
-`cargo check` + validación en vivo en el Windows de Oscar (el VPS no
-tiene toolchain), y ver de verdad que `/export` del chat en vivo escribe
-el archivo (en el banco lo hace el falso claude; si el real no lo
-escribiera, el fallo es el bueno: ERR_RELAY_EXPORT y nada borrado).
+orden de inyecciones, eco de AMBAS visibles en el chat).
+
+**VALIDADO EN VIVO EN WINDOWS (2026-08-09, Oscar):** `cargo check`
+limpio, y con una sesión real de Claude Code v2.1.225 bajo relevo:
+`aplicado: /clear (copia: …\handoff\handoff-1948-1786286833.md)` con el
+`/clear` visible en pantalla y la copia en disco. Tres intentos hicieron
+falta y ninguno fue culpa del diseño: el primero destapó el Enter pegado
+al texto (autopsia abajo) y el segundo, que el binario ni siquiera se
+había recompilado (empate de mtime, bitácora del mismo día).
+
+PENDIENTE menor: ver el `/export` del chat en vivo (en el banco lo
+escribe el falso claude; si el real no lo escribiera, el fallo sería el
+bueno — ERR_RELAY_EXPORT y nada borrado).
 
 ### El Enter NO puede ir pegado al texto (autopsia, 2026-08-09)
 

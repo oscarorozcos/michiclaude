@@ -317,29 +317,28 @@ re-armar en pruebas: borrar fndSeen y fndAutoLast.
 ## Coach (pestaña Consejos)
 
 Diseño en `docs/consejos-coach.md` — LEERLO antes de tocar. Fichas
-curadas (sin IA, sin red, `tip_<id>_*` ×8) + motor de sesión activa:
+curadas (sin IA ni red, `tip_<id>_*` ×8) + motor de sesión activa:
 `get_coach` (Rust, incremental por offset, sesiones tocadas en 30 min). Desde 2026-08-05 MULTI-FUENTE: local + WSL + cada
 servidor SSH — el exportador replica el motor bajo `--coach` (invariante
 #1; estado incremental en `~/.cache/michiclaude/coach_state.json` del
 servidor, reconstruible; subagentes fuera, plano como en Rust) y
 `get_coach` fusiona poniendo `origin` (vacío = local; el panel lo enseña
-en fichas, recibos y pushes). Regla `press` (2026-08-07, manómetro de
-remediación etapa 1): un hit por sesión con contexto y quieta <10 min
-(`PRESS_QUIET_MAX`), `value` = tokens de contexto crudos, campos
-aditivos `quiet` (min quieta) + señales del clasificador `topen/ttotal`
-(último TodoWrite), `cont` (Jaccard % archivos, últimos 10 vs 10
-previos del rastro `trail` tope 20) y `gclean` (git commit sin
-ediciones después); NO es ficha ni aviso — coachPoll la aparta
-(como done/ask), elige la más fresca y emitPill la monta como campo
-`press` en quota:update (umbrales 60/85). EL TECHO NO ES CONSTANTE
+en fichas, recibos y pushes). Regla `press` (2026-08-07, manómetro de la etapa 1): un hit por sesión
+con contexto y quieta <10 min (`PRESS_QUIET_MAX`), `value` = tokens de
+contexto crudos, campos aditivos `quiet` + señales del clasificador
+`topen/ttotal` (último TodoWrite), `cont` (Jaccard % archivos, últimos
+10 vs 10 previos del rastro `trail` tope 20) y `gclean` (commit sin
+ediciones después); NO es ficha ni aviso — coachPoll la aparta (como
+done/ask), elige la más fresca y emitPill la monta como campo `press`
+en quota:update (umbrales 60/85). EL TECHO NO ES CONSTANTE
 (corregido 2026-08-08): el hit trae `full` = techo del modelo de esa
 sesión y `pressFull()/pressPct()` son el ÚNICO sitio que divide. Sale
 de `ctx_for()` (ver Arquitectura; `[1m]` manda y se mira ANTES de
 price_key, que lo recorta; en la duda 200k). Y
 si lo MEDIDO supera a la tabla, manda lo medido: `ctx_full` sube al
 siguiente escalón de `CTX_LADDER` (devolver lo visto a secas dejaría el
-manómetro clavado en 100%). Autopsia en la bitácora. Gauge SVG en pastilla y gatito; número+proyecto en pcard y
-en el globo del hover. Nunca viaja a ntfy ni al hub. El motor manda
+manómetro clavado en 100%). Autopsia en la bitácora. Gauge SVG en pastilla y gatito; número+proyecto en pcard y en el globo
+del hover. Nunca viaja a ntfy ni al hub. El motor manda
 HECHOS crudos: el veredicto Alive/Boundary/Uncertain vive UNA sola vez
 en JS (`intentVerdict`, reina = topen>0). Con presión ≥80
 (`INTENT_PCT`) coachPoll sintetiza el hit LOCAL `intent` → tarjeta de
@@ -358,32 +357,29 @@ manual, se auditan solos). TODO `compact_boundary`
 próximo turno no hay medida (`press` exige >0 y no sale, invariante #8).
 Sin eso el manómetro mentía 10 min y el automático inyectaba un
 /compact redundante ("No messages to compact"). `ctx_seen` intacto.
-La auto-compactación de Claude Code (~94% de su ventana) NO se toca ni
-se sugiere apagar: es la red de seguridad cuando MichiClaude no está, y
-apagarla desactiva su `precomputeCompactionEnabled`. Entramos al 80%
-(`INTENT_PCT`): se gana por diseño, no por carrera. Y la compactación
-NO lleva `usage` en el log — no se puede facturar, solo se ve en cuota.
-Reglas: ctx≥120k → compact;
-pausa≥6 min con ctx≥30k → cache; mismo archivo leído ≥3 → attach; `ask`
-(tool_use sin tool_result ≥3 min) y `done` (quieta 5 min, 5+ turnos) son
-SOLO push al celular, no fichas; `sum` (quieta 10 min) = recibo con
+La auto-compactación de Claude Code (~94% de su ventana) NO se toca ni se
+sugiere apagar: es la red cuando MichiClaude no está, y apagarla desactiva
+su `precomputeCompactionEnabled`. Entramos al 80% (`INTENT_PCT`): se gana
+por diseño, no por carrera. Y la compactación NO lleva `usage` en el log:
+no se puede facturar, solo se ve en cuota.
+Reglas: ctx≥120k → compact; pausa≥6 min con ctx≥30k → cache; mismo
+archivo leído ≥3 → attach; `ask` (tool_use sin tool_result ≥3 min) y
+`done` (quieta 5 min, 5+ turnos) son SOLO push, no fichas; `sum` (quieta 10 min) = recibo con
 título AI, min/comandos/archivos, `· ~$X` y ⚠ de `coach_leaks()` (kinds
 attach/compact/cache; ctx y cache EXCLUYENTES; cerrar con ctx≥30k es fuga
 al cierre). Anti-spam: tope diario 10 (`tipDay`, sum EXENTO), una tarjeta viva por
-regla (la nueva reemplaza), `tipSeen` se marca al ENTRAR al almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`),
-leído (`v`) apaga el aviso sin despachar, caducidad 24 h (TIP_TTL).
+regla (la nueva reemplaza), `tipSeen` se marca al ENTRAR al almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`), leído
+(`v`) apaga el aviso sin despachar, caducidad 24 h (TIP_TTL).
 "LEÍDO" = CLIC en la tarjeta (regla Gmail, ver Hallazgos); el ✕ además
 la despacha. Las tarjetas vivas
 (recibos y fichas calientes) se pintan en UNA corriente por `born` desc —
 la más reciente arriba; las frías del catálogo abajo. PENDIENTE FANTASMA
 (blindado): un turno nuevo del hilo principal LIMPIA pending_tool; los
-tool_use de subagentes no lo tocan. El nombre del proyecto va RESUELTO
-desde Rust (`pname`, cwd real). Aviso en widget: post-it turquesa /
-foco ámbar, campo `coach` en quota:update, mismo interruptor. El recibo
-NO manda push propio (su push fue el "terminó"). Al depurar "no llegó
-X": LEER PRIMERO `coach_debug.json` (compuertas por sesión en cada
-sondeo) y la bitácora `flowLog` (botón 📜 en dev: clic copia, Mayús+clic
-vacía). coachHits queda SOLO para el simulador.
+tool_use de subagentes no lo tocan. El nombre del proyecto va RESUELTO desde Rust (`pname`, cwd real). Aviso
+en widget: post-it turquesa / foco ámbar, campo `coach` en quota:update,
+mismo interruptor. El recibo NO manda push (su push fue el "terminó"). Al depurar "no llegó X": LEER PRIMERO `coach_debug.json` (compuertas por
+sesión en cada sondeo) y la bitácora `flowLog` (botón 📜 en dev: clic
+copia, Mayús+clic vacía). coachHits queda SOLO para el simulador.
 
 ## Avisos al celular (ntfy)
 
@@ -435,8 +431,8 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
 FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
 2026-08-08/09"; métricas: presion-y-rendimiento §"Qué queda vivo".
 
-- [ ] HUB + RANGOS DE FECHA (2026-08-05; NO hacer hasta que Oscar tenga
-      una segunda máquina con MichiClaude — hoy no aporta nada).
+- [ ] HUB + RANGOS DE FECHA (2026-08-05; NO hacer hasta que haya una
+      segunda máquina con MichiClaude — hoy no aporta nada).
       Problema: la foto del hub son cuatro TOTALES cocinados (HUB_WINDOWS
       1/7/15/30) y un total no se descompone, así que con rango esas
       máquinas quedan fuera (`hub_skipped`). Solución: que la foto lleve
@@ -462,7 +458,8 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       100%, ventana nueva), camino ntfy completo (con PC apagada) y el
       aviso de hallazgos naciendo natural (fuga nueva, panel cerrado,
       sin re-armar fndSeen). El auto-/compact ya pasó la suya en vivo
-      (2026-08-09); el AUTO-/CLEAR con red, aún no.
+      (2026-08-09) y el /clear con red también (a mano); falta ver el
+      AUTO-/clear disparándose solo.
 - [ ] Updater: repo público + tag v* y probar completo.
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
@@ -531,7 +528,8 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       secas. **El Enter va SEPARADO del texto** (`type_line`,
       ENTER_GAP_MS 250): juntos, la TUI los toma por PEGADO y la línea
       se queda escrita sin ejecutarse — con /compact colaba por corto,
-      con la ruta del /export fallaba siempre (autopsia en el doc). El
+      con la ruta del /export fallaba siempre. VALIDADO EN VIVO en
+      Windows (2026-08-09). El
       AUTOMÁTICO exige widget A LA VISTA —la cuenta atrás vive en la
       cápsula—, dura 15 s, cualquier toque la para (en el gatito el
       manejador va en CAPTURA) y se marca ANTES de empezar. Un rechazo del
