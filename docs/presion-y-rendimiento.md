@@ -1,9 +1,14 @@
 # Presión de contexto y métricas de rendimiento — análisis de viabilidad
 
-> Estado: **PENDIENTE — sin arrancar**. Análisis hecho el 2026-08-05 a partir de
-> un documento de estrategia externo (sesión de producto de Oscar:
-> "MichiClaude — Fugas de contexto, desperdicio y estrategia de producto").
+> Estado: **FASES 1 Y 2 IMPLEMENTADAS Y FUNCIONANDO** (cerrado hasta ahí
+> por Oscar el 2026-08-07; la cabecera decía "sin arrancar" hasta el
+> 2026-08-09 — estaba desactualizada). El manómetro de presión (§tabla
+> filas 9-10) también está vivo desde el 2026-08-07 como regla `press` +
+> gauge en el widget. Análisis original del 2026-08-05 a partir de un
+> documento de estrategia externo (sesión de producto de Oscar).
 > LEER ESTE ARCHIVO COMPLETO antes de implementar nada de aquí.
+> Lo que SIGUE pendiente de este doc, en una lista: ver §"Qué queda vivo
+> de este doc" al final.
 
 ## De dónde viene
 
@@ -235,7 +240,47 @@ que solo escuchan). Pendiente de `cargo check` en el Windows de Oscar.
   visto; huella en flowLog ("marca: hallazgo arreglado"). Limitación
   documentada: arreglos ANTERIORES a esta implementación no tienen marca.
 
-Fases 2 (pestaña) y 3 (export) sin arrancar.
+### Fase 2 — pestaña Reporte: IMPLEMENTADA (2026-08-07)
+
+Chips Semana/Mes/Personalizado, héroe EFICIENCIA/VOLUMEN, "¿te duró más
+o menos?" (histórico de cuota), gráfica de 4 semanas tokens/$, deltas
+por proyecto y "qué lo encareció". Reglas vigentes en CLAUDE.md.
+Cerrada por Oscar el 2026-08-07: "queda como pendiente por si al usarlo
+falta algo". La fase 3 (export HTML del mockup A) sigue sin arrancar.
+
+## Qué queda vivo de este doc (actualizado 2026-08-09)
+
+Hecho desde la tabla del 2026-08-05: filas 9-10 (manómetro `press` +
+gauge en widget, 2026-08-07), fila 11 en parte (regla `acomp` del coach
+avisa de CADA auto-compact <30 min, 2026-08-08), fila 13 (en la pestaña
+Reporte vía histórico de cuota), filas 16-17 (fase 1 + fase 2).
+
+Pendiente real, por orden de valor:
+
+1. **Fase 3 — export HTML del mockup A** (reporte imprimible y
+   compartible; sinergia con la tarjeta del gatito).
+2. **Fila 18 — fórmula del % de desperdicio estructural**: es DISEÑO,
+   no código, y es requisito previo de esa métrica. Sin fórmula no se
+   promete.
+3. **Fila 14 — botón "copiar resumen de traspaso"** (handoff por
+   plantilla desde el recibo). Parcial: la tarjeta de intención del
+   relevo ya cubre el caso "sesión al límite"; falta el traspaso a
+   voluntad.
+4. **Fila 11, la mitad que falta**: la ficha `acomp` avisa del EVENTO;
+   no existe el detector de FRECUENCIA en Hallazgos ("N auto-compacts
+   esta semana, ~X tokens en resúmenes") con su costo agregado.
+5. **Detector de pegado masivo** (input de usuario anormalmente alto):
+   diseñarlo y validarlo antes de que el Reporte pueda mencionar esa
+   causa.
+6. **Formato (c) del reporte**: push ntfy "tu reporte está listo" sin
+   números (privacidad). Los formatos (a) pestaña y parte del dato ya
+   existen; el push no.
+7. **Fila 12 — hábito "sesiones sin /clear"**: viable, medio pelo (se
+   solapa con inflate); solo si al usar el Reporte se echa en falta.
+8. **Marcas de arreglo manuales**: los arreglos ANTERIORES a la fase 1
+   "se pueden anotar a mano" — no hay UI para hacerlo. Solo si duele.
+9. **Fila 15 — auditoría semántica de CLAUDE.md**: pospuesta, pide
+   modelo (choca con invariante #4 embeberlo).
 
 ## Lo descartado (y su porqué, para no rediscutir)
 
