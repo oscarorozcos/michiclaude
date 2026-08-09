@@ -1488,6 +1488,15 @@
         <span data-i18n="rly_alias_on"></span><input type="checkbox" id="rlyAliasChk">
       </label>
       <div class="cfg-note" id="rlyAliasMsg"></div>
+      <!-- Chat de VS Code en los servidores SSH: enciende el wrapper oficial
+           (claudeCode.claudeProcessWrapper) en los ajustes de máquina del
+           vscode-server remoto. Solo aparece si hay servidores dados de
+           alta; quién decide qué tocar y qué respetar vive en el guion
+           CHAT_WRAP_PY de Rust. -->
+      <label class="cfg-row" style="cursor:pointer;margin-top:6px" id="rlyChatRow" hidden>
+        <span data-i18n="rly_chat_on"></span><input type="checkbox" id="rlyChatChk">
+      </label>
+      <div class="cfg-note" id="rlyChatMsg" hidden></div>
       <!-- Automático (3c-2). Nace APAGADO y con candado: la cuenta atrás vive
            en la cápsula del widget, así que con el widget oculto no actúa. -->
       <label class="cfg-row" style="cursor:pointer;margin-top:6px">
@@ -2015,6 +2024,13 @@ en:{
   rly_alias_nomichi:"The relay (michi.exe) is not installed, so there is nothing to shortcut yet.",
   rly_alias_noclaude:"I cannot find Claude Code in the PATH — I will not create a shortcut that could leave you without it.",
   rly_alias_pathfail:"Could not change the PATH. Nothing was modified.",
+  rly_chat_on:"Relay the VS Code chat on SSH servers",
+  rly_chat_reload:"reload the VS Code window so it takes effect.",
+  rly_chat_other:"another wrapper is set (left untouched)",
+  rly_chat_manual:"settings unreadable (edit by hand)",
+  rly_chat_novs:"no VS Code on the server",
+  rly_chat_nowrap:"the relay launcher is not on the server",
+  rly_chat_fail:"no connection",
   rem_log_relay:(cmd,proj)=>`applied ${cmd} in «${proj}»`,
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
@@ -2436,6 +2452,13 @@ es:{
   rly_alias_nomichi:"El relevo (michi.exe) no está instalado, así que todavía no hay nada que atajar.",
   rly_alias_noclaude:"No encuentro Claude Code en el PATH — no voy a crear un atajo que pueda dejarte sin él.",
   rly_alias_pathfail:"No se pudo cambiar el PATH. No se modificó nada.",
+  rly_chat_on:"Relevar el chat de VS Code en los servidores SSH",
+  rly_chat_reload:"recarga la ventana de VS Code para que lo tome.",
+  rly_chat_other:"hay otro wrapper puesto (no se toca)",
+  rly_chat_manual:"ajustes ilegibles (edítalos a mano)",
+  rly_chat_novs:"sin VS Code en el servidor",
+  rly_chat_nowrap:"el lanzador del relevo no está en el servidor",
+  rly_chat_fail:"sin conexión",
   rem_log_relay:(cmd,proj)=>`aplicó ${cmd} en «${proj}»`,
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
@@ -2857,6 +2880,13 @@ pt:{
   rly_alias_nomichi:"O revezamento (michi.exe) não está instalado, então ainda não há o que atalhar.",
   rly_alias_noclaude:"Não acho o Claude Code no PATH — não vou criar um atalho que possa te deixar sem ele.",
   rly_alias_pathfail:"Não deu para mudar o PATH. Nada foi modificado.",
+  rly_chat_on:"Revezar o chat do VS Code nos servidores SSH",
+  rly_chat_reload:"recarregue a janela do VS Code para valer.",
+  rly_chat_other:"há outro wrapper configurado (não se mexe)",
+  rly_chat_manual:"ajustes ilegíveis (edite à mão)",
+  rly_chat_novs:"sem VS Code no servidor",
+  rly_chat_nowrap:"o lançador do revezamento não está no servidor",
+  rly_chat_fail:"sem conexão",
   rem_log_relay:(cmd,proj)=>`aplicou ${cmd} em «${proj}»`,
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
@@ -3278,6 +3308,13 @@ fr:{
   rly_alias_nomichi:"Le relais (michi.exe) n’est pas installé, il n’y a donc rien à raccourcir.",
   rly_alias_noclaude:"Je ne trouve pas Claude Code dans le PATH — je ne créerai pas un raccourci qui pourrait t’en priver.",
   rly_alias_pathfail:"Impossible de modifier le PATH. Rien n’a été changé.",
+  rly_chat_on:"Relayer le chat VS Code sur les serveurs SSH",
+  rly_chat_reload:"rechargez la fenêtre VS Code pour l’appliquer.",
+  rly_chat_other:"un autre wrapper est configuré (non modifié)",
+  rly_chat_manual:"réglages illisibles (à modifier à la main)",
+  rly_chat_novs:"pas de VS Code sur le serveur",
+  rly_chat_nowrap:"le lanceur du relais n’est pas sur le serveur",
+  rly_chat_fail:"pas de connexion",
   rem_log_relay:(cmd,proj)=>`a appliqué ${cmd} dans «${proj}»`,
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
@@ -3699,6 +3736,13 @@ de:{
   rly_alias_nomichi:"Das Relais (michi.exe) ist nicht installiert, es gibt also noch nichts abzukürzen.",
   rly_alias_noclaude:"Ich finde Claude Code nicht im PATH — ich lege keine Abkürzung an, die dich ohne dastehen lassen könnte.",
   rly_alias_pathfail:"PATH konnte nicht geändert werden. Es wurde nichts verändert.",
+  rly_chat_on:"VS-Code-Chat auf SSH-Servern über die Ablösung leiten",
+  rly_chat_reload:"VS-Code-Fenster neu laden, damit es greift.",
+  rly_chat_other:"ein anderer Wrapper ist eingerichtet (bleibt unangetastet)",
+  rly_chat_manual:"Einstellungen unlesbar (von Hand bearbeiten)",
+  rly_chat_novs:"kein VS Code auf dem Server",
+  rly_chat_nowrap:"der Ablösungs-Starter fehlt auf dem Server",
+  rly_chat_fail:"keine Verbindung",
   rem_log_relay:(cmd,proj)=>`${cmd} in «${proj}» angewendet`,
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
@@ -4120,6 +4164,13 @@ ja:{
   rly_alias_nomichi:"リレー (michi.exe) が未インストールなので、まだ近道を作る対象がありません。",
   rly_alias_noclaude:"PATH に Claude Code が見つかりません。使えなくなる恐れのある近道は作りません。",
   rly_alias_pathfail:"PATH を変更できませんでした。何も変更していません。",
+  rly_chat_on:"SSH サーバーの VS Code チャットをリレー経由にする",
+  rly_chat_reload:"反映には VS Code ウィンドウの再読み込みが必要です。",
+  rly_chat_other:"別のラッパーが設定済み(変更しません)",
+  rly_chat_manual:"設定を読み取れません(手動で編集してください)",
+  rly_chat_novs:"サーバーに VS Code がありません",
+  rly_chat_nowrap:"リレーのランチャーがサーバーにありません",
+  rly_chat_fail:"接続できません",
   rem_log_relay:(cmd,proj)=>`「${proj}」で ${cmd} を適用`,
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
@@ -4541,6 +4592,13 @@ ko:{
   rly_alias_nomichi:"릴레이(michi.exe)가 설치되어 있지 않아 아직 연결할 대상이 없습니다.",
   rly_alias_noclaude:"PATH에서 Claude Code를 찾을 수 없습니다 — 없이 만들 수 있는 단축은 만들지 않습니다.",
   rly_alias_pathfail:"PATH를 바꾸지 못했습니다. 아무것도 수정되지 않았습니다.",
+  rly_chat_on:"SSH 서버의 VS Code 채팅을 릴레이로 연결",
+  rly_chat_reload:"적용하려면 VS Code 창을 다시 로드하세요.",
+  rly_chat_other:"다른 래퍼가 설정되어 있음(건드리지 않음)",
+  rly_chat_manual:"설정을 읽을 수 없음(직접 편집하세요)",
+  rly_chat_novs:"서버에 VS Code 없음",
+  rly_chat_nowrap:"릴레이 실행기가 서버에 없음",
+  rly_chat_fail:"연결 없음",
   rem_log_relay:(cmd,proj)=>`「${proj}」에 ${cmd} 적용`,
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
@@ -4962,6 +5020,13 @@ zh:{
   rly_alias_nomichi:"接力（michi.exe）尚未安装，暂时没有可以简化的东西。",
   rly_alias_noclaude:"在 PATH 中找不到 Claude Code — 我不会创建可能让你用不了它的快捷方式。",
   rly_alias_pathfail:"无法修改 PATH。未做任何更改。",
+  rly_chat_on:"让 SSH 服务器上的 VS Code 聊天走接力",
+  rly_chat_reload:"重新加载 VS Code 窗口后生效。",
+  rly_chat_other:"已配置其他包装器(不作改动)",
+  rly_chat_manual:"设置无法读取(请手动编辑)",
+  rly_chat_novs:"服务器上没有 VS Code",
+  rly_chat_nowrap:"接力启动器不在服务器上",
+  rly_chat_fail:"无法连接",
   rem_log_relay:(cmd,proj)=>`在「${proj}」应用了 ${cmd}`,
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
@@ -7649,7 +7714,7 @@ function showTab(name){
   if(name==="prefs"){ renderPricesStatus();       // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
     remUi(); remLogLoad(); remZombieRows();       // remediación: estado + registro frescos
-    rlyPoll().then(rlyRows); rlyAliasUi(); }      // sesiones con relevo y el atajo
+    rlyPoll().then(rlyRows); rlyAliasUi(); rlyChatUi(); } // relevo: sesiones, atajo y chat
   document.querySelector(".panel").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
@@ -8382,6 +8447,50 @@ function errAlias(code){
     ERR_ALIAS_PATH:"rly_alias_pathfail"}[code.replace(/^.*?(ERR_ALIAS_\w+).*$/,"$1")];
   return k?t(k):code;
 }
+
+// ---------- el chat de VS Code en los servidores (wrapper oficial) ----------
+// Sin esto el relevo del chat exige editar un settings.json a mano en cada
+// servidor — nadie lo va a hacer. El backend enciende/apaga la clave
+// `claudeCode.claudeProcessWrapper` del vscode-server remoto con las reglas
+// de respeto de CHAT_WRAP_PY (wrapper ajeno no se pisa, ilegible no se toca).
+// Los veredictos llegan como palabras y aquí se traducen (invariante #10).
+function chatStateTxt(st){
+  return {ON:"✓",OK:"✓",OFF:"—",OTHER:t("rly_chat_other"),
+    MANUAL:t("rly_chat_manual"),NOVSCODE:t("rly_chat_novs"),
+    NOWRAP:t("rly_chat_nowrap"),FAIL:t("rly_chat_fail")}[st]||st;
+}
+function chatRows(rows){
+  return rows.map(r=>r.name+" "+chatStateTxt(r.state)).join(" · ");
+}
+async function rlyChatUi(){
+  if(!invoke) return;
+  try{
+    const rows=await invoke("chat_relay_status");
+    // sin servidores no hay nada que ofrecer: el bloque entero se esconde en
+    // vez de enseñar un interruptor que no haría nada (invariante #8)
+    const has=rows.length>0;
+    $("rlyChatRow").hidden=!has; $("rlyChatMsg").hidden=!has;
+    if(!has) return;
+    $("rlyChatChk").checked=rows.some(r=>r.state==="ON");
+    $("rlyChatMsg").textContent=chatRows(rows);
+  }catch(_){}
+}
+$("rlyChatChk").addEventListener("change",async ()=>{
+  const on=$("rlyChatChk").checked;
+  $("rlyChatMsg").textContent="…";
+  try{
+    const rows=await invoke("set_chat_relay",{on});
+    flog("relevo: wrapper del chat → "+(on?"on":"off")+" ["+chatRows(rows)+"]");
+    // el ajuste lo lee la extensión al ARRANCAR el proceso de Claude: sin
+    // recargar la ventana parecería que el interruptor no hizo nada
+    $("rlyChatMsg").textContent=chatRows(rows)+(on?" — "+t("rly_chat_reload"):"");
+    if(rows.every(r=>r.state!=="OK"&&r.state!=="ON")) $("rlyChatChk").checked=!on;
+  }catch(e){
+    $("rlyChatChk").checked=!on;
+    $("rlyChatMsg").textContent=String(e);
+    flog("relevo: wrapper del chat ERROR "+e);
+  }
+});
 
 async function rlyPollUi(){
   if($("tab-prefs").hidden||document.hidden) return;

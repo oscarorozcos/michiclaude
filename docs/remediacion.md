@@ -964,3 +964,44 @@ y la evidencia medida del techo real del modelo.
 
 Probado con una sesión sintética que termina justo en la compactación:
 antes daba `press 880000` + ficha `compact`; después, nada.
+
+## El interruptor del chat (2026-08-09)
+
+El relevo del chat funcionaba, pero activarlo era pegar UNA línea en el
+`settings.json` de máquina del vscode-server — lo hice yo a mano en el
+VPS de Oscar. Eso rompía la meta declarada del producto: el usuario no
+configura, MichiClaude se configura. Un usuario normal habría tenido el
+relevo subido al servidor y sin usarse jamás, sin forma de saberlo.
+
+Ahora es un interruptor en Ajustes ("Relevar el chat de VS Code en los
+servidores SSH"), pareja del atajo del PATH. Piezas:
+
+- **`CHAT_WRAP_PY`** (guion embebido en lib.rs): corre EN el servidor
+  vía `python3 -` con el guion por STDIN — jamás interpolado en el
+  shell, la misma puerta cerrada que `relay_inject_remote`. Toca los
+  `data/Machine/settings.json` de `.vscode-server`,
+  `.vscode-server-insiders` y `.cursor-server` (los que existan) y
+  responde con UNA palabra que el panel traduce (invariante #10).
+- **Reglas de respeto, probadas caso por caso** (8 casos en banco):
+  un wrapper AJENO no se pisa (OTHER); un archivo que no se entiende no
+  se toca (MANUAL); antes de modificar un archivo que no escribimos,
+  copia `.michi-backup` una sola vez; al apagar solo se quita NUESTRA
+  clave (y el archivo entero solo si quedó vacío); escritura tmp+rename.
+- **Fail-open otra vez**: encender con el lanzador ausente dejaría la
+  clave apuntando a un archivo inexistente y el chat MUERTO. Por eso
+  `set_chat_relay` re-sube `michi-relevo.py` y `michi-wrap.sh` ANTES de
+  encender, y el guion además se niega (NOWRAP) si aun así no está.
+- **VS Code acepta JSONC**: los comentarios de línea entera se quitan
+  antes de parsear (`^\s*//`, que no casa con `https://…` dentro de una
+  cadena). El archivo que dejé a mano en el VPS —comentarios en
+  español— lo reconoce como propio y lo migra/quita limpio.
+- El interruptor solo aparece si hay servidores dados de alta
+  (invariante #8: nada de controles que no harían nada), y el estado se
+  enseña POR SERVIDOR ("VPS-EU ✓ · otro: sin conexión").
+
+Queda honestamente FUERA: el chat de VS Code contra el Windows LOCAL.
+`michi-wrap.sh` es un guion de shell y el relevo de chat es Python —
+en Windows no hay ninguno de los dos garantizado. Cubrirlo pide un modo
+`wrap` en el michi.exe de Rust (stream-json proxy, factible: es el
+mismo protocolo que ya habla el Python). Anotado en pendientes; para
+Oscar no cambia nada porque su chat vive en el VPS vía Remote-SSH.

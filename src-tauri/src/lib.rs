@@ -4694,6 +4694,201 @@ async fn set_relay_alias(on: bool) -> Result<(), String> {
     .map_err(|e| e.to_string())?
 }
 
+// ---------------------------------------------------------------------------
+// El chat de VS Code en los SERVIDORES, sin editar JSON a mano: el panel
+// enciende/apaga `claudeCode.claudeProcessWrapper` en los ajustes de máquina
+// del vscode-server remoto. Es la pieza que faltaba para que el relevo del
+// chat no dependa de que el usuario sepa que existe michi-wrap.sh.
+// ---------------------------------------------------------------------------
+
+/// Guion que corre EN el servidor (por STDIN, jamás interpolado — misma
+/// puerta cerrada que relay_inject_remote). Habla en veredictos de UNA
+/// palabra que el panel traduce (invariante #10).
+///
+/// Reglas que no se negocian:
+/// - Un wrapper AJENO no se pisa jamás (OTHER): quitarle a alguien su
+///   wrapper es romperle su flujo sin avisar.
+/// - Ajustes que no se pueden entender no se tocan (MANUAL): editar a
+///   ciegas un archivo de configuración de otro programa no es una opción.
+/// - Encender sin el lanzador subido está prohibido (NOWRAP): un ajuste que
+///   apunta a un archivo inexistente deja el chat MUERTO — exactamente lo
+///   que el fail-open promete que nunca pasará.
+/// - Antes de tocar un archivo que no escribimos nosotros, copia
+///   `.michi-backup` (una sola vez).
+/// VS Code acepta JSONC; los comentarios de línea entera se quitan antes de
+/// parsear (los de dentro de una cadena, como "https://…", no casan con el
+/// patrón porque exigen el // a inicio de línea).
+const CHAT_WRAP_PY: &str = r#"
+import json, os, re, sys
+
+op = sys.argv[1] if len(sys.argv) > 1 else "status"
+WRAP = os.path.expanduser("~/.michiclaude/michi-wrap.sh")
+KEY = "claudeCode.claudeProcessWrapper"
+roots = [os.path.expanduser("~/" + d) for d in
+         (".vscode-server", ".vscode-server-insiders", ".cursor-server")]
+roots = [r for r in roots if os.path.isdir(r)]
+if not roots:
+    print("NOVSCODE"); sys.exit(0)
+
+
+def read(p):
+    """(obj, crudo, legible). obj None si el archivo no se entiende."""
+    if not os.path.isfile(p):
+        return {}, "", True
+    raw = open(p, encoding="utf-8", errors="replace").read()
+    try:
+        return json.loads(raw), raw, True
+    except Exception:
+        pass
+    txt = re.sub(r"^\s*//.*$", "", raw, flags=re.M)
+    try:
+        return json.loads(txt), raw, True
+    except Exception:
+        return None, raw, False
+
+
+if op == "status":
+    has_on = has_other = has_manual = False
+    for r in roots:
+        obj, raw, ok = read(os.path.join(r, "data", "Machine", "settings.json"))
+        if not ok:
+            # ilegible pero con nuestra ruta dentro = un archivo nuestro de
+            # una version vieja; ilegible sin ella = de otro, ni tocarlo
+            if WRAP in raw: has_on = True
+            else: has_manual = True
+            continue
+        v = obj.get(KEY, "")
+        if v == WRAP: has_on = True
+        elif v: has_other = True
+    print("OTHER" if has_other else "MANUAL" if has_manual
+          else "ON" if has_on else "OFF")
+    sys.exit(0)
+
+if op == "on" and not os.path.isfile(WRAP):
+    print("NOWRAP"); sys.exit(0)
+if op == "on":
+    os.chmod(WRAP, 0o755)
+
+out = "OK"
+for r in roots:
+    p = os.path.join(r, "data", "Machine", "settings.json")
+    obj, raw, ok = read(p)
+    if not ok:
+        if op == "off" and WRAP in raw:
+            os.remove(p)
+        elif op == "on":
+            out = "MANUAL"
+        continue
+    if op == "on":
+        if obj.get(KEY) == WRAP:
+            continue
+        if obj.get(KEY):
+            out = "OTHER"
+            continue
+        if raw and not os.path.isfile(p + ".michi-backup"):
+            open(p + ".michi-backup", "w", encoding="utf-8").write(raw)
+        obj[KEY] = WRAP
+    else:
+        if obj.get(KEY) != WRAP:
+            continue
+        del obj[KEY]
+        if not obj:
+            os.remove(p)
+            continue
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    tmp = p + ".michi.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    os.replace(tmp, p)
+print(out)
+"#;
+
+#[derive(Serialize)]
+struct ChatRelayRow {
+    name: String,
+    state: String,
+}
+
+/// Ejecuta el guion en el servidor con el MISMO python del exportador (ya
+/// verificado en el alta) y devuelve su veredicto de una palabra.
+fn chat_wrap_remote(host: &str, py: &str, op: &str) -> Result<String, String> {
+    use std::io::Write;
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+        .arg(host)
+        .arg(format!("{py} - {op}"))
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let mut child = cmd.spawn().map_err(|_| "FAIL".to_string())?;
+    if let Some(mut si) = child.stdin.take() {
+        let _ = si.write_all(CHAT_WRAP_PY.replace("\r\n", "\n").as_bytes());
+    }
+    let out = child.wait_with_output().map_err(|_| "FAIL".to_string())?;
+    if !out.status.success() {
+        return Err("FAIL".to_string());
+    }
+    let word = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if word.is_empty() {
+        return Err("FAIL".to_string());
+    }
+    Ok(word)
+}
+
+/// El python del exportador es el primer token de su comando; si el usuario
+/// escribió el suyo a mano y no empieza por un python, se cae a `python3`.
+fn remote_python(r: &RemoteSource) -> String {
+    let tok = r.command.split_whitespace().next().unwrap_or("");
+    if tok.contains("python") {
+        tok.to_string()
+    } else {
+        "python3".to_string()
+    }
+}
+
+#[tauri::command]
+async fn chat_relay_status() -> Result<Vec<ChatRelayRow>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut out = Vec::new();
+        for r in load_remotes() {
+            let state = chat_wrap_remote(&r.host, &remote_python(&r), "status")
+                .unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: r.name.clone(), state });
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn set_chat_relay(on: bool) -> Result<Vec<ChatRelayRow>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let op = if on { "on" } else { "off" };
+        let mut out = Vec::new();
+        for r in load_remotes() {
+            if on {
+                // el lanzador y el relevo se refrescan ANTES de encender: un
+                // ajuste que apunte a un archivo inexistente mata el chat
+                let _ = upload_script(&r.host, REMOTE_RELEVO_PATH, REMOTE_RELEVO);
+                let _ = upload_script(&r.host, REMOTE_WRAP_PATH, REMOTE_WRAP);
+            }
+            let state =
+                chat_wrap_remote(&r.host, &remote_python(&r), op).unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: r.name.clone(), state });
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Un proceso MCP huérfano detectado. `start` (epoch de arranque) es la
 /// mitad del anti-reciclaje de PID: para cerrar hay que devolverlo y
 /// que siga coincidiendo.
@@ -5153,7 +5348,9 @@ pub fn run() {
             get_relays,
             relay_inject,
             relay_alias_status,
-            set_relay_alias
+            set_relay_alias,
+            chat_relay_status,
+            set_chat_relay
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

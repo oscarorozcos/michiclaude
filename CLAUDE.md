@@ -215,11 +215,9 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 8. NUNCA poner una cifra donde no se puede calcular. La fila "claude.ai /
    otros" se ELIMINÓ (el desglose no es calculable: gasto local en $ y
    cuota en %); en su lugar la nota `spend_only_cc`. El total de la
-   VENTANA vive en la cabecera de "gasto por proyecto" desde 2026-08-05
-   (es la suma de esa lista y cambia con el selector; en el pie obligaba a
-   bajar hasta abajo para ver el efecto del filtro) y el pie queda solo
-   con "Hoy"; con ventana de 1 día ese total de la cabecera se OCULTA —
-   sería el mismo número que "Hoy" con otro nombre.
+   VENTANA vive en la cabecera de "gasto por proyecto" (suma de esa
+   lista, cambia con el selector); el pie queda solo con "Hoy"; con
+   ventana de 1 día el total de cabecera se OCULTA (= "Hoy").
 9. No tocar `README.md`, `.github/workflows/release.yml` ni
    `app-icon.png` salvo petición explícita. (El token de este entorno no
    puede tocar workflows — eso lo hace Oscar desde la web.)
@@ -245,8 +243,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 ## Reglas de comportamiento — no regresionar
 
 - `resets_at` trae JITTER: ventana nueva SIEMPRE con tolerancia
-  (`windowChanged`, 10 min sesión / 360 semana), nunca comparación
-  exacta (re-disparaba alarmas cada ciclo).
+  (`windowChanged`, 10 min sesión / 360 semana), nunca exacta.
 - Alarmas de sesión configurables (chips, `alarms`): el aviso se REPITE
   cada 5 min hasta abrir el panel; varios umbrales de golpe → solo el más
   alto. Semanal al 100%: un aviso por ventana. Avisos de restablecimiento
@@ -274,8 +271,8 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 Diseño completo en `docs/analizador-fugas.md` — LEERLO antes de tocar.
 Tres piezas en sincronía (invariante #1): motor en `meter-export.py`
 (`scan_findings`, `--findings`), réplica Rust (`scan_local_findings` +
-`get_findings`, async doble), pestaña con severidad por costo (rojo ≥$10,
-ámbar ≥$1 o MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
+`get_findings`), pestaña con severidad por costo (rojo ≥$10, ámbar ≥$1
+o MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
 
 **Detectores y umbrales** (constantes; detalle en el doc): reread (≥3
 lecturas y ~2k tok — MIDE chars devueltos), inflate (+50k y 10+ turnos),
@@ -539,11 +536,10 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       AUTOMÁTICO exige widget A LA VISTA —la cuenta atrás vive en la
       cápsula—, dura 15 s, cualquier toque la para (en el gatito el
       manejador va en CAPTURA) y se marca ANTES de empezar. Un rechazo del
-      candado es TRANSITORIO: `done` solo tras aplicar; un fallo guarda el
-      momento y reintenta a los 10 min (quemarlo dejaba la sesión sin
-      automático de por vida). Y la cuenta CIERRA con veredicto ✓/✕ en la
-      cápsula: una que acaba en silencio deja al usuario adivinando si
-      actuaste. ATAJO DEL PATH (`set_relay_alias`): un `claude.cmd` en
+      candado es TRANSITORIO: `done` solo tras aplicar; un fallo guarda
+      el momento y reintenta a los 10 min. La cuenta CIERRA con
+      veredicto ✓/✕ en la cápsula: acabar en silencio deja al usuario
+      adivinando. ATAJO DEL PATH (`set_relay_alias`): un `claude.cmd` en
       `%APPDATA%\<app>\bin` DELANTE del PATH de usuario — resuelve
       Windows, no el shell, así que vale para cualquier terminal/editor;
       NO alcanza WSL/SSH ni rutas absolutas. NUNCA deja sin Claude Code
@@ -574,10 +570,14 @@ BLOQUEADO: el repo es PRIVADO y las releases privadas dan 404 sin auth.
       con tmp+rename EN el servidor, con el comando por STDIN y jamás
       interpolado en el shell. Casado en dos niveles: `sid` EXACTO (solo
       chat), si no el `cwd`; los dos exigen la MISMA máquina. El
-      AUTOMÁTICO sí cruza a remotas (pasa `origin`): validado en vivo
-      2026-08-08 sobre el chat del VPS desde Windows. FALTAN: alias
-      `~/.bashrc`, WSL, y que `michi.exe` viaje en el instalador
-      (workflow, invariante #9).
+      AUTOMÁTICO sí cruza a remotas (pasa `origin`), validado en vivo.
+      El wrapper del chat se enciende desde Ajustes (`set_chat_relay`:
+      guion `CHAT_WRAP_PY` por SSH-STDIN; wrapper ajeno NO se pisa,
+      ilegible NO se toca, `.michi-backup` antes de tocar lo ajeno,
+      re-sube el lanzador ANTES de encender — clave a archivo
+      inexistente = chat muerto). FALTAN: alias `~/.bashrc`, WSL, chat
+      del Windows local (pide modo wrap en michi.exe) y que `michi.exe`
+      viaje en el instalador (workflow, invariante #9).
 - APUESTA #2 pendiente de arrancar: tarjeta semanal compartible del
   gatito (marketing) y gamificación ligera. NO hacer: rastrear otras
   herramientas, base de datos de historial, modo equipo/empresa.
