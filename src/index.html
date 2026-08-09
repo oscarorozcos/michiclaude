@@ -1503,6 +1503,14 @@
         <span data-i18n="rly_auto_on"></span><input type="checkbox" id="rlyAutoChk">
       </label>
       <div class="cfg-note" id="rlyAutoLock" hidden style="color:var(--warn)"></div>
+      <!-- Auto-/clear con red (2026-08-09). Interruptor PROPIO además del de
+           arriba: borrar la conversación es otra liga que compactarla. Solo
+           actúa con veredicto de cierre (Boundary) y tras un /export
+           VERIFICADO — sin copia no borra. Pide un relevo v2. -->
+      <label class="cfg-row" style="cursor:pointer;margin-top:6px">
+        <span data-i18n="rly_clear_on"></span><input type="checkbox" id="rlyClearChk">
+      </label>
+      <div class="cfg-note" id="rlyClearLock" hidden style="color:var(--warn)"></div>
       <div class="cfg-note" id="rlyUnlock"></div>
       <div class="cfg-lbl" data-i18n="rem_log_label"></div>
       <div id="remLog" class="cfg-note"></div>
@@ -2009,12 +2017,14 @@ en:{
   rly_e_gone:"closing",
   rly_e_badcmd:"command not allowed",
   rly_e_write:"couldn't write",
+  rly_e_export:"the /export copy didn't appear — nothing was deleted",
   rly_apply:"Apply",
   rly_applying:s=>`Applying in ${s}… (stop)`,
   rly_applied:"Applied ✓",
   rly_failed:w=>`Not applied: ${w}`,
   rly_unlock:(a,b,c,d)=>`Applied by you: /compact ${a} of ${b} · /clear ${c} of ${d} — automatic mode unlocks once you complete them.`,
   rly_auto_on:"Apply /compact automatically",
+  rly_clear_on:"Apply /clear automatically at task close (a copy is saved first)",
   rly_auto_lock:n=>`Michi does not automate what you have not seen: apply it yourself ${n} more ${n===1?"time":"times"} and automatic mode unlocks.`,
   rly_auto_msg:(cmd,s)=>`Michi will apply ${cmd} in ${s} s — tap to stop`,
   rly_alias_on:"Make «claude» go through the relay",
@@ -2437,12 +2447,14 @@ es:{
   rly_e_gone:"cerrándose",
   rly_e_badcmd:"comando no permitido",
   rly_e_write:"no se pudo escribir",
+  rly_e_export:"la copia de /export no apareció — no se borró nada",
   rly_apply:"Aplicar",
   rly_applying:s=>`Aplicando en ${s}… (parar)`,
   rly_applied:"Aplicado ✓",
   rly_failed:w=>`No se aplicó: ${w}`,
   rly_unlock:(a,b,c,d)=>`Aplicado por ti: /compact ${a} de ${b} · /clear ${c} de ${d} — el automático se desbloquea al completarlos.`,
   rly_auto_on:"Aplicar /compact en automático",
+  rly_clear_on:"Aplicar /clear en automático al cerrar tarea (antes guarda copia)",
   rly_auto_lock:n=>`Michi no automatiza lo que no has visto: aplícalo tú ${n} ${n===1?"vez":"veces"} más y el automático se desbloquea.`,
   rly_auto_msg:(cmd,s)=>`Michi va a aplicar ${cmd} en ${s} s — toca para parar`,
   rly_alias_on:"Hacer que «claude» pase por el relevo",
@@ -2865,12 +2877,14 @@ pt:{
   rly_e_gone:"fechando",
   rly_e_badcmd:"comando não permitido",
   rly_e_write:"não deu para escrever",
+  rly_e_export:"a cópia do /export não apareceu — nada foi apagado",
   rly_apply:"Aplicar",
   rly_applying:s=>`Aplicando em ${s}… (parar)`,
   rly_applied:"Aplicado ✓",
   rly_failed:w=>`Não aplicado: ${w}`,
   rly_unlock:(a,b,c,d)=>`Aplicado por você: /compact ${a} de ${b} · /clear ${c} de ${d} — o automático libera ao completá-los.`,
   rly_auto_on:"Aplicar /compact automaticamente",
+  rly_clear_on:"Aplicar /clear automaticamente ao fechar a tarefa (salva uma cópia antes)",
   rly_auto_lock:n=>`O Michi não automatiza o que você não viu: aplique você mesmo mais ${n} ${n===1?"vez":"vezes"} e o automático libera.`,
   rly_auto_msg:(cmd,s)=>`O Michi vai aplicar ${cmd} em ${s} s — toque para parar`,
   rly_alias_on:"Fazer o «claude» passar pelo revezamento",
@@ -3293,12 +3307,14 @@ fr:{
   rly_e_gone:"fermeture en cours",
   rly_e_badcmd:"commande non autorisée",
   rly_e_write:"écriture impossible",
+  rly_e_export:"la copie /export n'est pas apparue — rien n'a été effacé",
   rly_apply:"Appliquer",
   rly_applying:s=>`Application dans ${s}… (arrêter)`,
   rly_applied:"Appliqué ✓",
   rly_failed:w=>`Non appliqué : ${w}`,
   rly_unlock:(a,b,c,d)=>`Appliqué par toi : /compact ${a} sur ${b} · /clear ${c} sur ${d} — le mode automatique se débloque une fois complétés.`,
   rly_auto_on:"Appliquer /compact automatiquement",
+  rly_clear_on:"Appliquer /clear automatiquement en fin de tâche (une copie est sauvegardée avant)",
   rly_auto_lock:n=>`Michi n’automatise pas ce que tu n’as pas vu : applique-le ${n} fois de plus et le mode automatique se débloque.`,
   rly_auto_msg:(cmd,s)=>`Michi va appliquer ${cmd} dans ${s} s — touche pour arrêter`,
   rly_alias_on:"Faire passer «claude» par le relais",
@@ -3721,12 +3737,14 @@ de:{
   rly_e_gone:"wird beendet",
   rly_e_badcmd:"Befehl nicht erlaubt",
   rly_e_write:"konnte nicht schreiben",
+  rly_e_export:"die /export-Kopie erschien nicht — nichts wurde gelöscht",
   rly_apply:"Anwenden",
   rly_applying:s=>`Wird in ${s} angewendet… (stoppen)`,
   rly_applied:"Angewendet ✓",
   rly_failed:w=>`Nicht angewendet: ${w}`,
   rly_unlock:(a,b,c,d)=>`Von dir angewendet: /compact ${a} von ${b} · /clear ${c} von ${d} — der Automatikmodus wird danach freigeschaltet.`,
   rly_auto_on:"/compact automatisch anwenden",
+  rly_clear_on:"/clear bei Aufgabenabschluss automatisch anwenden (vorher wird eine Kopie gespeichert)",
   rly_auto_lock:n=>`Michi automatisiert nichts, was du nicht gesehen hast: wende es noch ${n}× selbst an und der Automatikmodus wird freigeschaltet.`,
   rly_auto_msg:(cmd,s)=>`Michi wendet ${cmd} in ${s} s an — zum Stoppen tippen`,
   rly_alias_on:"«claude» über das Relais laufen lassen",
@@ -4149,12 +4167,14 @@ ja:{
   rly_e_gone:"終了中です",
   rly_e_badcmd:"許可されていないコマンドです",
   rly_e_write:"書き込めませんでした",
+  rly_e_export:"/export のコピーが作成されませんでした — 何も消去していません",
   rly_apply:"適用",
   rly_applying:s=>`${s} 秒後に適用…（中止）`,
   rly_applied:"適用しました ✓",
   rly_failed:w=>`適用できませんでした: ${w}`,
   rly_unlock:(a,b,c,d)=>`あなたが適用した回数: /compact ${a}/${b} · /clear ${c}/${d} — すべて満たすと自動モードが解放されます。`,
   rly_auto_on:"/compact を自動で適用する",
+  rly_clear_on:"タスク完了時に /clear を自動適用（先に /export でコピーを保存）",
   rly_auto_lock:n=>`Michi は見ていないことを自動化しません: あと ${n} 回自分で適用すると自動モードが解放されます。`,
   rly_auto_msg:(cmd,s)=>`${s} 秒後に ${cmd} を適用します — 止めるにはタップ`,
   rly_alias_on:"「claude」をリレー経由にする",
@@ -4577,12 +4597,14 @@ ko:{
   rly_e_gone:"닫히는 중입니다",
   rly_e_badcmd:"허용되지 않은 명령입니다",
   rly_e_write:"쓸 수 없었습니다",
+  rly_e_export:"/export 사본이 생성되지 않았습니다 — 아무것도 지우지 않았습니다",
   rly_apply:"적용",
   rly_applying:s=>`${s}초 후 적용… (중지)`,
   rly_applied:"적용됨 ✓",
   rly_failed:w=>`적용하지 못했습니다: ${w}`,
   rly_unlock:(a,b,c,d)=>`직접 적용한 횟수: /compact ${a}/${b} · /clear ${c}/${d} — 모두 채우면 자동 모드가 열립니다.`,
   rly_auto_on:"/compact 자동으로 적용",
+  rly_clear_on:"작업 종료 시 /clear 자동 적용 (먼저 /export로 사본 저장)",
   rly_auto_lock:n=>`Michi는 당신이 보지 않은 것을 자동화하지 않습니다: ${n}번 더 직접 적용하면 자동 모드가 열립니다.`,
   rly_auto_msg:(cmd,s)=>`${s}초 후 ${cmd}를 적용합니다 — 멈추려면 탭하세요`,
   rly_alias_on:"「claude」를 릴레이로 통하게 하기",
@@ -5005,12 +5027,14 @@ zh:{
   rly_e_gone:"正在关闭",
   rly_e_badcmd:"不允许的命令",
   rly_e_write:"无法写入",
+  rly_e_export:"/export 副本未生成 — 未删除任何内容",
   rly_apply:"应用",
   rly_applying:s=>`${s} 秒后应用…（停止）`,
   rly_applied:"已应用 ✓",
   rly_failed:w=>`未应用：${w}`,
   rly_unlock:(a,b,c,d)=>`你已手动应用：/compact ${a}/${b} · /clear ${c}/${d} — 全部完成后解锁自动模式。`,
   rly_auto_on:"自动应用 /compact",
+  rly_clear_on:"任务结束时自动应用 /clear（先用 /export 保存副本）",
   rly_auto_lock:n=>`Michi 不会自动化你没看过的事：再手动应用 ${n} 次即可解锁自动模式。`,
   rly_auto_msg:(cmd,s)=>`Michi 将在 ${s} 秒后应用 ${cmd} — 点一下即可停止`,
   rly_alias_on:"让「claude」走接力",
@@ -7960,11 +7984,23 @@ function remUi(){
   const falta=Math.max(0,RELAY_UNLOCK["/compact"]-(c["/compact"]||0));
   $("rlyAutoLock").hidden=!(remOn("relay")&&falta>0);
   $("rlyAutoLock").textContent=t("rly_auto_lock",falta);
+  // auto-/clear con red: interruptor PROPIO (borrar es otra liga que
+  // compactar) y su propio candado de 3 manuales
+  $("rlyClearChk").checked=remOn("relayClear");
+  const faltaC=Math.max(0,RELAY_UNLOCK["/clear"]-(c["/clear"]||0));
+  $("rlyClearLock").hidden=!(remOn("relayClear")&&faltaC>0);
+  $("rlyClearLock").textContent=t("rly_auto_lock",faltaC);
 }
 $("rlyAutoChk").addEventListener("change",()=>{
   const cf=remCfg(); cf.relay=$("rlyAutoChk").checked;
   localStorage.setItem("remCfg",JSON.stringify(cf));
   flog("relevo: automático → "+(cf.relay?"on":"off"));
+  remUi();
+});
+$("rlyClearChk").addEventListener("change",()=>{
+  const cf=remCfg(); cf.relayClear=$("rlyClearChk").checked;
+  localStorage.setItem("remCfg",JSON.stringify(cf));
+  flog("relevo: auto-/clear con red → "+(cf.relayClear?"on":"off"));
   remUi();
 });
 for(const [id,k] of [["remZombieChk","zombie"],["remArchChk","archive"]])
@@ -8301,8 +8337,13 @@ function relayApply(btn){
     // R4: que el countdown termine NO es un permiso. El relevo vuelve a
     // comprobar el candado en el instante de escribir y puede negarse — por
     // ejemplo si el usuario se puso a teclear durante la cuenta atrás.
+    // Con /clear va SIEMPRE la red (/export verificado antes de borrar) si
+    // el relevo la sabe hacer (v2); a uno viejo no se le pide — ignoraría
+    // la marca y borraría sin copia.
+    const rlyV=relays.find(r=>r.pid===pid&&(r.origin||"")===(btn.dataset.origin||""));
+    const exp=cmd==="/clear"&&!!rlyV&&(rlyV.v||1)>=2;
     try{
-      await invoke("relay_inject",{pid,text:cmd,auto:false,origin:btn.dataset.origin||""});
+      await invoke("relay_inject",{pid,text:cmd,auto:false,origin:btn.dataset.origin||"",export:exp});
       btn.textContent=t("rly_applied");
       relayMsg(btn,"");
       relayMark(cmd);
@@ -8327,9 +8368,12 @@ function relayApply(btn){
 // cápsula y una cuenta atrás que nadie puede ver no es una cuenta atrás,
 // es Michi tecleando a tus espaldas con un adorno.
 //
-// `/clear` NO se automatiza aquí aunque se desbloquee: borra la memoria de
-// la conversación y no se deshace. Queda para cuando el automático tenga
-// kilómetros.
+// `/clear` en automático (lo pidió Oscar, 2026-08-09) SOLO con todo esto
+// además: su PROPIO interruptor (nace apagado), sus 3 manuales ganadas,
+// veredicto Boundary del clasificador (tarea CERRADA: todos al 100% o
+// commit limpio — en la duda, /compact), y un relevo v2 que sepa hacer la
+// red: /export VERIFICADO antes de borrar; sin copia no hay /clear
+// (ERR_RELAY_EXPORT, fail-closed). La copia queda en <datos>/handoff/.
 const RELAY_AUTO_WAIT=15;   // más larga que la manual: esto no lo pediste tú
 let autoRun=null;           // {cmd,pid,timer} mientras corre la cuenta
 // Memoria del automático por sesión: "done" = ya se aplicó y no se vuelve a
@@ -8371,38 +8415,48 @@ function autoStop(why){
 EVENT?.listen("relay:stop",()=>autoStop("el usuario"));
 async function relayAutoCheck(pr){
   if(autoRun||simFnd||!invoke||!pr) return;
-  if(!remOn("relay")||!relayUnlocked("/compact")) return;
+  if(!remOn("relay")) return;                // interruptor maestro del automático
   if(pressPct(pr)<INTENT_PCT) return;
   const sid=pr.session||"";
   if(!sid||autoBlocked(sid)) return;         // aplicado, o intento reciente
   const rly=relayFor(pr);
   if(!rly) return;                           // sin pareja inequívoca, nada
   if(!pillOn) return;                        // sin widget no hay cuenta atrás
+  // ¿/clear con red o /compact? /clear SOLO con: su interruptor propio, sus
+  // 3 manuales, veredicto Boundary (tarea cerrada — el mismo que reparte la
+  // insignia de la tarjeta; en la duda gana /compact, que no borra nada) y
+  // un relevo v2 que sepa exportar antes. El hit "press" trae las señales
+  // del clasificador, así que intentVerdict lee directo de él.
+  const clearOk=remOn("relayClear")&&relayUnlocked("/clear")
+    &&intentVerdict(pr)==="boundary"&&(rly.v||1)>=2;
+  const cmd=clearOk?"/clear":"/compact";
+  if(!clearOk&&!relayUnlocked("/compact")) return;
   // Se sella el INTENTO antes de empezar: si algo revienta a medias, el
   // sello impide un bucle que teclee en la terminal. Solo pasa a "done"
   // cuando de verdad se aplicó.
   autoStamp(sid, Date.now());
   let left=RELAY_AUTO_WAIT;
-  flog("relevo auto: cuenta atrás para /compact en pid "+rly.pid);
-  autoBeam(left,"/compact");
-  autoRun={cmd:"/compact",pid:rly.pid,timer:setInterval(async ()=>{
+  flog("relevo auto: cuenta atrás para "+cmd+" en pid "+rly.pid+(clearOk?" (con red /export)":""));
+  autoBeam(left,cmd);
+  autoRun={cmd,pid:rly.pid,timer:setInterval(async ()=>{
     left--;
-    if(left>0){ autoBeam(left,"/compact"); return; }
+    if(left>0){ autoBeam(left,cmd); return; }
     clearInterval(autoRun.timer);
     autoRun=null;
     autoBeam(null);
     // R4: el relevo vuelve a comprobar R1-R3 al escribir. Si el usuario se
     // puso a teclear durante la cuenta, esto se rechaza — y está bien.
     try{
-      await invoke("relay_inject",{pid:rly.pid,text:"/compact",auto:true,origin:rly.origin||""});
+      await invoke("relay_inject",{pid:rly.pid,text:cmd,auto:true,origin:rly.origin||"",export:clearOk});
       autoStamp(sid,"done");                 // hecho: esta sesión ya está
       autoBeam(null,null,"ok");
-      flog("relevo auto: aplicado /compact");
+      flog("relevo auto: aplicado "+cmd);
     }catch(e){
-      // el candado se negó (Claude generando, texto sin enviar…). Es
-      // transitorio: NO se quema la sesión, se reintenta en AUTO_RETRY_MIN.
+      // el candado se negó (Claude generando, texto sin enviar, copia que
+      // no apareció: ERR_RELAY_EXPORT…). Es transitorio: NO se quema la
+      // sesión, se reintenta en AUTO_RETRY_MIN.
       autoBeam(null,null,"err");
-      flog("relevo auto: NO aplicado — "+e+" (reintento en "+AUTO_RETRY_MIN+" min)");
+      flog("relevo auto: NO aplicado "+cmd+" — "+e+" (reintento en "+AUTO_RETRY_MIN+" min)");
     }
     setTimeout(()=>autoBeam(null),4000);     // el ✓/✕ no se queda a vivir ahí
     remLogLoad();

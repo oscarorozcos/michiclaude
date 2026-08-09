@@ -29,6 +29,12 @@
 // SEGURIDAD. El canal solo acepta DOS textos, comparados literalmente:
 // "/compact" y "/clear". No hay forma de que este programa teclee otra
 // cosa dentro de la sesión del usuario, venga la orden de donde venga.
+// ÚNICA ampliación (2026-08-09): un /clear puede llegar con la marca
+// `export`, y entonces el relevo teclea ANTES un `/export <archivo>` como
+// red de seguridad. La ruta la genera ESTE programa — jamás viene del
+// canal, así que el canal sigue sin poder dictar ni un byte fuera de la
+// lista. Y sin copia verificada (el archivo existe y tiene contenido) NO
+// hay /clear: fail-closed.
 
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -40,7 +46,10 @@ use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 
 /// Versión del formato del archivo de estado. Si cambia la forma, sube —
 /// el panel debe poder ignorar un relevo viejo sin romperse.
-const STATE_V: u32 = 1;
+/// 2 = este relevo sabe hacer la red /export antes de un /clear; el panel
+/// mira este número antes de pedirla (un relevo viejo ignoraría la marca y
+/// borraría sin copia — justo lo que la red existe para impedir).
+const STATE_V: u32 = 2;
 
 /// Los ÚNICOS textos que el relevo acepta inyectar. Lista cerrada a
 /// propósito: es el límite duro de lo que puede pasarle a la sesión.
@@ -58,6 +67,13 @@ const COOLDOWN_MS: u64 = 15_000;
 // que aquel Enter no envió nada y el texto sigue en el prompt. Ver
 // `KeyWatch::resolve` — de aquí salió el fallo del 2026-08-08.
 const SUBMIT_WAIT_MS: u64 = 3_000;
+// La red del /clear: cuánto se espera a que `/export` escriba su archivo
+// antes de rendirse (y sin archivo NO hay /clear), y cuánto silencio de la
+// PTY se exige tras verlo aparecer para dar el REPL por asentado.
+const EXPORT_WAIT_MS: u64 = 12_000;
+const EXPORT_SETTLE_MS: u64 = 1_500;
+// Las copias del /clear ya cumplieron su papel pasado este tiempo.
+const HANDOFF_KEEP_DAYS: u64 = 90;
 // Cada cuánto se refresca el estado y se mira si hay una orden.
 const TICK_MS: u64 = 250;
 const STATE_EVERY_MS: u64 = 500;
@@ -93,6 +109,36 @@ fn state_dir() -> PathBuf {
     PathBuf::from(home).join(".michiclaude").join("relevo")
 }
 
+/// Donde viven las copias del /clear: la carpeta de datos de la app
+/// (hermana de `relevo/`). La ruta de cada copia la genera SOLO el relevo.
+fn handoff_dir() -> PathBuf {
+    let d = state_dir();
+    match d.parent() {
+        Some(p) => p.join("handoff"),
+        None => d.join("handoff"),
+    }
+}
+
+/// Limpieza al arrancar: una copia de hace más de HANDOFF_KEEP_DAYS ya
+/// cumplió su papel de red. Best-effort — un fallo aquí no frena nada.
+fn prune_handoffs() {
+    let Ok(rd) = std::fs::read_dir(handoff_dir()) else {
+        return;
+    };
+    for e in rd.flatten() {
+        let old = e
+            .metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| t.elapsed().ok())
+            .map(|d| d.as_secs() > HANDOFF_KEEP_DAYS * 24 * 3600)
+            .unwrap_or(false);
+        if old {
+            let _ = std::fs::remove_file(e.path());
+        }
+    }
+}
+
 /// Escritura atómica: nadie debe poder leer un JSON a medio escribir.
 /// El temporal AÑADE ".tmp" al nombre entero en vez de sustituir la
 /// extensión — con `with_extension` el estado (<pid>.json) y la orden
@@ -125,6 +171,10 @@ struct Shared {
     keys: Mutex<KeyWatch>,
     /// ms de la última inyección (0 = ninguna)
     inject_at: AtomicU64,
+    /// 1 = hay una secuencia /export+/clear en curso (corre en su propio
+    /// hilo para que el bucle principal siga refrescando el estado);
+    /// mientras dura, el relevo está ocupado y no acepta otra orden
+    handoff: AtomicU64,
     /// código de salida del hijo (-1 = sigue vivo)
     exit: AtomicI64,
     /// el usuario aplicó él mismo un comando de la lista: (epoch, cuál)
@@ -163,6 +213,7 @@ impl Shared {
     /// panel no es un permiso, es solo un aviso.
     fn ready(&self) -> bool {
         self.exit.load(Ordering::Relaxed) < 0
+            && self.handoff.load(Ordering::Relaxed) == 0
             && !self.has_text()
             && self.since_in() >= CALM_MS
             && self.since_out() >= QUIET_MS
@@ -172,6 +223,8 @@ impl Shared {
     fn why_not(&self) -> &'static str {
         if self.exit.load(Ordering::Relaxed) >= 0 {
             "ERR_RELAY_GONE"
+        } else if self.handoff.load(Ordering::Relaxed) != 0 {
+            "ERR_RELAY_BUSY"
         } else if self.has_text() {
             "ERR_RELAY_TYPED"
         } else if self.since_out() < QUIET_MS {
@@ -775,6 +828,7 @@ fn run_relevo(extra: &[String]) -> ! {
         last_out: AtomicU64::new(0),
         keys: Mutex::new(KeyWatch::new()),
         inject_at: AtomicU64::new(0),
+        handoff: AtomicU64::new(0),
         exit: AtomicI64::new(-1),
         user_cmd: Mutex::new(None),
         ack: Mutex::new(None),
@@ -861,6 +915,7 @@ fn run_relevo(extra: &[String]) -> ! {
     // Hilo principal — resize, estado y órdenes.
     let dir = state_dir();
     let _ = std::fs::create_dir_all(&dir);
+    prune_handoffs();
     let state_path = dir.join(format!("{pid}.json"));
     let cmd_path = dir.join(format!("{pid}.cmd"));
     let mut last_size = (cols, rows);
@@ -885,9 +940,12 @@ fn run_relevo(extra: &[String]) -> ! {
 
         if let Ok(raw) = std::fs::read_to_string(&cmd_path) {
             let _ = std::fs::remove_file(&cmd_path);
-            let ack = attend(&raw, &sh, &writer);
-            *sh.ack.lock().unwrap() = Some(ack);
-            last_state = 0; // que el estado salga YA con el acuse
+            // None = la secuencia /export+/clear quedó corriendo en su hilo
+            // y publicará el acuse ella misma al terminar.
+            if let Some(ack) = attend(&raw, &sh, &writer) {
+                *sh.ack.lock().unwrap() = Some(ack);
+                last_state = 0; // que el estado salga YA con el acuse
+            }
         }
 
         let now = sh.ms();
@@ -956,29 +1014,55 @@ fn snapshot(sh: &Shared, pid: u32, started: i64, cwd: &PathBuf) -> String {
     .to_string()
 }
 
+/// El acuse con la misma forma en todos los caminos. `export` = ruta de la
+/// copia, si la hubo (además del ok/err — un TYPED tras exportar deja copia
+/// pero no /clear, y las dos cosas tienen que poder decirse).
+fn ack_json(id: &str, text: &str, ok: bool, err: &str, export: Option<&str>) -> serde_json::Value {
+    let mut a =
+        serde_json::json!({"id": id, "ok": ok, "err": err, "text": text, "ts": now_epoch()});
+    if let Some(p) = export {
+        a["export"] = serde_json::json!(p);
+    }
+    a
+}
+
 /// Atiende una orden del panel. Aquí se re-verifican R1-R3 en el INSTANTE
 /// de actuar (R4): que el countdown haya terminado no es un permiso.
+/// Devuelve None si la orden era un /clear con red: la secuencia corre en
+/// su propio hilo (esperar la copia tarda segundos y el bucle principal
+/// tiene que seguir refrescando el estado) y publica el acuse al acabar.
 fn attend(
     raw: &str,
-    sh: &Shared,
+    sh: &Arc<Shared>,
     writer: &Arc<Mutex<Box<dyn Write + Send>>>,
-) -> serde_json::Value {
+) -> Option<serde_json::Value> {
     let v: serde_json::Value = match serde_json::from_str(raw) {
         Ok(v) => v,
-        Err(_) => return serde_json::json!({"ok": false, "err": "ERR_RELAY_BADCMD"}),
+        Err(_) => return Some(serde_json::json!({"ok": false, "err": "ERR_RELAY_BADCMD"})),
     };
     let id = v["id"].as_str().unwrap_or("").to_string();
     let text = v["text"].as_str().unwrap_or("").trim().to_string();
-    let done = |ok: bool, err: &str| {
-        serde_json::json!({"id": id, "ok": ok, "err": err, "text": text, "ts": now_epoch()})
-    };
+    // La red solo acompaña a /clear: /compact no destruye nada que respaldar.
+    let export = v["export"].as_bool().unwrap_or(false) && text == "/clear";
 
     // Lista blanca: es el límite duro de lo que el relevo puede teclear.
     if !ALLOWED.contains(&text.as_str()) {
-        return done(false, "ERR_RELAY_BADCMD");
+        return Some(ack_json(&id, &text, false, "ERR_RELAY_BADCMD", None));
     }
     if !sh.ready() {
-        return done(false, sh.why_not());
+        return Some(ack_json(&id, &text, false, sh.why_not(), None));
+    }
+
+    if export {
+        sh.handoff.store(1, Ordering::Relaxed);
+        let sh2 = sh.clone();
+        let w2 = writer.clone();
+        std::thread::spawn(move || {
+            let ack = handoff(&id, &text, &sh2, &w2);
+            *sh2.ack.lock().unwrap() = Some(ack);
+            sh2.handoff.store(0, Ordering::Relaxed);
+        });
+        return None;
     }
 
     // R5 (sagrada): solo se AÑADE texto. Ni un backspace, ni un Ctrl+U, ni
@@ -986,11 +1070,68 @@ fn attend(
     // habríamos salido por ERR_RELAY_TYPED.
     let mut w = writer.lock().unwrap();
     if w.write_all(format!("{text}\r").as_bytes()).is_err() {
-        return done(false, "ERR_RELAY_WRITE");
+        return Some(ack_json(&id, &text, false, "ERR_RELAY_WRITE", None));
     }
     let _ = w.flush();
     sh.inject_at.store(sh.ms(), Ordering::Relaxed);
-    done(true, "")
+    Some(ack_json(&id, &text, true, "", None))
+}
+
+/// La red de seguridad del /clear: primero `/export <archivo>` —la ruta la
+/// genera el RELEVO, jamás viene del canal—, después se VERIFICA que la
+/// copia existe y tiene contenido, y solo entonces se teclea el /clear.
+/// Sin copia no hay /clear (ERR_RELAY_EXPORT): fail-closed, la misma
+/// familia que R5 — antes perder la limpieza que perder la conversación.
+fn handoff(
+    id: &str,
+    text: &str,
+    sh: &Arc<Shared>,
+    writer: &Arc<Mutex<Box<dyn Write + Send>>>,
+) -> serde_json::Value {
+    let dir = handoff_dir();
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join(format!("handoff-{}-{}.md", std::process::id(), now_epoch()));
+    let ps = path.to_string_lossy().to_string();
+    {
+        let mut w = writer.lock().unwrap();
+        if w.write_all(format!("/export {ps}\r").as_bytes()).is_err() {
+            return ack_json(id, text, false, "ERR_RELAY_WRITE", None);
+        }
+        let _ = w.flush();
+    }
+    sh.inject_at.store(sh.ms(), Ordering::Relaxed);
+    // Esperar la copia: el archivo existe con contenido Y el REPL volvió a
+    // callarse (el "Conversation exported to:" también es salida).
+    let t0 = Instant::now();
+    let ok = loop {
+        std::thread::sleep(Duration::from_millis(250));
+        if sh.exit.load(Ordering::Relaxed) >= 0 {
+            return ack_json(id, text, false, "ERR_RELAY_GONE", None);
+        }
+        let there = std::fs::metadata(&path).map(|m| m.len() > 0).unwrap_or(false);
+        if there && sh.since_out() >= EXPORT_SETTLE_MS {
+            break true;
+        }
+        if t0.elapsed().as_millis() as u64 >= EXPORT_WAIT_MS {
+            break there;
+        }
+    };
+    if !ok {
+        return ack_json(id, text, false, "ERR_RELAY_EXPORT", None);
+    }
+    // R4 otra vez: si el usuario tecleó durante la espera, el /clear pierde
+    // (la copia queda hecha, y el acuse lo dice — no es un fallo, es que
+    // sus manos ganan siempre).
+    if sh.has_text() {
+        return ack_json(id, text, false, "ERR_RELAY_TYPED", Some(&ps));
+    }
+    let mut w = writer.lock().unwrap();
+    if w.write_all(format!("{text}\r").as_bytes()).is_err() {
+        return ack_json(id, text, false, "ERR_RELAY_WRITE", Some(&ps));
+    }
+    let _ = w.flush();
+    sh.inject_at.store(sh.ms(), Ordering::Relaxed);
+    ack_json(id, text, true, "", Some(&ps))
 }
 
 /// Salida temprana con la consola devuelta a como estaba.
@@ -1081,7 +1222,11 @@ fn cmd_status(args: &[String]) {
 }
 
 fn cmd_inject(args: &[String]) {
-    let (pid, text) = match args {
+    // `--export` (solo con /clear): la red de seguridad, igual que la pide
+    // el panel. Sirve para validar la secuencia sin la app en medio.
+    let export = args.iter().any(|a| a == "--export");
+    let rest: Vec<String> = args.iter().filter(|a| *a != "--export").cloned().collect();
+    let (pid, text) = match rest.as_slice() {
         [p, t] => (p.clone(), t.clone()),
         [t] => match live_sessions().first() {
             Some(v) => (v["pid"].as_i64().unwrap_or(0).to_string(), t.clone()),
@@ -1091,7 +1236,7 @@ fn cmd_inject(args: &[String]) {
             }
         },
         _ => {
-            eprintln!("uso: michi inject [sesión] /compact");
+            eprintln!("uso: michi inject [sesión] /compact  |  /clear [--export]");
             std::process::exit(2)
         }
     };
@@ -1103,11 +1248,15 @@ fn cmd_inject(args: &[String]) {
     let id = format!("cli-{}", now_epoch_ms());
     write_atomic(
         &dir.join(format!("{pid}.cmd")),
-        &serde_json::json!({"id": id, "op": "inject", "text": text}).to_string(),
+        &serde_json::json!({"id": id, "op": "inject", "text": text,
+            "export": export && text == "/clear"})
+        .to_string(),
     );
     // Esperar el acuse en el archivo de estado (el relevo mira cada 250 ms).
+    // Con red, la secuencia espera a la copia: hasta ~15 s más de margen.
     let state = dir.join(format!("{pid}.json"));
-    for _ in 0..40 {
+    let tries = if export { 120 } else { 40 };
+    for _ in 0..tries {
         std::thread::sleep(Duration::from_millis(200));
         let Ok(raw) = std::fs::read_to_string(&state) else {
             continue;
@@ -1116,10 +1265,17 @@ fn cmd_inject(args: &[String]) {
             continue;
         };
         if v["last"]["id"].as_str() == Some(id.as_str()) {
+            let copia = v["last"]["export"]
+                .as_str()
+                .map(|p| format!(" (copia: {p})"))
+                .unwrap_or_default();
             if v["last"]["ok"].as_bool().unwrap_or(false) {
-                println!("aplicado: {text}");
+                println!("aplicado: {text}{copia}");
             } else {
-                println!("no se aplicó: {}", v["last"]["err"].as_str().unwrap_or("?"));
+                println!(
+                    "no se aplicó: {}{copia}",
+                    v["last"]["err"].as_str().unwrap_or("?")
+                );
             }
             return;
         }
@@ -1136,6 +1292,9 @@ fn usage() {
            michi status --debug foto cruda (cuentas de teclas, sin contenido)\n\
            michi inject /compact\n\
                                 aplica un comando a la sesión con relevo\n\
+           michi inject /clear --export\n\
+                                /clear con red: guarda antes una copia con\n\
+                                /export y sin copia verificada no borra\n\
          \n\
          El relevo solo puede aplicar {} — nada más.",
         env!("CARGO_PKG_VERSION"),

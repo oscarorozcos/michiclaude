@@ -2897,3 +2897,53 @@ Lecciones:
   hecho. Al cerrar etapa, actualizar el doc que la diseñó.
 - **"$0" sin decir QUÉ cuesta cero confunde**: la inyección es gratis,
   la compactación no — y la diferencia importa para el pitch.
+
+## 2026-08-09 — auto-/clear con red: /export verificado antes de borrar
+
+Oscar pidió, con la captura de una conversación de 729 turnos delante,
+que Michi decida el /clear como ya decide el /compact. El "jamás" del
+auto-/clear tenía escrita su propia salida (remediacion.md §lista blanca:
+"candidato razonable: inyectar /export antes como red") y eso exacto se
+construyó. Diseño completo en remediacion.md §El auto-/clear con red;
+aquí el resumen y lo que se aprendió.
+
+- La regla (a)(b)(c) de la lista blanca no se relajó: a /clear se le
+  CONSTRUYÓ la (b). El relevo teclea `/export <ruta>` (ruta que genera
+  ÉL — jamás viaja por el canal; la lista del canal sigue en 2),
+  VERIFICA que la copia existe con contenido, y solo entonces borra.
+  Sin copia: `ERR_RELAY_EXPORT` y cero /clear.
+- Verificado en el binario 2.1.226 ANTES de escribir código: `/export`
+  a secas abre un menú interactivo (inyectarlo así atraparía el REPL);
+  con argumento escribe directo. Por eso la ruta es obligatoria.
+- La secuencia corre en un hilo propio en las TRES piezas: esperar la
+  copia tarda segundos y bloquear el bucle principal habría dejado el
+  estado sin refrescar >15 s — el panel habría dado la sesión por
+  muerta. De ahí también `ERR_RELAY_BUSY` mientras dura.
+- `STATE_V` 1→2 como compuerta de compatibilidad: un relevo viejo
+  ignoraría la marca `export` y borraría SIN copia — el panel no le
+  pide la red a un v1 (ni manual ni automático).
+- El automático del /clear exige, además de todo lo del /compact:
+  interruptor propio `relayClear` (nace OFF), 3 manuales ganadas,
+  veredicto Boundary del clasificador (en la duda gana /compact, que
+  no borra) y relevo v≥2. El manual de la tarjeta de intención lleva
+  la red siempre que el relevo sepa (v2).
+- VALIDADO en banco de PTY real en el VPS: terminal 13/13 (regresión
+  /compact intacta, /export ANTES de /clear, copia en disco, claude
+  sordo → ERR_RELAY_EXPORT y nada borrado) y chat stream-json 6/6
+  (sid casado, orden, eco de ambas inyecciones visible). PENDIENTE:
+  cargo check y validación en vivo en el Windows de Oscar.
+- Copias en `<datos>/handoff/` (Windows) y `~/.michiclaude/handoff/`
+  (Linux), nombre `handoff-<pid>-<epoch>.md` sin ni un dato del
+  usuario; caducan a los 90 días al arrancar el relevo.
+
+Lecciones:
+
+- **A una prohibición sana no se le quita el candado: se le construye
+  la condición que le faltaba.** /clear no cumplía "no destruye";
+  con copia verificada en disco, la cumple. La prohibición de fondo
+  (jamás borrar sin red) sigue intacta y ahora es código.
+- **La verificación buena es un hecho del disco, no un texto en
+  pantalla**: el archivo existe con contenido. Los textos cambian de
+  idioma y de versión; los archivos no.
+- **Todo lo que espera dentro del relevo va en su hilo**: la misma
+  lección que el 10ter de la app (síncrono congela), versión PTY.

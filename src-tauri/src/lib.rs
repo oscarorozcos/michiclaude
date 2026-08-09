@@ -4151,6 +4151,10 @@ const RELAY_STALE: i64 = 24 * 3600;
 /// nada que huela a contenido: el relevo NUNCA escribe lo tecleado.
 #[derive(Serialize, Default, Clone)]
 struct Relay {
+    /// versión del formato de estado del relevo. ≥2 = sabe hacer la red
+    /// /export antes de un /clear; el panel NO pide la red a uno viejo
+    /// (la ignoraría y borraría sin copia — fail-closed).
+    v: u32,
     pid: u32,
     /// ruta completa donde se lanzó — es la identidad con la que se casa
     /// con la sesión de los logs
@@ -4212,6 +4216,7 @@ fn scan_relays() -> Vec<Relay> {
         }
         let cwd = v["cwd"].as_str().unwrap_or("").to_string();
         out.push(Relay {
+            v: v["v"].as_u64().unwrap_or(1) as u32,
             pid: v["pid"].as_u64().unwrap_or(0) as u32,
             project: path_base(&cwd),
             cwd,
@@ -4296,6 +4301,7 @@ fn scan_relays_remote() -> Vec<Relay> {
             }
             let cwd = v["cwd"].as_str().unwrap_or("").to_string();
             out.push(Relay {
+                v: v["v"].as_u64().unwrap_or(1) as u32,
                 pid: v["pid"].as_u64().unwrap_or(0) as u32,
                 project: path_base(&cwd),
                 cwd,
@@ -4365,9 +4371,16 @@ fn relay_write_cmd(path: &PathBuf, data: &str) -> bool {
 /// texto sale de una lista blanca de dos elementos, pero un día alguien
 /// ampliará esa lista y no quiero que ese día una comilla se convierta en
 /// ejecución remota. Se cierra la puerta antes de que exista.
-fn relay_inject_remote(host: &str, pid: u32, text: &str, id: &str) -> Result<(), String> {
+fn relay_inject_remote(
+    host: &str,
+    pid: u32,
+    text: &str,
+    id: &str,
+    export: bool,
+) -> Result<(), String> {
     use std::io::Write;
-    let body = serde_json::json!({"id": id, "op": "inject", "text": text}).to_string();
+    let body =
+        serde_json::json!({"id": id, "op": "inject", "text": text, "export": export}).to_string();
     let script = format!(
         "d=$HOME/.michiclaude/relevo; mkdir -p $d; cat > $d/{pid}.cmd.tmp && \
          mv $d/{pid}.cmd.tmp $d/{pid}.cmd"
@@ -4392,8 +4405,10 @@ fn relay_inject_remote(host: &str, pid: u32, text: &str, id: &str) -> Result<(),
     if !out.status.success() {
         return Err("ERR_RELAY_WRITE".to_string());
     }
-    // el acuse: el relevo remoto lo publica en su estado, igual que el local
-    for _ in 0..16 {
+    // el acuse: el relevo remoto lo publica en su estado, igual que el local.
+    // Con red, la secuencia espera a la copia: más margen antes de rendirse.
+    let tries = if export { 60 } else { 16 };
+    for _ in 0..tries {
         std::thread::sleep(std::time::Duration::from_millis(500));
         let Some(raw) = ssh_out(host, &format!("cat ~/.michiclaude/relevo/{pid}.json"), "5")
         else {
@@ -4420,11 +4435,16 @@ async fn relay_inject(
     text: String,
     auto: bool,
     origin: Option<String>,
+    export: Option<bool>,
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         if !RELAY_ALLOWED.contains(&text.as_str()) {
             return Err("ERR_RELAY_BADCMD".to_string());
         }
+        // La red de seguridad (/export verificado antes) solo acompaña a
+        // /clear, y solo si el panel la pidió — con un relevo viejo (v1) el
+        // panel NO la pide: la marca se ignoraría y borraría sin copia.
+        let export = export.unwrap_or(false) && text == "/clear";
         // ¿en otra máquina? El origen es el nombre que el usuario le dio al
         // servidor; se traduce a host aquí y no se acepta uno desconocido.
         let origin = origin.unwrap_or_default();
@@ -4433,7 +4453,7 @@ async fn relay_inject(
                 return Err("ERR_RELAY_GONE".to_string());
             };
             let id = format!("app-{}", Utc::now().timestamp_millis());
-            let res = relay_inject_remote(&r.host, pid, &text, &id);
+            let res = relay_inject_remote(&r.host, pid, &text, &id, export);
             log_action("relay", auto, res.is_ok(), text.clone(), origin);
             return res;
         }
@@ -4450,16 +4470,19 @@ async fn relay_inject(
         let id = format!("app-{}", Utc::now().timestamp_millis());
         let wrote = relay_write_cmd(
             &dir.join(format!("{pid}.cmd")),
-            &serde_json::json!({"id": &id, "op": "inject", "text": &text}).to_string(),
+            &serde_json::json!({"id": &id, "op": "inject", "text": &text, "export": export})
+                .to_string(),
         );
         if !wrote {
             log_action("relay", auto, false, text.clone(), proj.clone());
             return Err("ERR_RELAY_WRITE".to_string());
         }
         // El relevo mira su buzón cada 250 ms y publica el acuse en el estado.
-        // 8 s de margen: si en ese tiempo no contestó, no está vivo.
+        // 8 s de margen: si en ese tiempo no contestó, no está vivo. Con red,
+        // la secuencia además espera a la copia: hasta ~15 s más.
         let state = dir.join(format!("{pid}.json"));
-        for _ in 0..40 {
+        let tries = if export { 150 } else { 40 };
+        for _ in 0..tries {
             std::thread::sleep(std::time::Duration::from_millis(200));
             let Ok(raw) = fs::read_to_string(&state) else {
                 continue;

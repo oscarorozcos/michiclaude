@@ -448,15 +448,15 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       Problema: la foto del hub son cuatro TOTALES cocinados (HUB_WINDOWS
       1/7/15/30) y un total no se descompone, así que con rango esas
       máquinas quedan fuera (`hub_skipped`). Solución: que la foto lleve
-      el DESGLOSE POR DÍA (fecha × proyecto × modelo), que ya existe —es
-      lo del export CSV, `want_rows`/ExportRow—; con eso cualquier rango
+      el DESGLOSE POR DÍA (fecha × proyecto × modelo), que ya existe (el
+      export CSV, `want_rows`); con eso cualquier rango
       se suma igual que en local. Coste: la foto pasa a 50-150 KB →
       subirla SOLO cuando cambie. Prueba: dos periodos contiguos suman
       exactamente el total. Límite: solo los días subidos.
 
-- [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05; qué
-      cayó con él y por qué, en la bitácora §"Ronda de rediseño UX/UI",
-      tag `pre-rediseno-20260805`).
+- [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05;
+      historia en bitácora §"Ronda de rediseño UX/UI", tag
+      `pre-rediseno-20260805`).
       DECISIONES VIGENTES: tipografía EMBEBIDA (`src/fonts/`, OFL, sin
       CDN — una fuente remota rompería CSP y privacidad); `.sect` es
       TARJETA con fondo; toda tarjeta con fondo propio redefine
@@ -469,8 +469,8 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (umbral,
       100%, ventana nueva), camino ntfy completo (con PC apagada) y el
       aviso de hallazgos naciendo natural (fuga nueva, panel cerrado,
-      sin re-armar fndSeen). El automático del relevo ya pasó la suya
-      en vivo (2026-08-09: ✓ verde y registro).
+      sin re-armar fndSeen). El auto-/compact ya pasó la suya en vivo
+      (2026-08-09); el AUTO-/CLEAR con red, aún no.
 - [ ] Updater: decidir repo público + publicar tag v* y probar completo.
 - [ ] Capturas del README (las hace Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
@@ -494,34 +494,30 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       DESCARTADO con porqué en el doc: sesión contaminada, score único,
       modelo local, telemetría colectiva (choca con invariante #3).
 - [ ] REMEDIACIÓN (diseño en `docs/remediacion.md` — LEERLO antes de
-      tocar; ahí está lo que chocaba con invariantes y su porqué, y los
-      prompts de maquetas en `docs/prompts-diseno-remediacion.md`).
-      Etapas: 1 consejero, 2 automático out-of-band, 3 relevo ConPTY, 4
-      WSL/SSH. ETAPA 1 COMPLETA
+      tocar; ahí lo que chocaba con invariantes y los prompts de
+      maquetas). Etapas: 1 consejero, 2 automático out-of-band, 3 relevo
+      ConPTY, 4 WSL/SSH. ETAPA 1 COMPLETA
       Y VALIDADA EN VIVO (2026-08-07). ETAPA 2 IMPLEMENTADA y VALIDADA EN
-      VIVO el mismo día (con el go explícito de Oscar — matar procesos
-      era decisión suya; autopsia y receta del zombie de laboratorio en
-      la bitácora): zombies MCP por PowerShell/CIM sin deps nuevas (firma =
+      VIVO el mismo día (go explícito de Oscar; autopsia del
+      zombie en la bitácora): zombies MCP por PowerShell/CIM sin deps nuevas (firma =
       arg más largo de cada MCP stdio de ~/.claude.json; huérfano = padre
       muerto o PID reciclado; kill re-verifica PID+exe+arranque), archivado ≥365d a `%APPDATA%\<app>\archive`,
       registro `actions_log.json` (tope 200, d1/d2 crudos y el panel
       traduce), desbloqueo progresivo (`remCfg`/`remFirst`: zombie ON /
       archive OFF, primera vez SIEMPRE manual) y sondeo horario `remPoll`.
-      SOLO LOCAL: WSL/SSH quedan para la etapa
-      4. De ahí: barras a `/` al casar firmas; PowerShell desde Rust con
+      SOLO LOCAL: WSL/SSH, etapa 4. De ahí: barras a `/` al casar firmas; PowerShell desde Rust con
       saltos de línea REALES (en una línea muere en el parser y hacía
       fallar TODO cierre); el veredicto del kill sale de re-consultar el
-      PID, nunca de `$?`; lo raro deja `rem_debug.json`. ETAPA 3 (relevo) COMPLETA salvo la 4, TODO
-      VALIDADO EN VIVO 2026-08-08 (detalle y autopsias en el doc y la
-      bitácora). REGLAS DURAS antes de tocarlo:
+      PID, nunca de `$?`; lo raro deja `rem_debug.json`. ETAPA 3 COMPLETA
+      salvo la 4, VALIDADA EN VIVO 2026-08-08 (detalle en doc y
+      bitácora). REGLAS DURAS:
       crate APARTE `relevo/` (la app no gana deps, invariante #4);
       canal por ARCHIVOS `%APPDATA%\<app>\relevo\<pid>.json|.cmd`
       (tmp+rename con `.tmp` sobre el nombre ENTERO o estado y orden se
       pisan); viva = estado <15 s; LISTA BLANCA (/compact, /clear) como
       límite duro, comprobada en LOS DOS lados; R2 se INFIERE del
-      silencio de la PTY. **ConPTY negocia `win32-input-mode` a espaldas
-      del que está en medio** — las teclas llegan como
-      `ESC[Vk;Sc;Uc;Kd;Cs;Rc_` y hay que decodificarlas; los avisos del
+      silencio de la PTY. **ConPTY negocia `win32-input-mode`** — las
+      teclas llegan como `ESC[…_` y hay que decodificarlas; los avisos del
       terminal (foco, cursor) NO son teclas; UNA fuente de verdad para
       "hay texto"; un Enter no limpia hasta ver si Claude REACCIONA;
       JAMÁS escribe lo tecleado.
@@ -531,10 +527,18 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       y FAIL-CLOSED ante ambigüedad. Quien
       DECIDE es el relevo: `attend()` revuelve R1-R3 al escribir, que el
       countdown acabe no es permiso. `relayBusy` impide repintar con una
-      cuenta viva (si no, el botón se va y la orden se aplica a ciegas).
+      cuenta viva.
       El motivo del rechazo va en línea propia, nunca en el botón.
       Desbloqueo en `relayDone` (/compact 2, /clear 3; lo que TECLEAS TÚ
-      también cuenta) y `/clear` NO se automatiza aunque se gane. El
+      también cuenta). AUTO-/CLEAR CON RED (2026-08-09, pedido de Oscar;
+      doc §El auto-/clear con red): solo Boundary + interruptor
+      `relayClear` (nace OFF) + 3 manuales + relevo v≥2 (STATE_V=2:
+      a un v1 el panel NO pide la red — borraría sin copia).
+      Red = `/export <ruta>` GENERADA por el relevo (jamás viaja por el
+      canal; la lista sigue en 2), copia VERIFICADA en disco
+      (`<datos>/handoff/`, 90 días) o NO hay /clear (`ERR_RELAY_EXPORT`);
+      secuencia en hilo propio; `/export` sin ruta abre MENÚ — jamás a
+      secas. PENDIENTE cargo check y vivo en Windows. El
       AUTOMÁTICO exige widget A LA VISTA —la cuenta atrás vive en la
       cápsula—, dura 15 s, cualquier toque la para (en el gatito el
       manejador va en CAPTURA) y se marca ANTES de empezar. Un rechazo del
@@ -543,7 +547,7 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       veredicto ✓/✕ en la cápsula: acabar en silencio deja al usuario
       adivinando. ATAJO DEL PATH (`set_relay_alias`): un `claude.cmd` en
       `%APPDATA%\<app>\bin` DELANTE del PATH de usuario — resuelve
-      Windows, no el shell, así que vale para cualquier terminal/editor;
+      Windows, no el shell (cualquier terminal/editor);
       NO alcanza WSL/SSH ni rutas absolutas. NUNCA deja sin Claude Code
       (con `MICHI_RELEVO` o sin michi.exe ejecuta el real). PATH por
       `SetEnvironmentVariable`, JAMÁS `setx` (trunca a 1024); copia en
@@ -551,31 +555,30 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       michi ejecuta el claude real con `MICHI_RELEVO=0` (sin la marca,
       `cmd /c claude` puede resolver a NUESTRO shim y ciclar) — por ahí
       pasa el chat de la extensión, que no es una terminal.
-      Y AUN ASÍ EL CHAT SE RELEVA, por otra puerta (el "imposible" de
-      antes se dictó con media evidencia): `claudeCode.claudeProcessWrapper`
+      Y AUN ASÍ EL CHAT SE RELEVA, por otra puerta:
+      `claudeCode.claudeProcessWrapper`
       es enganche OFICIAL y `michi-relevo.py wrap` proxea stream-json —
       `/compact` como línea `user` lo INTERCEPTA la CLI ($0, turno
       `<synthetic>`). Ahí R1 se cumple POR CONSTRUCCIÓN (líneas atómicas)
       y R2 es CERTEZA (`user` entra → `result` sale): más seguro que la
       terminal; casado por `session_id`. `michi-wrap.sh` va en el ajuste,
       con 3 caminos de emergencia. OJO: `--replay-user-messages` NO
-      replica comandos, así que el relevo emite él la línea de replay
-      para que la inyección SE VEA (solo al chat; el JSONL no se toca).
+      replica comandos: el relevo emite él la línea de replay para que
+      la inyección SE VEA (solo al chat; JSONL intacto).
       Residual: no vemos el borrador del cuadro.
       ETAPA 4: 4a = relevo del VPS en PYTHON (`michi-relevo.py`, stdlib
       pty; el VPS no tiene Rust), embebido y re-subido como el exportador
       junto a `michi-wrap.sh`; mismas constantes/esquema/códigos que
-      main.rs, validado con banco de PTY real. 4b/4c HECHAS y validadas 6/6 contra el
-      relevo de chat vivo: `scan_relays_remote` lee por SSH con UNA
+      main.rs. 4b/4c HECHAS, validadas 6/6 en vivo: `scan_relays_remote` lee por SSH con UNA
       conexión por servidor (solo en el compás del coach; el sondeo de
       5 s conserva las remotas) y `relay_inject_remote` escribe el `.cmd`
       con tmp+rename EN el servidor, con el comando por STDIN y jamás
       interpolado en el shell. Casado en dos niveles: `sid` EXACTO (solo
       chat), si no el `cwd`; los dos exigen la MISMA máquina. El
-      AUTOMÁTICO sí cruza a remotas (pasa `origin`), validado en vivo.
+      AUTOMÁTICO sí cruza a remotas (pasa `origin`), validado.
       El wrapper del chat se enciende desde Ajustes (`set_chat_relay`:
       guion `CHAT_WRAP_PY` por SSH-STDIN; wrapper ajeno NO se pisa,
-      ilegible NO se toca, `.michi-backup` antes de tocar lo ajeno,
+      ilegible NO se toca, `.michi-backup` antes,
       re-sube el lanzador ANTES de encender — clave a archivo
       inexistente = chat muerto). FALTAN: alias `~/.bashrc`, WSL, chat
       del Windows local (pide modo wrap en michi.exe) y que `michi.exe`

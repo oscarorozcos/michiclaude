@@ -16,6 +16,9 @@ Uso:
                                      para claudeCode.claudeProcessWrapper
   michi-relevo.py status [--debug]   sesiones con relevo vivas
   michi-relevo.py inject [pid] /compact
+  michi-relevo.py inject [pid] /clear --export
+                                     /clear con red: guarda antes una copia
+                                     con /export; sin copia no borra
 
 Privacidad, igual que en Windows: el relevo ve cada tecla porque está en
 medio del cable, pero JAMÁS escribe lo tecleado en disco — del tecleo solo
@@ -30,15 +33,23 @@ import struct
 import subprocess
 import sys
 import termios
+import threading
 import time
 import tty
 
-STATE_V = 1
+# 2 = este relevo sabe hacer la red /export antes de un /clear (el panel
+# decide por este número; uno viejo ignoraría la marca y borraría sin copia)
+STATE_V = 2
 ALLOWED = ("/compact", "/clear")
 CALM_MS = 8_000       # R3: calma de teclado
 QUIET_MS = 2_000      # R2: silencio de la PTY ("Claude generando" se INFIERE)
 COOLDOWN_MS = 15_000  # tras inyectar
 SUBMIT_WAIT_MS = 3_000  # un Enter no limpia hasta ver si Claude REACCIONA
+# la red del /clear: espera máxima a que /export escriba su archivo, y
+# silencio de la PTY exigido tras verlo aparecer (el REPL asentado)
+EXPORT_WAIT_MS = 12_000
+EXPORT_SETTLE_MS = 1_500
+HANDOFF_KEEP_DAYS = 90  # una copia más vieja ya cumplió su papel de red
 TICK_S = 0.25
 STATE_EVERY_S = 0.5
 FRESH_S = 15          # viva = estado con menos de esto (MISMA regla que el panel)
@@ -74,6 +85,43 @@ def now_ms():
 
 def now_epoch():
     return int(time.time())
+
+
+# ---------- la red del /clear: /export verificado antes de borrar ----------
+# La ruta de la copia la genera el RELEVO — jamás viene del canal, así que
+# el canal sigue sin poder dictar ni un byte fuera de la lista blanca.
+
+def handoff_path():
+    d = os.path.expanduser("~/.michiclaude/handoff")
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, f"handoff-{os.getpid()}-{now_epoch()}.md")
+
+
+def prune_handoffs():
+    """Al arrancar: las copias de hace más de HANDOFF_KEEP_DAYS se van.
+    Best-effort — un fallo aquí no frena nada."""
+    d = os.path.expanduser("~/.michiclaude/handoff")
+    now = time.time()
+    try:
+        for n in os.listdir(d):
+            p = os.path.join(d, n)
+            try:
+                if now - os.path.getmtime(p) > HANDOFF_KEEP_DAYS * 24 * 3600:
+                    os.unlink(p)
+            except OSError:
+                pass
+    except OSError:
+        pass
+
+
+def ack_row(rid, text, ok, err, export=None):
+    """El acuse con la misma forma en todos los caminos. `export` = ruta de
+    la copia si la hubo (un TYPED tras exportar deja copia pero no /clear,
+    y las dos cosas tienen que poder decirse)."""
+    a = {"id": rid, "ok": ok, "err": err, "text": text, "ts": now_epoch()}
+    if export:
+        a["export"] = export
+    return a
 
 
 # ---------- lector de teclas: de dónde salen `typed` y `user_cmd` ----------
@@ -324,6 +372,10 @@ def run_relevo(extra):
     inject_at = 0
     last_ack = None
     last_state = 0.0
+    # secuencia /export+/clear en curso: el relevo está ocupado (corre en su
+    # hilo para que este bucle siga bombeando pantalla y estado)
+    hand = {"on": False}
+    prune_handoffs()
     d = state_dir()
     state_path = os.path.join(d, f"{pid}.json")
     cmd_path = os.path.join(d, f"{pid}.cmd")
@@ -334,6 +386,8 @@ def run_relevo(extra):
         now = now_ms()
         if child.poll() is not None:
             return "ERR_RELAY_GONE"
+        if hand["on"]:
+            return "ERR_RELAY_BUSY"
         kw.resolve(now, last_out)
         if kw.has_text():
             return "ERR_RELAY_TYPED"
@@ -377,9 +431,63 @@ def run_relevo(extra):
             "last": last_ack,
         })
 
+    def do_handoff(rid, text):
+        """La red del /clear, en su hilo: `/export <copia>` → verificar que
+        la copia existe con contenido y el REPL se calló → re-verificar que
+        el usuario no tecleó → /clear. Sin copia NO hay /clear
+        (ERR_RELAY_EXPORT): antes perder la limpieza que la conversación."""
+        nonlocal inject_at, last_ack
+        path = handoff_path()
+        try:
+            os.write(master, (f"/export {path}\r").encode())
+        except OSError:
+            last_ack = ack_row(rid, text, False, "ERR_RELAY_WRITE")
+            hand["on"] = False
+            return
+        inject_at = now_ms()
+        t0 = time.monotonic()
+        while True:
+            time.sleep(0.25)
+            if child.poll() is not None:
+                last_ack = ack_row(rid, text, False, "ERR_RELAY_GONE")
+                hand["on"] = False
+                return
+            try:
+                there = os.path.getsize(path) > 0
+            except OSError:
+                there = False
+            if there and now_ms() - last_out >= EXPORT_SETTLE_MS:
+                ok = True
+                break
+            if (time.monotonic() - t0) * 1000 >= EXPORT_WAIT_MS:
+                ok = there
+                break
+        if not ok:
+            last_ack = ack_row(rid, text, False, "ERR_RELAY_EXPORT")
+            hand["on"] = False
+            return
+        # R4 otra vez: si tecleó durante la espera, el /clear pierde (la
+        # copia queda hecha y el acuse lo dice — sus manos ganan siempre).
+        kw.resolve(now_ms(), last_out)
+        if kw.has_text():
+            last_ack = ack_row(rid, text, False, "ERR_RELAY_TYPED", path)
+            hand["on"] = False
+            return
+        try:
+            os.write(master, (text + "\r").encode())
+        except OSError:
+            last_ack = ack_row(rid, text, False, "ERR_RELAY_WRITE", path)
+            hand["on"] = False
+            return
+        inject_at = now_ms()
+        last_ack = ack_row(rid, text, True, "", path)
+        hand["on"] = False
+
     def attend(raw):
         """R4: se re-verifica TODO en el instante de escribir. Que el panel
-        haya terminado su countdown no es un permiso. R5: solo se AÑADE."""
+        haya terminado su countdown no es un permiso. R5: solo se AÑADE.
+        Devuelve None si el /clear con red quedó corriendo en su hilo (el
+        acuse lo publica el hilo al terminar)."""
         nonlocal inject_at
         try:
             v = json.loads(raw)
@@ -387,21 +495,24 @@ def run_relevo(extra):
             return {"ok": False, "err": "ERR_RELAY_BADCMD"}
         rid = v.get("id") or ""
         text = (v.get("text") or "").strip()
+        # la red solo acompaña a /clear: /compact no destruye nada
+        export = bool(v.get("export")) and text == "/clear"
         if text not in ALLOWED:
-            return {"id": rid, "ok": False, "err": "ERR_RELAY_BADCMD",
-                    "text": text, "ts": now_epoch()}
+            return ack_row(rid, text, False, "ERR_RELAY_BADCMD")
         w = why_not()
         if w:
-            return {"id": rid, "ok": False, "err": w,
-                    "text": text, "ts": now_epoch()}
+            return ack_row(rid, text, False, w)
+        if export:
+            hand["on"] = True
+            threading.Thread(target=do_handoff, args=(rid, text),
+                             daemon=True).start()
+            return None
         try:
             os.write(master, (text + "\r").encode())
         except OSError:
-            return {"id": rid, "ok": False, "err": "ERR_RELAY_WRITE",
-                    "text": text, "ts": now_epoch()}
+            return ack_row(rid, text, False, "ERR_RELAY_WRITE")
         inject_at = now_ms()
-        return {"id": rid, "ok": True, "err": "", "text": text,
-                "ts": now_epoch()}
+        return ack_row(rid, text, True, "")
 
     code = 1
     try:
@@ -443,7 +554,11 @@ def run_relevo(extra):
                 except OSError:
                     raw = ""
                 if raw.strip():
-                    last_ack = attend(raw)
+                    # None = la secuencia /export+/clear corre en su hilo y
+                    # publicará el acuse ella misma
+                    res = attend(raw)
+                    if res is not None:
+                        last_ack = res
                     last_state = 0.0
             if time.monotonic() - last_state >= STATE_EVERY_S:
                 last_state = time.monotonic()
@@ -551,14 +666,18 @@ def run_wrap(args):
         "user_cmd": None,
         "ack": None,
         "alive": True,
+        "hand": False,          # secuencia /export+/clear en curso
     }
-    lock = __import__("threading").Lock()      # escribir al hijo
-    olock = __import__("threading").Lock()     # escribir al chat
+    lock = threading.Lock()      # escribir al hijo
+    olock = threading.Lock()     # escribir al chat
+    prune_handoffs()
 
     def why_not():
         now = now_ms()
         if not st["alive"] or child.poll() is not None:
             return "ERR_RELAY_GONE"
+        if st["hand"]:
+            return "ERR_RELAY_BUSY"
         if st["busy"]:
             return "ERR_RELAY_BUSY"
         if now - st["last_out"] < QUIET_MS:
@@ -590,43 +709,95 @@ def run_wrap(args):
             "last": st["ack"],
         })
 
-    def attend(raw):
-        try:
-            v = json.loads(raw)
-        except ValueError:
-            return {"ok": False, "err": "ERR_RELAY_BADCMD"}
-        rid = v.get("id") or ""
-        text = (v.get("text") or "").strip()
-        out = lambda ok, err: {"id": rid, "ok": ok, "err": err,
-                               "text": text, "ts": now_epoch()}
-        if text not in ALLOWED:
-            return out(False, "ERR_RELAY_BADCMD")
-        w = why_not()
-        if w:
-            return out(False, w)
-        try:
-            with lock:
-                child.stdin.write(user_line(text).encode())
-                child.stdin.flush()
-        except (OSError, ValueError):
-            return out(False, "ERR_RELAY_WRITE")
+    def send_user(text):
+        """Una línea `user` al hijo Y su eco al chat. El eco es obligatorio:
+        --replay-user-messages replica los mensajes normales pero NO los
+        comandos — la CLI los intercepta antes (medido 2026-08-08). Sin él,
+        la conversación se compactaría/borraría sin que nada en pantalla
+        dijera quién lo pidió — justo el "Michi actuando a tus espaldas" que
+        este proyecto no permite. Se emite la MISMA forma que la CLI usa al
+        replicar un mensaje de usuario, así que la extensión ya sabe
+        pintarla. Va solo al chat: el JSONL lo escribe la CLI y no se toca,
+        así que esto no falsea el registro."""
+        with lock:
+            child.stdin.write(user_line(text).encode())
+            child.stdin.flush()
         st["inject_at"] = now_ms()
         st["busy"] = True
-        # QUE SE VEA EN EL CHAT. --replay-user-messages replica los mensajes
-        # normales pero NO los comandos: la CLI los intercepta antes (medido
-        # 2026-08-08). Sin esto, la conversación se compactaría sin que nada
-        # en pantalla dijera quién lo pidió — justo el "Michi actuando a tus
-        # espaldas" que este proyecto no permite. Se emite la MISMA forma que
-        # la CLI usa al replicar un mensaje de usuario, así que la extensión
-        # ya sabe pintarla. Va solo al chat: el JSONL lo escribe la CLI y no
-        # se toca, así que esto no falsea el registro.
         try:
             with olock:
                 sys.stdout.buffer.write(user_line(text).encode())
                 sys.stdout.buffer.flush()
         except (OSError, ValueError):
             pass
-        return out(True, "")
+
+    def wrap_handoff(rid, text):
+        """La red del /clear en el chat. Aquí es MÁS certeza que en la
+        terminal: el fin del turno del /export lo dice el protocolo
+        (`result` → busy=False), no un silencio inferido. La verificación
+        sigue siendo el archivo: existe con contenido o no hay /clear."""
+        path = handoff_path()
+        try:
+            send_user(f"/export {path}")
+        except (OSError, ValueError):
+            st["ack"] = ack_row(rid, text, False, "ERR_RELAY_WRITE")
+            st["hand"] = False
+            return
+        t0 = time.monotonic()
+        while True:
+            time.sleep(0.25)
+            if child.poll() is not None:
+                st["ack"] = ack_row(rid, text, False, "ERR_RELAY_GONE")
+                st["hand"] = False
+                return
+            try:
+                there = os.path.getsize(path) > 0
+            except OSError:
+                there = False
+            if there and not st["busy"]:
+                ok = True
+                break
+            if (time.monotonic() - t0) * 1000 >= EXPORT_WAIT_MS:
+                ok = there
+                break
+        if not ok:
+            st["ack"] = ack_row(rid, text, False, "ERR_RELAY_EXPORT")
+            st["hand"] = False
+            return
+        try:
+            send_user(text)
+        except (OSError, ValueError):
+            st["ack"] = ack_row(rid, text, False, "ERR_RELAY_WRITE", path)
+            st["hand"] = False
+            return
+        st["ack"] = ack_row(rid, text, True, "", path)
+        st["hand"] = False
+
+    def attend(raw):
+        """Devuelve el acuse, o None si el /clear con red quedó corriendo en
+        su hilo (el acuse lo publica el hilo al terminar)."""
+        try:
+            v = json.loads(raw)
+        except ValueError:
+            return {"ok": False, "err": "ERR_RELAY_BADCMD"}
+        rid = v.get("id") or ""
+        text = (v.get("text") or "").strip()
+        export = bool(v.get("export")) and text == "/clear"
+        if text not in ALLOWED:
+            return ack_row(rid, text, False, "ERR_RELAY_BADCMD")
+        w = why_not()
+        if w:
+            return ack_row(rid, text, False, w)
+        if export:
+            st["hand"] = True
+            threading.Thread(target=wrap_handoff, args=(rid, text),
+                             daemon=True).start()
+            return None
+        try:
+            send_user(text)
+        except (OSError, ValueError):
+            return ack_row(rid, text, False, "ERR_RELAY_WRITE")
+        return ack_row(rid, text, True, "")
 
     def pump_in():
         """Del chat hacia Claude. Cada línea se reenvía INTACTA."""
@@ -686,7 +857,6 @@ def run_wrap(args):
         finally:
             st["alive"] = False
 
-    import threading
     for fn in (pump_in, pump_out):
         threading.Thread(target=fn, daemon=True).start()
 
@@ -700,7 +870,9 @@ def run_wrap(args):
                 except OSError:
                     raw = ""
                 if raw.strip():
-                    st["ack"] = attend(raw)
+                    res = attend(raw)
+                    if res is not None:
+                        st["ack"] = res
             write_atomic(state_path, snapshot())
             time.sleep(STATE_EVERY_S)
     finally:
@@ -753,6 +925,10 @@ def cmd_status(args):
 
 
 def cmd_inject(args):
+    # `--export` (solo con /clear): la red de seguridad, igual que la pide
+    # el panel. Sirve para validar la secuencia sin la app en medio.
+    export = "--export" in args
+    args = [a for a in args if a != "--export"]
     if len(args) == 2:
         pid, text = args
     elif len(args) == 1:
@@ -763,7 +939,8 @@ def cmd_inject(args):
             sys.exit(1)
         pid, text = str(lst[0]["pid"]), args[0]
     else:
-        print("uso: michi-relevo.py inject [sesión] /compact", file=sys.stderr)
+        print("uso: michi-relevo.py inject [sesión] /compact | /clear [--export]",
+              file=sys.stderr)
         sys.exit(2)
     if text not in ALLOWED:
         print(f"michi: solo puedo aplicar {' o '.join(ALLOWED)}",
@@ -772,9 +949,11 @@ def cmd_inject(args):
     d = state_dir()
     rid = f"cli-{int(time.time() * 1000)}"
     write_atomic(os.path.join(d, f"{pid}.cmd"),
-                 json.dumps({"id": rid, "op": "inject", "text": text}))
+                 json.dumps({"id": rid, "op": "inject", "text": text,
+                             "export": export and text == "/clear"}))
     state = os.path.join(d, f"{pid}.json")
-    for _ in range(40):
+    # con red, la secuencia espera a la copia: hasta ~15 s más de margen
+    for _ in range(120 if export else 40):
         time.sleep(0.2)
         try:
             with open(state, encoding="utf-8") as f:
@@ -783,10 +962,11 @@ def cmd_inject(args):
             continue
         last = v.get("last") or {}
         if last.get("id") == rid:
+            copia = f" (copia: {last['export']})" if last.get("export") else ""
             if last.get("ok"):
-                print(f"aplicado: {text}")
+                print(f"aplicado: {text}{copia}")
             else:
-                print(f"no se aplicó: {last.get('err') or '?'}")
+                print(f"no se aplicó: {last.get('err') or '?'}{copia}")
             return
     print("sin respuesta del relevo (¿sigue abierto?)")
 

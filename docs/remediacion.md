@@ -111,7 +111,9 @@ La señal de "lenguaje de cierre" por regex ("listo", "ya quedó") queda
 FUERA: es solo-español y la app es de 8 idiomas.
 
 Mapeo: `Alive` → recomendar /compact, /clear con advertencia (y en
-automático, auto-/clear JAMÁS); `Boundary` → recomendar /clear;
+automático, auto-/clear JAMÁS — matizado el 2026-08-09: existe auto-/clear,
+pero SOLO en Boundary y con la red /export verificada, ver §El auto-/clear
+con red); `Boundary` → recomendar /clear;
 `Uncertain` → SIEMPRE preguntar (la propuesta original resolvía
 Uncertain con un modelo local — descartado, ver abajo). Los todos
 abiertos alimentan la advertencia contextual del /clear ("tienes 2
@@ -539,7 +541,8 @@ superficie visible con el panel cerrado — ver "lo que falta" al final.
   a tus espaldas con un adorno.
 - **`/clear` no se automatiza**, aunque se desbloquee. Borra la memoria de la
   conversación y no se deshace; queda para cuando el automático tenga
-  kilómetros.
+  kilómetros. (Superado el 2026-08-09 a petición de Oscar, con condiciones
+  extra: ver §El auto-/clear con red.)
 - **15 s de cuenta**, el triple que la manual: esto no lo pediste tú.
 - **Cualquier toque en la cápsula (o en el gatito) la para.** En el gatito el
   manejador va en fase de CAPTURA para ganarle a todos los demás: recuperar
@@ -1050,3 +1053,81 @@ pero no se automatiza. Candidato razonable si algún día se automatiza
 /clear para ALGUIEN que lo pida: inyectar `/export` antes como red (la
 arquitectura lo permite — misma lista en tres sitios), pero hoy es
 alcance que nadie ha pedido.
+
+(Al día siguiente, 2026-08-09, Oscar lo pidió con esas palabras. La
+sección de abajo es exactamente ese candidato hecho realidad — y la
+lista blanca del CANAL sigue siendo de 2: el /export no se puede pedir
+desde fuera, lo genera el relevo como parte del /clear con red.)
+
+## El auto-/clear con red (/export verificado) — 2026-08-09
+
+Lo pidió Oscar tras ver el hallazgo de una conversación de 729 turnos:
+"quiero que Michi decida el /clear como ya decide el /compact". La regla
+(a)(b)(c) de arriba no se relaja — se le CONSTRUYE la (b): /clear no
+destruye si antes existe una copia VERIFICADA de la conversación.
+
+**La secuencia** (`handoff` en las tres piezas, invariante #1):
+
+1. La orden llega con la marca `export:true` (solo válida con `/clear`;
+   con /compact se ignora — no hay nada que respaldar).
+2. El relevo genera ÉL la ruta de la copia
+   (`<datos>/handoff/handoff-<pid>-<epoch>.md` en Windows,
+   `~/.michiclaude/handoff/` en Linux). **La ruta JAMÁS viaja por el
+   canal**: la lista blanca sigue siendo de 2 textos y nadie puede
+   dictarle al relevo ni un byte fuera de ella (la puerta que
+   relay_inject_remote cerró antes de que existiera, sigue cerrada).
+3. Teclea `/export <ruta>` y espera la copia: el archivo EXISTE con
+   contenido (esa es la verificación — un hecho del disco, no un texto
+   en pantalla) y el REPL se calló (`EXPORT_SETTLE_MS` 1,5 s; en el
+   chat el fin de turno es certeza: `result`). Tope `EXPORT_WAIT_MS`
+   12 s.
+4. Sin copia → `ERR_RELAY_EXPORT` y **CERO /clear** (fail-closed, el
+   espíritu de R5: antes perder la limpieza que la conversación).
+5. Con copia → re-verifica R1 (¿tecleó durante la espera? el /clear
+   pierde, la copia queda) y teclea `/clear`. El acuse lleva la ruta.
+
+**Decisiones que lo sostienen:**
+
+- **La secuencia corre en SU hilo** (Rust y Python): esperar la copia
+  tarda segundos y el bucle principal tiene que seguir bombeando
+  pantalla y estado — si se bloqueara, el panel daría la sesión por
+  muerta a los 15 s. Mientras dura, el relevo se declara ocupado
+  (`ERR_RELAY_BUSY`) y no acepta otra orden.
+- **`STATE_V` sube a 2** y es la compuerta de compatibilidad: el panel
+  NO pide la red a un relevo v1 — la ignoraría y borraría sin copia,
+  justo lo que la red existe para impedir. Manual con v1 = /clear a
+  secas (lo de siempre); automático con v1 = no se dispara.
+- **`/export` a secas abre un MENÚ interactivo** (verificado en el
+  binario 2.1.226: "Export conversation — Select export method");
+  inyectado sin argumento dejaría el REPL atrapado. Por eso SIEMPRE va
+  con ruta, y con ruta escribe directo y responde "Conversation
+  exported to:". La verificación nuestra es el archivo, no ese texto.
+- **El automático del /clear** (relayAutoCheck) exige TODO lo del
+  /compact (interruptor maestro, presión ≥ INTENT_PCT, relevo casado
+  inequívoco, widget a la vista, una vez por sesión, cuenta de 15 s
+  cancelable) MÁS: interruptor propio `remCfg.relayClear` (nace
+  APAGADO), sus 3 manuales de `/clear` ganadas, veredicto **Boundary**
+  del clasificador (todos al 100% o commit limpio — en la duda gana
+  /compact, que no borra), y relevo v≥2. El manual (botón de la tarjeta
+  de intención) también lleva la red cuando el relevo sabe (v2).
+- **Las copias caducan a los 90 días** (`HANDOFF_KEEP_DAYS`, limpieza
+  al arrancar el relevo). No viajan a ningún sitio: disco local de la
+  máquina donde corre la sesión.
+- `michi inject /clear --export` (y lo mismo en el .py) valida la
+  secuencia sin la app en medio; el acuse enseña la ruta de la copia.
+
+**Validado en banco de PTY real (VPS, 2026-08-09):** terminal 13/13
+(regresión /compact intacta; /export ANTES de /clear con copia en disco;
+claude sordo → ERR_RELAY_EXPORT y cero /clear) y chat 6/6 (sid casado,
+orden de inyecciones, eco de AMBAS visibles en el chat). PENDIENTE:
+`cargo check` + validación en vivo en el Windows de Oscar (el VPS no
+tiene toolchain), y ver de verdad que `/export` del chat en vivo escribe
+el archivo (en el banco lo hace el falso claude; si el real no lo
+escribiera, el fallo es el bueno: ERR_RELAY_EXPORT y nada borrado).
+
+**Residual honesto:** el veredicto Boundary se evalúa al ARMAR la cuenta
+atrás; si en esos 15 s el usuario retoma la tarea, el clasificador no se
+re-consulta — lo cubren R1-R3 (tecleó → se rechaza) y que la cuenta se
+cancela con un toque. Y el título de la sesión exportada lleva el nombre
+del archivo con pid+epoch, no el proyecto: a propósito, ni un dato del
+usuario en el nombre.
