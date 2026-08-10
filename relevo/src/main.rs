@@ -1544,8 +1544,6 @@ fn run_wrap(args: &[String]) -> ! {
     {
         let sh = sh.clone();
         let sp = sp.clone();
-        let banner = banner.clone();
-        let sid = sid.clone();
         std::thread::spawn(move || {
             let inp = std::io::stdin();
             let mut linea = String::new();
@@ -1557,20 +1555,6 @@ fn run_wrap(args: &[String]) -> ! {
                 }
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(linea.trim()) {
                     if v["type"].as_str() == Some("user") {
-                        // El aviso va DELANTE del primer mensaje y no pegado
-                        // al arranque: ahí la interfaz aún no pinta y la línea
-                        // se pierde (medido en vivo, 2026-08-10).
-                        let s = sid.lock().unwrap().clone();
-                        if banner.load(Ordering::Relaxed) == 0 && !s.is_empty() {
-                            banner.store(1, Ordering::Relaxed);
-                            let msg = format!(
-                                "michi · relevo activo (sesión {pid}) — MichiClaude puede aplicar /compact y /clear en esta ventana"
-                            );
-                            let out = std::io::stdout();
-                            let mut lock = out.lock();
-                            let _ = lock.write_all(replay_line(&msg, &s).as_bytes());
-                            let _ = lock.flush();
-                        }
                         sh.last_in.store(sh.ms(), Ordering::Relaxed);
                         sh.busy.store(1, Ordering::Relaxed);
                         // ¿aplicó el usuario uno de los dos por su cuenta?
@@ -1622,10 +1606,14 @@ fn run_wrap(args: &[String]) -> ! {
                     Ok(_) => {}
                 }
                 sh.last_out.store(sh.ms(), Ordering::Relaxed);
+                let mut fin_de_turno = false;
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(linea.trim()) {
                     match v["type"].as_str() {
                         // fin de turno: CERTEZA, no silencio inferido
-                        Some("result") => sh.busy.store(0, Ordering::Relaxed),
+                        Some("result") => {
+                            sh.busy.store(0, Ordering::Relaxed);
+                            fin_de_turno = true;
+                        }
                         Some("system") => {
                             if let Some(s) = v["session_id"].as_str() {
                                 let mut cur = sid.lock().unwrap();
@@ -1645,6 +1633,24 @@ fn run_wrap(args: &[String]) -> ! {
                 let mut lock = out.lock();
                 if lock.write_all(linea.as_bytes()).is_err() {
                     break;
+                }
+                // EL AVISO, al ACABAR el primer turno y no antes. Primero se
+                // probó delante del primer mensaje (como en Linux) y en
+                // Windows no se pintaba nunca — mientras que el eco de un
+                // /compact inyectado, que es la MISMA línea de replay, sale
+                // perfecto. La diferencia era el momento: el eco llega con el
+                // chat en reposo y el aviso llegaba con el mensaje del usuario
+                // en vuelo. Así que se emite donde ya sabemos que se pinta.
+                if fin_de_turno && banner.load(Ordering::Relaxed) == 0 {
+                    let s = sid.lock().unwrap().clone();
+                    if !s.is_empty() {
+                        banner.store(1, Ordering::Relaxed);
+                        let msg = format!(
+                            "michi · relevo activo (sesión {pid}) — MichiClaude puede aplicar /compact y /clear en esta ventana"
+                        );
+                        let _ = lock.write_all(replay_line(&msg, &s).as_bytes());
+                        wrap_trace("aviso emitido al acabar el primer turno");
+                    }
                 }
                 let _ = lock.flush();
             }
