@@ -3279,3 +3279,23 @@ Lecciones de la jornada:
 es el mecanismo —el eco del /compact inyectado usa la MISMA línea de
 replay y sale perfecto—, es cuándo se emite. Pendiente de rastro,
 cosmético.
+
+**Cierre real del 4e (misma noche):** el aviso del chat de Windows YA SE
+PINTA. Tres rondas creyendo que el mecanismo fallaba, y no era eso:
+
+1. Dos rondas con un binario viejo — el ajuste apuntaba a la copia que
+   `tauri dev` rehace en cada arranque. Corregido: en debug manda el
+   michi.exe que uno compila. Un fantasma solo se caza mirando QUÉ
+   ejecutable está corriendo (`Get-Process michi | Select Path`), no
+   releyendo el código.
+2. Y la última: el aviso llegaba mientras el mensaje del usuario iba en
+   vuelo, y ahí la extensión no lo pinta; el eco de un /compact inyectado
+   —la MISMA línea— sí salía porque llega con el chat en reposo. Se emite
+   ahora tras el `result` del primer turno. La pista no vino de una idea
+   nueva sino de comparar dos usos del mismo mecanismo, uno que funcionaba
+   y otro que no, y preguntar en qué se diferenciaban.
+
+De paso: el interruptor tiene que reconocer sus PROPIAS rutas anteriores.
+Si no, tras mover cuál michi.exe se usa, ve su ruta vieja como "wrapper
+ajeno", se niega a pisarla (regla correcta con uno de verdad ajeno) y se
+queda encallado en OTHER sin forma de salir desde la interfaz.

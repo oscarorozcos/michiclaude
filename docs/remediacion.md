@@ -1339,7 +1339,20 @@ rastro contestó a la primera: `auth status --json` → paso directo, y la
 llamada con `--input-format` → relevando. Un enganche invisible necesita un
 rastro desde el primer día, no cuando falla.
 
-**Residual conocido:** el banner «michi · relevo activo» no aparece en el chat
-de Windows (sí en Linux). NO es el mecanismo: el eco del /compact inyectado
-—misma línea de replay— se pinta perfectamente. Es CUÁNDO se emite; pendiente
-de rastro. Cosmético: la función está entera.
+**El aviso, y por qué costó tres rondas.** «michi · relevo activo» no se
+pintaba en el chat de Windows mientras que el eco de un /compact inyectado —la
+MISMA línea de replay— salía perfecto. No era el mecanismo: era el MOMENTO. El
+eco llega con el chat en reposo; el aviso llegaba con el mensaje del usuario en
+vuelo. Se emite ahora justo detrás del `result` del primer turno y aparece. Lo
+que lo desatascó no fue una idea nueva, sino comparar dos cosas que usaban el
+mismo mecanismo y preguntarse en qué se diferenciaban. (En Linux se emite
+delante del primer mensaje y ahí sí funciona; se deja como está por no tocar
+lo validado, y queda anotado que son dos momentos distintos a propósito.)
+
+**Y una trampa de desarrollo que se llevó dos de esas rondas:** el ajuste
+apuntaba a la copia de michi.exe que `tauri dev` deja junto al ejecutable, y esa
+copia se rehace en cada arranque de la app — así que probábamos con un binario
+viejo. En debug manda ahora `relevo/target/release/michi.exe`, el que se
+recompila a mano. Y el interruptor reconoce sus PROPIAS rutas anteriores (por el
+nombre del archivo): si no, ve su ruta vieja como un wrapper ajeno, se niega a
+tocarla —regla correcta con uno de verdad ajeno— y se queda encallado.

@@ -66,20 +66,21 @@ cachea el PARSEO por tamaño+mtime (`scan_cache.json`), nunca el coste. Agrega p
 `by_model`), por modelo, coste hoy/ventana y serie `daily` de 30 días.
 Los proyectos remotos llevan el sufijo del nombre del server.
 
-**Precios Y TECHO DE CONTEXTO:** la misma tabla y la misma cascada
-(LiteLLM → models.dev → OpenRouter, caché 24 h en `prices_cache.json`,
-RESPALDO no verificación cruzada). `price_for()` cae a la embebida
+**Precios Y TECHO DE CONTEXTO:** misma tabla y misma cascada (LiteLLM →
+models.dev → OpenRouter, caché 24 h en `prices_cache.json`, RESPALDO no
+verificación cruzada). `price_for()` cae a la embebida
 `price_table()` y `ctx_for()` a `ctx_table()`; las dos deciden por VERSIÓN,
 no familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75; Fable/Mythos
-$10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`, la UI marca "~". Viajan al exportador por STDIN (`--prices-stdin`). Descarga fallando
->1 semana: aviso ⚠ junto a "costo estimado", no toast. La sección de
+$10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`, la UI marca "~". Viajan al exportador
+por STDIN (`--prices-stdin`). Descarga fallando >1 semana: aviso ⚠ junto
+a "costo estimado", no toast. La sección de
 Ajustes informa de AMBAS cosas (`ctx_count` = modelos con techo): si una
 fuente deja de publicarlo, el número baja a la vista.
 `price_key()` unifica PUNTO→GUIÓN entre dígitos (OpenRouter escribe
 `claude-opus-4.8`, el resto `claude-opus-4-8`): sin eso la 3.ª fuente
-casaba 6 de 14, ocho modelos sin precio ni techo en silencio.
-Auditoría 2026-08-08: las 3 coinciden al céntimo; el techo
-discrepante es sonnet-4-5 (200k base, beta de 1M).
+casaba 6 de 14, ocho modelos sin precio ni techo EN SILENCIO. Auditadas:
+las 3 coinciden al céntimo; el techo discrepante es sonnet-4-5 (200k
+base, beta de 1M).
 
 **C) Remotas (dentro de `get_local_stats`):** `remotes.json` en
 `%APPDATA%\com.oscarorozco.michiclaude\`; por fuente, `ssh -o BatchMode=yes
@@ -271,9 +272,9 @@ lecturas y ~2k tok — MIDE chars devueltos), inflate (+50k y 10+ turnos),
 cachebreak (≥300k reescritos; excluye isSidechain y compactaciones
 ±120 s), mech (≥5; git/pytest/cargo/npm), subagents (≥50k de sidechain),
 hooks_noise (≥15 disparos y ≥10k tok; mira attachments hook_success),
-mcp_unused (resta de conjuntos), skills_unused y claudemd (solo 7d+;
+mcp_unused (resta de conjuntos), skills_unused, claudemd (solo 7d+;
 identificadores por línea contra el texto crudo, rojo solo si NINGUNA
-mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos), y
+mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos) y
 claudemdsize (CLAUDE.md > 40k `CLAUDEMD_LOAD_LIMIT`: lo que sobra no se
 carga; costo 0, solo 7d+).
 Tope 12 por costo en el backend. REGLA: los de "lo instalado" señalan lo
@@ -285,8 +286,8 @@ que NO se usa y lo que cuesta cargarlo, nunca si algo usado "gastó de más".
 Python `parse_ts` da datetime — va `int(ts.timestamp())`.
 
 **Subagentes:** sus turnos llevan el sessionId de la MADRE y NO tocan el
-estado de sesión (turns/first_cr/last_cr/cr_cost/cb) — solo suman a su
-tarjeta; sus tool_use SÍ cuentan. `proj` (carpeta de logs, para casar con
+estado de sesión (turns/first_cr/last_cr/cr_cost/cb); solo suman a su
+tarjeta, y sus tool_use SÍ cuentan. `proj` (carpeta de logs, para casar con
 claudemd) y `disp` (cwd real) van SEPARADOS — unificarlos dejaría
 claudemd en costo 0 en silencio.
 
@@ -295,17 +296,16 @@ Ignorar lleva stopPropagation). Primera apertura: enseña lo guardado al
 instante con "Analizando…" mientras corre el fresco; se refresca al abrir
 la pestaña si tiene >5 min. Precarga a los 15 s.
 
-**Avisos (sin globo desde 2026-08-04):** post-it rojo / campana / contador
-encienden con hallazgos NO VISTOS. Pasada ligera 1d compartida
-`fndPass()`: al NACER UN RECIBO (cierre local; freno 15 min
-`fndEventLast`, marcado ANTES) y cada 3 h de respaldo (era 20 h: los
-nacidos en el VPS no disparan cierre local y quedaban invisibles un
-día). "LEÍDO" = CLIC en la tarjeta, estilo Gmail: abrir la pestaña o el
-post-it NO marca nada; contador y
-post-it descuentan tarjeta por tarjeta al clicarla (plegar/desplegar
-marca; Ignorar apaga la suya; restaurar ignorados revive las no leídas).
-Esto ENTIERRA la TRAMPA DEL VIGILANTE (4 mordidas): nada nace visto por
-estar mirando la pestaña. Los hallazgos NUNCA van al celular
+**Avisos (sin globo):** post-it rojo / campana / contador encienden con
+hallazgos NO VISTOS. Pasada ligera 1d compartida `fndPass()`: al NACER UN
+RECIBO (cierre local; freno 15 min `fndEventLast`, marcado ANTES) y cada
+3 h de respaldo (era 20 h: los nacidos en el VPS no disparan cierre local
+y quedaban invisibles un día). "LEÍDO" = CLIC en la tarjeta, estilo
+Gmail: abrir la pestaña o el post-it NO marca nada; contador y post-it
+descuentan tarjeta por tarjeta al clicarla (plegar/desplegar marca;
+Ignorar apaga la suya; restaurar ignorados revive las no leídas). Esto
+ENTIERRA la TRAMPA DEL VIGILANTE (4 mordidas): nada nace visto por estar
+mirando la pestaña. Los hallazgos NUNCA van al celular
 (privacidad ntfy). El interruptor de Ajustes ("Avisarme en el widget")
 apaga SOLO el widget; los contadores de pestaña quedan siempre. Para
 re-armar en pruebas: borrar fndSeen y fndAutoLast.
@@ -345,30 +345,29 @@ veredicto (unsure = sin insignia), advertencia si hay pendientes, botón
 "Copiar comando" → `plugin:clipboard-manager|write_text` invocado
 directo (capability `clipboard-manager:allow-write-text`, sin wrapper
 npm). Exportador viejo: ignora --coach → cero hits, se
-degrada solo (validado en vivo en el VPS, sondeo ~80 ms). Regla `acomp` (2026-08-08): `compact_boundary` con trigger≠manual y
-<30 min → ficha con los preTokens (los manuales no avisan: los hiciste
-tú; los INYECTADOS por el relevo entran como manual y se auditan solos). TODO `compact_boundary`
-—de quien sea— pone `last_ctx = 0`: el contexto se vació y hasta el
-próximo turno no hay medida (`press` exige >0 y no sale, invariante #8).
-Sin eso el manómetro mentía 10 min y el automático inyectaba un
-/compact redundante ("No messages to compact"). `ctx_seen` intacto.
-La auto-compactación de Claude Code (~94% de su ventana) NO se toca ni se
-sugiere apagar: es la red cuando MichiClaude no está, y apagarla desactiva
-su `precomputeCompactionEnabled`. Entramos al 80% (`INTENT_PCT`): se gana
-por diseño, no por carrera. Y la compactación NO lleva `usage` en el log:
-no se puede facturar, solo se ve en cuota.
+degrada solo (validado en vivo, sondeo ~80 ms). Regla `acomp`:
+`compact_boundary` con trigger≠manual y <30 min → ficha con los preTokens
+(los manuales no avisan: los hiciste tú; los INYECTADOS por el relevo
+entran como manual y se auditan solos). TODO `compact_boundary` —de quien
+sea— pone `last_ctx = 0`: el contexto se vació y hasta el próximo turno no
+hay medida (`press` exige >0 y no sale, invariante #8); sin eso el
+manómetro mentía 10 min y el automático inyectaba un /compact redundante.
+`ctx_seen` intacto. La auto-compactación de Claude Code (~94% de su
+ventana) NO se toca ni se sugiere apagar: es la red cuando MichiClaude no
+está, y apagarla desactiva su `precomputeCompactionEnabled`. Entramos al
+80% (`INTENT_PCT`): se gana por diseño, no por carrera. Y la compactación
+NO lleva `usage`: no se puede facturar, solo se ve en cuota.
 Reglas: ctx≥120k → compact; pausa≥6 min con ctx≥30k → cache; mismo
 archivo leído ≥3 → attach; `ask` (tool_use sin tool_result ≥3 min) y
 `done` (quieta 5 min, 5+ turnos) son SOLO push, no fichas; `sum` (quieta 10 min) = recibo con
 título AI, min/comandos/archivos, `· ~$X` y ⚠ de `coach_leaks()` (kinds
 attach/compact/cache; ctx y cache EXCLUYENTES; cerrar con ctx≥30k es fuga
 al cierre). Anti-spam: tope diario 10 (`tipDay`, sum EXENTO), una tarjeta viva por
-regla, `tipSeen` se marca al ENTRAR al almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`), leído
-(`v`) apaga el aviso sin despachar, caducidad 24 h (TIP_TTL).
-"LEÍDO" = CLIC en la tarjeta (regla Gmail, ver Hallazgos); el ✕ además
-la despacha. Las tarjetas vivas
-(recibos y fichas calientes) se pintan en UNA corriente por `born` desc —
-la más reciente arriba; las frías del catálogo abajo. PENDIENTE FANTASMA
+regla, `tipSeen` se marca al ENTRAR al almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`), leído (`v`)
+apaga el aviso sin despachar, caducidad 24 h (TIP_TTL). "LEÍDO" = CLIC en
+la tarjeta (regla Gmail, ver Hallazgos); el ✕ además la despacha. Las
+vivas (recibos y fichas calientes) van en UNA corriente por `born` desc —
+la más reciente arriba—; las frías del catálogo, abajo. PENDIENTE FANTASMA
 (blindado): un turno nuevo del hilo principal LIMPIA pending_tool; los
 tool_use de subagentes no lo tocan. El nombre del proyecto va RESUELTO desde Rust (`pname`, cwd real). Aviso
 en widget: post-it turquesa / foco ámbar, campo `coach` en quota:update,
@@ -456,11 +455,11 @@ presion-y-rendimiento §"Qué queda vivo".
       lecturas BUENAS, nunca simulador; local, no viaja). (c) MARCAS DE
       ARREGLO (`fndHist`/`fndMarks`, solo hallazgos de estado; visto ≥3
       días + desaparecido ≥2 = arreglado). FASE 2 = pestaña Reporte
-      (`rep_tab`). REGLAS VIGENTES: nunca pintar con uturns=0; mínimo 20
-      fotos de cuota o "juntando datos"; "1M tok ≈ $X" con la tarifa REAL
-      del periodo, jamás fija; el $ SIEMPRE pegado a su dato de tokens
-      (.as-money); caché POR PERIODO y render PROGRESIVO. Fase 3 (export
-      HTML) y lo DESCARTADO, en el doc.
+      (`rep_tab`). REGLAS: nunca pintar con uturns=0; mínimo 20 fotos de
+      cuota o "juntando datos"; "1M tok ≈ $X" con la tarifa REAL del
+      periodo, jamás fija; el $ pegado a su dato de tokens (.as-money);
+      caché POR PERIODO y render PROGRESIVO. Fase 3 y lo DESCARTADO, en
+      el doc.
 - [x] REMEDIACIÓN — LAS 4 ETAPAS COMPLETAS Y VALIDADAS EN VIVO
       (2026-08-07/10). Diseño, historia y lo descartado en
       `docs/remediacion.md` — LEERLO antes de tocar nada de esto. Aquí
@@ -532,7 +531,7 @@ presion-y-rendimiento §"Qué queda vivo".
       del PRIMER mensaje (en el init aún no pinta).
       Residual: no vemos el borrador del cuadro.
       ETAPA 4: el relevo del VPS va en PYTHON (`michi-relevo.py`, stdlib
-      pty; el VPS no tiene Rust), embebido y re-subido como el exportador
+      pty; allí no hay Rust), embebido y re-subido como el exportador
       junto a `michi-wrap.sh`, con las MISMAS constantes/esquema/códigos
       que main.rs. `scan_relays_remote` lee por SSH con UNA conexión por
       servidor (solo en el compás del coach; el sondeo de 5 s conserva
@@ -544,10 +543,9 @@ presion-y-rendimiento §"Qué queda vivo".
       (chat `CHAT_WRAP_PY`, terminal `TERM_ALIAS_PY`) mandan su guion por
       STDIN: wrapper ajeno NO se pisa, ilegible NO se toca,
       `.michi-backup` antes, y el lanzador se re-sube ANTES de encender
-      (clave a archivo inexistente = chat muerto). El alias es una
-      FUNCIÓN de bash con marcas (no un shim: solo shells interactivas),
-      fail-open en cascada y sin bucle posible (las funciones no viajan a
-      subprocesos). `michi.exe` YA VIAJA
+      (clave a archivo inexistente = chat muerto). El alias es una FUNCIÓN
+      de bash con marcas (no un shim: solo shells interactivas), fail-open
+      en cascada y sin bucle (las funciones no viajan a subprocesos). `michi.exe` YA VIAJA
       en el instalador: `bundle.resources` + `beforeBuildCommand` que
       compila el crate — el workflow NO se toca (invariante #9); cae
       JUNTO al exe (medido). WSL (4d): mismos guiones con transporte
@@ -558,16 +556,19 @@ presion-y-rendimiento §"Qué queda vivo".
       del comando contra lista cerrada; y un op desconocido caía en
       APAGAR y contestaba OK (✓ falso) → ahora BADOP.
       `tests/claude-falso.sh` prueba el relevo sin Claude Code.
-      4e CHAT DE WINDOWS HECHO Y VALIDADO: `michi.exe wrap`, con el
-      ajuste apuntando a michi.exe A SECAS (la llamada de la extensión se
-      reconoce por `--input-format`) y `attend`/`handoff` hablando por un
-      `Speaker` — la terminal TECLEA, el chat MANDA protocolo, y R1-R5 y
-      la red del /export NO se duplican. El interruptor NO re-serializa
-      el settings.json: escribe por TEXTO, línea sola en su renglón, y
-      verifica que sigue siendo JSON. `wrap_debug.txt` porque la
-      extensión se come stderr: un enganche que no arranca se ve igual
-      que uno que funciona. Residual cosmético: el banner no se pinta en
-      el chat de Windows (el eco del /compact sí).
+      4e CHAT DE WINDOWS HECHO Y VALIDADO: `michi.exe wrap`, ajuste
+      apuntando a michi.exe A SECAS (la llamada de la extensión se conoce
+      por `--input-format`), `attend`/`handoff` por un `Speaker` —la
+      terminal TECLEA, el chat MANDA protocolo, y R1-R5 y la red del
+      /export NO se duplican—, y el interruptor escribe el settings.json
+      por TEXTO (línea sola en su renglón, verificando que siga siendo
+      JSON) porque es del usuario. `wrap_debug.txt` porque la extensión
+      se come stderr: un enganche que no arranca se ve igual que uno que
+      funciona. El aviso sale tras el `result` del PRIMER turno —con el
+      mensaje en vuelo la extensión no lo pinta; en Linux va delante y ahí
+      sí—. En DEV manda el michi.exe que compila el crate, no la copia que
+      `tauri dev` rehace, y el interruptor reconoce sus rutas viejas o se
+      encalla en OTHER.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO hacer: rastrear otras herramientas, BD de
   historial, modo equipo.
