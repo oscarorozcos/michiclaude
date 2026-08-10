@@ -4950,6 +4950,9 @@ const CHAT_WRAP_PY: &str = r#"
 import json, os, re, sys
 
 op = sys.argv[1] if len(sys.argv) > 1 else "status"
+# misma regla que en TERM_ALIAS_PY: lo que no reconozco no se interpreta
+if op not in ("status", "on", "off"):
+    print("BADOP"); sys.exit(0)
 WRAP = os.path.expanduser("~/.michiclaude/michi-wrap.sh")
 KEY = "claudeCode.claudeProcessWrapper"
 roots = [os.path.expanduser("~/" + d) for d in
@@ -5081,21 +5084,26 @@ fn chat_wrap_remote(host: &str, py: &str, op: &str) -> Result<String, String> {
 /// El `command -v python3` va DENTRO de la misma llamada: arrancar una distro
 /// cuesta, y preguntar dos veces por lo mismo la despertaría dos veces. Sin
 /// python3 la respuesta es NOPYTHON — un hecho, no un fallo genérico.
+///
+/// OJO, LO QUE NOS MORDIÓ (2026-08-10): `wsl.exe` NO entrega los argumentos
+/// posicionales a `sh -c` como hace `ssh` — `$1` llega VACÍO. Aquí eso dejaba
+/// la operación en blanco y el guion la tomaba por "apagar", contestando OK
+/// sin hacer nada: el interruptor decía ✓ y no había tocado la distro. Por eso
+/// la operación va DENTRO del guion; y como eso es interpolar, se comprueba
+/// antes contra la lista cerrada — hoy los tres valores son constantes
+/// nuestras, y mañana también tienen que serlo.
 #[cfg(windows)]
 fn wsl_verdict_py(distro: &str, script: &str, op: &str) -> Result<String, String> {
     use std::io::Write;
     use std::os::windows::process::CommandExt;
+    if !["status", "on", "off"].contains(&op) {
+        return Err("FAIL".to_string());
+    }
+    let sh = format!(
+        "command -v python3 >/dev/null 2>&1 || {{ echo NOPYTHON; exit 0; }}; python3 - {op}"
+    );
     let mut cmd = std::process::Command::new("wsl.exe");
-    cmd.args([
-        "-d",
-        distro,
-        "--",
-        "sh",
-        "-c",
-        "command -v python3 >/dev/null 2>&1 || { echo NOPYTHON; exit 0; }; python3 - \"$1\"",
-        "michi",
-        op,
-    ])
+    cmd.args(["-d", distro, "--", "sh", "-c", &sh])
     .stdin(std::process::Stdio::piped())
     .stdout(std::process::Stdio::piped())
     .stderr(std::process::Stdio::piped())
@@ -5120,26 +5128,24 @@ fn wsl_verdict_py(_distro: &str, _script: &str, _op: &str) -> Result<String, Str
     Err("FAIL".to_string())
 }
 
-/// Deja un guion en `~/.michiclaude/` de la distro. El nombre viaja como
-/// ARGUMENTO (`$1`), nunca pegado a la línea de shell — misma regla que en
-/// SSH. Y los saltos de línea van a LF: dentro de WSL esto es Linux, y un
+/// Deja un guion en `~/.michiclaude/` de la distro. El nombre va dentro del
+/// comando —`wsl.exe` no entrega `$1`, ver `wsl_verdict_py`— y por eso se
+/// comprueba antes contra la lista de los DOS archivos que este programa
+/// sube. Y los saltos de línea van a LF: dentro de WSL esto es Linux, y un
 /// intérprete llamado "python3\r" da un error que no dice nada.
 #[cfg(windows)]
 fn wsl_upload_script(distro: &str, name: &str, body: &str) -> Result<(), String> {
     use std::io::Write;
     use std::os::windows::process::CommandExt;
+    if ![RELEVO_NAME, WRAP_NAME].contains(&name) {
+        return Err("FAIL".to_string());
+    }
+    let sh = format!(
+        "mkdir -p \"$HOME/.michiclaude\" && cat > \"$HOME/.michiclaude/{name}\" \
+         && chmod +x \"$HOME/.michiclaude/{name}\""
+    );
     let mut cmd = std::process::Command::new("wsl.exe");
-    cmd.args([
-        "-d",
-        distro,
-        "--",
-        "sh",
-        "-c",
-        "mkdir -p \"$HOME/.michiclaude\" && cat > \"$HOME/.michiclaude/$1\" \
-         && chmod +x \"$HOME/.michiclaude/$1\"",
-        "michi",
-        name,
-    ])
+    cmd.args(["-d", distro, "--", "sh", "-c", &sh])
     .stdin(std::process::Stdio::piped())
     .stdout(std::process::Stdio::piped())
     .stderr(std::process::Stdio::piped())
@@ -5258,6 +5264,12 @@ const TERM_ALIAS_PY: &str = r##"
 import os, sys
 
 op = sys.argv[1] if len(sys.argv) > 1 else "status"
+# Una operacion que no reconozco NO puede caer en la rama de apagar: eso hacia
+# que un argumento perdido contestara OK sin tocar nada, y el interruptor
+# ensenaba un ✓ que no habia ocurrido (WSL, 2026-08-10). Callar es peor que
+# fallar: aqui se falla a la cara.
+if op not in ("status", "on", "off"):
+    print("BADOP"); sys.exit(0)
 RC = os.path.expanduser("~/.bashrc")
 RELAY = os.path.expanduser("~/.michiclaude/michi-relevo.py")
 A = "# >>> michiclaude relevo >>>"
