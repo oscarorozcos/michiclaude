@@ -36,6 +36,7 @@ import termios
 import threading
 import time
 import tty
+import uuid
 
 # 2 = este relevo sabe hacer la red /export antes de un /clear (el panel
 # decide por este número; uno viejo ignoraría la marca y borraría sin copia)
@@ -65,6 +66,23 @@ FRESH_S = 15          # viva = estado con menos de esto (MISMA regla que el pane
 def user_line(text):
     return json.dumps({"type": "user", "message": {
         "role": "user", "content": [{"type": "text", "text": text}]}}) + "\n"
+
+
+# El eco hacia el CHAT necesita la forma COMPLETA del replay del CLI —
+# session_id, uuid, parent_tool_use_id, timestamp, isReplay — porque la
+# extensión descarta en silencio lo que no case con la sesión (medido
+# 2026-08-10 contra el binario real: la forma corta no se pinta). El hijo,
+# en cambio, recibe siempre la forma corta de user_line().
+def replay_line(text, sid):
+    return json.dumps({
+        "type": "user",
+        "message": {"role": "user",
+                    "content": [{"type": "text", "text": text}]},
+        "session_id": sid, "parent_tool_use_id": None,
+        "uuid": str(uuid.uuid4()),
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S",
+                                   time.gmtime()) + ".000Z",
+        "isReplay": True}) + "\n"
 
 
 # El MISMO texto en terminal y chat: si alguna vez cambia, cambia en los dos.
@@ -740,7 +758,8 @@ def run_wrap(args):
         st["banner"] = True
         try:
             with olock:
-                sys.stdout.buffer.write(user_line(banner_text(pid)).encode())
+                sys.stdout.buffer.write(
+                    replay_line(banner_text(pid), st["sid"]).encode())
                 sys.stdout.buffer.flush()
         except (OSError, ValueError):
             pass
@@ -763,7 +782,8 @@ def run_wrap(args):
         st["busy"] = True
         try:
             with olock:
-                sys.stdout.buffer.write(user_line(text).encode())
+                sys.stdout.buffer.write(
+                    replay_line(text, st["sid"]).encode())
                 sys.stdout.buffer.flush()
         except (OSError, ValueError):
             pass
