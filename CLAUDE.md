@@ -12,7 +12,7 @@ sobre (pasó el 2026-08-04 con 118.8k y dos tercios del archivo sin leerse).
 ## Qué es esta app
 
 Widget de bandeja para Windows 11 con **Tauri 2** que mide en tiempo real
-el uso de Claude (suscripción):
+el uso de Claude por suscripción:
 
 - **Cuota real del plan** (sesión de 5 h + semanales con buckets por
   modelo) — la misma de claude.ai → Configuración → Uso, compartida
@@ -21,7 +21,7 @@ el uso de Claude (suscripción):
 - **Gasto por proyecto** (equiv. API) y modelo más usado, de los logs
   locales. Nota `spend_only_cc`: los $ son SOLO de Claude Code; claude.ai
   gasta cuota pero no es medible en dinero.
-- **Icono de bandeja dinámico** (% de sesión dibujado en canvas).
+- **Icono de bandeja** dinámico (% de sesión dibujado en canvas).
 - **Analizador de fugas** (Hallazgos) y **coach** (Consejos).
 - **Modo HUB** multi-máquina y **avisos al celular** (ntfy).
 
@@ -248,7 +248,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   cadencia de cuota 3 min (60 s disparaba 429); el gauge conserva el
   último dato bueno 15 min. OJO: muchos arranques seguidos
   (compilar-probar) acaban en 429 de 60 MINUTOS.
-- Instancia única (single-instance, registrado primero).
+- Instancia única (single-instance, registrado el primero).
 - Si se toca algo que `emitPill()` calcula: `emitPill(...lastPillArgs)`,
   NUNCA parchear un campo suelto de `lastPill` (dejaba el tema viejo).
 - Export CSV/JSON: UNA fila por hecho (fecha × proyecto × modelo ×
@@ -257,7 +257,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   periodo propio (1/7/15/30). Un export es una foto.
 - Presupuesto semanal: contra la suma de los últimos 7 días de la serie
   diaria, no contra la ventana elegida.
-- Autostart solo release, una vez (marker); si lo apagan, se respeta.
+- Autostart solo en release, una vez (marker); si lo apagan, se respeta.
 
 ## Analizador de fugas (pestaña Hallazgos)
 
