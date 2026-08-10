@@ -726,6 +726,25 @@ def run_wrap(args):
             "last": st["ack"],
         })
 
+    def emit_banner():
+        """El banner del chat: el gemelo del de la terminal. Va SOLO al chat
+        (el hijo no lo recibe, el JSONL no lo registra), UNA vez por
+        conversación — se re-arma cuando cambia el session_id. NO se emite
+        pegado al init: en el arranque la interfaz aún no pinta y la línea
+        se pierde (medido 2026-08-10); se emite delante de la PRIMERA
+        actividad de usuario, cuando el chat seguro está mirando."""
+        # sin init visto aún no hay sesión donde pintarlo: se deja pasar SIN
+        # gastar el turno — la siguiente actividad lo reintenta
+        if st["banner"] or not st["sid"]:
+            return
+        st["banner"] = True
+        try:
+            with olock:
+                sys.stdout.buffer.write(user_line(banner_text(pid)).encode())
+                sys.stdout.buffer.flush()
+        except (OSError, ValueError):
+            pass
+
     def send_user(text):
         """Una línea `user` al hijo Y su eco al chat. El eco es obligatorio:
         --replay-user-messages replica los mensajes normales pero NO los
@@ -736,6 +755,7 @@ def run_wrap(args):
         replicar un mensaje de usuario, así que la extensión ya sabe
         pintarla. Va solo al chat: el JSONL lo escribe la CLI y no se toca,
         así que esto no falsea el registro."""
+        emit_banner()
         with lock:
             child.stdin.write(user_line(text).encode())
             child.stdin.flush()
@@ -823,6 +843,8 @@ def run_wrap(args):
                 try:
                     v = json.loads(line)
                     if v.get("type") == "user":
+                        emit_banner()   # delante del primer mensaje: la
+                                        # pestaña toma el nombre del banner
                         st["last_in"] = now_ms()
                         st["busy"] = True
                         # ¿el usuario aplicó él mismo uno de los dos? cuenta
@@ -857,28 +879,22 @@ def run_wrap(args):
         try:
             for line in iter(child.stdout.readline, b""):
                 st["last_out"] = now_ms()
-                banner = b""
                 try:
                     v = json.loads(line)
                     t = v.get("type")
                     if t == "result":
                         st["busy"] = False       # fin de turno: CERTEZA
                     if t == "system" and v.get("session_id"):
+                        # sesión NUEVA en el mismo proceso (conversación
+                        # nueva o /clear): el banner se re-arma para que
+                        # cada conversación estrene el suyo
+                        if st["sid"] and v["session_id"] != st["sid"]:
+                            st["banner"] = False
                         st["sid"] = v["session_id"]
-                        # El banner del chat: el gemelo del de la terminal.
-                        # Va SOLO al chat (el hijo no lo recibe, el JSONL no
-                        # lo registra), una vez por proceso, pegado detrás
-                        # del mensaje de inicio para que sea lo primero que
-                        # se pinte — y lo que dé nombre a la pestaña.
-                        if not st["banner"]:
-                            st["banner"] = True
-                            banner = user_line(banner_text(pid)).encode()
                 except ValueError:
                     pass
                 with olock:
                     sys.stdout.buffer.write(line)
-                    if banner:
-                        sys.stdout.buffer.write(banner)
                     sys.stdout.buffer.flush()
         except (OSError, ValueError):
             pass
