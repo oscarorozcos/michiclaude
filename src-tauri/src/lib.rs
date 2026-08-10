@@ -5113,6 +5113,22 @@ fn same_path(a: &str, b: &str) -> bool {
         && a.replace('/', "\\").to_lowercase() == b.replace('/', "\\").to_lowercase()
 }
 
+/// ¿Ese wrapper es NUESTRO, aunque apunte a otra copia? michi.exe vive en
+/// varios sitios legítimos (junto a la app instalada, en `resources`, en el
+/// target del crate durante el desarrollo) y una actualización puede mover
+/// cuál se usa. Sin esto, el interruptor ve su propia ruta vieja como "de
+/// otro", se niega a tocarla —que es la regla correcta con un wrapper
+/// ajeno— y se queda encallado (visto 2026-08-10). Se reconoce por el
+/// nombre del archivo: ningún otro programa envuelve Claude Code con algo
+/// llamado michi.exe.
+fn wrapper_nuestro(v: &str) -> bool {
+    PathBuf::from(v.replace('/', "\\"))
+        .file_name()
+        .and_then(|n| n.to_str())
+        .map(|n| n.eq_ignore_ascii_case("michi.exe"))
+        .unwrap_or(false)
+}
+
 /// Nuestra línea, SIEMPRE la primera del objeto, con su coma y SOLA en su
 /// renglón: así quitarla después es borrar exactamente esa línea sin dejar el
 /// JSON cojo ni llevarse nada del usuario. Lo de "sola" no es estética —
@@ -5170,7 +5186,7 @@ fn local_chat_status() -> String {
             Some(v) => {
                 let cur = v[WRAP_KEY].as_str().unwrap_or("");
                 if cur.is_empty() {
-                } else if same_path(cur, &michi) {
+                } else if wrapper_nuestro(cur) {
                     on = true;
                 } else {
                     other = true;
@@ -5213,13 +5229,16 @@ fn local_chat_set(on: bool) -> String {
         let cur = v[WRAP_KEY].as_str().unwrap_or("").to_string();
         let nuevo = if on {
             if same_path(&cur, &michi) {
-                continue; // ya estaba
+                continue; // ya estaba, y apuntando aquí
             }
-            if !cur.is_empty() {
+            if !cur.is_empty() && !wrapper_nuestro(&cur) {
                 out = "OTHER"; // wrapper de otro: no se pisa
                 continue;
             }
-            match wrap_key_insert(&raw, &michi) {
+            // nuestro pero de otra copia (una actualización movió cuál se
+            // usa): se quita la línea vieja y se pone la de ahora
+            let base = if cur.is_empty() { raw.clone() } else { wrap_key_remove(&raw) };
+            match wrap_key_insert(&base, &michi) {
                 Some(n) => n,
                 None => {
                     out = "MANUAL";
@@ -5227,7 +5246,7 @@ fn local_chat_set(on: bool) -> String {
                 }
             }
         } else {
-            if !same_path(&cur, &michi) {
+            if !wrapper_nuestro(&cur) {
                 continue; // no es nuestro: no se quita
             }
             wrap_key_remove(&raw)
