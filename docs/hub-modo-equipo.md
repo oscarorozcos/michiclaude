@@ -541,3 +541,18 @@ Dos cosas juegan a favor: los que sí tienen el problema son los **usuarios
 pesados** —laptop + servidor, o PC personal + del trabajo—, justo quienes más
 se preocupan por su cuota. Y todos los que lo resolvieron son CLI o
 dashboards web: **ninguno es un widget de bandeja**.
+
+## Rangos de fecha con hub (diseño aplazado, 2026-08-05)
+
+Movido desde CLAUDE.md el 2026-08-10 (el archivo rozaba su tope de 40k).
+NO hacer hasta que haya una segunda máquina con MichiClaude — hoy no
+aporta nada.
+
+Problema: la foto del hub son cuatro TOTALES cocinados (HUB_WINDOWS
+1/7/15/30) y un total no se descompone, así que con rango esas máquinas
+quedan fuera (`hub_skipped`). Solución: que la foto lleve el DESGLOSE POR
+DÍA (fecha × proyecto × modelo), que ya existe (el export CSV,
+`want_rows`); con eso cualquier rango se suma igual que en local. Coste:
+la foto pasa a 50-150 KB → subirla SOLO cuando cambie. Prueba: dos
+periodos contiguos suman exactamente el total. Límite: solo los días
+subidos.

@@ -4902,9 +4902,11 @@ struct ChatRelayRow {
     state: String,
 }
 
-/// Ejecuta el guion en el servidor con el MISMO python del exportador (ya
-/// verificado en el alta) y devuelve su veredicto de una palabra.
-fn chat_wrap_remote(host: &str, py: &str, op: &str) -> Result<String, String> {
+/// Ejecuta un guion en el servidor con el MISMO python del exportador (ya
+/// verificado en el alta) y devuelve su veredicto de una palabra. El guion
+/// viaja por STDIN, jamás interpolado en la línea de shell. Lo comparten el
+/// wrapper del chat y el alias de ~/.bashrc.
+fn remote_verdict_py(host: &str, py: &str, script: &str, op: &str) -> Result<String, String> {
     use std::io::Write;
     let mut cmd = std::process::Command::new("ssh");
     cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
@@ -4920,7 +4922,7 @@ fn chat_wrap_remote(host: &str, py: &str, op: &str) -> Result<String, String> {
     }
     let mut child = cmd.spawn().map_err(|_| "FAIL".to_string())?;
     if let Some(mut si) = child.stdin.take() {
-        let _ = si.write_all(CHAT_WRAP_PY.replace("\r\n", "\n").as_bytes());
+        let _ = si.write_all(script.replace("\r\n", "\n").as_bytes());
     }
     let out = child.wait_with_output().map_err(|_| "FAIL".to_string())?;
     if !out.status.success() {
@@ -4931,6 +4933,10 @@ fn chat_wrap_remote(host: &str, py: &str, op: &str) -> Result<String, String> {
         return Err("FAIL".to_string());
     }
     Ok(word)
+}
+
+fn chat_wrap_remote(host: &str, py: &str, op: &str) -> Result<String, String> {
+    remote_verdict_py(host, py, CHAT_WRAP_PY, op)
 }
 
 /// El python del exportador es el primer token de su comando; si el usuario
@@ -4973,6 +4979,130 @@ async fn set_chat_relay(on: bool) -> Result<Vec<ChatRelayRow>, String> {
             }
             let state =
                 chat_wrap_remote(&r.host, &remote_python(&r), op).unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: r.name.clone(), state });
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+// ---------------------------------------------------------------------------
+// El alias de ~/.bashrc en los servidores (etapa 4, el fleco de las
+// terminales): que teclear `claude` en una sesión SSH pase por
+// michi-relevo.py sin cambiar el hábito. Es la pareja Linux del shim del
+// PATH, con las diferencias que impone el terreno: en Linux el enganche es
+// una FUNCIÓN de bash en ~/.bashrc (bloque con MARCAS que se reemplaza
+// entero al actualizar), no un .cmd en el PATH. Sin bucle posible: las
+// funciones de bash NO viajan a subprocesos, así que cuando el relevo lanza
+// `claude` por PATH encuentra el binario real.
+// ---------------------------------------------------------------------------
+
+/// Guion que corre EN el servidor (por STDIN, como CHAT_WRAP_PY). Mismas
+/// reglas de respeto: backup `.michi-backup` una sola vez antes del primer
+/// toque, marcas desbalanceadas = MANUAL (alguien editó a mano, no se toca),
+/// encender sin el relevo subido = NORELAY. La función es fail-open por
+/// construcción: sin TTY, sin script o con MICHI_RELEVO puesto cae al
+/// claude real — lo peor permitido es quedarse sin relevo, jamás sin Claude.
+// OJO con el delimitador: el guion contiene `"# >>>` (comilla+almohadilla,
+// las marcas del bloque) y eso CIERRA un r#"…"# normal — de ahí el ##.
+const TERM_ALIAS_PY: &str = r##"
+import os, sys
+
+op = sys.argv[1] if len(sys.argv) > 1 else "status"
+RC = os.path.expanduser("~/.bashrc")
+RELAY = os.path.expanduser("~/.michiclaude/michi-relevo.py")
+A = "# >>> michiclaude relevo >>>"
+B = "# <<< michiclaude relevo <<<"
+BLOCK = A + """
+# Gestionado por MichiClaude: se reemplaza ENTERO al actualizar. No editar.
+# Solo terminales interactivas; en scripts o sin relevo, el claude real.
+claude() {
+  if [ -z "$MICHI_RELEVO" ] && [ -t 0 ] && [ -t 1 ] && [ -f "$HOME/.michiclaude/michi-relevo.py" ] && command -v python3 >/dev/null 2>&1; then
+    python3 "$HOME/.michiclaude/michi-relevo.py" claude "$@"
+  else
+    command claude "$@"
+  fi
+}
+""" + B + "\n"
+
+raw = ""
+if os.path.isfile(RC):
+    raw = open(RC, encoding="utf-8", errors="replace").read()
+a, b = raw.find(A), raw.find(B)
+# una marca sin la otra, o el cierre antes que la apertura: lo editaron a
+# mano y una cirugia a ciegas podria llevarse texto ajeno
+if (a < 0) != (b < 0) or (0 <= b < a):
+    print("MANUAL"); sys.exit(0)
+
+if op == "status":
+    print("ON" if a >= 0 else "OFF"); sys.exit(0)
+
+if op == "on":
+    if not os.path.isfile(RELAY):
+        print("NORELAY"); sys.exit(0)
+    if a >= 0:
+        end = b + len(B)
+        if raw[end:end + 1] == "\n":
+            end += 1
+        new = raw[:a] + BLOCK + raw[end:]
+    else:
+        sep = "" if not raw else ("\n" if raw.endswith("\n") else "\n\n")
+        new = raw + sep + BLOCK
+else:
+    if a < 0:
+        print("OK"); sys.exit(0)
+    end = b + len(B)
+    if raw[end:end + 1] == "\n":
+        end += 1
+    head = raw[:a]
+    # el renglon en blanco que abrimos al insertar se cierra al quitar
+    if head.endswith("\n\n"):
+        head = head[:-1]
+    new = head + raw[end:]
+
+if new == raw:
+    print("OK"); sys.exit(0)
+if raw and not os.path.isfile(RC + ".michi-backup"):
+    open(RC + ".michi-backup", "w", encoding="utf-8").write(raw)
+tmp = RC + ".michi.tmp"
+with open(tmp, "w", encoding="utf-8") as f:
+    f.write(new)
+if os.path.isfile(RC):
+    os.chmod(tmp, os.stat(RC).st_mode & 0o7777)
+os.replace(tmp, RC)
+print("OK")
+"##;
+
+#[tauri::command]
+async fn term_relay_status() -> Result<Vec<ChatRelayRow>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut out = Vec::new();
+        for r in load_remotes() {
+            let state = remote_verdict_py(&r.host, &remote_python(&r), TERM_ALIAS_PY, "status")
+                .unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: r.name.clone(), state });
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn set_term_relay(on: bool) -> Result<Vec<ChatRelayRow>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let op = if on { "on" } else { "off" };
+        let mut out = Vec::new();
+        for r in load_remotes() {
+            if on {
+                // el relevo se refresca ANTES de encender: con el script
+                // ausente la función caería al claude real (fail-open) pero
+                // el interruptor diría "encendido" — mentira silenciosa
+                let _ = upload_script(&r.host, REMOTE_RELEVO_PATH, REMOTE_RELEVO);
+            }
+            let state = remote_verdict_py(&r.host, &remote_python(&r), TERM_ALIAS_PY, op)
+                .unwrap_or_else(|e| e);
             out.push(ChatRelayRow { name: r.name.clone(), state });
         }
         Ok(out)
@@ -5443,7 +5573,9 @@ pub fn run() {
             relay_alias_status,
             set_relay_alias,
             chat_relay_status,
-            set_chat_relay
+            set_chat_relay,
+            term_relay_status,
+            set_term_relay
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

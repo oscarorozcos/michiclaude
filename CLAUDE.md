@@ -422,15 +422,8 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
 2026-08-08/09"; métricas: presion-y-rendimiento §"Qué queda vivo".
 
 - [ ] HUB + RANGOS DE FECHA (2026-08-05; NO hacer hasta que haya una
-      segunda máquina con MichiClaude — hoy no aporta nada).
-      Problema: la foto del hub son cuatro TOTALES cocinados (HUB_WINDOWS
-      1/7/15/30) y un total no se descompone, así que con rango esas
-      máquinas quedan fuera (`hub_skipped`). Solución: que la foto lleve
-      el DESGLOSE POR DÍA (fecha × proyecto × modelo), que ya existe (el
-      export CSV, `want_rows`); con eso cualquier rango
-      se suma igual que en local. Coste: la foto pasa a 50-150 KB →
-      subirla SOLO cuando cambie. Prueba: dos periodos contiguos suman
-      exactamente el total. Límite: solo los días subidos.
+      segunda máquina con MichiClaude — hoy no aporta nada). Diseño
+      completo en `docs/hub-modo-equipo.md` §"Rangos de fecha con hub".
 
 - [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05;
       historia en bitácora §"Ronda de rediseño UX/UI", tag
@@ -561,9 +554,14 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       guion `CHAT_WRAP_PY` por SSH-STDIN; wrapper ajeno NO se pisa,
       ilegible NO se toca, `.michi-backup` antes,
       re-sube el lanzador ANTES de encender — clave a archivo
-      inexistente = chat muerto). FALTAN: alias `~/.bashrc`, WSL, chat
-      del Windows local (pide modo wrap en michi.exe) y que `michi.exe`
-      viaje en el instalador (workflow, invariante #9).
+      inexistente = chat muerto). ALIAS `~/.bashrc` HECHO (2026-08-10,
+      validado 29/29 en el VPS): guion `TERM_ALIAS_PY` +
+      `term_relay_status`/`set_term_relay`, FUNCIÓN de bash con marcas
+      (no shim: solo shells interactivas), fail-open en cascada, sin
+      bucle (las funciones no viajan a subprocesos); `"#` dentro del
+      guion exige `r##"…"##`. FALTAN: WSL, chat del Windows local (pide
+      modo wrap en michi.exe) y que `michi.exe` viaje en el instalador
+      (workflow, invariante #9).
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO hacer: rastrear otras herramientas, BD de
   historial, modo equipo.

@@ -3079,3 +3079,56 @@ Lecciones:
   real prueba tu idea del mundo.**
 - **A una prohibición sana no se le quita el candado: se le construye la
   condición que le faltaba.**
+
+## 2026-08-10 — etapa 4: el alias de ~/.bashrc para las terminales SSH
+
+El fleco de las terminales de los servidores, cerrado desde el propio VPS
+(la máquina donde va a vivir). Detalle de diseño en remediacion.md §"El
+alias de ~/.bashrc"; aquí la jornada y sus lecciones.
+
+**Qué se hizo:** guion `TERM_ALIAS_PY` embebido en lib.rs (viaja por
+SSH-STDIN, jamás interpolado; veredictos de una palabra), comandos
+`term_relay_status`/`set_term_relay` (misma coreografía que el wrapper del
+chat: re-subir el relevo ANTES de encender), ejecutor SSH generalizado
+(`remote_verdict_py`, ahora compartido con `chat_wrap_remote` sin cambiar
+su firma), interruptor en Ajustes bajo el del chat (oculto sin servidores,
+invariante #8) y claves `rly_term_*` en los 8 idiomas.
+
+**El enganche es una FUNCIÓN de bash, no un alias ni un shim:** necesita
+decidir (¿TTY?, ¿está el relevo?, ¿ya relevado?) y `~/.bashrc` solo lo
+leen las shells interactivas — los scripts ni se enteran, que es el
+reparto correcto. Fail-open en cascada al `command claude`. Sin bucle por
+construcción: las funciones de bash no viajan a subprocesos, así que el
+relevo resuelve `claude` por PATH y da con el binario real.
+
+**Validación: banco de 29 comprobaciones contra un HOME falso, 29/29.**
+Ciclo on/off que devuelve el archivo byte a byte, backup exacto una sola
+vez, idempotencia, marcas rotas = MANUAL sin tocar nada, bloque viejo
+reemplazado entero, permisos 600 conservados, `bash -n`, y la función
+corriendo de verdad: TTY simulada con `script(1)` → banner del relevo y
+el claude real debajo; sin TTY o con `MICHI_RELEVO` → directo al real.
+La invocación por STDIN (`python3 - status`) probada tal cual la hará
+Rust, y el guion re-extraído del lib.rs para confirmar que lo embebido es
+idéntico a lo probado.
+
+Lecciones:
+
+- **El único fallo de la primera pasada era el guard funcionando:** el
+  banco corría DENTRO de una sesión ya relevada (este Claude Code del VPS
+  va bajo michi-relevo.py) y el `MICHI_RELEVO` heredado disparaba el
+  fail-open anti-anidamiento — el relevo hijo cedió al claude real, que
+  es exactamente lo prometido. Validación en vivo gratis; el banco ahora
+  limpia la variable con `env -u`.
+- **`"#` dentro de un raw string de Rust lo CIERRA:** las marcas del
+  bloque (`A = "# >>> …"`) contienen comilla+almohadilla y matan un
+  `r#"…"#` — el guion va en `r##"…"##`. Sin toolchain en el VPS lo cazó
+  la revisión a mano; cargo check en Windows lo habría dicho, pero mejor
+  no viajar roto.
+- **CLAUDE.md rozó su tope de 40k al anotar el avance** (40.314): el
+  diseño aplazado de HUB+rangos se movió ÍNTEGRO a hub-modo-equipo.md y
+  quedó el puntero. La regla del archivo aplicada al archivo.
+
+**Pendiente que abre:** cargo check en el Windows de Oscar (aquí no hay
+toolchain) y la validación de punta a punta desde el panel (encender el
+interruptor, abrir una SSH nueva, ver el banner). De la etapa 4 quedan:
+WSL, chat del Windows local y michi.exe en el instalador.

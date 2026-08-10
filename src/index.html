@@ -1502,6 +1502,14 @@
         <span data-i18n="rly_chat_on"></span><input type="checkbox" id="rlyChatChk">
       </label>
       <div class="cfg-note" id="rlyChatMsg" hidden></div>
+      <!-- Terminales de los servidores SSH (etapa 4, el fleco que faltaba):
+           función `claude()` en el ~/.bashrc remoto, bloque con marcas que
+           gestiona el guion TERM_ALIAS_PY de Rust. Fail-open por
+           construcción: sin TTY, sin relevo o ya relevada, el claude real. -->
+      <label class="cfg-row" style="cursor:pointer;margin-top:6px" id="rlyTermRow" hidden>
+        <span data-i18n="rly_term_on"></span><input type="checkbox" id="rlyTermChk">
+      </label>
+      <div class="cfg-note" id="rlyTermMsg" hidden></div>
       <!-- Automático (3c-2). Nace APAGADO y con candado: la cuenta atrás vive
            en la cápsula del widget, así que con el widget oculto no actúa. -->
       <label class="cfg-row" style="cursor:pointer;margin-top:6px">
@@ -2048,6 +2056,10 @@ en:{
   rly_chat_novs:"no VS Code on the server",
   rly_chat_nowrap:"the relay launcher is not on the server",
   rly_chat_fail:"no connection",
+  rly_term_on:"Relay «claude» in the SSH servers' terminals",
+  rly_term_reload:"open a new SSH session so it takes effect.",
+  rly_term_manual:"the ~/.bashrc block was edited by hand (left untouched)",
+  rly_term_norelay:"the relay (michi-relevo.py) is not on the server",
   rem_log_relay:(cmd,proj)=>`applied ${cmd} in «${proj}»`,
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
@@ -2480,6 +2492,10 @@ es:{
   rly_chat_novs:"sin VS Code en el servidor",
   rly_chat_nowrap:"el lanzador del relevo no está en el servidor",
   rly_chat_fail:"sin conexión",
+  rly_term_on:"Relevar «claude» en las terminales de los servidores SSH",
+  rly_term_reload:"abre una sesión SSH nueva para que lo tome.",
+  rly_term_manual:"el bloque de ~/.bashrc está editado a mano (no se toca)",
+  rly_term_norelay:"el relevo (michi-relevo.py) no está en el servidor",
   rem_log_relay:(cmd,proj)=>`aplicó ${cmd} en «${proj}»`,
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
@@ -2912,6 +2928,10 @@ pt:{
   rly_chat_novs:"sem VS Code no servidor",
   rly_chat_nowrap:"o lançador do revezamento não está no servidor",
   rly_chat_fail:"sem conexão",
+  rly_term_on:"Revezar «claude» nos terminais dos servidores SSH",
+  rly_term_reload:"abra uma nova sessão SSH para valer.",
+  rly_term_manual:"o bloco do ~/.bashrc foi editado à mão (não se mexe)",
+  rly_term_norelay:"o revezamento (michi-relevo.py) não está no servidor",
   rem_log_relay:(cmd,proj)=>`aplicou ${cmd} em «${proj}»`,
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
@@ -3344,6 +3364,10 @@ fr:{
   rly_chat_novs:"pas de VS Code sur le serveur",
   rly_chat_nowrap:"le lanceur du relais n’est pas sur le serveur",
   rly_chat_fail:"pas de connexion",
+  rly_term_on:"Relayer « claude » dans les terminaux des serveurs SSH",
+  rly_term_reload:"ouvrez une nouvelle session SSH pour l’appliquer.",
+  rly_term_manual:"le bloc de ~/.bashrc a été modifié à la main (non touché)",
+  rly_term_norelay:"le relais (michi-relevo.py) n’est pas sur le serveur",
   rem_log_relay:(cmd,proj)=>`a appliqué ${cmd} dans «${proj}»`,
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
@@ -3776,6 +3800,10 @@ de:{
   rly_chat_novs:"kein VS Code auf dem Server",
   rly_chat_nowrap:"der Ablösungs-Starter fehlt auf dem Server",
   rly_chat_fail:"keine Verbindung",
+  rly_term_on:"«claude» in den Terminals der SSH-Server über die Ablösung leiten",
+  rly_term_reload:"neue SSH-Sitzung öffnen, damit es greift.",
+  rly_term_manual:"der Block in ~/.bashrc wurde von Hand geändert (bleibt unangetastet)",
+  rly_term_norelay:"die Ablösung (michi-relevo.py) fehlt auf dem Server",
   rem_log_relay:(cmd,proj)=>`${cmd} in «${proj}» angewendet`,
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
@@ -4208,6 +4236,10 @@ ja:{
   rly_chat_novs:"サーバーに VS Code がありません",
   rly_chat_nowrap:"リレーのランチャーがサーバーにありません",
   rly_chat_fail:"接続できません",
+  rly_term_on:"SSH サーバーの端末の «claude» をリレー経由にする",
+  rly_term_reload:"反映には新しい SSH セッションを開いてください。",
+  rly_term_manual:"~/.bashrc のブロックが手で編集されています（変更しません）",
+  rly_term_norelay:"リレー（michi-relevo.py）がサーバーにありません",
   rem_log_relay:(cmd,proj)=>`「${proj}」で ${cmd} を適用`,
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
@@ -4640,6 +4672,10 @@ ko:{
   rly_chat_novs:"서버에 VS Code 없음",
   rly_chat_nowrap:"릴레이 실행기가 서버에 없음",
   rly_chat_fail:"연결 없음",
+  rly_term_on:"SSH 서버 터미널의 «claude»를 릴레이로 연결",
+  rly_term_reload:"적용하려면 새 SSH 세션을 여세요.",
+  rly_term_manual:"~/.bashrc 블록이 수동으로 편집됨 (건드리지 않음)",
+  rly_term_norelay:"릴레이(michi-relevo.py)가 서버에 없습니다",
   rem_log_relay:(cmd,proj)=>`「${proj}」에 ${cmd} 적용`,
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
@@ -5072,6 +5108,10 @@ zh:{
   rly_chat_novs:"服务器上没有 VS Code",
   rly_chat_nowrap:"接力启动器不在服务器上",
   rly_chat_fail:"无法连接",
+  rly_term_on:"让 SSH 服务器终端里的 «claude» 走接力",
+  rly_term_reload:"打开新的 SSH 会话后生效。",
+  rly_term_manual:"~/.bashrc 中的区块被手动改过（不去动它）",
+  rly_term_norelay:"接力脚本（michi-relevo.py）不在服务器上",
   rem_log_relay:(cmd,proj)=>`在「${proj}」应用了 ${cmd}`,
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
@@ -7759,7 +7799,7 @@ function showTab(name){
   if(name==="prefs"){ renderPricesStatus();       // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
     remUi(); remLogLoad(); remZombieRows();       // remediación: estado + registro frescos
-    rlyPoll().then(rlyRows); rlyAliasUi(); rlyChatUi(); } // relevo: sesiones, atajo y chat
+    rlyPoll().then(rlyRows); rlyAliasUi(); rlyChatUi(); rlyTermUi(); } // relevo: sesiones, atajo, chat y terminales SSH
   document.querySelector(".panel").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
@@ -8575,6 +8615,47 @@ $("rlyChatChk").addEventListener("change",async ()=>{
     $("rlyChatChk").checked=!on;
     $("rlyChatMsg").textContent=String(e);
     flog("relevo: wrapper del chat ERROR "+e);
+  }
+});
+
+// ---------- el alias de ~/.bashrc en los servidores (etapa 4) ----------
+// La pareja Linux del shim del PATH: una función `claude()` con marcas en el
+// ~/.bashrc remoto. Quién decide qué tocar y qué respetar vive en el guion
+// TERM_ALIAS_PY de Rust; aquí solo se traducen sus veredictos (invariante
+// #10). Misma coreografía que el wrapper del chat de arriba.
+function termStateTxt(st){
+  return {ON:"✓",OK:"✓",OFF:"—",MANUAL:t("rly_term_manual"),
+    NORELAY:t("rly_term_norelay"),FAIL:t("rly_chat_fail")}[st]||st;
+}
+function termRows(rows){
+  return rows.map(r=>r.name+" "+termStateTxt(r.state)).join(" · ");
+}
+async function rlyTermUi(){
+  if(!invoke) return;
+  try{
+    const rows=await invoke("term_relay_status");
+    // sin servidores, el bloque entero se esconde (invariante #8)
+    const has=rows.length>0;
+    $("rlyTermRow").hidden=!has; $("rlyTermMsg").hidden=!has;
+    if(!has) return;
+    $("rlyTermChk").checked=rows.some(r=>r.state==="ON");
+    $("rlyTermMsg").textContent=termRows(rows);
+  }catch(_){}
+}
+$("rlyTermChk").addEventListener("change",async ()=>{
+  const on=$("rlyTermChk").checked;
+  $("rlyTermMsg").textContent="…";
+  try{
+    const rows=await invoke("set_term_relay",{on});
+    flog("relevo: alias bashrc → "+(on?"on":"off")+" ["+termRows(rows)+"]");
+    // el .bashrc solo se lee al abrir la shell: sin sesión nueva parecería
+    // que el interruptor no hizo nada
+    $("rlyTermMsg").textContent=termRows(rows)+(on?" — "+t("rly_term_reload"):"");
+    if(rows.every(r=>r.state!=="OK"&&r.state!=="ON")) $("rlyTermChk").checked=!on;
+  }catch(e){
+    $("rlyTermChk").checked=!on;
+    $("rlyTermMsg").textContent=String(e);
+    flog("relevo: alias bashrc ERROR "+e);
   }
 });
 

@@ -829,10 +829,41 @@ investigó EN SU PROPIA MÁQUINA (el VPS), no en teoría:
   remota devolvió `ERR_RELAY_BUSY` porque el modelo estaba generando en ese
   instante — el candado funcionando a través de SSH, no una simulación.
 
-- **Falta:** el alias de `~/.bashrc` opt-in para las terminales del VPS
-  (bloque con marcas, mismo espíritu que el shim) y WSL. El automático NO se
-  extiende a remotas hasta que la 4b/4c tengan kilómetros: hoy el botón
-  remoto es manual.
+### El alias de ~/.bashrc para las terminales SSH (2026-08-10)
+
+El fleco de las terminales, cerrado con la misma coreografía que el wrapper
+del chat: guion `TERM_ALIAS_PY` en Rust que viaja por SSH-STDIN (jamás
+interpolado) y habla en veredictos de una palabra; comandos
+`term_relay_status`/`set_term_relay` (async + spawn_blocking, invariante
+10ter); interruptor en Ajustes bajo el del chat, oculto sin servidores.
+
+- **El enganche es una FUNCIÓN de bash, no un alias ni un shim del PATH:**
+  necesita lógica (¿hay TTY?, ¿está el relevo?, ¿ya estoy relevado?) y en
+  `~/.bashrc` solo la ven las shells interactivas — los scripts ni se
+  enteran, que es exactamente el reparto que queremos. Fail-open en cascada:
+  sin TTY, sin `michi-relevo.py`, sin python3 o con `MICHI_RELEVO` puesto →
+  `command claude` a secas. Lo peor permitido sigue siendo quedarse sin
+  relevo, jamás sin Claude.
+- **Sin bucle posible por construcción:** las funciones de bash NO viajan a
+  subprocesos. Cuando el relevo lanza `claude` lo resuelve por PATH y
+  encuentra el binario real, no la función.
+- **Bloque con MARCAS que se reemplaza ENTERO** al re-encender (así se
+  actualiza la función sin cirugía); marcas desbalanceadas = MANUAL y no se
+  toca nada; backup `~/.bashrc.michi-backup` una sola vez; tmp+rename
+  conservando permisos; `set_term_relay(on)` re-sube el relevo ANTES de
+  escribir el bloque (un alias hacia un script ausente caería al claude real
+  en silencio y el interruptor mentiría).
+- **VALIDADO EN EL PROPIO VPS, 29/29:** banco con HOME falso — ciclo
+  on/off byte a byte, idempotencia, MANUAL intacto, permisos 600
+  conservados, `bash -n`, y la función corriendo de verdad (TTY simulada
+  con `script(1)` → banner del relevo; sin TTY o con `MICHI_RELEVO` → el
+  claude real directo). El único fallo de la primera pasada fue una
+  lección gratis: el banco corría DENTRO de una sesión ya relevada y el
+  `MICHI_RELEVO` heredado disparaba el fail-open anti-anidamiento — el
+  guard funcionando en vivo, no un bug.
+
+- **Falta:** WSL. El automático NO se extiende a remotas hasta que la
+  4b/4c tengan kilómetros: hoy el botón remoto es manual.
 
 ## Correcciones sobre la propuesta original (para no rediscutir)
 
