@@ -4748,17 +4748,32 @@ fn michi_exe() -> Option<PathBuf> {
     let mut cands: Vec<PathBuf> = Vec::new();
     if let Ok(exe) = std::env::current_exe() {
         if let Some(d) = exe.parent() {
-            cands.push(d.join("michi.exe"));
-            cands.push(d.join("resources").join("michi.exe"));
-            cands.push(d.join("relevo").join("michi.exe"));
             // dev: target\debug\michiclaude.exe → ..\..\..\relevo\target\release
-            if let Some(root) = d.parent().and_then(|p| p.parent()).and_then(|p| p.parent()) {
-                cands.push(
+            let dev = d
+                .parent()
+                .and_then(|p| p.parent())
+                .and_then(|p| p.parent())
+                .map(|root| {
                     root.join("relevo")
                         .join("target")
                         .join("release")
-                        .join("michi.exe"),
-                );
+                        .join("michi.exe")
+                });
+            // EN DESARROLLO manda el binario que compila el crate, NO la copia
+            // que `tauri dev` deja junto al ejecutable: esa se rehace en cada
+            // arranque de la app, así que el ajuste del chat podía quedar
+            // apuntando a una versión vieja — nos costó tres rondas
+            // persiguiendo un fantasma (2026-08-10). En una instalación real
+            // no existe tal copia y el orden de siempre es el bueno.
+            #[cfg(debug_assertions)]
+            if let Some(p) = dev.clone() {
+                cands.push(p);
+            }
+            cands.push(d.join("michi.exe"));
+            cands.push(d.join("resources").join("michi.exe"));
+            cands.push(d.join("relevo").join("michi.exe"));
+            if let Some(p) = dev {
+                cands.push(p);
             }
         }
     }
