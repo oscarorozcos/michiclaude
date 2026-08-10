@@ -14,8 +14,8 @@ sobre (pasó el 2026-08-04 con 118.8k y dos tercios del archivo sin leerse).
 Widget de bandeja para Windows 11 con **Tauri 2** que mide en tiempo real
 el uso de Claude (suscripción):
 
-- **Cuota real del plan** (sesión de 5 h + límites semanales con buckets
-  por modelo) — la misma de claude.ai → Configuración → Uso. Compartida
+- **Cuota real del plan** (sesión de 5 h + semanales con buckets por
+  modelo) — la misma de claude.ai → Configuración → Uso, compartida
   entre claude.ai, Claude Code e IDEs.
 - **Marcador de ritmo** y **proyección de burn rate** ("al 100% en X min").
 - **Gasto por proyecto** (equiv. API) y modelo más usado, de los logs
@@ -505,8 +505,8 @@ presion-y-rendimiento §"Qué queda vivo".
       para (en el gatito el manejador va en CAPTURA) y se marca ANTES de
       empezar. Un rechazo del candado es TRANSITORIO: `done` solo tras
       aplicar; un fallo guarda el momento y reintenta a los 10 min. La
-      cuenta CIERRA con veredicto ✓/✕ en la cápsula: acabar en silencio
-      deja al usuario adivinando. ATAJO DEL PATH (`set_relay_alias`): un
+      cuenta CIERRA con veredicto ✓/✕: acabar en silencio deja al
+      usuario adivinando. ATAJO DEL PATH (`set_relay_alias`): un
       `claude.cmd` en `%APPDATA%\<app>\bin` DELANTE del PATH de usuario
       — resuelve Windows, no el shell (cualquier terminal/editor); NO
       alcanza WSL/SSH ni rutas absolutas. NUNCA deja sin Claude Code
@@ -582,7 +582,7 @@ los pares de widget se creen/destruyan.
 
 ## Retención de logs
 
-Claude Code borra los .jsonl a los 30 días y el analizador necesita
+Claude Code los borra a los 30 días y el analizador necesita ese
 historial: `cleanupPeriodDays: 365` (VPS y Windows).
 
 ## Comandos
@@ -596,8 +596,8 @@ cd src-tauri; cargo check          # verificación rápida del backend
 cd relevo; cargo build --release   # el relevo; dev/build ya lo compilan
 ```
 
-Verificación obligatoria al terminar cualquier cambio en Rust: `cargo
-check` limpio y listar archivos tocados con motivo. En el VPS NO hay
+Verificación obligatoria tras cualquier cambio en Rust: `cargo check`
+limpio y listar archivos tocados con motivo. En el VPS NO hay
 toolchain de Rust (espejo de código; `cargo check` corre en el Windows de
 Oscar) — al cambiar la FIRMA de una función, grep de TODOS sus usos antes
 de subir: el compilador no está para avisar.
