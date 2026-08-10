@@ -4607,13 +4607,16 @@ fn path_backup_path() -> PathBuf {
 }
 
 /// Dónde está `michi.exe`. Se busca en este orden: junto al ejecutable de la
-/// app (que es donde quedará cuando viaje en el instalador), en el `target`
-/// del crate del relevo (desarrollo) y por último en el PATH.
+/// app y en su carpeta `resources` (los dos sitios donde puede dejarlo el
+/// instalador según cómo resuelva Tauri los recursos — se prueban AMBOS
+/// porque equivocarse deja el atajo del PATH muerto en silencio), en el
+/// `target` del crate del relevo (desarrollo) y por último en el PATH.
 fn michi_exe() -> Option<PathBuf> {
     let mut cands: Vec<PathBuf> = Vec::new();
     if let Ok(exe) = std::env::current_exe() {
         if let Some(d) = exe.parent() {
             cands.push(d.join("michi.exe"));
+            cands.push(d.join("resources").join("michi.exe"));
             cands.push(d.join("relevo").join("michi.exe"));
             // dev: target\debug\michiclaude.exe → ..\..\..\relevo\target\release
             if let Some(root) = d.parent().and_then(|p| p.parent()).and_then(|p| p.parent()) {

@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.oscarorozco.michiclaude",
   "build": {
-    "frontendDist": "../src"
+    "frontendDist": "../src",
+    "beforeBuildCommand": "cargo build --release --manifest-path relevo/Cargo.toml || cargo build --release --manifest-path ../relevo/Cargo.toml",
+    "beforeDevCommand": "cargo build --release --manifest-path relevo/Cargo.toml || cargo build --release --manifest-path ../relevo/Cargo.toml"
   },
   "app": {
     "withGlobalTauri": true,
@@ -47,6 +49,9 @@
     "targets": [
       "nsis"
     ],
+    "resources": {
+      "../relevo/target/release/michi.exe": "michi.exe"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
