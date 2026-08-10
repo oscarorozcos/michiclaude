@@ -555,7 +555,8 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       ilegible NO se toca, `.michi-backup` antes,
       re-sube el lanzador ANTES de encender — clave a archivo
       inexistente = chat muerto). ALIAS `~/.bashrc` HECHO (2026-08-10,
-      validado 29/29 en el VPS): guion `TERM_ALIAS_PY` +
+      validado 29/29 en el VPS Y de punta a punta en vivo desde el
+      panel): guion `TERM_ALIAS_PY` +
       `term_relay_status`/`set_term_relay`, FUNCIÓN de bash con marcas
       (no shim: solo shells interactivas), fail-open en cascada, sin
       bucle (las funciones no viajan a subprocesos); `"#` dentro del

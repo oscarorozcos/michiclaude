@@ -3132,3 +3132,13 @@ Lecciones:
 toolchain) y la validación de punta a punta desde el panel (encender el
 interruptor, abrir una SSH nueva, ver el banner). De la etapa 4 quedan:
 WSL, chat del Windows local y michi.exe en el instalador.
+
+**Cierre del pendiente (mismo día, más tarde):** cargo check limpio en el
+Windows de Oscar (11.63 s, con `Compiling` de verdad — no hubo empate de
+fechas) y la validación de punta a punta COMPLETA: interruptor nuevo en
+Ajustes → «VPS-EU ✓ — abre una sesión SSH nueva para que lo tome», y en
+una SSH nueva `claude` mostró el banner «michi · relevo activo (sesión
+N)». Verificado además del lado del servidor: bloque con marcas en
+`~/.bashrc` (líneas 120–130), backup `.michi-backup` creado en el
+instante del encendido, `michi-relevo.py` re-subido fresco y `bash -n`
+limpio. El alias de ~/.bashrc queda CERRADO.

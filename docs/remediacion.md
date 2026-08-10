@@ -861,6 +861,10 @@ interpolado) y habla en veredictos de una palabra; comandos
   lección gratis: el banco corría DENTRO de una sesión ya relevada y el
   `MICHI_RELEVO` heredado disparaba el fail-open anti-anidamiento — el
   guard funcionando en vivo, no un bug.
+- **Punta a punta en vivo (2026-08-10):** interruptor en Ajustes →
+  «VPS-EU ✓», SSH nueva al VPS y `claude` mostró el banner «michi ·
+  relevo activo (sesión N)»; en el servidor: bloque con marcas en
+  `~/.bashrc`, backup creado y relevo re-subido. CERRADO.
 
 - **Falta:** WSL. El automático NO se extiende a remotas hasta que la
   4b/4c tengan kilómetros: hoy el botón remoto es manual.
