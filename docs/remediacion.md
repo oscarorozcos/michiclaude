@@ -757,6 +757,31 @@ en el ajuste, paso 2):
   replay, con la MISMA forma que usa la CLI, así que la extensión ya sabe
   pintarla. Va solo al chat: el JSONL lo escribe la CLI y no se toca, así que
   esto NO falsea el registro.
+- **«La MISMA forma» era literal, y durante un tiempo NO lo fue** (corregido
+  2026-08-10 al construir el banner). El replay del CLI no es un `user` a
+  secas: lleva `session_id`, `uuid`, `parent_tool_use_id`, `timestamp` e
+  `isReplay`, y la extensión DESCARTA EN SILENCIO lo que no case con la
+  sesión. Por eso existe `replay_line()` — hacia el chat va ella, hacia el
+  hijo la forma corta de `user_line()`. Confundirlas no rompe nada visible:
+  simplemente el eco no se pinta, que es peor.
+
+### El banner del relevo dentro del chat (2026-08-10)
+
+Señal visible de que el chat va relevado, gemela del banner de la terminal
+(`banner_text()`, texto único para los dos).
+
+- **Uno por conversación**, delante del PRIMER mensaje del usuario y no
+  pegado al `system/init`: en el arranque la interfaz aún no pinta y la
+  línea se pierde (medido en vivo). Se re-arma al cambiar el `session_id`,
+  así que una conversación nueva o un `/clear` estrenan el suyo.
+- Va con `replay_line()` (ver arriba) y **solo al chat**: el hijo no lo
+  recibe y el JSONL no lo registra.
+- Efecto lateral buscado: como VS Code titula la pestaña con el primer
+  mensaje, en una conversación nueva la pestaña dice «michi · relevo
+  activo». En una conversación ya titulada no cambia nada — el banner se ve
+  igual dentro del chat.
+- Banco propio 10/10 (claude falso que habla stream-json) y VALIDADO EN VIVO
+  en el chat del VPS.
 - **Riesgo residual, dicho claro:** no vemos el borrador del cuadro de chat.
   Si se inyecta mientras el usuario redacta, su mensaje llega después y se
   evalúa con el contexto ya compactado. No se corrompe nada —y es justo para

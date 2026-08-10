@@ -426,8 +426,7 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       completo en `docs/hub-modo-equipo.md` §"Rangos de fecha con hub".
 
 - [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05;
-      historia en bitácora §"Ronda de rediseño UX/UI", tag
-      `pre-rediseno-20260805`).
+      bitácora §"Ronda de rediseño UX/UI", tag `pre-rediseno-20260805`).
       DECISIONES VIGENTES: tipografía EMBEBIDA (`src/fonts/`, OFL, sin
       CDN — una fuente remota rompería CSP y privacidad); `.sect` es
       TARJETA con fondo; toda tarjeta con fondo propio redefine
@@ -470,16 +469,16 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       maquetas). Etapas: 1 consejero, 2 automático out-of-band, 3 relevo
       ConPTY, 4 WSL/SSH. ETAPA 1 COMPLETA
       Y VALIDADA EN VIVO (2026-08-07). ETAPA 2 IMPLEMENTADA y VALIDADA EN
-      VIVO el mismo día (go explícito de Oscar; autopsia del
-      zombie en la bitácora): zombies MCP por PowerShell/CIM sin deps nuevas (firma =
+      VIVO el mismo día (autopsia del zombie en la
+      bitácora): zombies MCP por PowerShell/CIM sin deps nuevas (firma =
       arg más largo de cada MCP stdio de ~/.claude.json; huérfano = padre
       muerto o PID reciclado; kill re-verifica PID+exe+arranque), archivado ≥365d a `%APPDATA%\<app>\archive`,
       registro `actions_log.json` (tope 200, d1/d2 crudos y el panel
       traduce), desbloqueo progresivo (`remCfg`/`remFirst`: zombie ON /
       archive OFF, primera vez SIEMPRE manual) y sondeo horario `remPoll`.
       SOLO LOCAL: WSL/SSH, etapa 4. De ahí: barras a `/` al casar firmas; PowerShell desde Rust con
-      saltos de línea REALES (en una línea muere en el parser y hacía
-      fallar TODO cierre); el veredicto del kill sale de re-consultar el
+      saltos de línea REALES (en una línea muere en el parser);
+      el veredicto del kill sale de re-consultar el
       PID, nunca de `$?`; lo raro deja `rem_debug.json`. ETAPA 3 COMPLETA
       salvo la 4, VALIDADA EN VIVO 2026-08-08 (detalle en doc y
       bitácora). REGLAS DURAS:
@@ -496,9 +495,9 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       transparente, lee el número OSC ENTERO (`ESC]10;` es color),
       fail-open con tope. Casado sesión↔relevo por `cwd` COMPLETO
       (`scwd` del hit `press`), FAIL-CLOSED ante ambigüedad. DECIDE el
-      relevo: `attend()` revuelve R1-R3 al escribir. `relayBusy` impide repintar con una
-      cuenta viva.
-      El motivo del rechazo va en línea propia, nunca en el botón.
+      relevo: `attend()` revuelve R1-R3 al escribir. `relayBusy` impide
+      repintar con una cuenta viva. El motivo del rechazo va en línea
+      propia, nunca en el botón.
       Desbloqueo en `relayDone` (/compact 2, /clear 3; lo que TECLEAS TÚ
       también cuenta). AUTO-/CLEAR CON RED (2026-08-09, pedido de Oscar;
       doc §El auto-/clear con red): solo Boundary + interruptor
@@ -512,17 +511,16 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       ENTER_GAP_MS 250): juntos, la TUI los toma por PEGADO y la línea
       se queda escrita sin ejecutarse — con /compact colaba por corto,
       con la ruta del /export fallaba siempre. VALIDADO EN VIVO en
-      Windows (2026-08-09). El
-      AUTOMÁTICO exige widget A LA VISTA —la cuenta atrás vive en la
-      cápsula—, dura 15 s, cualquier toque la para (en el gatito el
-      manejador va en CAPTURA) y se marca ANTES de empezar. Un rechazo del
-      candado es TRANSITORIO: `done` solo tras aplicar; un fallo guarda
-      el momento y reintenta a los 10 min. La cuenta CIERRA con
-      veredicto ✓/✕ en la cápsula: acabar en silencio deja al usuario
-      adivinando. ATAJO DEL PATH (`set_relay_alias`): un `claude.cmd` en
-      `%APPDATA%\<app>\bin` DELANTE del PATH de usuario — resuelve
-      Windows, no el shell (cualquier terminal/editor);
-      NO alcanza WSL/SSH ni rutas absolutas. NUNCA deja sin Claude Code
+      Windows (2026-08-09). El AUTOMÁTICO exige widget A LA VISTA —la
+      cuenta atrás vive en la cápsula—, dura 15 s, cualquier toque la
+      para (en el gatito el manejador va en CAPTURA) y se marca ANTES de
+      empezar. Un rechazo del candado es TRANSITORIO: `done` solo tras
+      aplicar; un fallo guarda el momento y reintenta a los 10 min. La
+      cuenta CIERRA con veredicto ✓/✕ en la cápsula: acabar en silencio
+      deja al usuario adivinando. ATAJO DEL PATH (`set_relay_alias`): un
+      `claude.cmd` en `%APPDATA%\<app>\bin` DELANTE del PATH de usuario
+      — resuelve Windows, no el shell (cualquier terminal/editor); NO
+      alcanza WSL/SSH ni rutas absolutas. NUNCA deja sin Claude Code
       (con `MICHI_RELEVO` o sin michi.exe ejecuta el real). PATH por
       `SetEnvironmentVariable`, JAMÁS `setx` (trunca a 1024); copia en
       `path_backup.txt` y quita EXACTA su entrada. FAIL-OPEN sin consola:
@@ -538,29 +536,32 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       terminal; casado por `session_id`. `michi-wrap.sh` va en el ajuste,
       con 3 caminos de emergencia. OJO: `--replay-user-messages` NO
       replica comandos: el relevo emite él la línea de replay para que
-      la inyección SE VEA (solo al chat; JSONL intacto).
+      la inyección SE VEA (solo al chat; JSONL intacto) CON LA FORMA
+      COMPLETA del replay (`replay_line`: sid/uuid/isReplay) — el `user`
+      a secas (`user_line`, la del hijo) lo DESCARTA en silencio. Igual
+      el banner «michi · relevo activo», uno por conversación y delante
+      del PRIMER mensaje (en el init aún no pinta).
       Residual: no vemos el borrador del cuadro.
       ETAPA 4: 4a = relevo del VPS en PYTHON (`michi-relevo.py`, stdlib
       pty; el VPS no tiene Rust), embebido y re-subido como el exportador
       junto a `michi-wrap.sh`; mismas constantes/esquema/códigos que
-      main.rs. 4b/4c HECHAS, validadas 6/6 en vivo: `scan_relays_remote` lee por SSH con UNA
-      conexión por servidor (solo en el compás del coach; el sondeo de
-      5 s conserva las remotas) y `relay_inject_remote` escribe el `.cmd`
-      con tmp+rename EN el servidor, con el comando por STDIN y jamás
-      interpolado en el shell. Casado en dos niveles: `sid` EXACTO (solo
-      chat), si no el `cwd`; los dos exigen la MISMA máquina. El
-      AUTOMÁTICO sí cruza a remotas (pasa `origin`), validado.
-      El wrapper del chat se enciende desde Ajustes (`set_chat_relay`:
-      guion `CHAT_WRAP_PY` por SSH-STDIN; wrapper ajeno NO se pisa,
-      ilegible NO se toca, `.michi-backup` antes,
-      re-sube el lanzador ANTES de encender — clave a archivo
-      inexistente = chat muerto). ALIAS `~/.bashrc` HECHO (2026-08-10,
-      validado 29/29 en el VPS Y de punta a punta en vivo desde el
-      panel): guion `TERM_ALIAS_PY` +
+      main.rs. 4b/4c HECHAS, validadas 6/6 en vivo: `scan_relays_remote`
+      lee por SSH con UNA conexión por servidor (solo en el compás del
+      coach; el sondeo de 5 s conserva las remotas) y
+      `relay_inject_remote` escribe el `.cmd` con tmp+rename EN el
+      servidor, con el comando por STDIN y jamás interpolado en el
+      shell. Casado en dos niveles: `sid` EXACTO (solo chat), si no el
+      `cwd`; los dos exigen la MISMA máquina. El AUTOMÁTICO sí cruza a
+      remotas (pasa `origin`), validado. El wrapper del chat se enciende
+      desde Ajustes (`set_chat_relay`: guion `CHAT_WRAP_PY` por
+      SSH-STDIN; wrapper ajeno NO se pisa, ilegible NO se toca,
+      `.michi-backup` antes, re-sube el lanzador ANTES de encender —
+      clave a archivo inexistente = chat muerto). ALIAS `~/.bashrc`
+      HECHO (validado 29/29 y en vivo): guion `TERM_ALIAS_PY` +
       `term_relay_status`/`set_term_relay`, FUNCIÓN de bash con marcas
       (no shim: solo shells interactivas), fail-open en cascada, sin
-      bucle (las funciones no viajan a subprocesos); `"#` dentro del
-      guion exige `r##"…"##`. FALTAN: WSL, chat del Windows local (pide
+      bucle (las funciones no viajan a subprocesos); ojo con los raw
+      strings de Rust (bitácora). FALTAN: WSL, chat del Windows local (pide
       modo wrap en michi.exe) y que `michi.exe` viaje en el instalador
       (workflow, invariante #9).
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
@@ -572,8 +573,8 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
 Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**
 (`WorkingSetPrivate`; WorkingSet64 cuenta doble lo compartido: 695).
 Release NO baja la RAM (el peso son los ~9 procesos WebView2); el gatito
-NO es el culpable (dos veces lo pareció); cada ventana WebView2 tiene
-piso ~57 MB — de ahí que los pares de widget se creen/destruyan.
+NO es el culpable; cada ventana WebView2 tiene piso ~57 MB — de ahí que
+los pares de widget se creen/destruyan.
 
 ## Retención de logs
 
@@ -597,12 +598,12 @@ toolchain de Rust (espejo de código; `cargo check` corre en el Windows de
 Oscar) — al cambiar la FIRMA de una función, grep de TODOS sus usos antes
 de subir: el compilador no está para avisar.
 
-LECTURA DE ARCHIVOS GRANDES (2026-08-09): antes de abrir entero uno de
-miles de líneas (`index.html` ≈ 137k tokens), buscar con grep la parte y
-leer SOLO ese rango — lo leído viaja en cada turno siguiente. Medido: 7
+LECTURA DE ARCHIVOS GRANDES: antes de abrir entero uno de miles de
+líneas (`index.html` ≈ 137k tokens), buscar con grep la parte y leer
+SOLO ese rango — lo leído viaja en cada turno siguiente. Medido: 7
 relecturas en una sesión de $96.86.
 
-TRAS `git pull`, COMPROBAR LA HORA DEL BINARIO (2026-08-09): si el pull
+TRAS `git pull`, COMPROBAR LA HORA DEL BINARIO: si el pull
 cae en el MISMO MINUTO que la última compilación, Cargo ve empate de
 fechas y NO recompila (`Finished` en 0.1 s, sin `Compiling`) — se ejecuta
 el exe viejo y el bug parece no arreglarse. Arreglo: `(Get-Item
