@@ -162,13 +162,13 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   globos SIEMPRE en la misma capa; el panel no participa. Si el bug de
   hundirse volviera: SetWinEventHook (EVENT_SYSTEM_FOREGROUND).
 - **CRÍTICO — ventanas transparentes:** NUNCA redimensionar en vivo
-  (`set_size`): WebView2 deja de pintar. Tamaño fijo que se muestra/oculta.
+  (`set_size`): WebView2 deja de pintar. Tamaño fijo que se muestra u oculta.
 - **Creación en caliente:** `pill`/`pcard`/`cat`/`card` NO están en
   tauri.conf.json — las crea `ensure_widget_windows()` (solo el par del
   estilo elegido; al cambiar se DESTRUYE el viejo, ahorra ~115 MB). Sus tamaños se tocan en Rust. Las capabilities
-  siguen listando las 6 etiquetas (los permisos van por etiqueta).
+  siguen con las 6 etiquetas (los permisos van por etiqueta).
 - **Tray dinámico:** número a 24 px con contorno de 4 px (legible en barra
-  clara u oscura sin detectar tema) + barrita semanal. Con cuota en error:
+  clara u oscura sin detectar el tema) + barrita semanal. Con cuota en error:
   "–" gris, nunca datos inventados. El menú lo construye Rust pero el
   panel se lo manda TRADUCIDO vía `set_tray_menu` desde `applyI18n()` —
   todo texto que Rust dibuje llega así. Windows CORTA el tooltip a 128 chars:
@@ -576,10 +576,10 @@ presion-y-rendimiento §"Qué queda vivo".
 ## Consumo de recursos (medido en release)
 
 Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**
-(`WorkingSetPrivate`; WorkingSet64 infla a 695).
-Release NO baja la RAM (el peso son los ~9 procesos WebView2); el gatito
-NO es el culpable; cada ventana WebView2 tiene piso ~57 MB — de ahí que
-los pares de widget se creen/destruyan.
+(`WorkingSetPrivate`; WorkingSet64 infla a 695). Release NO baja la RAM
+(el peso son los ~9 procesos WebView2) y el gatito NO es el culpable:
+cada ventana WebView2 tiene piso ~57 MB — de ahí que los pares de widget
+se creen y destruyan.
 
 ## Retención de logs
 
@@ -592,7 +592,7 @@ historial: `cleanupPeriodDays: 365` (VPS y Windows).
 npm install        # CLI de Tauri (solo devDependency)
 npm run icons      # iconos desde app-icon.png
 npm run dev        # desarrollo
-npm run build      # release: NSIS en src-tauri/target/release/bundle/nsis/
+npm run build      # release: NSIS en target/release/bundle/nsis/
 cd src-tauri; cargo check          # verificación rápida del backend
 cd relevo; cargo build --release   # el relevo; dev/build ya lo compilan
 ```
@@ -622,12 +622,12 @@ manda pushes; al parar, `processAcks()` restaura lo real. Pausa `simMin`
 
 ## Flujo de trabajo del repo
 
-- Remoto: `https://github.com/oscarorozcos/michiclaude` — **PRIVADO**.
+- Remoto: `github.com/oscarorozcos/michiclaude` — **PRIVADO**.
 - Windows de Oscar (`C:\Users\oscar\Claude\MichiClaude`) para desarrollo
   y pruebas; VPS un clon espejo (`/opt/projects/michiclaude`). Al mover un
   clon en Windows: `target/` guarda rutas absolutas → `cargo clean`.
-- Antes de trabajar en cualquier lado: `git pull`. Al terminar y
-  verificar: commit (Conventional Commits en español) y push.
+- Antes de trabajar en cualquier lado: `git pull`. Al terminar y verificar:
+  commit (Conventional Commits en español) y push.
 - La parte de negocio del analizador vive FUERA del repo
   (`~/.michiclaude/notas-negocio-analizador.md`): el git se publica.
 
