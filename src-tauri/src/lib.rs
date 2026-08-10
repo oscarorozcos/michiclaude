@@ -4252,10 +4252,44 @@ struct Relay {
 /// Lee la carpeta del relevo y devuelve las sesiones VIVAS. Nunca falla:
 /// sin carpeta, sin relevo instalado o con un archivo a medio escribir,
 /// devuelve lo que pueda (una lista vacía es una respuesta válida).
-fn scan_relays() -> Vec<Relay> {
+/// Un estado de relevo (el JSON que escribe el propio relevo) convertido en
+/// `Relay`. UNA sola versión para los TRES buzones —local, SSH y WSL—: si
+/// mañana el relevo publica un campo nuevo, aparece en los tres a la vez o en
+/// ninguno. Devuelve None si la sesión ya no cuenta como viva.
+fn relay_from_json(v: &serde_json::Value, origin: &str, now: i64) -> Option<Relay> {
+    let ts = v["ts"].as_i64().unwrap_or(0);
+    if now - ts > RELAY_FRESH || !v["alive"].as_bool().unwrap_or(false) {
+        return None;
+    }
+    let cwd = v["cwd"].as_str().unwrap_or("").to_string();
+    Some(Relay {
+        v: v["v"].as_u64().unwrap_or(1) as u32,
+        pid: v["pid"].as_u64().unwrap_or(0) as u32,
+        project: path_base(&cwd),
+        cwd,
+        started: v["started"].as_i64().unwrap_or(0),
+        ts,
+        ready: v["ready"].as_bool().unwrap_or(false),
+        why: v["why"].as_str().unwrap_or("").to_string(),
+        typed: v["typed"].as_bool().unwrap_or(false),
+        idle_in: v["idle_in"].as_u64().unwrap_or(0),
+        idle_out: v["idle_out"].as_u64().unwrap_or(0),
+        user_cmd: v["user_cmd"].as_str().unwrap_or("").to_string(),
+        user_cmd_ts: v["user_cmd_ts"].as_i64().unwrap_or(0),
+        mode: v["mode"].as_str().unwrap_or("terminal").to_string(),
+        sid: v["sid"].as_str().unwrap_or("").to_string(),
+        origin: origin.to_string(),
+    })
+}
+
+/// Los relevos de un buzón que se ve como carpeta (el de esta máquina o el de
+/// una distro de WSL). `sweep` solo lo pone el local: la basura de una distro
+/// la limpia su propio relevo al morir, y borrar a través de \\wsl.localhost
+/// es justo lo que este proyecto evita.
+fn scan_relay_dir(dir: &PathBuf, origin: &str, sweep: bool) -> Vec<Relay> {
     let mut out: Vec<Relay> = Vec::new();
     let now = Utc::now().timestamp();
-    let Ok(rd) = fs::read_dir(relay_dir()) else {
+    let Ok(rd) = fs::read_dir(dir) else {
         return out;
     };
     for e in rd.flatten() {
@@ -4269,33 +4303,20 @@ fn scan_relays() -> Vec<Relay> {
         let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else {
             continue;
         };
-        let ts = v["ts"].as_i64().unwrap_or(0);
-        if now - ts > RELAY_FRESH || !v["alive"].as_bool().unwrap_or(false) {
-            if now - ts > RELAY_STALE {
-                let _ = fs::remove_file(&p);
+        match relay_from_json(&v, origin, now) {
+            Some(r) => out.push(r),
+            None => {
+                if sweep && now - v["ts"].as_i64().unwrap_or(0) > RELAY_STALE {
+                    let _ = fs::remove_file(&p);
+                }
             }
-            continue;
         }
-        let cwd = v["cwd"].as_str().unwrap_or("").to_string();
-        out.push(Relay {
-            v: v["v"].as_u64().unwrap_or(1) as u32,
-            pid: v["pid"].as_u64().unwrap_or(0) as u32,
-            project: path_base(&cwd),
-            cwd,
-            started: v["started"].as_i64().unwrap_or(0),
-            ts,
-            ready: v["ready"].as_bool().unwrap_or(false),
-            why: v["why"].as_str().unwrap_or("").to_string(),
-            typed: v["typed"].as_bool().unwrap_or(false),
-            idle_in: v["idle_in"].as_u64().unwrap_or(0),
-            idle_out: v["idle_out"].as_u64().unwrap_or(0),
-            user_cmd: v["user_cmd"].as_str().unwrap_or("").to_string(),
-            user_cmd_ts: v["user_cmd_ts"].as_i64().unwrap_or(0),
-            mode: v["mode"].as_str().unwrap_or("terminal").to_string(),
-            sid: v["sid"].as_str().unwrap_or("").to_string(),
-            origin: String::new(),
-        });
     }
+    out
+}
+
+fn scan_relays() -> Vec<Relay> {
+    let mut out = scan_relay_dir(&relay_dir(), "", true);
     out.sort_by_key(|r| r.started);
     out
 }
@@ -4357,32 +4378,98 @@ fn scan_relays_remote() -> Vec<Relay> {
             let Ok(v) = serde_json::from_str::<serde_json::Value>(line.trim()) else {
                 continue;
             };
-            let ts = v["ts"].as_i64().unwrap_or(0);
-            if now - ts > RELAY_FRESH || !v["alive"].as_bool().unwrap_or(false) {
-                continue;
+            if let Some(rel) = relay_from_json(&v, &r.name, now) {
+                out.push(rel);
             }
-            let cwd = v["cwd"].as_str().unwrap_or("").to_string();
-            out.push(Relay {
-                v: v["v"].as_u64().unwrap_or(1) as u32,
-                pid: v["pid"].as_u64().unwrap_or(0) as u32,
-                project: path_base(&cwd),
-                cwd,
-                started: v["started"].as_i64().unwrap_or(0),
-                ts,
-                ready: v["ready"].as_bool().unwrap_or(false),
-                why: v["why"].as_str().unwrap_or("").to_string(),
-                typed: v["typed"].as_bool().unwrap_or(false),
-                idle_in: v["idle_in"].as_u64().unwrap_or(0),
-                idle_out: v["idle_out"].as_u64().unwrap_or(0),
-                user_cmd: v["user_cmd"].as_str().unwrap_or("").to_string(),
-                user_cmd_ts: v["user_cmd_ts"].as_i64().unwrap_or(0),
-                mode: v["mode"].as_str().unwrap_or("terminal").to_string(),
-                sid: v["sid"].as_str().unwrap_or("").to_string(),
-                origin: r.name.clone(),
-            });
         }
     }
     out
+}
+
+// ---------------------------------------------------------------------------
+// WSL: la tercera máquina (etapa 4d)
+//
+// Un usuario de Windows con Claude Code dentro de WSL no es un caso raro, y
+// hasta aquí no lo veía nadie: el shim del PATH no alcanza a WSL (resuelve
+// Windows, no la distro) y el alias de ~/.bashrc solo llegaba por SSH.
+//
+// La buena noticia es que WSL no necesita protocolo nuevo. Es Linux, así que
+// valen los MISMOS guiones que en un servidor (TERM_ALIAS_PY para el alias,
+// CHAT_WRAP_PY para el chat — Remote-WSL instala su .vscode-server en el home
+// de la distro, exactamente como un servidor). Solo cambia el transporte:
+// donde había `ssh host`, hay `wsl.exe -d <distro>`. Y el buzón del relevo se
+// ve como CARPETA por \\wsl.localhost, así que leer estados e inyectar
+// órdenes es fs a secas — sin SSH, sin daemon, sin puertos.
+//
+// Qué NO se hace y por qué: no se despiertan distros que no usan Claude (la
+// lista sale de `wsl_claude_dirs`, que ya filtra por ~/.claude), y no se
+// borran archivos ajenos a través de \\wsl.localhost (lento y falible; la
+// basura la limpia el relevo de la distro al morir).
+// ---------------------------------------------------------------------------
+
+/// Las distros donde vive un Claude Code, sin repetir. Derivarlo de
+/// `wsl_claude_dirs` en vez de listar WSL a secas evita ofrecer distros que
+/// el usuario no usa para esto (y evita arrancarlas).
+#[cfg(windows)]
+fn wsl_distros() -> Vec<String> {
+    let mut v: Vec<String> = Vec::new();
+    for (d, _) in wsl_claude_dirs() {
+        if !v.contains(&d) {
+            v.push(d);
+        }
+    }
+    v
+}
+
+#[cfg(not(windows))]
+fn wsl_distros() -> Vec<String> {
+    Vec::new()
+}
+
+/// El buzón de relevo de cada home con Claude dentro de WSL: el hermano de
+/// `~/.claude` que ya sabemos encontrar.
+#[cfg(windows)]
+fn wsl_relay_dirs() -> Vec<(String, PathBuf)> {
+    wsl_claude_dirs()
+        .into_iter()
+        .filter_map(|(d, c)| {
+            c.parent()
+                .map(|h| (d, h.join(".michiclaude").join("relevo")))
+        })
+        .collect()
+}
+
+#[cfg(not(windows))]
+fn wsl_relay_dirs() -> Vec<(String, PathBuf)> {
+    Vec::new()
+}
+
+/// Cómo se llama una distro cuando viaja como `origin` de un Relay. El prefijo
+/// es el mismo que ya usan los proyectos de WSL en las estadísticas, así que
+/// el usuario lee lo mismo en los dos sitios.
+fn wsl_origin(distro: &str) -> String {
+    format!("wsl-{distro}")
+}
+
+/// Los relevos que viven dentro de WSL. Puro sistema de archivos: ni SSH ni
+/// arrancar la distro para preguntar.
+fn scan_relays_wsl() -> Vec<Relay> {
+    let mut out = Vec::new();
+    for (distro, dir) in wsl_relay_dirs() {
+        out.extend(scan_relay_dir(&dir, &wsl_origin(&distro), false));
+    }
+    out
+}
+
+/// El buzón donde vive ESE pid, para inyectarle. Se busca por el estado que
+/// el propio relevo publica: si el archivo no está, la sesión no existe y no
+/// se escribe nada a ciegas.
+fn wsl_relay_dir(origin: &str, pid: u32) -> Option<PathBuf> {
+    wsl_relay_dirs()
+        .into_iter()
+        .filter(|(d, _)| wsl_origin(d) == origin)
+        .map(|(_, dir)| dir)
+        .find(|dir| dir.join(format!("{pid}.json")).is_file())
 }
 
 #[tauri::command]
@@ -4391,6 +4478,10 @@ async fn get_relays(remote: bool) -> Result<Vec<Relay>, String> {
         let mut v = scan_relays();
         if remote {
             v.extend(scan_relays_remote());
+            // WSL viaja con las remotas y no con las locales a propósito:
+            // \\wsl.localhost puede tardar, y el sondeo de 5 s de la pestaña
+            // no puede quedarse esperando a una distro dormida.
+            v.extend(scan_relays_wsl());
         }
         Ok(v)
     })
@@ -4509,17 +4600,28 @@ async fn relay_inject(
         let export = export.unwrap_or(false) && text == "/clear";
         // ¿en otra máquina? El origen es el nombre que el usuario le dio al
         // servidor; se traduce a host aquí y no se acepta uno desconocido.
+        // Un origen que no case con ningún servidor NO es un error todavía:
+        // puede ser una distro de WSL (abajo).
         let origin = origin.unwrap_or_default();
         if !origin.is_empty() {
-            let Some(r) = load_remotes().into_iter().find(|r| r.name == origin) else {
-                return Err("ERR_RELAY_GONE".to_string());
-            };
-            let id = format!("app-{}", Utc::now().timestamp_millis());
-            let res = relay_inject_remote(&r.host, pid, &text, &id, export);
-            log_action("relay", auto, res.is_ok(), text.clone(), origin);
-            return res;
+            if let Some(r) = load_remotes().into_iter().find(|r| r.name == origin) {
+                let id = format!("app-{}", Utc::now().timestamp_millis());
+                let res = relay_inject_remote(&r.host, pid, &text, &id, export);
+                log_action("relay", auto, res.is_ok(), text.clone(), origin);
+                return res;
+            }
         }
-        let dir = relay_dir();
+        // WSL: el buzón se ve como carpeta, así que es el MISMO camino que el
+        // local. Los servidores mandan primero (arriba): si alguien llamó a su
+        // servidor igual que una distro, gana lo que configuró a mano.
+        let dir = if origin.is_empty() {
+            relay_dir()
+        } else {
+            match wsl_relay_dir(&origin, pid) {
+                Some(d) => d,
+                None => return Err("ERR_RELAY_GONE".to_string()),
+            }
+        };
         // Nombre del proyecto para el registro, del estado del propio relevo.
         let proj = fs::read_to_string(dir.join(format!("{pid}.json")))
             .ok()
@@ -4530,54 +4632,85 @@ async fn relay_inject(
         // el archivado: si Michi teclea en tu terminal, tiene que quedar
         // escrito. Crudo — lo traduce el panel (invariante #10).
         let id = format!("app-{}", Utc::now().timestamp_millis());
-        let wrote = relay_write_cmd(
-            &dir.join(format!("{pid}.cmd")),
-            &serde_json::json!({"id": &id, "op": "inject", "text": &text, "export": export})
-                .to_string(),
-        );
-        if !wrote {
-            log_action("relay", auto, false, text.clone(), proj.clone());
-            return Err("ERR_RELAY_WRITE".to_string());
-        }
-        // El relevo mira su buzón cada 250 ms y publica el acuse en el estado.
-        // 8 s de margen: si en ese tiempo no contestó, no está vivo. Con red,
-        // la secuencia además espera a la copia: hasta ~15 s más.
-        let state = dir.join(format!("{pid}.json"));
-        let tries = if export { 150 } else { 40 };
-        for _ in 0..tries {
-            std::thread::sleep(std::time::Duration::from_millis(200));
-            let Ok(raw) = fs::read_to_string(&state) else {
-                continue;
-            };
-            let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else {
-                continue;
-            };
-            if v["last"]["id"].as_str() != Some(id.as_str()) {
-                continue;
+        match relay_inject_fs(&dir, pid, &text, &id, export) {
+            Ok(a) => {
+                log_action_file("relay", auto, a.ok, text.clone(), proj.clone(), a.copia);
+                if a.ok {
+                    Ok(())
+                } else {
+                    Err(a.err)
+                }
             }
-            let good = v["last"]["ok"].as_bool().unwrap_or(false);
-            // La copia del /clear con red, para el botón "abrir la copia".
-            // Se guarda SOLO el nombre (ver RemAction.file); la carpeta la
-            // vuelve a poner el backend al abrir.
-            let copia = v["last"]["export"]
-                .as_str()
-                .map(path_base)
-                .unwrap_or_default();
-            log_action_file("relay", auto, good, text.clone(), proj.clone(), copia);
-            return if good {
-                Ok(())
-            } else {
-                Err(v["last"]["err"]
-                    .as_str()
-                    .unwrap_or("ERR_RELAY_NOACK")
-                    .to_string())
-            };
+            Err(e) => {
+                log_action("relay", auto, false, text.clone(), proj.clone());
+                Err(e)
+            }
         }
-        log_action("relay", auto, false, text.clone(), proj.clone());
-        Err("ERR_RELAY_NOACK".to_string())
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Lo que contestó el relevo a una orden. `Err` de `relay_inject_fs` es "no
+/// contestó nadie"; esto es "contestó, y dijo esto" — la diferencia importa
+/// para el registro: un rechazo del candado SÍ se anota con su motivo.
+struct RelayAck {
+    ok: bool,
+    err: String,
+    copia: String,
+}
+
+/// Escribe la orden en un buzón que se ve como carpeta (el de esta máquina o
+/// el de una distro de WSL) y espera el acuse. UNA implementación para los
+/// dos: el canal por archivos se diseñó así justamente para que la distancia
+/// no cambiara el código.
+fn relay_inject_fs(
+    dir: &PathBuf,
+    pid: u32,
+    text: &str,
+    id: &str,
+    export: bool,
+) -> Result<RelayAck, String> {
+    let wrote = relay_write_cmd(
+        &dir.join(format!("{pid}.cmd")),
+        &serde_json::json!({"id": id, "op": "inject", "text": text, "export": export})
+            .to_string(),
+    );
+    if !wrote {
+        return Err("ERR_RELAY_WRITE".to_string());
+    }
+    // El relevo mira su buzón cada 250 ms y publica el acuse en el estado.
+    // 8 s de margen: si en ese tiempo no contestó, no está vivo. Con red,
+    // la secuencia además espera a la copia: hasta ~15 s más.
+    let state = dir.join(format!("{pid}.json"));
+    let tries = if export { 150 } else { 40 };
+    for _ in 0..tries {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        let Ok(raw) = fs::read_to_string(&state) else {
+            continue;
+        };
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else {
+            continue;
+        };
+        if v["last"]["id"].as_str() != Some(id) {
+            continue;
+        }
+        return Ok(RelayAck {
+            ok: v["last"]["ok"].as_bool().unwrap_or(false),
+            err: v["last"]["err"]
+                .as_str()
+                .unwrap_or("ERR_RELAY_NOACK")
+                .to_string(),
+            // La copia del /clear con red, para el botón "abrir la copia".
+            // Se guarda SOLO el nombre (ver RemAction.file); la carpeta la
+            // vuelve a poner el backend al abrir.
+            copia: v["last"]["export"]
+                .as_str()
+                .map(path_base)
+                .unwrap_or_default(),
+        });
+    }
+    Err("ERR_RELAY_NOACK".to_string())
 }
 
 // ---------- atajo: que `claude` pase por el relevo (etapa 3c) ----------
@@ -4942,6 +5075,101 @@ fn chat_wrap_remote(host: &str, py: &str, op: &str) -> Result<String, String> {
     remote_verdict_py(host, py, CHAT_WRAP_PY, op)
 }
 
+/// La pareja WSL de `remote_verdict_py`: el MISMO guion, por STDIN, y el mismo
+/// veredicto de una palabra. Cambia el transporte y nada más.
+///
+/// El `command -v python3` va DENTRO de la misma llamada: arrancar una distro
+/// cuesta, y preguntar dos veces por lo mismo la despertaría dos veces. Sin
+/// python3 la respuesta es NOPYTHON — un hecho, no un fallo genérico.
+#[cfg(windows)]
+fn wsl_verdict_py(distro: &str, script: &str, op: &str) -> Result<String, String> {
+    use std::io::Write;
+    use std::os::windows::process::CommandExt;
+    let mut cmd = std::process::Command::new("wsl.exe");
+    cmd.args([
+        "-d",
+        distro,
+        "--",
+        "sh",
+        "-c",
+        "command -v python3 >/dev/null 2>&1 || { echo NOPYTHON; exit 0; }; python3 - \"$1\"",
+        "michi",
+        op,
+    ])
+    .stdin(std::process::Stdio::piped())
+    .stdout(std::process::Stdio::piped())
+    .stderr(std::process::Stdio::piped())
+    .creation_flags(0x0800_0000);
+    let mut child = cmd.spawn().map_err(|_| "FAIL".to_string())?;
+    if let Some(mut si) = child.stdin.take() {
+        let _ = si.write_all(script.replace("\r\n", "\n").as_bytes());
+    }
+    let out = child.wait_with_output().map_err(|_| "FAIL".to_string())?;
+    if !out.status.success() {
+        return Err("FAIL".to_string());
+    }
+    let word = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if word.is_empty() {
+        return Err("FAIL".to_string());
+    }
+    Ok(word)
+}
+
+#[cfg(not(windows))]
+fn wsl_verdict_py(_distro: &str, _script: &str, _op: &str) -> Result<String, String> {
+    Err("FAIL".to_string())
+}
+
+/// Deja un guion en `~/.michiclaude/` de la distro. El nombre viaja como
+/// ARGUMENTO (`$1`), nunca pegado a la línea de shell — misma regla que en
+/// SSH. Y los saltos de línea van a LF: dentro de WSL esto es Linux, y un
+/// intérprete llamado "python3\r" da un error que no dice nada.
+#[cfg(windows)]
+fn wsl_upload_script(distro: &str, name: &str, body: &str) -> Result<(), String> {
+    use std::io::Write;
+    use std::os::windows::process::CommandExt;
+    let mut cmd = std::process::Command::new("wsl.exe");
+    cmd.args([
+        "-d",
+        distro,
+        "--",
+        "sh",
+        "-c",
+        "mkdir -p \"$HOME/.michiclaude\" && cat > \"$HOME/.michiclaude/$1\" \
+         && chmod +x \"$HOME/.michiclaude/$1\"",
+        "michi",
+        name,
+    ])
+    .stdin(std::process::Stdio::piped())
+    .stdout(std::process::Stdio::piped())
+    .stderr(std::process::Stdio::piped())
+    .creation_flags(0x0800_0000);
+    let mut child = cmd.spawn().map_err(|e| e.to_string())?;
+    if let Some(mut si) = child.stdin.take() {
+        let _ = si.write_all(body.replace("\r\n", "\n").as_bytes());
+    }
+    let out = child.wait_with_output().map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err("FAIL".to_string())
+    }
+}
+
+#[cfg(not(windows))]
+fn wsl_upload_script(_distro: &str, _name: &str, _body: &str) -> Result<(), String> {
+    Err("FAIL".to_string())
+}
+
+/// Cómo se llama una distro en la lista de interruptores. Con el prefijo
+/// delante no se confunde con un servidor SSH aunque compartan nombre.
+fn wsl_label(distro: &str) -> String {
+    format!("WSL: {distro}")
+}
+
+const RELEVO_NAME: &str = "michi-relevo.py";
+const WRAP_NAME: &str = "michi-wrap.sh";
+
 /// El python del exportador es el primer token de su comando; si el usuario
 /// escribió el suyo a mano y no empieza por un python, se cae a `python3`.
 fn remote_python(r: &RemoteSource) -> String {
@@ -4961,6 +5189,12 @@ async fn chat_relay_status() -> Result<Vec<ChatRelayRow>, String> {
             let state = chat_wrap_remote(&r.host, &remote_python(&r), "status")
                 .unwrap_or_else(|e| e);
             out.push(ChatRelayRow { name: r.name.clone(), state });
+        }
+        // WSL detrás de los servidores: mismo guion, mismos veredictos, y el
+        // panel no distingue el transporte (el bloque se enseña si HAY filas)
+        for d in wsl_distros() {
+            let state = wsl_verdict_py(&d, CHAT_WRAP_PY, "status").unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: wsl_label(&d), state });
         }
         Ok(out)
     })
@@ -4983,6 +5217,17 @@ async fn set_chat_relay(on: bool) -> Result<Vec<ChatRelayRow>, String> {
             let state =
                 chat_wrap_remote(&r.host, &remote_python(&r), op).unwrap_or_else(|e| e);
             out.push(ChatRelayRow { name: r.name.clone(), state });
+        }
+        for d in wsl_distros() {
+            if on {
+                // el lanzador y el relevo, frescos ANTES de encender: la misma
+                // regla que en SSH (un ajuste que apunte a un archivo que no
+                // está mata el chat de esa distro)
+                let _ = wsl_upload_script(&d, RELEVO_NAME, REMOTE_RELEVO);
+                let _ = wsl_upload_script(&d, WRAP_NAME, REMOTE_WRAP);
+            }
+            let state = wsl_verdict_py(&d, CHAT_WRAP_PY, op).unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: wsl_label(&d), state });
         }
         Ok(out)
     })
@@ -5086,6 +5331,10 @@ async fn term_relay_status() -> Result<Vec<ChatRelayRow>, String> {
                 .unwrap_or_else(|e| e);
             out.push(ChatRelayRow { name: r.name.clone(), state });
         }
+        for d in wsl_distros() {
+            let state = wsl_verdict_py(&d, TERM_ALIAS_PY, "status").unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: wsl_label(&d), state });
+        }
         Ok(out)
     })
     .await
@@ -5107,6 +5356,13 @@ async fn set_term_relay(on: bool) -> Result<Vec<ChatRelayRow>, String> {
             let state = remote_verdict_py(&r.host, &remote_python(&r), TERM_ALIAS_PY, op)
                 .unwrap_or_else(|e| e);
             out.push(ChatRelayRow { name: r.name.clone(), state });
+        }
+        for d in wsl_distros() {
+            if on {
+                let _ = wsl_upload_script(&d, RELEVO_NAME, REMOTE_RELEVO);
+            }
+            let state = wsl_verdict_py(&d, TERM_ALIAS_PY, op).unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: wsl_label(&d), state });
         }
         Ok(out)
     })
