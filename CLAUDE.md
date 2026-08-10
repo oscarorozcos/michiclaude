@@ -4,10 +4,10 @@ Contexto del proyecto para Claude Code. **Léelo completo antes de modificar
 nada.** Aquí vive solo lo VIGENTE: reglas, invariantes y pendientes. El
 HISTORIAL completo (jornadas, validaciones, bugs con autopsia, decisiones
 con su porqué) está en `docs/bitacora.md` — buscar ahí antes de rediscutir
-una decisión vieja. Al cerrar una jornada: validaciones nuevas a la
-bitácora; aquí solo se actualizan reglas y pendientes. REGLA DURA: este
-archivo debe quedar por debajo de 40k caracteres — Claude Code corta lo que
-sobre (pasó el 2026-08-04 con 118.8k y dos tercios del archivo sin leerse).
+una decisión vieja. Al cerrar una jornada: validaciones a la bitácora;
+aquí solo reglas y pendientes. REGLA DURA: este archivo por debajo de 40k
+caracteres — Claude Code corta lo que sobre (pasó con 118.8k y dos tercios
+del archivo sin leerse).
 
 ## Qué es esta app
 
@@ -633,8 +633,8 @@ manda pushes; al parar, `processAcks()` restaura lo real. Pausa `simMin`
 
 ## Contexto de producto
 
-- Usuario objetivo: suscriptores Pro/Max de Claude Code que quieren saber
-  cuánto les queda, cuándo se acaba y qué consume más.
+- Usuario objetivo: suscriptores Pro/Max que quieren saber cuánto les
+  queda, cuándo se acaba y qué consume más.
 - El coste en $ es NOCIONAL (equiv. API); la UI lo etiqueta así.
 - Diferenciadores vs ccusage/claudeusagewin: cuota real + costo por
   proyecto + multi-máquina + gatito. GPL-3.0 con excepción de assets
