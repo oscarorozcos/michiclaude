@@ -1306,3 +1306,40 @@ llegar un `/compact` que el programa relevado RECIBE.
 programa de cinco líneas que imprime lo que le llega. Al relevo le basta una
 PTY viva que reaccione, así que con eso se comprueba lo único que el relevo
 promete (que el comando LLEGA) sin instalar nada ni gastar cuota.
+
+### El chat de VS Code en Windows (etapa 4e, 2026-08-10) — ETAPA 4 COMPLETA
+
+VALIDADO EN VIVO: el panel lista la sesión local (`local · chat · pid N`) y un
+`/compact` pedido desde ahí llegó al chat — se ve el mensaje en la
+conversación y Claude Code compactó ("42k tokens freed").
+
+- **`michi.exe wrap`** es el gemelo Windows de `michi-relevo.py wrap`: mismo
+  esquema de estado, mismos códigos, misma lista blanca (invariante #1). No
+  envuelve una PTY, envuelve el tubo stream-json. R1 se cumple por
+  CONSTRUCCIÓN y R2 es CERTEZA (entra un `user`, sale un `result`).
+- **Una sola coreografía para los dos terrenos:** `attend`/`handoff` —R1-R5, la
+  red del /export, los acuses— hablan por un `Speaker`; la terminal TECLEA y el
+  chat MANDA protocolo. Lo que decide CUÁNDO se puede hablar no se duplica.
+- **El ajuste apunta a michi.exe A SECAS**: sin subcomando, la llamada de la
+  extensión se reconoce por el protocolo (`--input-format`). Un .cmd lanzador
+  en medio se lo tragaría el spawn de Node.
+- **El interruptor no re-serializa el settings.json** (es del usuario, con sus
+  comentarios y su formato): lo lee con serde tras quitar comentarios y lo
+  escribe tocando el TEXTO, una línea que pone y una línea que quita, y
+  VERIFICA que sigue siendo JSON antes de guardar. Wrapper ajeno no se pisa.
+  Banco 7/7; el caso de un settings.json en UNA LÍNEA falló primero (nuestra
+  clave compartía renglón con sus ajustes y al apagar se los llevaba): por eso
+  la línea se inserta siempre sola en su renglón.
+
+**Lo que costó, y la lección:** la extensión se come stderr, así que un
+enganche que no arranca es indistinguible de uno que funciona mal — la
+conversación sigue igual y el relevo no aparece. Sin `wrap_debug.txt` (la
+LLAMADA y la decisión, nunca contenido) estuvimos dos rondas suponiendo. El
+rastro contestó a la primera: `auth status --json` → paso directo, y la
+llamada con `--input-format` → relevando. Un enganche invisible necesita un
+rastro desde el primer día, no cuando falla.
+
+**Residual conocido:** el banner «michi · relevo activo» no aparece en el chat
+de Windows (sí en Linux). NO es el mecanismo: el eco del /compact inyectado
+—misma línea de replay— se pinta perfectamente. Es CUÁNDO se emite; pendiente
+de rastro. Cosmético: la función está entera.

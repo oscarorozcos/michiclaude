@@ -3240,3 +3240,42 @@ Lo que enseñó la jornada:
 
 De paso quedó probado que la marca del título (`TitleMark`) también
 funciona en WSL, que no lo habíamos mirado.
+
+## 2026-08-10 (cierre) — el chat de Windows, y la ETAPA 4 COMPLETA
+
+Último fleco del relevo, pedido por Oscar con el argumento que lo cambió
+todo hoy: "es para más usuarios que yo". Diseño y detalle en
+remediacion.md §"El chat de VS Code en Windows".
+
+El relevo llega ya a las TRES máquinas (Windows local, SSH y WSL) por las
+DOS vías (terminal y chat), y todo está validado en vivo.
+
+Lecciones de la jornada:
+
+- **Un enganche invisible necesita rastro desde el primer día.** La
+  extensión se come stderr: un wrapper que no arranca se ve EXACTAMENTE
+  igual que uno que funciona (la conversación sigue, el relevo no
+  aparece). Estuvimos dos rondas suponiendo; `wrap_debug.txt` contestó a
+  la primera y además demostró que el paso directo funciona (la llamada
+  `auth status --json`, sin protocolo, se dejó pasar tal cual).
+- **32 minutos de diferencia entre dos binarios nos tuvieron ciegos:** el
+  ajuste apuntaba a la copia que `tauri dev` deja junto al ejecutable, y
+  esa copia era de ANTES de compilar el rastro. Al ver un `michi.exe`
+  VIVO en la lista de procesos se entendió todo: el enganche funcionaba
+  desde el principio; lo que faltaba era el binario nuevo.
+- **El banco encontró un fallo que habría borrado ajustes ajenos:** con un
+  settings.json escrito en una sola línea, nuestra clave compartía renglón
+  con los ajustes del usuario y al apagar el interruptor se los llevaba.
+  Se cazó antes de tocar un archivo de verdad. De ahí que la línea se
+  inserte siempre sola en su renglón.
+- **No duplicar la coreografía:** en vez de escribir un segundo attend
+  para el chat, se extrajo un `Speaker` — la terminal teclea, el chat
+  manda protocolo, y R1-R5 y la red del /export son una sola
+  implementación. Es la misma decisión que en `relay_inject_fs` y
+  `relay_from_json` esta misma tarde: si hay dos copias de una regla, un
+  día divergen.
+
+**Residual:** el banner del chat no se pinta en Windows (en Linux sí). No
+es el mecanismo —el eco del /compact inyectado usa la MISMA línea de
+replay y sale perfecto—, es cuándo se emite. Pendiente de rastro,
+cosmético.

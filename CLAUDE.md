@@ -422,9 +422,9 @@ workflow. BLOQUEADO: repo PRIVADO → releases dan 404 sin auth.
 FOTO COMPLETA: bitácora §"cierre 2026-08-08/09"; métricas:
 presion-y-rendimiento §"Qué queda vivo".
 
-- [ ] HUB + RANGOS DE FECHA (2026-08-05; NO hacer hasta que haya una
-      segunda máquina con MichiClaude — hoy no aporta nada). Diseño
-      completo en `docs/hub-modo-equipo.md` §"Rangos de fecha con hub".
+- [ ] HUB + RANGOS DE FECHA: NO hacer hasta que haya una SEGUNDA máquina
+      con MichiClaude (hoy no aporta nada). Diseño en
+      `docs/hub-modo-equipo.md` §"Rangos de fecha con hub".
 
 - [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05;
       bitácora §"Ronda de rediseño UX/UI", tag `pre-rediseno-20260805`).
@@ -440,9 +440,8 @@ presion-y-rendimiento §"Qué queda vivo".
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (umbral,
       100%, ventana nueva), camino ntfy completo (con PC apagada) y el
       aviso de hallazgos naciendo natural (fuga nueva, panel cerrado,
-      sin re-armar fndSeen). El auto-/compact ya pasó la suya en vivo
-      (2026-08-09) y el /clear con red también (a mano); falta ver el
-      AUTO-/clear disparándose solo.
+      sin re-armar fndSeen). El auto-/compact y el /clear con red ya
+      pasaron la suya; falta ver el AUTO-/clear disparándose solo.
 - [ ] Updater: repo público + tag v* y probar completo.
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
@@ -462,49 +461,44 @@ presion-y-rendimiento §"Qué queda vivo".
       del periodo, jamás fija; el $ SIEMPRE pegado a su dato de tokens
       (.as-money); caché POR PERIODO y render PROGRESIVO. Fase 3 (export
       HTML) y lo DESCARTADO, en el doc.
-- [ ] REMEDIACIÓN (diseño en `docs/remediacion.md` — LEERLO antes de
-      tocar; ahí lo que chocaba con invariantes y los prompts de
-      maquetas). Etapas: 1 consejero, 2 automático out-of-band, 3 relevo
-      ConPTY, 4 WSL/SSH. ETAPA 1 COMPLETA
-      Y VALIDADA EN VIVO (2026-08-07). ETAPA 2 IMPLEMENTADA y VALIDADA EN
-      VIVO el mismo día (zombies MCP por PowerShell/CIM sin deps nuevas
-      + archivado ≥365d a `%APPDATA%\<app>\archive`; autopsia y detalle
-      en el doc y la bitácora). Reglas: firma = arg más largo del MCP
-      stdio de ~/.claude.json y barras a `/` al casar; huérfano = padre
-      muerto o PID reciclado; el kill re-verifica PID+exe+arranque y su
-      veredicto sale de RE-CONSULTAR el PID, nunca de `$?`; PowerShell
-      desde Rust con saltos de línea REALES (en una línea muere en el
-      parser); `actions_log.json` (tope 200, crudo, el panel traduce);
-      desbloqueo progresivo `remCfg`/`remFirst` (zombie ON / archive OFF,
-      primera vez SIEMPRE manual); sondeo horario `remPoll`; lo raro deja
-      `rem_debug.json`. SOLO LOCAL: WSL/SSH, etapa 4. ETAPA 3 COMPLETA
-      salvo la 4, VALIDADA EN VIVO 2026-08-08 (detalle en doc y
-      bitácora). REGLAS DURAS:
+- [x] REMEDIACIÓN — LAS 4 ETAPAS COMPLETAS Y VALIDADAS EN VIVO
+      (2026-08-07/10). Diseño, historia y lo descartado en
+      `docs/remediacion.md` — LEERLO antes de tocar nada de esto. Aquí
+      solo las REGLAS que no se pueden romper.
+      ETAPA 2 (zombies MCP + archivado ≥365d a `%APPDATA%\<app>\archive`):
+      firma = arg más largo del MCP stdio de ~/.claude.json y barras a `/`
+      al casar; huérfano = padre muerto o PID reciclado; el kill
+      re-verifica PID+exe+arranque y su veredicto sale de RE-CONSULTAR el
+      PID, nunca de `$?`; PowerShell desde Rust con saltos de línea REALES
+      (en una línea muere en el parser); `actions_log.json` (tope 200,
+      crudo, el panel traduce); desbloqueo progresivo `remCfg`/`remFirst`
+      (zombie ON / archive OFF, primera vez SIEMPRE manual); sondeo
+      horario `remPoll`; lo raro deja `rem_debug.json`. SOLO LOCAL.
+      ETAPA 3, REGLAS DURAS:
       crate APARTE `relevo/` (la app no gana deps, invariante #4);
       canal por ARCHIVOS `%APPDATA%\<app>\relevo\<pid>.json|.cmd`
       (tmp+rename con `.tmp` sobre el nombre ENTERO); viva = estado
       <15 s; LISTA BLANCA (/compact, /clear) comprobada en LOS DOS
-      lados; R2 se INFIERE del silencio de la PTY. **ConPTY negocia `win32-input-mode`** — las
-      teclas llegan como `ESC[…_` y hay que decodificarlas; los avisos del
-      terminal (foco, cursor) NO son teclas; UNA fuente de verdad para
-      "hay texto"; un Enter no limpia hasta ver si Claude REACCIONA;
-      JAMÁS escribe lo tecleado.
-      `TitleMark` antepone la marca al título: ÚNICA excepción al paso
-      transparente, lee el número OSC ENTERO (`ESC]10;` es color),
-      fail-open con tope. Casado sesión↔relevo por `cwd` COMPLETO
+      lados; R2 se INFIERE del silencio de la PTY (en el chat es CERTEZA:
+      entra un `user`, sale un `result`). **ConPTY negocia
+      `win32-input-mode`** — las teclas llegan como `ESC[…_`; los avisos
+      del terminal (foco, cursor) NO son teclas; UNA fuente de verdad
+      para "hay texto"; un Enter no limpia hasta ver si Claude REACCIONA;
+      JAMÁS escribe lo tecleado. `TitleMark` antepone la marca al título:
+      ÚNICA excepción al paso transparente, lee el número OSC ENTERO
+      (`ESC]10;` es color), fail-open con tope. Casado sesión↔relevo por `cwd` COMPLETO
       (`scwd` del hit `press`), FAIL-CLOSED ante ambigüedad. DECIDE el
       relevo: `attend()` revuelve R1-R3 al escribir. `relayBusy` impide
       repintar con una cuenta viva. El motivo del rechazo va en línea
       propia, nunca en el botón.
       Desbloqueo en `relayDone` (/compact 2, /clear 3; lo que TECLEAS TÚ
       también cuenta). AUTO-/CLEAR CON RED (doc §El auto-/clear con red):
-      solo Boundary + interruptor `relayClear` (nace OFF) + 3 manuales +
-      relevo v≥2 (STATE_V=2: a un v1 el panel NO pide la red — borraría
-      sin copia). Red = `/export <ruta>` GENERADA por el relevo (jamás
-      viaja por el canal; la lista sigue en 2), copia VERIFICADA en disco
-      (`<datos>/handoff/`, 90 días) o NO hay /clear (`ERR_RELAY_EXPORT`);
-      secuencia en hilo propio; `/export` sin ruta abre MENÚ — jamás a
-      secas. **El Enter va SEPARADO del texto** (`type_line`,
+      solo Boundary + `relayClear` (nace OFF) + 3 manuales + relevo v≥2
+      (a un v1 el panel NO pide la red — borraría sin copia). Red =
+      `/export <ruta>` GENERADA por el relevo (jamás viaja por el canal),
+      copia VERIFICADA en disco (`<datos>/handoff/`, 90 días) o NO hay
+      /clear (`ERR_RELAY_EXPORT`); hilo propio; `/export` sin ruta abre
+      MENÚ — jamás a secas. **El Enter va SEPARADO del texto** (`type_line`,
       ENTER_GAP_MS 250): juntos, la TUI los toma por PEGADO y la línea se
       queda escrita sin ejecutarse. El AUTOMÁTICO exige widget A LA VISTA —la
       cuenta atrás vive en la cápsula—, dura 15 s, cualquier toque la
@@ -537,36 +531,43 @@ presion-y-rendimiento §"Qué queda vivo".
       el banner «michi · relevo activo», uno por conversación y delante
       del PRIMER mensaje (en el init aún no pinta).
       Residual: no vemos el borrador del cuadro.
-      ETAPA 4: 4a = relevo del VPS en PYTHON (`michi-relevo.py`, stdlib
+      ETAPA 4: el relevo del VPS va en PYTHON (`michi-relevo.py`, stdlib
       pty; el VPS no tiene Rust), embebido y re-subido como el exportador
-      junto a `michi-wrap.sh`; mismas constantes/esquema/códigos que
-      main.rs. 4b/4c HECHAS, validadas 6/6 en vivo: `scan_relays_remote`
-      lee por SSH con UNA conexión por servidor (solo en el compás del
-      coach; el sondeo de 5 s conserva las remotas) y
-      `relay_inject_remote` escribe el `.cmd` con tmp+rename EN el
-      servidor, con el comando por STDIN y jamás interpolado en el
-      shell. Casado en dos niveles: `sid` EXACTO (solo chat), si no el
-      `cwd`; los dos exigen la MISMA máquina. El AUTOMÁTICO sí cruza a
-      remotas (pasa `origin`), validado. El wrapper del chat se enciende
-      desde Ajustes (`set_chat_relay`: guion `CHAT_WRAP_PY` por
-      SSH-STDIN; wrapper ajeno NO se pisa, ilegible NO se toca,
-      `.michi-backup` antes, re-sube el lanzador ANTES de encender —
-      clave a archivo inexistente = chat muerto). ALIAS `~/.bashrc`
-      HECHO (validado 29/29 y en vivo): guion `TERM_ALIAS_PY` +
-      `term_relay_status`/`set_term_relay`, FUNCIÓN de bash con marcas
-      (no shim: solo shells interactivas), fail-open en cascada, sin
-      bucle (las funciones no viajan a subprocesos). `michi.exe` YA VIAJA
+      junto a `michi-wrap.sh`, con las MISMAS constantes/esquema/códigos
+      que main.rs. `scan_relays_remote` lee por SSH con UNA conexión por
+      servidor (solo en el compás del coach; el sondeo de 5 s conserva
+      las remotas) y `relay_inject_remote` escribe el `.cmd` con
+      tmp+rename EN el servidor, con el comando por STDIN y jamás
+      interpolado en el shell. Casado en dos niveles: `sid` EXACTO (solo
+      chat), si no el `cwd`; los dos exigen la MISMA máquina. El
+      AUTOMÁTICO cruza a remotas (pasa `origin`). Los dos interruptores
+      (chat `CHAT_WRAP_PY`, terminal `TERM_ALIAS_PY`) mandan su guion por
+      STDIN: wrapper ajeno NO se pisa, ilegible NO se toca,
+      `.michi-backup` antes, y el lanzador se re-sube ANTES de encender
+      (clave a archivo inexistente = chat muerto). El alias es una
+      FUNCIÓN de bash con marcas (no un shim: solo shells interactivas),
+      fail-open en cascada y sin bucle posible (las funciones no viajan a
+      subprocesos). `michi.exe` YA VIAJA
       en el instalador: `bundle.resources` + `beforeBuildCommand` que
       compila el crate — el workflow NO se toca (invariante #9); cae
-      JUNTO al exe (medido). WSL HECHO Y VALIDADO (4d): mismos guiones
-      que SSH con transporte `wsl.exe -d <distro>`, buzón por
-      `\\wsl.localhost` (`relay_inject_fs` sirve al local y a WSL),
-      distros con `~/.claude`, `origin`=`wsl-<distro>`, compás lento. DOS
-      MORDIDAS: `wsl.exe` NO entrega `$1` a `sh -c` (ssh sí) → nombre y
-      op DENTRO del comando contra lista cerrada; y un op desconocido
-      caía en APAGAR y contestaba OK (✓ falso) → ahora BADOP.
+      JUNTO al exe (medido). WSL (4d): mismos guiones con transporte
+      `wsl.exe -d <distro>`, buzón por `\\wsl.localhost`
+      (`relay_inject_fs` sirve al local y a WSL), distros con
+      `~/.claude`, `origin`=`wsl-<distro>`, compás lento. DOS MORDIDAS:
+      `wsl.exe` NO entrega `$1` a `sh -c` (ssh sí) → nombre y op DENTRO
+      del comando contra lista cerrada; y un op desconocido caía en
+      APAGAR y contestaba OK (✓ falso) → ahora BADOP.
       `tests/claude-falso.sh` prueba el relevo sin Claude Code.
-      FALTA: chat del Windows local (modo wrap en michi.exe).
+      4e CHAT DE WINDOWS HECHO Y VALIDADO: `michi.exe wrap`, con el
+      ajuste apuntando a michi.exe A SECAS (la llamada de la extensión se
+      reconoce por `--input-format`) y `attend`/`handoff` hablando por un
+      `Speaker` — la terminal TECLEA, el chat MANDA protocolo, y R1-R5 y
+      la red del /export NO se duplican. El interruptor NO re-serializa
+      el settings.json: escribe por TEXTO, línea sola en su renglón, y
+      verifica que sigue siendo JSON. `wrap_debug.txt` porque la
+      extensión se come stderr: un enganche que no arranca se ve igual
+      que uno que funciona. Residual cosmético: el banner no se pinta en
+      el chat de Windows (el eco del /compact sí).
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO hacer: rastrear otras herramientas, BD de
   historial, modo equipo.
