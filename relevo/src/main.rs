@@ -1444,9 +1444,26 @@ fn looks_like_chat_launch(args: &[String]) -> bool {
             .unwrap_or(false)
 }
 
+/// Rastro del wrapper. Aquí no hay pantalla donde quejarse —la extensión se
+/// come stderr— así que sin esto un fallo del enganche es indistinguible de
+/// "no pasa nada": la conversación funciona igual y el relevo no aparece.
+/// Solo la LLAMADA (argumentos y decisión), nunca contenido de la charla.
+fn wrap_trace(linea: &str) {
+    let Some(d) = state_dir().parent().map(|p| p.to_path_buf()) else {
+        return;
+    };
+    let p = d.join("wrap_debug.txt");
+    // se trunca solo: esto es para diagnosticar, no un histórico
+    let previo = std::fs::read_to_string(&p).unwrap_or_default();
+    let previo = if previo.len() > 20_000 { String::new() } else { previo };
+    let _ = std::fs::write(&p, format!("{previo}{} · {linea}\n", now_epoch()));
+}
+
 fn run_wrap(args: &[String]) -> ! {
+    wrap_trace(&format!("llamada: {}", args.join(" ")));
     let (bin, rest) = find_claude_bin(args);
     let Some(bin) = bin else {
+        wrap_trace("sin binario de Claude Code: no puedo hacer nada");
         eprintln!("michi: no encontré el binario de Claude Code");
         std::process::exit(127);
     };
@@ -1455,6 +1472,12 @@ fn run_wrap(args: &[String]) -> ! {
     // wrapper NUNCA puede dejar a alguien sin Claude Code — misma regla que
     // el shim del PATH.
     if std::env::var_os("MICHI_RELEVO").is_some() || !rest.iter().any(|a| a == "--input-format") {
+        wrap_trace(&format!(
+            "paso directo (anidado={}, protocolo={}) → {}",
+            std::env::var_os("MICHI_RELEVO").is_some(),
+            rest.iter().any(|a| a == "--input-format"),
+            bin.to_string_lossy()
+        ));
         let code = claude_command(&bin, &rest)
             .env("MICHI_RELEVO", "0")
             .status()
@@ -1462,6 +1485,7 @@ fn run_wrap(args: &[String]) -> ! {
             .unwrap_or(127);
         std::process::exit(code);
     }
+    wrap_trace(&format!("relevando el chat con {}", bin.to_string_lossy()));
 
     let pid = std::process::id();
     let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
