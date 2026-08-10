@@ -1,0 +1,14 @@
+# Saltos de línea. Este repo se trabaja desde Windows y desde el VPS (Linux),
+# y sin esto Git marcaba archivos como "modificados" sin que hubiera un solo
+# carácter distinto: bloqueó un push el 2026-08-10 y costó media docena de
+# comandos entenderlo.
+#
+# text=auto: en el repo SIEMPRE LF; en el disco, lo que use cada sistema.
+* text=auto
+
+# Los guiones viajan EMBEBIDOS en el binario (include_str!) y se ejecutan en
+# servidores Linux. `upload_script` ya normaliza a LF al subirlos —y por eso
+# el CRLF no rompía nada—, pero se fijan aquí igualmente para que lo que se
+# lee en el disco sea lo mismo que corre en el servidor.
+*.py text eol=lf
+*.sh text eol=lf
