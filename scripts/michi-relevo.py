@@ -67,6 +67,12 @@ def user_line(text):
         "role": "user", "content": [{"type": "text", "text": text}]}}) + "\n"
 
 
+# El MISMO texto en terminal y chat: si alguna vez cambia, cambia en los dos.
+def banner_text(pid):
+    return (f"michi · relevo activo (sesión {pid}) — MichiClaude puede "
+            "aplicar /compact y /clear en esta ventana")
+
+
 def state_dir():
     d = os.path.expanduser("~/.michiclaude/relevo")
     os.makedirs(d, exist_ok=True)
@@ -330,10 +336,7 @@ def run_relevo(extra):
             print(f"michi: no pude lanzar `claude`: {e}", file=sys.stderr)
             sys.exit(127)
 
-    print(
-        f"michi · relevo activo (sesión {pid}) — MichiClaude puede aplicar "
-        "/compact y /clear en esta ventana"
-    )
+    print(banner_text(pid))
 
     master, slave = os.openpty()
 
@@ -680,6 +683,7 @@ def run_wrap(args):
         "ack": None,
         "alive": True,
         "hand": False,          # secuencia /export+/clear en curso
+        "banner": False,        # el aviso de arranque ya se pintó en el chat
     }
     lock = threading.Lock()      # escribir al hijo
     olock = threading.Lock()     # escribir al chat
@@ -853,6 +857,7 @@ def run_wrap(args):
         try:
             for line in iter(child.stdout.readline, b""):
                 st["last_out"] = now_ms()
+                banner = b""
                 try:
                     v = json.loads(line)
                     t = v.get("type")
@@ -860,10 +865,20 @@ def run_wrap(args):
                         st["busy"] = False       # fin de turno: CERTEZA
                     if t == "system" and v.get("session_id"):
                         st["sid"] = v["session_id"]
+                        # El banner del chat: el gemelo del de la terminal.
+                        # Va SOLO al chat (el hijo no lo recibe, el JSONL no
+                        # lo registra), una vez por proceso, pegado detrás
+                        # del mensaje de inicio para que sea lo primero que
+                        # se pinte — y lo que dé nombre a la pestaña.
+                        if not st["banner"]:
+                            st["banner"] = True
+                            banner = user_line(banner_text(pid)).encode()
                 except ValueError:
                     pass
                 with olock:
                     sys.stdout.buffer.write(line)
+                    if banner:
+                        sys.stdout.buffer.write(banner)
                     sys.stdout.buffer.flush()
         except (OSError, ValueError):
             pass
