@@ -36,7 +36,7 @@
 // lista. Y sin copia verificada (el archivo existe y tiene contenido) NO
 // hay /clear: fail-closed.
 
-use std::io::{Read, Write};
+use std::io::{BufRead, Read, Write};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -190,6 +190,11 @@ struct Shared {
     user_cmd: Mutex<Option<(i64, String)>>,
     /// eco de la última orden atendida, para que la app sepa qué pasó
     ack: Mutex<Option<serde_json::Value>>,
+    /// 1 = hay un turno en curso. SOLO lo usa el modo chat, y ahí es
+    /// CERTEZA, no inferencia: el protocolo lo dice (entra un `user`, sale
+    /// un `result`). En la terminal se queda en 0 y R2 sigue saliendo del
+    /// silencio de la PTY, que es lo único que hay allí.
+    busy: AtomicU64,
 }
 
 impl Shared {
@@ -223,6 +228,7 @@ impl Shared {
     fn ready(&self) -> bool {
         self.exit.load(Ordering::Relaxed) < 0
             && self.handoff.load(Ordering::Relaxed) == 0
+            && self.busy.load(Ordering::Relaxed) == 0
             && !self.has_text()
             && self.since_in() >= CALM_MS
             && self.since_out() >= QUIET_MS
@@ -233,6 +239,8 @@ impl Shared {
         if self.exit.load(Ordering::Relaxed) >= 0 {
             "ERR_RELAY_GONE"
         } else if self.handoff.load(Ordering::Relaxed) != 0 {
+            "ERR_RELAY_BUSY"
+        } else if self.busy.load(Ordering::Relaxed) != 0 {
             "ERR_RELAY_BUSY"
         } else if self.has_text() {
             "ERR_RELAY_TYPED"
@@ -841,16 +849,23 @@ fn run_relevo(extra: &[String]) -> ! {
         exit: AtomicI64::new(-1),
         user_cmd: Mutex::new(None),
         ack: Mutex::new(None),
+        busy: AtomicU64::new(0),
     });
 
     let writer = match master.take_writer() {
-        Ok(w) => Arc::new(Mutex::new(w)),
+        Ok(w) => Arc::new(Mutex::new(Some(w))),
         Err(e) => bail(restore.as_ref(), &format!("no pude escribir en la consola virtual: {e}"), 1),
     };
     let reader = match master.try_clone_reader() {
         Ok(r) => r,
         Err(e) => bail(restore.as_ref(), &format!("no pude leer de la consola virtual: {e}"), 1),
     };
+    // En la terminal se habla TECLEANDO (sin `sid`: no hay protocolo que
+    // casar). El chat usa el mismo `attend` con otro Speaker.
+    let sp = Arc::new(Speaker {
+        to_child: writer.clone(),
+        sid: None,
+    });
 
     // Hilo 1 — de la PTY a la pantalla. Byte a byte, con UNA excepción: el
     // título de la ventana (ver TitleMark).
@@ -903,7 +918,8 @@ fn run_relevo(extra: &[String]) -> ! {
                     // El usuario se adelantó: que el panel cancele lo suyo.
                     *sh.user_cmd.lock().unwrap() = Some((now_epoch(), cmd));
                 }
-                let mut w = writer.lock().unwrap();
+                let mut lock = writer.lock().unwrap();
+                let Some(w) = lock.as_mut() else { break };
                 if w.write_all(&buf[..n]).is_err() {
                     break;
                 }
@@ -951,7 +967,7 @@ fn run_relevo(extra: &[String]) -> ! {
             let _ = std::fs::remove_file(&cmd_path);
             // None = la secuencia /export+/clear quedó corriendo en su hilo
             // y publicará el acuse ella misma al terminar.
-            if let Some(ack) = attend(&raw, &sh, &writer) {
+            if let Some(ack) = attend(&raw, &sh, &sp) {
                 *sh.ack.lock().unwrap() = Some(ack);
                 last_state = 0; // que el estado salga YA con el acuse
             }
@@ -960,7 +976,7 @@ fn run_relevo(extra: &[String]) -> ! {
         let now = sh.ms();
         if last_state == 0 || now.saturating_sub(last_state) >= STATE_EVERY_MS {
             last_state = now.max(1);
-            write_atomic(&state_path, &snapshot(&sh, pid, started, &cwd));
+            write_atomic(&state_path, &snapshot(&sh, pid, started, &cwd, "terminal", ""));
         }
 
         std::thread::sleep(Duration::from_millis(TICK_MS));
@@ -981,7 +997,14 @@ fn run_relevo(extra: &[String]) -> ! {
 }
 
 /// La foto que lee el panel. Solo hechos y relojes — ni una letra tecleada.
-fn snapshot(sh: &Shared, pid: u32, started: i64, cwd: &PathBuf) -> String {
+fn snapshot(
+    sh: &Shared,
+    pid: u32,
+    started: i64,
+    cwd: &PathBuf,
+    mode: &str,
+    sid: &str,
+) -> String {
     let uc = sh.user_cmd.lock().unwrap().clone();
     let ack = sh.ack.lock().unwrap().clone();
     // Ojo al orden: has_text() toma el mismo cerrojo que el bloque de abajo,
@@ -1019,6 +1042,10 @@ fn snapshot(sh: &Shared, pid: u32, started: i64, cwd: &PathBuf) -> String {
         "user_cmd": uc.as_ref().map(|(_, c)| c.clone()),
         "user_cmd_ts": uc.as_ref().map(|(t, _)| *t),
         "last": ack,
+        // por qué vía: el panel enseña distinto un chat que una terminal, y
+        // el casado sesión↔relevo del chat es por `sid` EXACTO
+        "mode": mode,
+        "sid": sid,
     })
     .to_string()
 }
@@ -1026,21 +1053,65 @@ fn snapshot(sh: &Shared, pid: u32, started: i64, cwd: &PathBuf) -> String {
 /// Teclea una línea en la sesión: el texto, una pausa, y el Enter aparte
 /// (ver ENTER_GAP_MS — juntos, la TUI los toma por un pegado y no ejecuta).
 /// R5 intacta: solo se AÑADE, ni un borrado.
-fn type_line(writer: &Arc<Mutex<Box<dyn Write + Send>>>, text: &str) -> bool {
+fn type_line(writer: &Arc<Mutex<Option<Box<dyn Write + Send>>>>, text: &str) -> bool {
     {
-        let mut w = writer.lock().unwrap();
+        let mut lock = writer.lock().unwrap();
+        let Some(w) = lock.as_mut() else { return false };
         if w.write_all(text.as_bytes()).is_err() {
             return false;
         }
         let _ = w.flush();
     }
     std::thread::sleep(Duration::from_millis(ENTER_GAP_MS));
-    let mut w = writer.lock().unwrap();
+    let mut lock = writer.lock().unwrap();
+    let Some(w) = lock.as_mut() else { return false };
     if w.write_all(b"\r").is_err() {
         return false;
     }
     let _ = w.flush();
     true
+}
+
+/// Cómo se le habla a la sesión relevada. Hay dos terrenos y UNA sola
+/// coreografía: la terminal TECLEA en la PTY (texto, pausa, Enter aparte) y
+/// el chat MANDA una línea de protocolo por el tubo. Todo lo que decide
+/// CUÁNDO se puede hablar (`attend`, `handoff`, R1-R5) es común a los dos —
+/// que es justo lo que no se puede duplicar sin que un día diverjan.
+struct Speaker {
+    /// `None` = ya se cerró (el chat colgó). Cerrable a propósito: sin EOT
+    /// el hijo se quedaría esperando una entrada que no va a llegar.
+    to_child: Arc<Mutex<Option<Box<dyn Write + Send>>>>,
+    /// Some = modo chat, con la sesión que la CLI anunció. El eco al chat la
+    /// necesita: la extensión descarta en silencio lo que no case con ella.
+    sid: Option<Arc<Mutex<String>>>,
+}
+
+impl Speaker {
+    fn say(&self, sh: &Shared, text: &str) -> bool {
+        let Some(sid) = &self.sid else {
+            return type_line(&self.to_child, text);
+        };
+        let sid = sid.lock().unwrap().clone();
+        {
+            let mut lock = self.to_child.lock().unwrap();
+            let Some(w) = lock.as_mut() else { return false };
+            if w.write_all(user_line(text).as_bytes()).is_err() {
+                return false;
+            }
+            let _ = w.flush();
+        }
+        // Turno en curso por CERTEZA: acaba de entrar un `user`, y hasta que
+        // salga su `result` esta sesión está ocupada.
+        sh.busy.store(1, Ordering::Relaxed);
+        // Y su eco al chat, que es obligatorio: la CLI intercepta los comandos
+        // antes de replicarlos, así que sin esto la conversación se
+        // compactaría sin que nada en pantalla dijera quién lo pidió.
+        let out = std::io::stdout();
+        let mut lock = out.lock();
+        let _ = lock.write_all(replay_line(text, &sid).as_bytes());
+        let _ = lock.flush();
+        true
+    }
 }
 
 /// El acuse con la misma forma en todos los caminos. `export` = ruta de la
@@ -1060,11 +1131,7 @@ fn ack_json(id: &str, text: &str, ok: bool, err: &str, export: Option<&str>) -> 
 /// Devuelve None si la orden era un /clear con red: la secuencia corre en
 /// su propio hilo (esperar la copia tarda segundos y el bucle principal
 /// tiene que seguir refrescando el estado) y publica el acuse al acabar.
-fn attend(
-    raw: &str,
-    sh: &Arc<Shared>,
-    writer: &Arc<Mutex<Box<dyn Write + Send>>>,
-) -> Option<serde_json::Value> {
+fn attend(raw: &str, sh: &Arc<Shared>, sp: &Arc<Speaker>) -> Option<serde_json::Value> {
     let v: serde_json::Value = match serde_json::from_str(raw) {
         Ok(v) => v,
         Err(_) => return Some(serde_json::json!({"ok": false, "err": "ERR_RELAY_BADCMD"})),
@@ -1085,9 +1152,9 @@ fn attend(
     if export {
         sh.handoff.store(1, Ordering::Relaxed);
         let sh2 = sh.clone();
-        let w2 = writer.clone();
+        let sp2 = sp.clone();
         std::thread::spawn(move || {
-            let ack = handoff(&id, &text, &sh2, &w2);
+            let ack = handoff(&id, &text, &sh2, &sp2);
             *sh2.ack.lock().unwrap() = Some(ack);
             sh2.handoff.store(0, Ordering::Relaxed);
         });
@@ -1097,7 +1164,7 @@ fn attend(
     // R5 (sagrada): solo se AÑADE texto. Ni un backspace, ni un Ctrl+U, ni
     // nada que pueda borrar lo del usuario. Si hubiera texto suyo, ya
     // habríamos salido por ERR_RELAY_TYPED.
-    if !type_line(writer, &text) {
+    if !sp.say(sh, &text) {
         return Some(ack_json(&id, &text, false, "ERR_RELAY_WRITE", None));
     }
     sh.inject_at.store(sh.ms(), Ordering::Relaxed);
@@ -1109,17 +1176,12 @@ fn attend(
 /// copia existe y tiene contenido, y solo entonces se teclea el /clear.
 /// Sin copia no hay /clear (ERR_RELAY_EXPORT): fail-closed, la misma
 /// familia que R5 — antes perder la limpieza que perder la conversación.
-fn handoff(
-    id: &str,
-    text: &str,
-    sh: &Arc<Shared>,
-    writer: &Arc<Mutex<Box<dyn Write + Send>>>,
-) -> serde_json::Value {
+fn handoff(id: &str, text: &str, sh: &Arc<Shared>, sp: &Arc<Speaker>) -> serde_json::Value {
     let dir = handoff_dir();
     let _ = std::fs::create_dir_all(&dir);
     let path = dir.join(format!("handoff-{}-{}.md", std::process::id(), now_epoch()));
     let ps = path.to_string_lossy().to_string();
-    if !type_line(writer, &format!("/export {ps}")) {
+    if !sp.say(sh, &format!("/export {ps}")) {
         return ack_json(id, text, false, "ERR_RELAY_WRITE", None);
     }
     sh.inject_at.store(sh.ms(), Ordering::Relaxed);
@@ -1132,7 +1194,7 @@ fn handoff(
             return ack_json(id, text, false, "ERR_RELAY_GONE", None);
         }
         let there = std::fs::metadata(&path).map(|m| m.len() > 0).unwrap_or(false);
-        if there && sh.since_out() >= EXPORT_SETTLE_MS {
+        if there && sh.since_out() >= EXPORT_SETTLE_MS && sh.busy.load(Ordering::Relaxed) == 0 {
             break true;
         }
         if t0.elapsed().as_millis() as u64 >= EXPORT_WAIT_MS {
@@ -1148,11 +1210,456 @@ fn handoff(
     if sh.has_text() {
         return ack_json(id, text, false, "ERR_RELAY_TYPED", Some(&ps));
     }
-    if !type_line(writer, text) {
+    if !sp.say(sh, text) {
         return ack_json(id, text, false, "ERR_RELAY_WRITE", Some(&ps));
     }
     sh.inject_at.store(sh.ms(), Ordering::Relaxed);
     ack_json(id, text, true, "", Some(&ps))
+}
+
+// ---------------------------------------------------------------------------
+// Modo wrap: el chat de VS Code de ESTA máquina (etapa 4e)
+//
+// El shim del PATH no alcanza al chat: la extensión no lanza `claude` por el
+// PATH, lo lanza por una ruta. Pero deja un enganche OFICIAL para ponerse en
+// medio, `claudeCode.claudeProcessWrapper` ("Executable path used to launch
+// the Claude process"), y el ajuste apunta AQUÍ. La extensión y la CLI hablan
+// stream-json —una línea JSON por mensaje—, así que este modo no envuelve una
+// PTY: envuelve ese tubo.
+//
+// Por qué es MÁS seguro que el de terminal, no menos:
+//   - R1 (no teclear encima) se cumple por CONSTRUCCIÓN: no hay buffer
+//     compartido ni teclas a medias. Cada mensaje es una línea atómica.
+//   - R2 deja de inferirse del silencio: lo dice el protocolo (entra un
+//     `user`, sale un `result`). Certeza, no fail-closed.
+// Residual, dicho sin adornos: no vemos el borrador del cuadro de texto. Por
+// eso siguen existiendo la cuenta atrás y la ventana de calma.
+//
+// Es el gemelo Windows de `michi-relevo.py wrap`, que hace esto mismo en los
+// servidores y en WSL. MISMO esquema de estado, MISMOS códigos, MISMA lista
+// blanca — invariante #1: los dos lados en sincronía.
+// ---------------------------------------------------------------------------
+
+/// Una línea `user` como las que manda la extensión: es lo que la CLI ENTIENDE.
+fn user_line(text: &str) -> String {
+    serde_json::json!({
+        "type": "user",
+        "message": {"role": "user", "content": [{"type": "text", "text": text}]}
+    })
+    .to_string()
+        + "\n"
+}
+
+/// El eco hacia el CHAT necesita la forma COMPLETA del replay de la CLI
+/// —session_id, uuid, parent_tool_use_id, timestamp, isReplay—: la extensión
+/// DESCARTA EN SILENCIO un `user` a secas que no case con la sesión (medido
+/// contra el binario real, 2026-08-10). Al hijo, en cambio, se le manda la
+/// forma corta de `user_line`. Confundirlas no rompe nada visible: el eco
+/// simplemente no se pinta, que es peor.
+fn replay_line(text: &str, sid: &str) -> String {
+    serde_json::json!({
+        "type": "user",
+        "message": {"role": "user", "content": [{"type": "text", "text": text}]},
+        "session_id": sid,
+        "parent_tool_use_id": serde_json::Value::Null,
+        "uuid": pseudo_uuid(),
+        "timestamp": iso_utc_now(),
+        "isReplay": true
+    })
+    .to_string()
+        + "\n"
+}
+
+/// Un identificador con forma de uuid. NO es criptográfico y no lo necesita:
+/// solo tiene que ser distinto del de al lado dentro de una conversación.
+/// Traerse un crate para rellenar un campo rompería la dieta de dependencias
+/// de este binario (invariante #4).
+fn pseudo_uuid() -> String {
+    let mut x = (now_epoch_ms() as u64) ^ ((std::process::id() as u64) << 32) ^ 0x9E37_79B9_7F4A_7C15;
+    let mut hex = String::with_capacity(32);
+    for _ in 0..4 {
+        // xorshift64: barato, determinista y suficiente para distinguir
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        hex.push_str(&format!("{x:016x}"));
+    }
+    format!(
+        "{}-{}-{}-{}-{}",
+        &hex[0..8],
+        &hex[8..12],
+        &hex[12..16],
+        &hex[16..20],
+        &hex[20..32]
+    )
+}
+
+/// Fecha UTC en ISO-8601. A mano porque `chrono` no vive en este crate y no
+/// va a entrar por un campo de texto.
+fn iso_utc_now() -> String {
+    let s = now_epoch();
+    let (y, m, d) = civil_from_days(s.div_euclid(86_400));
+    let r = s.rem_euclid(86_400);
+    format!(
+        "{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}.000Z",
+        r / 3600,
+        (r % 3600) / 60,
+        r % 60
+    )
+}
+
+/// Días desde 1970-01-01 → (año, mes, día). Algoritmo `civil_from_days` de
+/// Howard Hinnant (dominio público): aritmética entera, sin tablas ni casos
+/// especiales de bisiesto.
+fn civil_from_days(z: i64) -> (i64, u32, u32) {
+    let z = z + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let m = (if mp < 10 { mp + 3 } else { mp - 9 }) as u32;
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
+/// El binario REAL de Claude Code, con las dos convenciones posibles del
+/// wrapper cubiertas (que la extensión pase la ruta como primer argumento o
+/// que no la pase), porque cuál usa NO está documentada y adivinar rompería
+/// el chat de alguien. Después, el binario que trae la propia extensión, y
+/// por último el PATH — descartando SIEMPRE nuestro propio atajo, que
+/// volvería a llamarnos.
+fn find_claude_bin(args: &[String]) -> (Option<PathBuf>, Vec<String>) {
+    let rest: Vec<String> = args.to_vec();
+    if let Some(first) = rest.first() {
+        let p = PathBuf::from(first);
+        if p.is_file() {
+            return (Some(p), rest[1..].to_vec());
+        }
+    }
+    if let Some(v) = std::env::var_os("MICHI_CLAUDE_BIN") {
+        let p = PathBuf::from(v);
+        if p.is_file() {
+            return (Some(p), rest);
+        }
+    }
+    if let Some(p) = ext_claude() {
+        return (Some(p), rest);
+    }
+    (path_claude(), rest)
+}
+
+/// El binario que la extensión instala consigo (lo normal en Windows).
+fn ext_claude() -> Option<PathBuf> {
+    let home = std::env::var("USERPROFILE").ok()?;
+    let dir = PathBuf::from(home).join(".vscode").join("extensions");
+    let mut cands: Vec<PathBuf> = std::fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .map(|n| n.starts_with("anthropic.claude-code-"))
+                .unwrap_or(false)
+        })
+        .collect();
+    cands.sort(); // la versión más nueva ordena la última
+    for c in cands.into_iter().rev() {
+        for n in ["claude.exe", "claude"] {
+            let p = c.join("resources").join("native-binary").join(n);
+            if p.is_file() {
+                return Some(p);
+            }
+        }
+    }
+    None
+}
+
+/// `claude` del PATH, saltándose el atajo de MichiClaude: si lo cogiéramos,
+/// nos llamaríamos a nosotros mismos.
+fn path_claude() -> Option<PathBuf> {
+    let ours = state_dir().parent().map(|p| p.join("bin"));
+    let mut cmd = std::process::Command::new("where.exe");
+    cmd.arg("claude");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let out = cmd.output().ok()?;
+    let txt = String::from_utf8_lossy(&out.stdout).to_string();
+    let mut mejor: Option<PathBuf> = None;
+    for l in txt.lines() {
+        let p = PathBuf::from(l.trim());
+        if !p.is_file() || p.parent().map(PathBuf::from) == ours {
+            continue;
+        }
+        // un .exe se lanza directo; un .cmd necesita cmd.exe, así que se
+        // prefiere el primero y el segundo queda de reserva
+        let exe = p
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.eq_ignore_ascii_case("exe"))
+            .unwrap_or(false);
+        if exe {
+            return Some(p);
+        }
+        if mejor.is_none() {
+            mejor = Some(p);
+        }
+    }
+    mejor
+}
+
+/// El comando para lanzarlo. Un `.cmd` (instalación por npm) no lo puede
+/// ejecutar Windows directamente: va por `cmd.exe /c`.
+fn claude_command(bin: &PathBuf, rest: &[String]) -> std::process::Command {
+    let bat = bin
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.eq_ignore_ascii_case("cmd") || e.eq_ignore_ascii_case("bat"))
+        .unwrap_or(false);
+    if bat {
+        let mut c = std::process::Command::new("cmd.exe");
+        c.arg("/c").arg(bin).args(rest);
+        c
+    } else {
+        let mut c = std::process::Command::new(bin);
+        c.args(rest);
+        c
+    }
+}
+
+/// ¿Esto es la extensión lanzando Claude Code? Se mira el protocolo, que es
+/// el hecho: sin `--input-format` no hay tubo que envolver. Con esto el
+/// ajuste de VS Code puede apuntar a michi.exe A SECAS, sin lanzador
+/// intermedio (un .cmd en medio se lo tragaría el spawn de Node).
+fn looks_like_chat_launch(args: &[String]) -> bool {
+    args.iter().any(|a| a == "--input-format")
+        || args
+            .first()
+            .map(|f| PathBuf::from(f).is_file())
+            .unwrap_or(false)
+}
+
+fn run_wrap(args: &[String]) -> ! {
+    let (bin, rest) = find_claude_bin(args);
+    let Some(bin) = bin else {
+        eprintln!("michi: no encontré el binario de Claude Code");
+        std::process::exit(127);
+    };
+
+    // Ya dentro de un relevo, o sin el protocolo esperado: paso directo. Este
+    // wrapper NUNCA puede dejar a alguien sin Claude Code — misma regla que
+    // el shim del PATH.
+    if std::env::var_os("MICHI_RELEVO").is_some() || !rest.iter().any(|a| a == "--input-format") {
+        let code = claude_command(&bin, &rest)
+            .env("MICHI_RELEVO", "0")
+            .status()
+            .map(|s| s.code().unwrap_or(1))
+            .unwrap_or(127);
+        std::process::exit(code);
+    }
+
+    let pid = std::process::id();
+    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let started = now_epoch();
+    let mut child = match claude_command(&bin, &rest)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .env("MICHI_RELEVO", pid.to_string())
+        .spawn()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("michi: no pude lanzar claude: {e}");
+            std::process::exit(127);
+        }
+    };
+
+    let sh = Arc::new(Shared {
+        base: Instant::now(),
+        last_in: AtomicU64::new(0),
+        last_out: AtomicU64::new(0),
+        // en el chat no hay teclas que vigilar: R1 se cumple por
+        // construcción y `typed` es SIEMPRE false, sin fingir otra cosa
+        keys: Mutex::new(KeyWatch::new()),
+        inject_at: AtomicU64::new(0),
+        handoff: AtomicU64::new(0),
+        exit: AtomicI64::new(-1),
+        user_cmd: Mutex::new(None),
+        ack: Mutex::new(None),
+        busy: AtomicU64::new(0),
+    });
+    let sid = Arc::new(Mutex::new(String::new()));
+    // 0 = el aviso de "esta ventana va relevada" aún no se ha pintado en la
+    // conversación en curso
+    let banner = Arc::new(AtomicU64::new(0));
+
+    let to_child: Arc<Mutex<Option<Box<dyn Write + Send>>>> = match child.stdin.take() {
+        Some(s) => Arc::new(Mutex::new(Some(Box::new(s)))),
+        None => {
+            eprintln!("michi: la sesión no me dejó escribirle");
+            std::process::exit(1);
+        }
+    };
+    let sp = Arc::new(Speaker {
+        to_child: to_child.clone(),
+        sid: Some(sid.clone()),
+    });
+
+    prune_handoffs();
+    let dir = state_dir();
+    let _ = std::fs::create_dir_all(&dir);
+    let state_path = dir.join(format!("{pid}.json"));
+    let cmd_path = dir.join(format!("{pid}.cmd"));
+
+    // Hilo 1 — del chat hacia Claude. Cada línea se reenvía INTACTA.
+    {
+        let sh = sh.clone();
+        let sp = sp.clone();
+        let banner = banner.clone();
+        let sid = sid.clone();
+        std::thread::spawn(move || {
+            let inp = std::io::stdin();
+            let mut linea = String::new();
+            loop {
+                linea.clear();
+                match inp.lock().read_line(&mut linea) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => {}
+                }
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(linea.trim()) {
+                    if v["type"].as_str() == Some("user") {
+                        // El aviso va DELANTE del primer mensaje y no pegado
+                        // al arranque: ahí la interfaz aún no pinta y la línea
+                        // se pierde (medido en vivo, 2026-08-10).
+                        let s = sid.lock().unwrap().clone();
+                        if banner.load(Ordering::Relaxed) == 0 && !s.is_empty() {
+                            banner.store(1, Ordering::Relaxed);
+                            let msg = format!(
+                                "michi · relevo activo (sesión {pid}) — MichiClaude puede aplicar /compact y /clear en esta ventana"
+                            );
+                            let out = std::io::stdout();
+                            let mut lock = out.lock();
+                            let _ = lock.write_all(replay_line(&msg, &s).as_bytes());
+                            let _ = lock.flush();
+                        }
+                        sh.last_in.store(sh.ms(), Ordering::Relaxed);
+                        sh.busy.store(1, Ordering::Relaxed);
+                        // ¿aplicó el usuario uno de los dos por su cuenta?
+                        // cuenta para el desbloqueo igual que en la terminal
+                        let txt = match &v["message"]["content"] {
+                            serde_json::Value::String(s) => s.clone(),
+                            serde_json::Value::Array(a) => a
+                                .iter()
+                                .filter_map(|b| b["text"].as_str())
+                                .collect::<Vec<_>>()
+                                .join(" "),
+                            _ => String::new(),
+                        };
+                        let txt = txt.trim();
+                        for a in ALLOWED {
+                            if txt == a || txt.starts_with(&format!("{a} ")) {
+                                *sh.user_cmd.lock().unwrap() = Some((now_epoch(), a.to_string()));
+                            }
+                        }
+                    }
+                }
+                let mut lock = sp.to_child.lock().unwrap();
+                let Some(w) = lock.as_mut() else { break };
+                if w.write_all(linea.as_bytes()).is_err() {
+                    break;
+                }
+                let _ = w.flush();
+            }
+            // El chat colgó: se le da EOF al hijo soltando el tubo. Sin esto
+            // se quedaría esperando una entrada que ya no va a llegar.
+            *sp.to_child.lock().unwrap() = None;
+        });
+    }
+
+    // Hilo 2 — de Claude hacia el chat. Igual de intacta.
+    {
+        let sh = sh.clone();
+        let sid = sid.clone();
+        let banner = banner.clone();
+        let salida = child.stdout.take();
+        std::thread::spawn(move || {
+            let Some(salida) = salida else { return };
+            let mut rd = std::io::BufReader::new(salida);
+            let mut linea = String::new();
+            loop {
+                linea.clear();
+                match rd.read_line(&mut linea) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => {}
+                }
+                sh.last_out.store(sh.ms(), Ordering::Relaxed);
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(linea.trim()) {
+                    match v["type"].as_str() {
+                        // fin de turno: CERTEZA, no silencio inferido
+                        Some("result") => sh.busy.store(0, Ordering::Relaxed),
+                        Some("system") => {
+                            if let Some(s) = v["session_id"].as_str() {
+                                let mut cur = sid.lock().unwrap();
+                                // sesión NUEVA en el mismo proceso
+                                // (conversación nueva o /clear): el aviso se
+                                // re-arma para que cada una estrene el suyo
+                                if !cur.is_empty() && *cur != s {
+                                    banner.store(0, Ordering::Relaxed);
+                                }
+                                *cur = s.to_string();
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                let out = std::io::stdout();
+                let mut lock = out.lock();
+                if lock.write_all(linea.as_bytes()).is_err() {
+                    break;
+                }
+                let _ = lock.flush();
+            }
+        });
+    }
+
+    let mut last_state = 0u64;
+    loop {
+        match child.try_wait() {
+            Ok(Some(st)) => {
+                sh.exit.store(st.code().unwrap_or(0) as i64, Ordering::Relaxed);
+                break;
+            }
+            Ok(None) => {}
+            Err(_) => break,
+        }
+
+        if let Ok(raw) = std::fs::read_to_string(&cmd_path) {
+            let _ = std::fs::remove_file(&cmd_path);
+            if let Some(ack) = attend(&raw, &sh, &sp) {
+                *sh.ack.lock().unwrap() = Some(ack);
+                last_state = 0;
+            }
+        }
+
+        let now = sh.ms();
+        if last_state == 0 || now.saturating_sub(last_state) >= STATE_EVERY_MS {
+            last_state = now.max(1);
+            let s = sid.lock().unwrap().clone();
+            write_atomic(&state_path, &snapshot(&sh, pid, started, &cwd, "chat", &s));
+        }
+
+        std::thread::sleep(Duration::from_millis(TICK_MS));
+    }
+
+    let _ = std::fs::remove_file(&state_path);
+    let _ = std::fs::remove_file(&cmd_path);
+    let code = child.wait().ok().and_then(|s| s.code()).unwrap_or(0);
+    std::process::exit(code);
 }
 
 /// Salida temprana con la consola devuelta a como estaba.
@@ -1309,6 +1816,9 @@ fn usage() {
         "michi {} — relevo de MichiClaude\n\
          \n\
            michi claude [...]   abre Claude Code con relevo (todo funciona igual)\n\
+           michi wrap [...]     releva el CHAT de VS Code (es el ajuste\n\
+                                claudeCode.claudeProcessWrapper; no se teclea\n\
+                                a mano)\n\
            michi status         sesiones con relevo abiertas ahora\n\
            michi status --debug foto cruda (cuentas de teclas, sin contenido)\n\
            michi inject /compact\n\
@@ -1327,9 +1837,15 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(|s| s.as_str()) {
         Some("claude") => run_relevo(&args[1..]),
+        Some("wrap") => run_wrap(&args[1..]),
         Some("status") => cmd_status(&args[1..]),
         Some("inject") => cmd_inject(&args[1..]),
         Some("--version") | Some("-v") => println!("michi {}", env!("CARGO_PKG_VERSION")),
+        // Sin subcomando: puede ser la extensión de VS Code llamándonos como
+        // wrapper (el ajuste apunta a este .exe y le pasa los argumentos de
+        // Claude Code tal cual). Se reconoce por el protocolo, no por
+        // adivinar, y si no lo es se enseña la ayuda de siempre.
+        _ if looks_like_chat_launch(&args) => run_wrap(&args),
         _ => usage(),
     }
 }
