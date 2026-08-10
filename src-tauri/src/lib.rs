@@ -5037,8 +5037,209 @@ print(out)
 
 #[derive(Serialize)]
 struct ChatRelayRow {
+    /// Nombre de la máquina. VACÍO = esta misma (el panel lo traduce, igual
+    /// que el `origin` de los hits del coach — invariante #10).
     name: String,
     state: String,
+}
+
+// ---------------------------------------------------------------------------
+// El chat de VS Code de ESTA máquina (etapa 4e)
+//
+// El shim del PATH no llega aquí: la extensión no lanza `claude` por el PATH,
+// lo lanza por una ruta. Su enganche oficial es un ajuste
+// (`claudeCode.claudeProcessWrapper`) que apunta a un ejecutable, y ahí va
+// michi.exe — que reconoce solo la llamada de la extensión por el protocolo,
+// así que no hace falta ningún lanzador intermedio.
+//
+// LO QUE NO SE HACE, y es deliberado: NO se re-serializa el settings.json.
+// Ese archivo es del usuario, admite comentarios y suele estar peinado a
+// mano; volcarlo con serde se llevaría por delante comentarios y formato.
+// Se lee con serde (tras quitar comentarios) para SABER qué hay, y se
+// escribe tocando el TEXTO: una línea que ponemos y una línea que quitamos.
+// Antes de guardar se comprueba que lo escrito sigue siendo JSON válido; si
+// no lo fuera, no se toca el archivo y se contesta MANUAL.
+// ---------------------------------------------------------------------------
+
+const WRAP_KEY: &str = "claudeCode.claudeProcessWrapper";
+
+/// Los `settings.json` de usuario de los editores que llevan la extensión.
+fn vscode_user_settings() -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    let Ok(app) = std::env::var("APPDATA") else {
+        return out;
+    };
+    for d in ["Code", "Code - Insiders", "Cursor"] {
+        let p = PathBuf::from(&app).join(d).join("User");
+        if p.is_dir() {
+            out.push(p.join("settings.json"));
+        }
+    }
+    out
+}
+
+/// El settings.json admite comentarios; serde no. Se limpian SOLO para leer.
+/// Si aun así no se entiende (una coma colgante, por ejemplo), devuelve None
+/// y quien llama NO toca el archivo: es del usuario.
+fn jsonc_value(raw: &str) -> Option<serde_json::Value> {
+    if let Ok(v) = serde_json::from_str::<serde_json::Value>(raw) {
+        return Some(v);
+    }
+    let limpio: Vec<&str> = raw
+        .lines()
+        .map(|l| if l.trim_start().starts_with("//") { "" } else { l })
+        .collect();
+    serde_json::from_str(&limpio.join("\n")).ok()
+}
+
+/// ¿Dos rutas de Windows son la misma? Mayúsculas y barras dan igual.
+fn same_path(a: &str, b: &str) -> bool {
+    !a.is_empty()
+        && a.replace('/', "\\").to_lowercase() == b.replace('/', "\\").to_lowercase()
+}
+
+/// Nuestra línea, SIEMPRE la primera del objeto, con su coma y SOLA en su
+/// renglón: así quitarla después es borrar exactamente esa línea sin dejar el
+/// JSON cojo ni llevarse nada del usuario. Lo de "sola" no es estética —
+/// con un settings.json escrito en UNA línea, nuestra clave compartiría
+/// renglón con sus ajustes y al apagar el interruptor se los llevaría por
+/// delante (cazado en el banco antes de que tocara un archivo de verdad).
+fn wrap_key_insert(raw: &str, michi: &str) -> Option<String> {
+    let val = serde_json::to_string(michi).ok()?;
+    let base = if raw.trim().is_empty() { "{}" } else { raw };
+    let i = base.find('{')?;
+    let resto = &base[i + 1..];
+    let linea = if resto.trim_start().starts_with('}') {
+        format!("\n  \"{WRAP_KEY}\": {val}\n")
+    } else if resto.starts_with('\n') || resto.starts_with("\r\n") {
+        format!("\n  \"{WRAP_KEY}\": {val},")
+    } else {
+        format!("\n  \"{WRAP_KEY}\": {val},\n")
+    };
+    Some(format!("{}{}{}", &base[..=i], linea, resto))
+}
+
+fn wrap_key_remove(raw: &str) -> String {
+    let clave = format!("\"{WRAP_KEY}\"");
+    raw.lines()
+        .filter(|l| !l.trim_start().starts_with(&clave))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Estado del wrapper local: ON / OFF / OTHER (hay uno ajeno, no se pisa) /
+/// MANUAL (el archivo no se entiende) / NOVSCODE (no hay editor instalado).
+fn local_chat_status() -> String {
+    let files = vscode_user_settings();
+    if files.is_empty() {
+        return "NOVSCODE".to_string();
+    }
+    let michi = michi_exe()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let (mut on, mut other, mut manual) = (false, false, false);
+    for f in files {
+        let Ok(raw) = fs::read_to_string(&f) else {
+            continue; // sin archivo aún: es un OFF, no un problema
+        };
+        match jsonc_value(&raw) {
+            None => {
+                // ilegible pero con nuestra ruta dentro = nuestro, de una
+                // versión vieja; ilegible sin ella = de otro, ni tocarlo
+                if !michi.is_empty() && raw.contains(&michi) {
+                    on = true;
+                } else {
+                    manual = true;
+                }
+            }
+            Some(v) => {
+                let cur = v[WRAP_KEY].as_str().unwrap_or("");
+                if cur.is_empty() {
+                } else if same_path(cur, &michi) {
+                    on = true;
+                } else {
+                    other = true;
+                }
+            }
+        }
+    }
+    if other {
+        "OTHER"
+    } else if manual {
+        "MANUAL"
+    } else if on {
+        "ON"
+    } else {
+        "OFF"
+    }
+    .to_string()
+}
+
+fn local_chat_set(on: bool) -> String {
+    let files = vscode_user_settings();
+    if files.is_empty() {
+        return "NOVSCODE".to_string();
+    }
+    // Encender apuntando a un ejecutable que no está mataría el chat: sin
+    // michi.exe no se enciende nada (la pareja del NOWRAP de los servidores).
+    let michi = match michi_exe() {
+        Some(p) => p.to_string_lossy().to_string(),
+        None => return if on { "NOMICHI".to_string() } else { "OK".to_string() },
+    };
+    let mut out = "OK";
+    for f in files {
+        let raw = fs::read_to_string(&f).unwrap_or_default();
+        let Some(v) = jsonc_value(if raw.trim().is_empty() { "{}" } else { &raw }) else {
+            if on {
+                out = "MANUAL";
+            }
+            continue;
+        };
+        let cur = v[WRAP_KEY].as_str().unwrap_or("").to_string();
+        let nuevo = if on {
+            if same_path(&cur, &michi) {
+                continue; // ya estaba
+            }
+            if !cur.is_empty() {
+                out = "OTHER"; // wrapper de otro: no se pisa
+                continue;
+            }
+            match wrap_key_insert(&raw, &michi) {
+                Some(n) => n,
+                None => {
+                    out = "MANUAL";
+                    continue;
+                }
+            }
+        } else {
+            if !same_path(&cur, &michi) {
+                continue; // no es nuestro: no se quita
+            }
+            wrap_key_remove(&raw)
+        };
+        // Verificar ANTES de guardar: si lo que hemos armado no es JSON,
+        // el archivo se queda como estaba.
+        if jsonc_value(&nuevo).is_none() {
+            out = "MANUAL";
+            continue;
+        }
+        if !raw.is_empty() {
+            let bak = PathBuf::from(format!("{}.michi-backup", f.to_string_lossy()));
+            if !bak.is_file() {
+                let _ = fs::write(&bak, &raw);
+            }
+        }
+        if let Some(d) = f.parent() {
+            let _ = fs::create_dir_all(d);
+        }
+        let tmp = PathBuf::from(format!("{}.michi.tmp", f.to_string_lossy()));
+        if fs::write(&tmp, &nuevo).is_ok() {
+            let _ = fs::rename(&tmp, &f);
+        } else {
+            out = "MANUAL";
+        }
+    }
+    out.to_string()
 }
 
 /// Ejecuta un guion en el servidor con el MISMO python del exportador (ya
@@ -5190,7 +5391,14 @@ fn remote_python(r: &RemoteSource) -> String {
 #[tauri::command]
 async fn chat_relay_status() -> Result<Vec<ChatRelayRow>, String> {
     tauri::async_runtime::spawn_blocking(|| {
+        // esta máquina primero: es la que el usuario tiene delante. Sin VS
+        // Code instalado no hay fila — un interruptor que no puede hacer
+        // nada no se enseña (invariante #8).
         let mut out = Vec::new();
+        let local = local_chat_status();
+        if local != "NOVSCODE" {
+            out.push(ChatRelayRow { name: String::new(), state: local });
+        }
         for r in load_remotes() {
             let state = chat_wrap_remote(&r.host, &remote_python(&r), "status")
                 .unwrap_or_else(|e| e);
@@ -5213,6 +5421,10 @@ async fn set_chat_relay(on: bool) -> Result<Vec<ChatRelayRow>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let op = if on { "on" } else { "off" };
         let mut out = Vec::new();
+        let local = local_chat_set(on);
+        if local != "NOVSCODE" {
+            out.push(ChatRelayRow { name: String::new(), state: local });
+        }
         for r in load_remotes() {
             if on {
                 // el lanzador y el relevo se refrescan ANTES de encender: un
