@@ -3183,3 +3183,24 @@ Lecciones:
 (`include_str!`), así que hasta que Oscar recompile en Windows su
 MichiClaude re-subirá la versión vieja al arrancar. `git pull` + build
 para que quede permanente.
+
+## 2026-08-10 (cierre) — michi.exe viaja en el instalador
+
+Tercer fleco de la etapa 4, y el de más valor de producto: sin él, todo lo
+construido en la etapa 3 solo existía en la copia de desarrollo de Oscar.
+Detalle de diseño en remediacion.md §"michi.exe dentro del instalador".
+
+Lo que enseñó la jornada:
+
+- **El pendiente decía "workflow, invariante #9" y no hacía falta ningún
+  workflow.** `beforeBuildCommand` mueve la construcción del crate al
+  propio Tauri, así que el CI lo hace solo. Un pendiente puede estar
+  bloqueado solo por cómo se enunció.
+- **Una verificación con `git pull` que dice "Already up to date" no es
+  una verificación:** Oscar compiló 6m24s con la configuración vieja
+  porque yo le di los comandos ANTES de empujar los cambios. Empujar
+  primero, pedir después.
+- Su salida de PowerShell delató que `npm run dev` funciona desde
+  `src-tauri` (npm sube a buscar el package.json) — de ahí el doble
+  intento de ruta en el comando previo. Leer la salida entera del usuario
+  paga: ahí venía un dato que yo no había pedido.

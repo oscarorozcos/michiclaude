@@ -373,8 +373,8 @@ la más reciente arriba; las frías del catálogo abajo. PENDIENTE FANTASMA
 tool_use de subagentes no lo tocan. El nombre del proyecto va RESUELTO desde Rust (`pname`, cwd real). Aviso
 en widget: post-it turquesa / foco ámbar, campo `coach` en quota:update,
 mismo interruptor. El recibo NO manda push (su push fue el "terminó"). Al depurar "no llegó X": LEER PRIMERO `coach_debug.json` (compuertas por
-sesión en cada sondeo) y la bitácora `flowLog` (botón 📜 en dev: clic
-copia, Mayús+clic vacía). coachHits queda SOLO para el simulador.
+sesión en cada sondeo) y la bitácora `flowLog` (botón 📜 en dev).
+coachHits queda SOLO para el simulador.
 
 ## Avisos al celular (ntfy)
 
@@ -412,14 +412,15 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 Implementado, SIN probar (falta publicar un tag). Comandos propios Rust
 (`check_update`/`install_update`/`open_releases`), sin API JS del plugin
 (invariante #4). Franja en cabecera + globo persistente. Fallo al instalar → "descárgala a mano" con botón a `RELEASES_URL`,
-CONSTANTE en Rust y que jamás sale de un archivo descargado. Llave pública en tauri.conf.json, privada en secretos del repo y copias
-de Oscar (si se pierde: llave nueva + instalar a mano UNA vez). El
-workflow ya firma. BLOQUEADO: repo PRIVADO → releases dan 404 sin auth.
+CONSTANTE en Rust y que jamás sale de un archivo descargado. Llave
+pública en tauri.conf.json, privada en secretos del repo y copias de
+Oscar (si se pierde: llave nueva + instalar a mano UNA vez). Firma el
+workflow. BLOQUEADO: repo PRIVADO → releases dan 404 sin auth.
 
 ## Estado / pendientes
 
-FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
-2026-08-08/09"; métricas: presion-y-rendimiento §"Qué queda vivo".
+FOTO COMPLETA: bitácora §"cierre 2026-08-08/09"; métricas:
+presion-y-rendimiento §"Qué queda vivo".
 
 - [ ] HUB + RANGOS DE FECHA (2026-08-05; NO hacer hasta que haya una
       segunda máquina con MichiClaude — hoy no aporta nada). Diseño
@@ -560,10 +561,11 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
       HECHO (validado 29/29 y en vivo): guion `TERM_ALIAS_PY` +
       `term_relay_status`/`set_term_relay`, FUNCIÓN de bash con marcas
       (no shim: solo shells interactivas), fail-open en cascada, sin
-      bucle (las funciones no viajan a subprocesos); ojo con los raw
-      strings de Rust (bitácora). FALTAN: WSL, chat del Windows local (pide
-      modo wrap en michi.exe) y que `michi.exe` viaje en el instalador
-      (workflow, invariante #9).
+      bucle (las funciones no viajan a subprocesos). `michi.exe` YA VIAJA
+      en el instalador: `bundle.resources` + `beforeBuildCommand` que
+      compila el crate — el workflow NO se toca (invariante #9); cae
+      JUNTO al exe (medido). FALTAN: WSL y chat del Windows local (pide
+      modo wrap en michi.exe).
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO hacer: rastrear otras herramientas, BD de
   historial, modo equipo.
@@ -571,7 +573,7 @@ FOTO COMPLETA de pendientes (2026-08-09): bitácora §"cierre
 ## Consumo de recursos (medido en release)
 
 Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**
-(`WorkingSetPrivate`; WorkingSet64 cuenta doble lo compartido: 695).
+(`WorkingSetPrivate`; WorkingSet64 infla a 695).
 Release NO baja la RAM (el peso son los ~9 procesos WebView2); el gatito
 NO es el culpable; cada ventana WebView2 tiene piso ~57 MB — de ahí que
 los pares de widget se creen/destruyan.
@@ -589,7 +591,7 @@ npm run icons      # iconos desde app-icon.png
 npm run dev        # desarrollo
 npm run build      # release: NSIS en src-tauri/target/release/bundle/nsis/
 cd src-tauri; cargo check          # verificación rápida del backend
-cd relevo; cargo build --release   # el relevo (michi.exe), crate aparte
+cd relevo; cargo build --release   # el relevo; dev/build ya lo compilan
 ```
 
 Verificación obligatoria al terminar cualquier cambio en Rust: `cargo
@@ -618,8 +620,8 @@ real. Pausa `simMin` (mín. 5 s). Único control sin `t()`.
 ## Flujo de trabajo del repo
 
 - Remoto: `https://github.com/oscarorozcos/michiclaude` — **PRIVADO**.
-- Windows de Oscar (`C:\Users\oscar\Claude\MichiClaude`) para desarrollo y
-  pruebas; VPS un clon espejo (`/opt/projects/michiclaude`). Al mover un
+- Windows de Oscar (`C:\Users\oscar\Claude\MichiClaude`) para desarrollo
+  y pruebas; VPS un clon espejo (`/opt/projects/michiclaude`). Al mover un
   clon en Windows: `target/` guarda rutas absolutas → `cargo clean`.
 - Antes de trabajar en cualquier lado: `git pull`. Al terminar y
   verificar: commit (Conventional Commits en español) y push.

@@ -1244,3 +1244,25 @@ re-consulta — lo cubren R1-R3 (tecleó → se rechaza) y que la cuenta se
 cancela con un toque. Y el título de la sesión exportada lleva el nombre
 del archivo con pid+epoch, no el proyecto: a propósito, ni un dato del
 usuario en el nombre.
+
+### `michi.exe` dentro del instalador (2026-08-10)
+
+Todo lo de la etapa 3 (relevo de terminales de Windows, atajo del PATH) era
+DEV-ONLY hasta aquí: el instalador no llevaba el binario del relevo, así que
+en una instalación real `michi_exe()` no encontraba nada y el interruptor
+del atajo fallaba con `ERR_ALIAS_NOMICHI`.
+
+- **`bundle.resources`** (`../relevo/target/release/michi.exe` → `michi.exe`)
+  lo mete en el NSIS.
+- **`beforeBuildCommand`/`beforeDevCommand`** compilan el crate del relevo
+  antes de empaquetar. Esto es lo que evita tocar `.github/workflows/`
+  (invariante #9): el CI llama a `tauri build` y el propio Tauri construye
+  michi.exe. Sin esto, el bundle fallaría en CI por recurso ausente.
+- El comando lleva **las dos rutas del manifiesto** (`relevo/Cargo.toml ||
+  ../relevo/Cargo.toml`) porque el cwd del comando previo depende de desde
+  dónde se lance npm (medido: `npm run dev` funciona incluso desde
+  `src-tauri`, npm sube a buscar el package.json). Verificado en vivo: gana
+  la primera, o sea que Tauri ejecuta desde la raíz.
+- **Dónde cae el recurso:** JUNTO al ejecutable, no en `resources\`
+  (verificado en el build real). `michi_exe()` prueba las dos, porque
+  equivocarse deja el atajo muerto EN SILENCIO.
