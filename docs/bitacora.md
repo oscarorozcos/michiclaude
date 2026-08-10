@@ -3142,3 +3142,44 @@ N)». Verificado además del lado del servidor: bloque con marcas en
 `~/.bashrc` (líneas 120–130), backup `.michi-backup` creado en el
 instante del encendido, `michi-relevo.py` re-subido fresco y `bash -n`
 limpio. El alias de ~/.bashrc queda CERRADO.
+
+## 2026-08-10 (tarde) — el banner del relevo dentro del chat de VS Code
+
+Oscar pidió una señal visible de que el chat va relevado (maqueta previa
+con otra IA: banner como primer mensaje y pestaña con su nombre). Se
+implementó en el modo `wrap` y costó TRES intentos, cada uno con su
+lección:
+
+1. **Pegado al init:** el banner se emitía justo detrás del
+   `system/init`. No se pintó nunca — en el arranque la interfaz del chat
+   todavía no está lista y la línea se pierde sin dejar rastro.
+2. **Delante del primer mensaje:** movido a la primera actividad de
+   usuario (con re-armado al cambiar el `session_id`, para que cada
+   conversación estrene el suyo). Tampoco se pintó.
+3. **La causa real — la FORMA de la línea:** medido contra el binario de
+   la extensión (2.1.226), el replay del CLI no es un `user` a secas:
+   lleva `session_id`, `uuid`, `parent_tool_use_id`, `timestamp` e
+   `isReplay`. La extensión DESCARTA EN SILENCIO lo que no case con la
+   sesión. `replay_line()` imita esa forma campo a campo y el banner
+   apareció a la primera. Al hijo se le sigue mandando la forma corta.
+
+Lecciones:
+
+- **El eco al chat y el mensaje al hijo son DOS formas distintas** y no
+  se pueden confundir: `user_line()` hacia Claude, `replay_line()` hacia
+  la extensión. El eco de las INYECCIONES iba con la forma corta desde
+  siempre — o sea que el `/compact` inyectado podía no verse en el chat
+  pese a que el diseño lo exige («nada a tus espaldas»). El banner
+  destapó un fallo silencioso que llevaba tiempo ahí.
+- **Un descarte silencioso se diagnostica midiendo, no leyendo:** la
+  forma buena salió de correr el binario real con
+  `--replay-user-messages` y mirar la línea que emite él.
+- Banco propio (10/10) con un claude falso que habla stream-json: init
+  intacto, banner único por conversación, re-armado al cambiar de sesión,
+  el hijo recibiendo solo los mensajes reales y el paso directo sin
+  protocolo. VALIDADO EN VIVO en el chat del VPS.
+
+**Pendiente que abre:** el guion viaja EMBEBIDO en la app
+(`include_str!`), así que hasta que Oscar recompile en Windows su
+MichiClaude re-subirá la versión vieja al arrancar. `git pull` + build
+para que quede permanente.
