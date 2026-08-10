@@ -614,10 +614,10 @@ el exe viejo y el bug parece no arreglarse. Arreglo: `(Get-Item
 src\main.rs).LastWriteTime = Get-Date` y recompilar; `cargo clean -p` NO
 basta ("Removed 0 files").
 
-**Simulador** (solo dev, `is_dev`): estados del gatito / avisos de la
-pastilla / hallazgos. `simRunning` es la bandera (NO simMascot). NUNCA
-toca localStorage ni manda pushes; al parar, `processAcks()` restaura lo
-real. Pausa `simMin` (mín. 5 s). Único control sin `t()`.
+**Simulador** (solo dev, `is_dev`): gatito / avisos / hallazgos.
+`simRunning` es la bandera (NO simMascot). NUNCA toca localStorage ni
+manda pushes; al parar, `processAcks()` restaura lo real. Pausa `simMin`
+(mín. 5 s). Único control sin `t()`.
 
 ## Flujo de trabajo del repo
 
@@ -637,5 +637,5 @@ real. Pausa `simMin` (mín. 5 s). Único control sin `t()`.
 - El coste en $ es NOCIONAL (equiv. API); la UI lo etiqueta así.
 - Diferenciadores vs ccusage/claudeusagewin: cuota real + costo por
   proyecto + multi-máquina + gatito. GPL-3.0 con excepción de assets
-  Bongo Cat; releases por tag. La confianza es prioridad: transparencia
-  sobre el token y el endpoint no oficial.
+  Bongo Cat. La confianza es prioridad: transparencia sobre el token y el
+  endpoint no oficial.
