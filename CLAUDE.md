@@ -299,9 +299,9 @@ la pestaña si tiene >5 min. Precarga a los 15 s.
 encienden con hallazgos NO VISTOS. Pasada ligera 1d compartida
 `fndPass()`: al NACER UN RECIBO (cierre local; freno 15 min
 `fndEventLast`, marcado ANTES) y cada 3 h de respaldo (era 20 h: los
-nacidos en el VPS no disparan cierre local y quedaban invisibles un día,
-2026-08-06). "LEÍDO" = CLIC en la tarjeta, estilo Gmail (Oscar
-2026-08-07): abrir la pestaña o el post-it NO marca nada; contador y
+nacidos en el VPS no disparan cierre local y quedaban invisibles un
+día). "LEÍDO" = CLIC en la tarjeta, estilo Gmail: abrir la pestaña o el
+post-it NO marca nada; contador y
 post-it descuentan tarjeta por tarjeta al clicarla (plegar/desplegar
 marca; Ignorar apaga la suya; restaurar ignorados revive las no leídas).
 Esto ENTIERRA la TRAMPA DEL VIGILANTE (4 mordidas): nada nace visto por
@@ -319,16 +319,16 @@ servidor SSH — el exportador replica el motor bajo `--coach` (invariante
 #1; estado incremental en `~/.cache/michiclaude/coach_state.json` del
 servidor, reconstruible; subagentes fuera, plano como en Rust) y
 `get_coach` fusiona poniendo `origin` (vacío = local; el panel lo enseña
-en fichas, recibos y pushes). Regla `press` (2026-08-07, manómetro de la etapa 1): un hit por sesión
+en fichas, recibos y pushes). Regla `press` (manómetro): un hit por sesión
 con contexto y quieta <10 min (`PRESS_QUIET_MAX`), `value` = tokens de
 contexto crudos, campos aditivos `quiet` + señales del clasificador
 `topen/ttotal` (último TodoWrite), `cont` (Jaccard % archivos, últimos
 10 vs 10 previos del rastro `trail` tope 20) y `gclean` (commit sin
 ediciones después); NO es ficha ni aviso — coachPoll la aparta (como
 done/ask), elige la más fresca y emitPill la monta como campo `press`
-en quota:update (umbrales 60/85). EL TECHO NO ES CONSTANTE
-(corregido 2026-08-08): el hit trae `full` = techo del modelo de esa
-sesión y `pressFull()/pressPct()` son el ÚNICO sitio que divide. Sale
+en quota:update (umbrales 60/85). EL TECHO NO ES CONSTANTE: el hit trae
+`full` = techo del modelo de esa sesión y `pressFull()/pressPct()` son
+el ÚNICO sitio que divide. Sale
 de `ctx_for()` (ver Arquitectura; `[1m]` manda y se mira ANTES de
 price_key, que lo recorta; en la duda 200k). Y
 si lo MEDIDO supera a la tabla, manda lo medido: `ctx_full` sube al
@@ -447,40 +447,37 @@ presion-y-rendimiento §"Qué queda vivo".
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
       `docs/presion-y-rendimiento.md` — LEERLO antes de tocar). CERRADO
-      HASTA DONDE ESTÁ (Oscar, 2026-08-07): fases 1 y 2 implementadas y
-      funcionando; queda como pendiente por si al usarlo falta algo. Qué
-      existe: (a) TURNOS ÚTILES `uturns` en LocalStats/proyectos/daily
-      (mensajes HUMANOS: fuera meta, sidechain, tool_result, comandos
-      locales e inyecciones `<ide_…`; `is_user_turn` réplica exacta
-      Rust/Python, invariante #1); 0 turnos = "sin datos", NUNCA dividir
-      (invariante #8). (b) HISTÓRICO DE CUOTA `quota_history.json` (90
-      días, una foto por ciclo; solo lecturas BUENAS, nunca simulador;
-      local, no viaja a hub ni ntfy). (c) MARCAS DE ARREGLO
-      (`fndHist`/`fndMarks`, solo hallazgos de estado; visto ≥3 días +
-      desaparecido ≥2 = arreglado). FASE 2 = pestaña Reporte (`rep_tab`);
-      qué pinta, en el doc. REGLAS VIGENTES (detalle en el doc):
-      nunca pintar con uturns=0; mínimo 20 fotos de cuota o "juntando
-      datos"; "1M tok ≈ $X" con la tarifa REAL del periodo, jamás fija;
-      el $ SIEMPRE pegado a su dato de tokens (.as-money); caché POR
-      PERIODO y render PROGRESIVO. SI SE RETOMA: fase 3 (export HTML).
-      DESCARTADO con porqué en el doc: sesión contaminada, score único,
-      modelo local, telemetría colectiva (choca con invariante #3).
+      HASTA DONDE ESTÁ (Oscar, 2026-08-07): fases 1 y 2 hechas; queda
+      por si al usarlo falta algo. Qué existe: (a) TURNOS ÚTILES `uturns`
+      en LocalStats/proyectos/daily (mensajes HUMANOS: fuera meta,
+      sidechain, tool_result, comandos locales e inyecciones `<ide_…`;
+      `is_user_turn` réplica exacta Rust/Python, invariante #1); 0 turnos
+      = "sin datos", NUNCA dividir (invariante #8). (b) HISTÓRICO DE
+      CUOTA `quota_history.json` (90 días, una foto por ciclo; solo
+      lecturas BUENAS, nunca simulador; local, no viaja). (c) MARCAS DE
+      ARREGLO (`fndHist`/`fndMarks`, solo hallazgos de estado; visto ≥3
+      días + desaparecido ≥2 = arreglado). FASE 2 = pestaña Reporte
+      (`rep_tab`). REGLAS VIGENTES: nunca pintar con uturns=0; mínimo 20
+      fotos de cuota o "juntando datos"; "1M tok ≈ $X" con la tarifa REAL
+      del periodo, jamás fija; el $ SIEMPRE pegado a su dato de tokens
+      (.as-money); caché POR PERIODO y render PROGRESIVO. Fase 3 (export
+      HTML) y lo DESCARTADO, en el doc.
 - [ ] REMEDIACIÓN (diseño en `docs/remediacion.md` — LEERLO antes de
       tocar; ahí lo que chocaba con invariantes y los prompts de
       maquetas). Etapas: 1 consejero, 2 automático out-of-band, 3 relevo
       ConPTY, 4 WSL/SSH. ETAPA 1 COMPLETA
       Y VALIDADA EN VIVO (2026-08-07). ETAPA 2 IMPLEMENTADA y VALIDADA EN
-      VIVO el mismo día (autopsia del zombie en la
-      bitácora): zombies MCP por PowerShell/CIM sin deps nuevas (firma =
-      arg más largo de cada MCP stdio de ~/.claude.json; huérfano = padre
-      muerto o PID reciclado; kill re-verifica PID+exe+arranque), archivado ≥365d a `%APPDATA%\<app>\archive`,
-      registro `actions_log.json` (tope 200, d1/d2 crudos y el panel
-      traduce), desbloqueo progresivo (`remCfg`/`remFirst`: zombie ON /
-      archive OFF, primera vez SIEMPRE manual) y sondeo horario `remPoll`.
-      SOLO LOCAL: WSL/SSH, etapa 4. De ahí: barras a `/` al casar firmas; PowerShell desde Rust con
-      saltos de línea REALES (en una línea muere en el parser);
-      el veredicto del kill sale de re-consultar el
-      PID, nunca de `$?`; lo raro deja `rem_debug.json`. ETAPA 3 COMPLETA
+      VIVO el mismo día (zombies MCP por PowerShell/CIM sin deps nuevas
+      + archivado ≥365d a `%APPDATA%\<app>\archive`; autopsia y detalle
+      en el doc y la bitácora). Reglas: firma = arg más largo del MCP
+      stdio de ~/.claude.json y barras a `/` al casar; huérfano = padre
+      muerto o PID reciclado; el kill re-verifica PID+exe+arranque y su
+      veredicto sale de RE-CONSULTAR el PID, nunca de `$?`; PowerShell
+      desde Rust con saltos de línea REALES (en una línea muere en el
+      parser); `actions_log.json` (tope 200, crudo, el panel traduce);
+      desbloqueo progresivo `remCfg`/`remFirst` (zombie ON / archive OFF,
+      primera vez SIEMPRE manual); sondeo horario `remPoll`; lo raro deja
+      `rem_debug.json`. SOLO LOCAL: WSL/SSH, etapa 4. ETAPA 3 COMPLETA
       salvo la 4, VALIDADA EN VIVO 2026-08-08 (detalle en doc y
       bitácora). REGLAS DURAS:
       crate APARTE `relevo/` (la app no gana deps, invariante #4);
@@ -500,19 +497,16 @@ presion-y-rendimiento §"Qué queda vivo".
       repintar con una cuenta viva. El motivo del rechazo va en línea
       propia, nunca en el botón.
       Desbloqueo en `relayDone` (/compact 2, /clear 3; lo que TECLEAS TÚ
-      también cuenta). AUTO-/CLEAR CON RED (2026-08-09, pedido de Oscar;
-      doc §El auto-/clear con red): solo Boundary + interruptor
-      `relayClear` (nace OFF) + 3 manuales + relevo v≥2 (STATE_V=2:
-      a un v1 el panel NO pide la red — borraría sin copia).
-      Red = `/export <ruta>` GENERADA por el relevo (jamás viaja por el
-      canal; la lista sigue en 2), copia VERIFICADA en disco
+      también cuenta). AUTO-/CLEAR CON RED (doc §El auto-/clear con red):
+      solo Boundary + interruptor `relayClear` (nace OFF) + 3 manuales +
+      relevo v≥2 (STATE_V=2: a un v1 el panel NO pide la red — borraría
+      sin copia). Red = `/export <ruta>` GENERADA por el relevo (jamás
+      viaja por el canal; la lista sigue en 2), copia VERIFICADA en disco
       (`<datos>/handoff/`, 90 días) o NO hay /clear (`ERR_RELAY_EXPORT`);
       secuencia en hilo propio; `/export` sin ruta abre MENÚ — jamás a
       secas. **El Enter va SEPARADO del texto** (`type_line`,
-      ENTER_GAP_MS 250): juntos, la TUI los toma por PEGADO y la línea
-      se queda escrita sin ejecutarse — con /compact colaba por corto,
-      con la ruta del /export fallaba siempre. VALIDADO EN VIVO en
-      Windows (2026-08-09). El AUTOMÁTICO exige widget A LA VISTA —la
+      ENTER_GAP_MS 250): juntos, la TUI los toma por PEGADO y la línea se
+      queda escrita sin ejecutarse. El AUTOMÁTICO exige widget A LA VISTA —la
       cuenta atrás vive en la cápsula—, dura 15 s, cualquier toque la
       para (en el gatito el manejador va en CAPTURA) y se marca ANTES de
       empezar. Un rechazo del candado es TRANSITORIO: `done` solo tras
@@ -564,8 +558,15 @@ presion-y-rendimiento §"Qué queda vivo".
       bucle (las funciones no viajan a subprocesos). `michi.exe` YA VIAJA
       en el instalador: `bundle.resources` + `beforeBuildCommand` que
       compila el crate — el workflow NO se toca (invariante #9); cae
-      JUNTO al exe (medido). FALTAN: WSL y chat del Windows local (pide
-      modo wrap en michi.exe).
+      JUNTO al exe (medido). WSL HECHO Y VALIDADO (4d): mismos guiones
+      que SSH con transporte `wsl.exe -d <distro>`, buzón por
+      `\\wsl.localhost` (`relay_inject_fs` sirve al local y a WSL),
+      distros con `~/.claude`, `origin`=`wsl-<distro>`, compás lento. DOS
+      MORDIDAS: `wsl.exe` NO entrega `$1` a `sh -c` (ssh sí) → nombre y
+      op DENTRO del comando contra lista cerrada; y un op desconocido
+      caía en APAGAR y contestaba OK (✓ falso) → ahora BADOP.
+      `tests/claude-falso.sh` prueba el relevo sin Claude Code.
+      FALTA: chat del Windows local (modo wrap en michi.exe).
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO hacer: rastrear otras herramientas, BD de
   historial, modo equipo.

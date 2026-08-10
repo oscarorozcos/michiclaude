@@ -1266,3 +1266,43 @@ del atajo fallaba con `ERR_ALIAS_NOMICHI`.
 - **Dónde cae el recurso:** JUNTO al ejecutable, no en `resources\`
   (verificado en el build real). `michi_exe()` prueba las dos, porque
   equivocarse deja el atajo muerto EN SILENCIO.
+
+### WSL, la tercera máquina (etapa 4d, 2026-08-10)
+
+VALIDADA DE PUNTA A PUNTA en el Ubuntu de WSL del Windows de Oscar, sin
+instalar Claude Code dentro: la app descubre la distro, le escribe el
+`~/.bashrc`, el alias arranca el relevo (banner y marca en el título de la
+pestaña), el panel encuentra la sesión leyendo por `\\wsl.localhost` y le hace
+llegar un `/compact` que el programa relevado RECIBE.
+
+- **No hizo falta protocolo nuevo.** WSL es Linux: valen los MISMOS guiones que
+  en un servidor (`TERM_ALIAS_PY`, `CHAT_WRAP_PY` — Remote-WSL instala su
+  `.vscode-server` en el home de la distro). Cambia el transporte: donde había
+  `ssh host`, hay `wsl.exe -d <distro>`. Y el buzón del relevo se ve como
+  CARPETA por `\\wsl.localhost`, así que leer estados e inyectar es fs a secas:
+  `relay_inject_fs` es UNA implementación para el buzón local y el de WSL.
+- **Las distros salen de `wsl_claude_dirs`** (las que tienen `~/.claude`): no se
+  despierta una distro que nadie usa para esto.
+- **WSL viaja en el compás lento** (3 min) junto a las remotas: `\\wsl.localhost`
+  puede tardar y el sondeo de 5 s no puede quedarse esperando a una distro
+  dormida. El `origin` es `wsl-<distro>`, el mismo prefijo que ya usan los
+  proyectos de WSL en las estadísticas.
+
+**Las dos mordidas, que valen más que el código:**
+
+1. **`wsl.exe` NO entrega los argumentos posicionales a `sh -c`** como sí hace
+   `ssh`: `$1` llega VACÍO. La copia del relevo acababa haciendo `cat >` sobre
+   la CARPETA (`Is a directory`) y la operación llegaba en blanco. El nombre y
+   la operación van ahora DENTRO del comando, comprobados antes contra su lista
+   cerrada — son constantes nuestras y tienen que seguir siéndolo.
+2. **Y lo grave: con la operación vacía, los guiones caían en la rama de
+   APAGAR**, no encontraban nada que quitar y contestaban `OK`. El interruptor
+   pintaba ✓ para algo que jamás tocó la distro — la "mentira silenciosa" que
+   este proyecto prohíbe, cometida por el propio proyecto. Una operación que no
+   se reconoce ya no se interpreta: contesta `BADOP`. Vale para los dos guiones,
+   también por SSH.
+
+**Cómo se probó sin Claude Code en la distro:** `tests/claude-falso.sh` — un
+programa de cinco líneas que imprime lo que le llega. Al relevo le basta una
+PTY viva que reaccione, así que con eso se comprueba lo único que el relevo
+promete (que el comando LLEGA) sin instalar nada ni gastar cuota.

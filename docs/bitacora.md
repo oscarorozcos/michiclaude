@@ -3204,3 +3204,39 @@ Lo que enseñó la jornada:
   `src-tauri` (npm sube a buscar el package.json) — de ahí el doble
   intento de ruta en el comando previo. Leer la salida entera del usuario
   paga: ahí venía un dato que yo no había pedido.
+
+## 2026-08-10 (noche) — WSL, y dos fallos que solo salen probando
+
+Etapa 4d cerrada y VALIDADA EN VIVO (detalle y diseño en remediacion.md
+§"WSL, la tercera máquina"). Oscar puso el correctivo que la abrió: yo
+proponía dejar WSL dormido porque ÉL trabaja por Remote-SSH, y su
+respuesta fue que la app es para más gente que él. Tenía razón: el modo
+que uno no usa sigue siendo el modo de alguien.
+
+Lo que enseñó la jornada:
+
+- **Lo que compila y parece razonable puede no ejecutarse nunca.**
+  `wsl.exe -- sh -c 'guion' michi <arg>` no entrega `$1` (ssh sí). El
+  código era simétrico al de SSH, pasó `cargo check`, y estaba roto.
+  Solo se vio ejecutando el comando A MANO en la máquina de verdad.
+- **El fallo grave no era ese, era el silencio.** Con la operación vacía
+  los guiones caían en la rama de "apagar", no encontraban nada que
+  quitar y contestaban OK: el interruptor enseñaba ✓ de algo que jamás
+  tocó la distro. Escribimos la regla "nada a tus espaldas" para el
+  relevo y la incumplió el propio panel. Ahora una operación que no se
+  reconoce contesta BADOP. Callar es peor que fallar.
+- **Diagnosticar por hipótesis tiene un límite.** Perseguí "¿corre como
+  root?" con dos comandos antes de rendirme a lo obvio: ejecutar a mano
+  el comando exacto que hace la app. Ese fue el que habló, y a la
+  primera. Cuando dos observaciones se contradicen, deja de teorizar y
+  reproduce.
+- **Un `git pull` que dice "Already up to date" no es una verificación:**
+  antes, Oscar compiló 6m24s con la configuración vieja porque le di los
+  comandos antes de empujar. Empujar primero, pedir después.
+- **Probar sin el programa real vale:** `tests/claude-falso.sh` (cinco
+  líneas que imprimen lo que llega) permitió validar la cadena entera sin
+  instalar Claude Code en la distro ni gastar cuota. Al relevo le basta
+  una PTY viva que reaccione.
+
+De paso quedó probado que la marca del título (`TitleMark`) también
+funciona en WSL, que no lo habíamos mirado.
