@@ -105,17 +105,17 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   endpoint; el tray se actualiza desde su ciclo (`updateTray`).
 - **Pastilla** (`pill`, 280x54) + **detalle** (`pcard`, 280x300): cápsula
   de cristal con asa ⠿, gatito como MARCA, "Sesión X%", hueco semanal y
-  hueco semanal POR MODELO (si el endpoint no lo reporta no se pinta). Clic en cápsula = desplegar detalle; clic en la MARCA = abrir
-  panel; ⠿ arrastra (pliega antes); clic derecho oculta. NO robar foco
+  hueco semanal POR MODELO (si el endpoint no lo reporta, no se pinta).
+  Clic en cápsula = desplegar detalle; clic en la MARCA = abrir panel; ⠿
+  arrastra (pliega antes); clic derecho oculta. NO robar foco
   (WS_EX_NOACTIVATE). NUNCA llama al endpoint: el panel emite
   `quota:update` y cada ventana pide el último dato con `pill:ready` al
   cargar (toda ventana nueva DEBE emitirlo). El detalle son DOS ventanas;
   `toggle_pill_card()` elige pose (abajo si cabe; si no `body.up`
   invierte). Cabecera del detalle = geometría IDÉNTICA a la cápsula (el
   margen de 6 px las alinea; sin él el halo del box-shadow se corta en
-  recto); con el detalle abierto esconde números. Es funcional:
-  gatito abre panel, asa arrastra vía `drag_pill_from_card`. SIN tooltips
-  en la cápsula. El hover para desplegar se probó y se DEVOLVIÓ a clic —
+  recto); con el detalle abierto esconde números. Es funcional: el gatito
+  abre panel y el asa arrastra vía `drag_pill_from_card`. SIN tooltips. El hover para desplegar se probó y se DEVOLVIÓ a clic —
   no reintroducir. El % en color: acento en "todo bien", ÁMBAR y ROJO se
   conservan. Los tamaños se definen en `ensure_widget_windows`, NO en el
   json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos),
