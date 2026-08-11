@@ -124,7 +124,8 @@
      Sin globo de pensamiento y sin fondo: flota sobre el escritorio, así que
      lo que la hace legible sobre cualquier fondo es lo mismo que al gato —
      trazo grueso de tinta y sombra propia. */
-  .idea{position:absolute;left:68%;top:47px;transform:translateX(-50%);
+  .idea{position:absolute;left:68%;top:47px;
+    transform:translateX(-50%) rotate(15.5deg);
     width:34px;height:44px;z-index:3;transition:opacity .15s;cursor:default;
     filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
   .idea svg{display:block;width:100%;height:100%}
@@ -184,9 +185,9 @@
     border-radius:9px;padding:3px 8px 4px;z-index:5;
     box-shadow:0 2px 4px rgba(0,0,0,.3)}
   .ptip .pl{display:flex;align-items:baseline;gap:4px;white-space:nowrap}
-  .ptip b{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--ink)}
-  .ptip .lab{font-size:10px;font-weight:600;color:var(--ink)}
-  .ptip i{display:block;font-style:normal;font-size:9.5px;color:var(--ink);
+  .ptip b{font-family:var(--mono);font-size:12.5px;font-weight:800;color:var(--ink)}
+  .ptip .lab{font-size:11.5px;font-weight:700;color:var(--ink)}
+  .ptip i{display:block;font-style:normal;font-size:10px;color:var(--ink);
     opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* el :not() evita depender del ORDEN de las reglas: con el globo del
      resumen abierto la ficha no sale aunque el mouse esté sobre la bombilla.

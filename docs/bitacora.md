@@ -3448,4 +3448,10 @@ lee como algo SUYO. Comprobado contra los tres estados que podían chocar: las
 llamas del `fire` quedan al otro lado, las Z del `zzz` libres —moverla a la
 izquierda ayudó— y la ficha del hover no la toca. Único roce: en `zzz` la
 bombilla se posa sobre la punta del gorro de dormir; con su trazo y su sombra se
-lee como encima, y se deja así antes que meter una excepción por estado.
+lee como encima, y se deja así antes que meter una excepción por estado
+(además apenas puede darse: el gato duerme por el semanal agotado y la bombilla
+exige sesión tocada hace <10 min, así que solo coinciden en esa cola).
+Rematado con dos detalles de Oscar: la bombilla lleva la MISMA inclinación que
+la cápsula (15.5°) —así se leen como piezas del mismo juego y no como un icono
+pegado— y los tipos de la ficha son los del globo de modelos (12.5/11.5/10):
+el mismo dato no puede leerse más chico en una superficie que en otra.
