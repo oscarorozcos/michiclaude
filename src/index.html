@@ -1389,6 +1389,7 @@
         <button id="simBtn">🐱 Simular estados</button>
         <button id="sfBtn">🧪 Simular hallazgos</button>
         <button id="ctxBtn">💡 Simular contexto</button>
+        <button id="intBtn">🎯 Simular intención</button>
         <button id="flowBtn" title="Copiar la bitácora del flujo (Mayús+clic la vacía)">📜</button>
         <input id="simMin" type="number" min="0.1" max="60" step="0.5" style="max-width:62px">
         <span style="font-size:10.5px;color:var(--txt-dim)">min c/u</span>
@@ -7098,7 +7099,7 @@ function renderTips(){
   // del almacén coachCards — cada una con su ✕, contraíbles (se recuerda),
   // y caducan solas a las 24 h. Ver la pestaña apaga el aviso pero NO las
   // despacha. En simulador se leen de coachHits: el sim no toca disco.
-  const cards=simFnd?coachHits.map(h=>({h})):coachCardsStore();
+  const cards=simFnd?coachHits.map(h=>({h, ai:h._ai})):coachCardsStore();
   const sums=q?[]:cards.filter(c=>c.h.rule==="sum");
   // mini-auditoría del cierre: el costo medido de la sesión y, si algún
   // detector disparó sobre ELLA, la fuga con su hecho medido. El dinero y el
@@ -7642,6 +7643,7 @@ function sfStop(msg){
   if(lastPillArgs) emitPill(...lastPillArgs);
   processAcks();                        // si había un aviso real, vuelve
   $("sfBtn").textContent="🧪 Simular hallazgos";
+  $("intBtn").textContent="🎯 Simular intención";
   $("simMsg").textContent=msg||"";
 }
 const SF_STEPS=[
@@ -7672,6 +7674,50 @@ $("sfBtn").addEventListener("click",()=>{
   simFnd=true; simRunning=true;
   $("sfBtn").textContent="■ Detener"; sfStep(0);
 });
+// ---------- simulador de la TARJETA DE INTENCIÓN (solo dev) ----------
+// La tarjeta real nace con presión ≥80%, y esperar a que una sesión llegue
+// ahí puede llevar días: esto la crea a mano con veredicto `unsure` y corre
+// el ai_intent DE VERDAD sobre la evidencia de tu sesión activa (si hay
+// alguna con mensajes; si no, una de ejemplo que cambia de tema). Vive en
+// memoria como el de hallazgos — NADA toca localStorage — y por eso el
+// veredicto se cuelga del hit (`_ai`) y no de la tarjeta persistida.
+function siFakeIntent(){
+  // la sesión REAL más fresca que traiga evidencia: probar con tus propios
+  // mensajes es el punto de todo esto
+  const pr=pressAll.filter(h=>(h.msgs||[]).length)
+    .sort((a,b)=>(a.quiet||0)-(b.quiet||0))[0];
+  if(pr) return {rule:"intent", session:"sim-int", value:86,
+    project:pr.project||"", origin:pr.origin||"", quiet:pr.quiet||0,
+    topen:0, ttotal:0, cont:pr.cont||0, gclean:false, scwd:"",
+    title:pr.title||"", msgs:pr.msgs||[]};
+  return {rule:"intent", session:"sim-int", value:86, project:"-sim-demo",
+    origin:"", quiet:2, topen:0, ttotal:0, cont:10, gclean:false, scwd:"",
+    title:"Fixing the tray widget CSS",
+    msgs:["the light bulb icon looks good now, commit and push it",
+          "now let's plan the marketing screenshots for the README"]};
+}
+$("intBtn").addEventListener("click",async()=>{
+  if(simFnd){ sfStop("detenido"); return; }
+  if(simRunning||ctxTimer){ $("simMsg").textContent="hay otra simulación en curso"; return; }
+  if(!invoke) return;
+  simFnd=true; simRunning=true;
+  sfSavedFnd=fndCache;                 // mismo trato que el de hallazgos
+  const h=siFakeIntent();
+  coachHits=[h];
+  $("intBtn").textContent="■ Detener";
+  $("simMsg").textContent=(aiCfg&&aiCfg.enabled)?"tarjeta creada · analizando…"
+                                                :"tarjeta creada · IA apagada";
+  showTab("tips");                     // la tarjeta vive en Consejos
+  renderTipsDot(); renderTips();
+  if(!aiCfg||!aiCfg.enabled) return;   // sin IA: se ve la tarjeta genérica
+  try{
+    const v=await invoke("ai_intent",{title:h.title,msgs:h.msgs,cont:h.cont});
+    h._ai={rec:v.rec||"unsure", reason:v.reason||"na"};
+    $("simMsg").textContent="✓ "+(v.rec||"?")+" · "+(v.reason||"na");
+  }catch(e){ $("simMsg").textContent="✕ "+aiErr(e); }
+  if(simFnd) renderTips();             // si no lo pararon mientras tanto
+});
+
 // 📜 bitácora del flujo: copia los últimos eventos con hora al portapapeles
 // (Mayús+clic la vacía). Solo dev, como los simuladores.
 $("flowBtn").addEventListener("click", async e=>{

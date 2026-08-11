@@ -3565,3 +3565,26 @@ Decisiones y por qué:
 Pendiente igual que la v1: `cargo check` y la prueba en vivo en el Windows
 de Oscar (aquí ni toolchain ni Windows). El camino feliz del usuario nuevo
 quedó en: encender → Descargar → esperar la barra → Probar.
+
+**Postdata del mismo día — "no me llega el consejo de /clear".** Oscar abrió
+una sesión de prueba aparte, cambió de tema varias veces y no salió nada;
+preguntó si se había acabado el límite diario. No: la tarjeta de intención
+está EXENTA del tope de 10. Lo que pasaba es que el detonante no es el cambio
+de tema sino la PRESIÓN ≥80% del techo de esa sesión — una sesión recién
+abierta anda por el 1-2%, y con techo de 1M harían falta ~800k tokens. El
+tema solo decide CUÁL de las dos sugerencias sale, una vez que la tarjeta ya
+nació. Segunda intuición suya, también descartada: dejarla quieta unos
+minutos tampoco la saca — el hit `press` exige sesión tocada hace <10 min
+(`PRESS_QUIET_MAX`), así que la quietud la APAGA en vez de encenderla (lo que
+sí nace con una sesión quieta es la ficha `cache`, y solo con ≥30k de
+contexto). Queda escrito en el diseño porque es la pregunta que cualquiera
+se hará la primera vez.
+
+De ahí salió el botón **🎯 Simular intención** (solo dev): crea la tarjeta con
+veredicto `unsure` y corre el `ai_intent` DE VERDAD sobre la evidencia de tu
+sesión activa más fresca — tus mensajes reales, no un ejemplo, cuando los
+hay. Sin él, validar la insignia significaba esperar días a que una sesión
+larga cayera además en la zona gris. Detalle de implementación: en modo
+simulación las tarjetas se reconstruyen desde `coachHits` en cada render, así
+que el veredicto se cuelga del HIT (`_ai`) y no del envoltorio persistido —
+si no, se perdía en el primer repintado.

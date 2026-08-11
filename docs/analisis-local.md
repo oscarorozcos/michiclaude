@@ -164,13 +164,28 @@ lo que falte. Es la ÚNICA conexión de la app que no va a api.anthropic.com
 tiempo · `ERR_AI_BADOUT` salida ilegible. Todos → fail-quiet en la
 tarjeta; solo el botón Probar los enseña.
 
+## Cuándo aparece la tarjeta (lo que se pregunta cuando "no llega")
+
+El detonante NO es cambiar de tema: es **presión ≥80% del techo de ESA
+sesión** (`INTENT_PCT`), con la sesión VIVA — el hit `press` exige tocada
+hace <10 min (`PRESS_QUIET_MAX`), así que dejarla quieta no la saca; al
+revés, la apaga. Una sesión nueva de prueba anda por el 1-2% y con techo
+de 1M harían falta ~800k tokens. Tampoco es el tope diario: la tarjeta de
+intención está EXENTA. Y sale una por sesión (`tipSeen`): despachada con
+✕ o "Ahora no", no vuelve. El termómetro a la vista es la bombilla del
+gatito — la tarjeta cae entre "se enreda" (60%) y "muerta" (85%).
+
 ## Cómo se prueba (v1)
 
 1. Ajustes → encender, poner la ruta del .gguf → **Probar**: debe salir un
    veredicto en segundos (arranque frío ~10-20 s la primera vez).
-2. Simulador 💡 (dev): fuerza la bombilla, no la tarjeta — para la tarjeta
-   real hace falta una sesión ≥80% con veredicto unsure, que es la prueba
-   en vivo de verdad.
+2. Simulador 🎯 "Simular intención" (dev): crea la tarjeta con veredicto
+   `unsure` y corre el ai_intent DE VERDAD sobre la evidencia de tu sesión
+   activa (la más fresca con `msgs`; si no hay, una de ejemplo). Es la
+   única forma de ver la insignia sin esperar días a que una sesión llegue
+   al 80%. Vive en memoria (como el de hallazgos): el veredicto se cuelga
+   del hit (`_ai`) porque en modo simulación las tarjetas se rehacen en
+   cada render. El 💡 es otra cosa: fuerza la bombilla, no la tarjeta.
 3. Lo que decide si esto se queda: ¿la insignia acierta en tus sesiones
    reales? Anotar aciertos/fallos unos días antes de construir la etapa 2.
 
