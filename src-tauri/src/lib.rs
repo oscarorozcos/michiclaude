@@ -1549,23 +1549,33 @@ fn save_scan_cache(files: HashMap<String, CachedFile>, retained_from: i64) {
 /// Es el denominador de "tokens por turno útil" — sesgo aquí = métrica
 /// mentirosa, por eso los filtros son deliberadamente conservadores.
 fn is_user_turn(v: &serde_json::Value) -> bool {
+    user_turn_text(v).is_some()
+}
+
+/// El TEXTO de un turno humano real (None = turno maquinal). Es la MISMA
+/// lógica de `is_user_turn` — refactorizada 2026-08-11 para devolver el
+/// texto, porque la evidencia del análisis local (docs/analisis-local.md)
+/// necesita los mensajes y no solo contarlos. El bool la envuelve: UNA
+/// implementación, cero divergencia (réplica exacta en meter-export.py,
+/// invariante #1).
+fn user_turn_text(v: &serde_json::Value) -> Option<String> {
     if v["type"].as_str() != Some("user")
         || v["isSidechain"].as_bool().unwrap_or(false)
         || v["isMeta"].as_bool().unwrap_or(false)
         || v.get("toolUseResult").map_or(false, |x| !x.is_null())
     {
-        return false;
+        return None;
     }
     let msg = &v["message"];
     if msg["role"].as_str() != Some("user") {
-        return false;
+        return None;
     }
     let text: String = match &msg["content"] {
         serde_json::Value::String(s) => s.clone(),
         serde_json::Value::Array(a) => {
             // un turno con tool_result en el content también es maquinal
             if a.iter().any(|b| b["type"].as_str() == Some("tool_result")) {
-                return false;
+                return None;
             }
             a.iter()
                 .filter(|b| b["type"].as_str() == Some("text"))
@@ -1573,19 +1583,23 @@ fn is_user_turn(v: &serde_json::Value) -> bool {
                 .collect::<Vec<_>>()
                 .join(" ")
         }
-        _ => return false,
+        _ => return None,
     };
     let t = text.trim();
     // envoltorios que Claude Code o el IDE inyectan con rol user sin marcar
     // isMeta (el <ide_… se vio en logs reales del VPS, 2026-08-06). Lista
     // explícita y conservadora: ante la duda, mejor contar de menos que
     // inflar el denominador y abaratar el rendimiento en falso.
-    !t.is_empty()
-        && !t.starts_with("<command-")
-        && !t.starts_with("<local-command")
-        && !t.starts_with("<ide_")
-        && !t.starts_with("<system-reminder")
-        && !t.starts_with("[Request interrupted")
+    if t.is_empty()
+        || t.starts_with("<command-")
+        || t.starts_with("<local-command")
+        || t.starts_with("<ide_")
+        || t.starts_with("<system-reminder")
+        || t.starts_with("[Request interrupted")
+    {
+        return None;
+    }
+    Some(t.to_string())
 }
 
 /// Parsea un .jsonl a entradas compactas, deduplicando dentro del archivo.
@@ -3105,6 +3119,10 @@ struct CoachSess {
     edits: HashSet<String>, // archivos tocados con Edit/Write/NotebookEdit
     tool_ids: HashSet<String>, // dedup de tool_use (reanudaciones copian líneas)
     title: String,      // ai-title del log — SOLO display, campo interno
+    umsgs: Vec<String>, // últimos 3 mensajes HUMANOS truncados a 300 chars:
+                        // la evidencia del análisis local (docs/
+                        // analisis-local.md); mismo filtro que los turnos
+                        // útiles (user_turn_text)
     proj: String,       // nombre real del proyecto, del `cwd` de la sesión
     scwd: String,       // el `cwd` COMPLETO (barras normalizadas): la identidad
                         // con la que el panel casa esta sesión con un relevo
@@ -3192,7 +3210,9 @@ struct CoachHit {
     project: String, // carpeta de logs: con varias sesiones abiertas (VPS +
                      // local) el usuario necesita saber a CUÁL aplicar el
                      // consejo (lo pidió Oscar al validar, 2026-07-31)
-    title: String,   // solo "sum": el ai-title (vacío = respaldo al proyecto)
+    title: String,   // "sum" y "press": el ai-title (vacío = respaldo al
+                     // proyecto; en "press" es el ancla del tema para el
+                     // análisis local)
     cmds: u64,       // solo "sum": comandos ejecutados
     edits: u64,      // solo "sum": archivos editados distintos
     turns: u64,      // "sum"/"done": turnos de la sesión
@@ -3218,6 +3238,10 @@ struct CoachHit {
                      // casarla con un relevo abierto en esa misma carpeta
                      // (etapa 3b). Aditivo: un exportador viejo manda "" y
                      // el panel simplemente no encuentra pareja
+    msgs: Vec<String>, // solo "press": últimos mensajes humanos truncados —
+                     // la evidencia del análisis local (docs/
+                     // analisis-local.md). Aditivo: un exportador viejo no
+                     // lo manda y el panel simplemente no analiza
     /// De qué máquina viene el consejo: vacío = esta (el panel enseña
     /// "local"); con nombre = el que el usuario le dio al servidor. Lo pone
     /// get_coach al fusionar, nunca el exportador (el mismo patrón que el
@@ -3391,6 +3415,16 @@ fn coach_scan() -> Vec<CoachHit> {
                             if !t2.trim().is_empty() {
                                 st.title = t2.trim().to_string();
                             }
+                        }
+                    }
+                    // evidencia del análisis local: los últimos 3 mensajes
+                    // HUMANOS (docs/analisis-local.md). Truncado por CHARS
+                    // (por bytes partiría un UTF-8 y reventaría el JSON).
+                    if let Some(txt) = user_turn_text(&v) {
+                        st.umsgs.push(txt.chars().take(300).collect());
+                        if st.umsgs.len() > 3 {
+                            let cut = st.umsgs.len() - 3;
+                            st.umsgs.drain(..cut);
                         }
                     }
                     let usage = &v["message"]["usage"];
@@ -3603,6 +3637,8 @@ fn coach_scan() -> Vec<CoachHit> {
                     gclean: st.commit_clean,
                     full: ctx_full(&st.model, st.ctx_seen),
                     scwd: st.scwd.clone(),
+                    title: st.title.clone(),
+                    msgs: st.umsgs.clone(),
                     ..Default::default()
                 });
             }
@@ -3782,6 +3818,243 @@ async fn get_coach() -> Result<Vec<CoachHit>, String> {
     })
     .await
     .map_err(|e| e.to_string())
+}
+
+// ---------- análisis local (IA) — docs/analisis-local.md, LEERLO ----------
+// Un modelo local chico sugiere /clear o /compact cuando el clasificador
+// determinista quedó en `unsure`. SOLO pinta una insignia en la tarjeta
+// MANUAL de intención: jamás toca las compuertas del automático (el
+// auto-/clear sigue exigiendo Boundary determinista). llama-server arranca
+// bajo demanda en 127.0.0.1 y SE MATA al terminar: la app no gana procesos
+// residentes. HTTP a mano sobre TcpStream: reqwest no trae la feature
+// `blocking` y el patrón de la casa es async fn → spawn_blocking
+// (invariante 10ter); cero dependencias nuevas (invariante #4).
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+struct AiConfig {
+    enabled: bool,
+    server: String, // ruta de llama-server; vacía = el del PATH
+    model: String,  // ruta del .gguf — obligatoria para analizar
+    port: u16,      // 0 = 8791; solo se escucha en 127.0.0.1
+}
+
+fn ai_config_path() -> PathBuf {
+    app_data_dir().join("ai_config.json")
+}
+
+fn load_ai_config() -> AiConfig {
+    fs::read_to_string(ai_config_path())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+fn ai_get_config() -> AiConfig {
+    load_ai_config()
+}
+
+#[tauri::command]
+fn ai_set_config(cfg: AiConfig) -> Result<(), String> {
+    let _ = fs::create_dir_all(app_data_dir());
+    let s = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;
+    fs::write(ai_config_path(), s).map_err(|e| e.to_string())
+}
+
+/// Mata a llama-server pase lo que pase: el guard vive lo que dura el
+/// análisis y su Drop cubre TODOS los caminos de salida, incluidos los `?`.
+struct AiChild(std::process::Child);
+impl Drop for AiChild {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
+
+const AI_HEALTH_WAIT_MS: u64 = 45_000; // carga fría del GGUF desde disco
+const AI_ANSWER_WAIT_MS: u64 = 60_000; // prefill + decode en CPU
+const AI_PORT: u16 = 8791;
+
+/// Gramática GBNF: el modelo SOLO puede emitir el enum. Es la lección
+/// central de docs/modelos-locales-cpu.md — la forma se FUERZA, no se pide.
+const AI_GRAMMAR: &str = concat!(
+    "root ::= \"{\\\"rec\\\":\\\"\" rec \"\\\",\\\"reason\\\":\\\"\" reason \"\\\"}\"\n",
+    "rec ::= \"clear\" | \"compact\" | \"unsure\"\n",
+    "reason ::= \"tema_nuevo\" | \"tema_cruzado\" | \"tarea_viva\" | \"cierre\" | \"na\"\n"
+);
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+struct AiVerdict {
+    rec: String,
+    reason: String,
+}
+
+/// POST/GET HTTP/1.1 mínimo contra 127.0.0.1 (std puro). `Connection: close`
+/// y leer hasta EOF. Devuelve (línea de estado, cuerpo): el cuerpo se
+/// des-chunkea si hace falta — a nivel de BYTES, que es la unidad de los
+/// tamaños de chunk (por chars se descuadraría con UTF-8 multibyte).
+fn ai_http(port: u16, req: &str, body: Option<&str>, timeout_ms: u64) -> Result<(String, String), String> {
+    use std::io::{Read, Write};
+    let addr = std::net::SocketAddr::from(([127, 0, 0, 1], port));
+    let mut s = std::net::TcpStream::connect_timeout(
+        &addr,
+        std::time::Duration::from_millis(2_000),
+    )
+    .map_err(|_| "ERR_AI_TIMEOUT".to_string())?;
+    let _ = s.set_read_timeout(Some(std::time::Duration::from_millis(timeout_ms)));
+    let _ = s.set_write_timeout(Some(std::time::Duration::from_millis(5_000)));
+    let b = body.unwrap_or("");
+    let msg = format!(
+        "{req} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\
+         Content-Type: application/json\r\nContent-Length: {}\r\n\r\n{b}",
+        b.len()
+    );
+    s.write_all(msg.as_bytes()).map_err(|_| "ERR_AI_TIMEOUT".to_string())?;
+    let mut raw = Vec::new();
+    s.read_to_end(&mut raw).map_err(|_| "ERR_AI_TIMEOUT".to_string())?;
+    let cut = raw
+        .windows(4)
+        .position(|w| w == b"\r\n\r\n")
+        .ok_or_else(|| "ERR_AI_BADOUT".to_string())?;
+    let head = String::from_utf8_lossy(&raw[..cut]).to_string();
+    let mut payload = raw[cut + 4..].to_vec();
+    if head.to_ascii_lowercase().contains("transfer-encoding: chunked") {
+        let mut out = Vec::new();
+        let mut rest: &[u8] = &payload;
+        loop {
+            let Some(nl) = rest.windows(2).position(|w| w == b"\r\n") else { break };
+            let n = usize::from_str_radix(
+                String::from_utf8_lossy(&rest[..nl]).trim(),
+                16,
+            )
+            .unwrap_or(0);
+            if n == 0 {
+                break;
+            }
+            let start = nl + 2;
+            if rest.len() < start + n {
+                break; // chunk truncado: se queda lo leído
+            }
+            out.extend_from_slice(&rest[start..start + n]);
+            rest = &rest[(start + n + 2).min(rest.len())..];
+        }
+        payload = out;
+    }
+    let status = head.lines().next().unwrap_or("").to_string();
+    Ok((status, String::from_utf8_lossy(&payload).to_string()))
+}
+
+/// El análisis en sí (síncrono; el comando lo envuelve en spawn_blocking).
+fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdict, String> {
+    let cfg = load_ai_config();
+    if !cfg.enabled {
+        return Err("ERR_AI_OFF".into());
+    }
+    if cfg.model.trim().is_empty() || !std::path::Path::new(cfg.model.trim()).is_file() {
+        return Err("ERR_AI_MODEL".into());
+    }
+    if msgs.is_empty() {
+        return Err("ERR_AI_BADOUT".into()); // sin evidencia no hay qué juzgar
+    }
+    let server = if cfg.server.trim().is_empty() {
+        "llama-server".to_string()
+    } else {
+        cfg.server.trim().to_string()
+    };
+    let port = if cfg.port == 0 { AI_PORT } else { cfg.port };
+    // Flags de docs/modelos-locales-cpu.md §3, medidos en CPU sin GPU:
+    // -ngl 0 (la iGPU comparte la RAM), --no-mmap (GGML_ASSERT con memoria
+    // fragmentada), sin razonamiento (12x), temp 0 (clasificación, no prosa).
+    let port_s = port.to_string();
+    let mut cmd = std::process::Command::new(&server);
+    cmd.args([
+        "-m", cfg.model.trim(),
+        "--host", "127.0.0.1",
+        "--port", port_s.as_str(),
+        "-c", "2048",
+        "-t", "4",
+        "-ngl", "0",
+        "--no-mmap",
+        "--reasoning-budget", "0",
+        "--temp", "0",
+    ])
+    .stdin(std::process::Stdio::null())
+    .stdout(std::process::Stdio::null())
+    .stderr(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let child = cmd.spawn().map_err(|_| "ERR_AI_START".to_string())?;
+    let _guard = AiChild(child);
+    // esperar a que el modelo cargue: /health contesta 503 mientras tanto
+    let t0 = std::time::Instant::now();
+    loop {
+        if t0.elapsed().as_millis() as u64 > AI_HEALTH_WAIT_MS {
+            return Err("ERR_AI_TIMEOUT".into());
+        }
+        if let Ok((status, _)) = ai_http(port, "GET /health", None, 3_000) {
+            if status.contains(" 200") {
+                break;
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
+    // Prompt en inglés (el 2B sigue mejor las instrucciones en inglés); la
+    // evidencia va verbatim en su idioma. El SESGO ASIMÉTRICO vive aquí y en
+    // el render del panel: en la duda jamás clear (regla #3 del diseño).
+    let ev: String = msgs
+        .iter()
+        .enumerate()
+        .map(|(i, m)| format!("{}. \"{}\"\n", i + 1, m.replace('"', "'")))
+        .collect();
+    let prompt = format!(
+        "You classify a coding session to recommend /clear (wipe the context) \
+         or /compact (summarize, keeping the thread).\n\
+         Session topic: \"{}\"\n\
+         Most recent user messages (newest LAST):\n{}\
+         File continuity with earlier work: {}%.\n\
+         Question: does the NEWEST message need the earlier conversation?\n\
+         - It starts an unrelated new topic -> rec=clear, reason=tema_nuevo\n\
+         - It builds on or references earlier work -> rec=compact, reason=tema_cruzado\n\
+         - A task still seems unfinished -> rec=compact, reason=tarea_viva\n\
+         - Work seems done and nothing new started -> rec=unsure, reason=cierre\n\
+         - When in doubt NEVER answer clear: answer compact or unsure.\n\
+         Answer ONLY the JSON.",
+        title.replace('"', "'"),
+        ev,
+        cont
+    );
+    let body = serde_json::json!({
+        "messages": [{"role": "user", "content": prompt}],
+        "grammar": AI_GRAMMAR,
+        "max_tokens": 40,
+        "temperature": 0,
+    });
+    let (_, payload) =
+        ai_http(port, "POST /v1/chat/completions", Some(&body.to_string()), AI_ANSWER_WAIT_MS)?;
+    let v: serde_json::Value =
+        serde_json::from_str(payload.trim()).map_err(|_| "ERR_AI_BADOUT".to_string())?;
+    let content = v["choices"][0]["message"]["content"].as_str().unwrap_or("");
+    let out: AiVerdict =
+        serde_json::from_str(content.trim()).map_err(|_| "ERR_AI_BADOUT".to_string())?;
+    match out.rec.as_str() {
+        "clear" | "compact" | "unsure" => Ok(out),
+        _ => Err("ERR_AI_BADOUT".into()),
+    }
+    // _guard cae aquí: llama-server muere también en los caminos de error
+}
+
+/// async + spawn_blocking (invariante 10ter): el análisis tarda 10-45 s y el
+/// hilo de la UI no puede congelarse mientras tanto.
+#[tauri::command]
+async fn ai_intent(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdict, String> {
+    tauri::async_runtime::spawn_blocking(move || ai_intent_impl(title, msgs, cont))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Escapa un campo de CSV: comillas alrededor y las internas duplicadas. Antes
@@ -6040,6 +6313,9 @@ pub fn run() {
             get_quota,
             get_local_stats,
             get_coach,
+            ai_get_config,
+            ai_set_config,
+            ai_intent,
             update_tray,
             get_remotes,
             save_remotes,

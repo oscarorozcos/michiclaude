@@ -3455,3 +3455,72 @@ Rematado con dos detalles de Oscar: la bombilla lleva la MISMA inclinación que
 la cápsula (15.5°) —así se leen como piezas del mismo juego y no como un icono
 pegado— y los tipos de la ficha son los del globo de modelos (12.5/11.5/10):
 el mismo dato no puede leerse más chico en una superficie que en otra.
+
+## 2026-08-11 (noche) — nace el análisis local: la insignia inteligente de /clear vs /compact
+
+Primera pieza de IA local en MichiClaude, tras la investigación de Oscar en
+`docs/modelos-locales-cpu.md` (Qwen3.5-2B + llama.cpp medidos en su i7 sin
+GPU) y una conversación larga sobre dónde SÍ aporta un modelo chico y dónde
+no. Diseño completo en `docs/analisis-local.md`; aquí el porqué de lo
+construido y las trampas.
+
+**El caso elegido** (de Oscar, con su captura de la tarjeta genérica): cuando
+la tarjeta de intención sale sin insignia —veredicto `unsure`, ni TodoWrite ni
+commit limpio que decidan—, hoy la pregunta clave ("¿lo que sigue necesita lo
+ya hablado?") se le devuelve al usuario. El modelo local la contesta leyendo
+el ai-title y los últimos 3 mensajes humanos, y pinta una insignia PUNTEADA
+("Análisis local · tema nuevo") distinta a propósito del "Recomendado" sólido:
+una inferencia no puede vestirse de hecho.
+
+**Las decisiones que ordenaron todo:**
+
+1. **El modelo consume hechos, jamás vive en el motor.** El exportador es
+   stdlib puro y así se queda (invariante #1): la evidencia viaja en el hit
+   `press` (campos aditivos `title`+`msgs`) por el mismo SSH de siempre, y el
+   análisis corre SOLO en la máquina del panel. Las sesiones del VPS se
+   analizan igual sin que el VPS sepa que existe un modelo.
+2. **`user_turn_text` es el único filtro.** La evidencia necesita el TEXTO de
+   los turnos humanos y `is_user_turn` solo contaba: se refactorizó para que
+   el texto sea la fuente y el bool la envuelva — en Rust y en Python. Dos
+   implementaciones del mismo filtro habrían divergido tarde o temprano.
+3. **HTTP a mano sobre TcpStream.** reqwest está sin la feature `blocking` y
+   el patrón de la casa es async → spawn_blocking; antes que añadir features
+   o deps (invariante #4), un POST HTTP/1.1 contra 127.0.0.1 son 40 líneas de
+   std — con des-chunkeo a nivel de BYTES (los tamaños de chunk son bytes;
+   por chars se descuadraría con UTF-8).
+4. **El truncado de mensajes va por CHARS, no bytes** (300): un corte por
+   bytes parte un carácter UTF-8 por la mitad y revienta el JSON del hit.
+   `chars().take(300)` en Rust ≙ `[:300]` en Python — la réplica coincide.
+5. **llama-server nace y muere en cada análisis** (guard con Drop que cubre
+   todos los `?`): la app pesa 276 MB y un residente de 2 GB mata el pitch.
+   Flags directos de la investigación: -ngl 0, --no-mmap, sin razonamiento
+   (12x), temp 0 y gramática GBNF — el enum se FUERZA, no se pide.
+6. **Una invocación por sesión aunque falle** (`aiTried` en la tarjeta):
+   reintentar en cada sondeo sería arrancar un servidor de 1.3 GB en bucle
+   cada 3 minutos contra un fallo persistente.
+7. **La evidencia no se persiste.** `msgs` vive en el hit en memoria; al
+   almacén de tarjetas solo entra el veredicto `{rec, reason}`. Y el sesgo
+   asimétrico va cosido en DOS capas: el prompt ("when in doubt NEVER answer
+   clear") y el render (la insignia de /clear solo con razón `tema_nuevo`).
+8. **Los hechos mandan hasta el final**: la insignia se pinta solo si el
+   veredicto determinista SIGUE en unsure al momento de pintar — si entre
+   tanto apareció un TodoWrite, la inferencia se calla sola.
+
+**Lo que NO hace, por diseño y para siempre:** tocar el automático. El
+auto-/clear sigue exigiendo Boundary determinista + relayClear + 3 manuales +
+red de /export; un "tema_nuevo" del modelo no abre ni una compuerta.
+
+**v1 sin embeddings a propósito:** la escalera completa (hechos → embeddings
+→ 2B) está en el diseño, pero lo que decide si esto sirve es la CALIDAD del
+veredicto del 2B, y Oscar ya tiene llama-server y el GGUF instalados — cero
+descargas para empezar a probar hoy. Los embeddings son un atajo de velocidad
+y llegan en la etapa 2 si el veredicto demuestra valer.
+
+**Cómo se prueba sin esperar una sesión al 80%:** Ajustes → Análisis local
+(IA) → encender, ruta del .gguf → **Probar**: es la MISMA tubería real
+(`ai_intent`) con evidencia de ejemplo que cambia claramente de tema — lo
+esperado es `clear · tema nuevo` en segundos (arranque frío ~10-20 s).
+
+Pendiente de `cargo check` en el Windows de Oscar (aquí no hay toolchain);
+el JS y el Python pasaron sus verificadores. 18 claves i18n nuevas ×8
+idiomas.

@@ -5,9 +5,8 @@ nada.** Aquí vive solo lo VIGENTE: reglas, invariantes y pendientes; el
 HISTORIAL (jornadas, validaciones, bugs con autopsia, decisiones con su
 porqué) está en `docs/bitacora.md` — buscar ahí antes de rediscutir una
 decisión vieja, y allí van las validaciones al cerrar la jornada.
-REGLA DURA: este archivo por debajo de 40k
-caracteres — Claude Code corta lo que sobre (pasó con 118.8k y dos tercios
-del archivo sin leerse).
+REGLA DURA: este archivo bajo 40k caracteres —
+Claude Code corta lo que sobre (pasó con 118.8k: dos tercios sin leerse).
 
 ## Qué es esta app
 
@@ -237,28 +236,26 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 ## Reglas de comportamiento — no regresionar
 
 - `resets_at` trae JITTER: ventana nueva SIEMPRE con tolerancia
-  (`windowChanged`, 10 min sesión / 360 semana), nunca exacta.
+  (`windowChanged`, 10 min sesión / 360 semana).
 - Alarmas de sesión configurables (chips, `alarms`): el aviso se REPITE
   cada 5 min hasta abrir el panel; varios umbrales de golpe → solo el más
-  alto. Semanal al 100%: un aviso por ventana. Avisos de restablecimiento
-  solo si la anterior llegó al 100% (`hit:*`), con confirmación
-  (abrir/enfocar limpia `ackPending:*`). Sin banners en la app. Nunca
-  quitar la confirmación.
+  alto. Semanal al 100%: uno por ventana. Restablecimiento solo si la
+  anterior llegó al 100% (`hit:*`), con confirmación (abrir/enfocar limpia
+  `ackPending:*`). Sin banners. NUNCA quitar la confirmación.
 - 429: espera 5 min respetando Retry-After (backoff rápido solo para
   red; NUNCA reintentar rápido un rate-limit); cuerpo a quota_debug.json;
   cadencia de cuota 3 min (60 s disparaba 429); el gauge conserva el
-  último dato bueno 15 min. OJO: muchos arranques seguidos
-  (compilar-probar) acaban en 429 de 60 MINUTOS.
+  último dato bueno 15 min. Muchos arranques seguidos = 429 de 60 MIN.
 - Instancia única (single-instance, registrado el primero).
 - Si se toca algo que `emitPill()` calcula: `emitPill(...lastPillArgs)`,
   NUNCA parchear un campo suelto de `lastPill` (dejaba el tema viejo).
 - Export CSV/JSON: UNA fila por hecho (fecha × proyecto × modelo ×
-  origen); BOM en el CSV; campos entre comillas; filas solo al exportar
-  (`want_rows`); el ORIGEN lo pone quien lee; sin fila de totales;
-  periodo propio (1/7/15/30). Un export es una foto.
-- Presupuesto semanal: contra la suma de los últimos 7 días de la serie
-  diaria, no contra la ventana elegida.
-- Autostart solo en release, una vez (marker); si lo apagan, se respeta.
+  origen); BOM en CSV; campos entre comillas; filas solo al exportar
+  (`want_rows`); el ORIGEN lo pone quien lee; sin totales; periodo propio
+  (1/7/15/30). Un export es una foto.
+- Presupuesto semanal: contra la suma de los últimos 7 días de la
+  serie diaria, no la ventana elegida.
+- Autostart solo en release, una vez (marker); apagado se respeta.
 
 ## Analizador de fugas (pestaña Hallazgos)
 
@@ -269,46 +266,45 @@ en sincronía (invariante #1): motor en `meter-export.py`
 MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
 
 **Detectores y umbrales** (constantes; detalle en el doc): reread (≥3
-lecturas y ~2k tok — MIDE chars devueltos), inflate (+50k y 10+ turnos),
-cachebreak (≥300k reescritos; excluye isSidechain y compactaciones
-±120 s), mech (≥5; git/pytest/cargo/npm), subagents (≥50k de sidechain),
-hooks_noise (≥15 disparos y ≥10k tok; mira attachments hook_success),
+lecturas y ~2k tok — MIDE chars devueltos), inflate (+50k, 10+ turnos),
+cachebreak (≥300k reescritos; fuera isSidechain y compactaciones ±120 s),
+mech (≥5; git/pytest/cargo/npm), subagents (≥50k de sidechain),
+hooks_noise (≥15 disparos y ≥10k tok; attachments hook_success),
 mcp_unused (resta de conjuntos), skills_unused, claudemd (solo 7d+;
-identificadores por línea contra el texto crudo, rojo solo si NINGUNA
+identificadores por línea contra texto crudo, rojo solo si NINGUNA
 mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos) y
-claudemdsize (CLAUDE.md > 40k `CLAUDEMD_LOAD_LIMIT`: lo que sobra no se
-carga; costo 0, solo 7d+).
-Tope 12 por costo en el backend. REGLA: los de "lo instalado" señalan lo
-que NO se usa y lo que cuesta cargarlo, nunca si algo usado "gastó de más".
+claudemdsize (>40k `CLAUDEMD_LOAD_LIMIT`: lo que sobra no se carga;
+costo 0, solo 7d+).
+Tope 12 por costo en backend. REGLA: los de "lo instalado" señalan lo
+que NO se usa y su costo de carga, nunca si algo usado "gastó de más".
 
-**Orden:** `ts` desc y luego costo. Llevan ts los de sesión
+**Orden:** `ts` desc, luego costo. Llevan ts los de sesión
 (reread/inflate/cachebreak) y los agregados con actividad
-(hooks_noise/subagents/mech); los de estado puro van abajo por costo. En
+(hooks_noise/subagents/mech); los de estado puro abajo por costo. En
 Python `parse_ts` da datetime — va `int(ts.timestamp())`.
 
-**Subagentes:** sus turnos llevan el sessionId de la MADRE y NO tocan el
-estado de sesión (turns/first_cr/last_cr/cr_cost/cb); solo suman a su
-tarjeta, y sus tool_use SÍ cuentan. `proj` (carpeta de logs, para casar con
-claudemd) y `disp` (cwd real) van SEPARADOS — unificarlos dejaría
-claudemd en costo 0 en silencio.
+**Subagentes:** sus turnos llevan el sessionId de la MADRE y NO tocan
+el estado de sesión (turns/first_cr/last_cr/cr_cost/cb); solo suman a su
+tarjeta; sus tool_use SÍ cuentan. `proj` (carpeta de logs, casa con
+claudemd) y `disp` (cwd real) SEPARADOS — unificarlos deja claudemd en
+costo 0 en silencio.
 
 **Tarjetas:** contraíbles con clic (pose en `fndMin`, guard !simFnd;
-Ignorar lleva stopPropagation). Primera apertura: enseña lo guardado al
-instante con "Analizando…" mientras corre el fresco; se refresca al abrir
-la pestaña si tiene >5 min. Precarga a los 15 s.
+Ignorar lleva stopPropagation). Primera apertura: lo guardado al instante
+con "Analizando…" mientras corre el fresco; refresco al abrir la pestaña
+si tiene >5 min. Precarga a los 15 s.
 
 **Avisos (sin globo):** post-it rojo / campana / contador encienden con
 hallazgos NO VISTOS. Pasada ligera 1d compartida `fndPass()`: al NACER UN
 RECIBO (cierre local; freno 15 min `fndEventLast`, marcado ANTES) y cada
-3 h de respaldo (era 20 h: demasiado para los nacidos en el VPS). "LEÍDO" = CLIC en la tarjeta, estilo
-Gmail: abrir la pestaña o el post-it NO marca nada; contador y post-it
-descuentan tarjeta por tarjeta al clicarla (plegar/desplegar marca;
-Ignorar apaga la suya; restaurar ignorados revive las no leídas). TRAMPA DEL
-VIGILANTE (4 mordidas): nada nace visto por estar
-mirando la pestaña. Los hallazgos NUNCA van al celular
-(privacidad ntfy). El interruptor de Ajustes ("Avisarme en el widget")
-apaga SOLO el widget; los contadores de pestaña quedan siempre. Para
-re-armar en pruebas: borrar fndSeen y fndAutoLast.
+3 h de respaldo (20 h era mucho para los nacidos en el VPS). "LEÍDO" =
+CLIC en la tarjeta, estilo Gmail: abrir pestaña o post-it NO marca;
+contador y post-it descuentan al clicar cada tarjeta (plegar/desplegar
+marca; Ignorar apaga la suya; restaurar ignorados revive las no leídas).
+TRAMPA DEL VIGILANTE (4 mordidas): nada nace visto por mirar la pestaña.
+Hallazgos NUNCA al celular (privacidad ntfy). El interruptor de Ajustes
+apaga SOLO el widget; los contadores de pestaña quedan. Re-armar en
+pruebas: borrar fndSeen y fndAutoLast.
 
 ## Coach (pestaña Consejos)
 
@@ -344,7 +340,15 @@ veredicto (unsure = sin insignia), advertencia si hay pendientes, botón
 "Copiar comando" → `plugin:clipboard-manager|write_text` invocado
 directo (capability `clipboard-manager:allow-write-text`, sin wrapper
 npm). Exportador viejo: ignora --coach → cero hits, se
-degrada solo (validado en vivo, sondeo ~80 ms). Regla `acomp`:
+degrada solo (validado en vivo, sondeo ~80 ms). ANÁLISIS LOCAL (IA),
+`docs/analisis-local.md` — LEERLO: con veredicto unsure, `ai_intent`
+(llama-server BAJO DEMANDA en 127.0.0.1, gramática GBNF, se MATA al
+terminar) pinta insignia PROPIA punteada; JAMÁS toca compuertas del
+automático; evidencia = `title`+`msgs` del press (3 mensajes humanos
+×300 chars; `user_turn_text` = ÚNICO filtro, el bool lo envuelve, réplica
+en exportador); `msgs` NO se persiste (solo `c.ai`); UNA invocación por
+sesión aunque falle; fail-quiet; interruptor nace OFF; Probar = la misma
+tubería. Regla `acomp`:
 `compact_boundary` con trigger≠manual y <30 min → ficha con los preTokens
 (los manuales no avisan: los hiciste tú; los INYECTADOS por el relevo
 entran como manual y se auditan solos). TODO `compact_boundary` —de quien
@@ -420,26 +424,25 @@ workflow. BLOQUEADO: repo PRIVADO → releases dan 404 sin auth.
 FOTO COMPLETA: bitácora §"cierre 2026-08-08/09"; métricas:
 presion-y-rendimiento §"Qué queda vivo".
 
-- [ ] HUB + RANGOS DE FECHA: NO hacer hasta que haya una SEGUNDA máquina
-      con MichiClaude (hoy no aporta nada). Diseño en
-      `docs/hub-modo-equipo.md` §"Rangos de fecha con hub".
+- [ ] HUB + RANGOS DE FECHA: NO hacer sin una SEGUNDA máquina con
+      MichiClaude. Diseño: `docs/hub-modo-equipo.md` §"Rangos de fecha".
 
-- [x] REDISEÑO UX/UI del panel: TERMINADO Y VALIDADO (2026-08-05;
-      bitácora §"Ronda de rediseño UX/UI", tag `pre-rediseno-20260805`).
-      DECISIONES VIGENTES: tipografía EMBEBIDA (`src/fonts/`, OFL, sin
-      CDN — una fuente remota rompería CSP y privacidad); `.sect` es
-      TARJETA con fondo; toda tarjeta con fondo propio redefine
-      `--txt-mut`/`--txt-dim` en vez de repintar hijos; en filas con
-      elementos de dos líneas, FLEX antes que grid; panel a 446 px; nada
-      de `color-mix()` (demasiado reciente para WebView2); al MOVER un
-      bloque de pestaña, buscar qué inicialización dependía de abrir la
-      pestaña vieja. El widget conserva su estética propia
-      (armonizarlo sería otra ronda).
-- [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (umbral,
-      100%, ventana nueva), camino ntfy completo (con PC apagada) y el
-      aviso de hallazgos naciendo natural (fuga nueva, panel cerrado,
-      sin re-armar fndSeen). El auto-/compact y el /clear con red ya
-      pasaron la suya; falta ver el AUTO-/clear disparándose solo.
+- [x] REDISEÑO UX/UI del panel: HECHO Y VALIDADO (2026-08-05; bitácora
+      §"Ronda de rediseño UX/UI", tag `pre-rediseno-20260805`). VIGENTE:
+      tipografía EMBEBIDA (`src/fonts/`, OFL, sin CDN — una fuente remota
+      rompe CSP y privacidad); `.sect` es TARJETA con fondo; toda tarjeta
+      con fondo redefine `--txt-mut`/`--txt-dim`, no repinta hijos; filas
+      con elementos de dos líneas: FLEX antes que grid; panel a 446 px;
+      nada de `color-mix()` (WebView2); al MOVER un bloque de pestaña,
+      buscar qué init dependía de abrir la vieja. El widget conserva su
+      estética propia (armonizarlo sería otra ronda).
+- [ ] VALIDACIÓN PASIVA (con el uso): alarmas reales (umbral, 100%,
+      ventana nueva), camino ntfy completo (PC apagada) y el aviso de
+      hallazgos naciendo natural (fuga nueva, panel cerrado, sin re-armar
+      fndSeen). Auto-/compact y /clear con red ya pasaron; falta el
+      AUTO-/clear disparándose solo.
+- [ ] ANÁLISIS LOCAL v1 (2026-08-11): validar con Probar y tarjetas
+      reales. Etapa 2 (embeddings + descarga) SOLO tras validar.
 - [ ] Updater: repo público + tag v* y probar completo.
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
@@ -575,15 +578,14 @@ presion-y-rendimiento §"Qué queda vivo".
 ## Consumo de recursos (medido en release)
 
 Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**
-(`WorkingSetPrivate`; WorkingSet64 infla a 695). Release NO baja la RAM
-(el peso son los ~9 procesos WebView2) y el gatito NO es el culpable:
-cada ventana WebView2 tiene piso ~57 MB — de ahí que los pares de widget
-se creen y destruyan.
+(`WorkingSetPrivate`; WorkingSet64 infla a 695). El peso son los ~9
+procesos WebView2 (piso ~57 MB por ventana): de ahí que los pares de
+widget se creen y destruyan.
 
 ## Retención de logs
 
-Claude Code los borra a los 30 días y el analizador necesita ese
-historial: `cleanupPeriodDays: 365` (VPS y Windows).
+Claude Code borra a los 30 días y el analizador necesita historial:
+`cleanupPeriodDays: 365` (VPS y Windows).
 
 ## Comandos
 
@@ -602,17 +604,15 @@ toolchain de Rust (espejo de código; `cargo check` corre en el Windows de
 Oscar) — al cambiar la FIRMA de una función, grep de TODOS sus usos antes
 de subir: el compilador no está para avisar.
 
-LECTURA DE ARCHIVOS GRANDES: antes de abrir entero uno de miles de
-líneas (`index.html` ≈ 137k tokens), buscar con grep la parte y leer
-SOLO ese rango — lo leído viaja en cada turno siguiente. Medido: 7
-relecturas en una sesión de $96.86.
+LECTURA DE ARCHIVOS GRANDES: no abrir entero uno de miles de líneas
+(`index.html` ≈ 137k tokens): grep y leer SOLO ese rango — lo leído viaja
+en cada turno siguiente (medido: 7 relecturas, sesión de $96.86).
 
-TRAS `git pull`, COMPROBAR LA HORA DEL BINARIO: si el pull
-cae en el MISMO MINUTO que la última compilación, Cargo ve empate de
-fechas y NO recompila (`Finished` en 0.1 s, sin `Compiling`) — se ejecuta
-el exe viejo y el bug parece no arreglarse. Arreglo: `(Get-Item
-src\main.rs).LastWriteTime = Get-Date` y recompilar; `cargo clean -p` NO
-basta ("Removed 0 files").
+TRAS `git pull`, LA HORA DEL BINARIO: pull en el MISMO MINUTO que la
+última compilación = Cargo ve empate y NO recompila (`Finished` en 0.1 s,
+sin `Compiling`) — corre el exe viejo y el bug "no se arregla". Arreglo:
+`(Get-Item src\main.rs).LastWriteTime = Get-Date` y recompilar;
+`cargo clean -p` NO basta.
 
 **Simulador** (solo dev, `is_dev`): gatito / avisos / hallazgos.
 `simRunning` es la bandera (NO simMascot). NUNCA toca localStorage ni
@@ -622,11 +622,11 @@ manda pushes; al parar, `processAcks()` restaura lo real. Pausa `simMin`
 ## Flujo de trabajo del repo
 
 - Remoto: `github.com/oscarorozcos/michiclaude` — **PRIVADO**.
-- Windows de Oscar (`C:\Users\oscar\Claude\MichiClaude`) para desarrollo
-  y pruebas; VPS un clon espejo (`/opt/projects/michiclaude`). Al mover un
+- Windows de Oscar (`C:\Users\oscar\Claude\MichiClaude`) desarrolla y
+  prueba; el VPS es clon espejo (`/opt/projects/michiclaude`). Al mover un
   clon en Windows: `target/` guarda rutas absolutas → `cargo clean`.
-- Antes de trabajar en cualquier lado: `git pull`. Al terminar y verificar:
-  commit (Conventional Commits en español) y push.
+- `git pull` antes de trabajar; al terminar y verificar, commit
+  (Conventional Commits en español) y push.
 - La parte de negocio del analizador vive FUERA del repo
   (`~/.michiclaude/notas-negocio-analizador.md`): el git se publica.
 

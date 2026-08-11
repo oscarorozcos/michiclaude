@@ -199,30 +199,37 @@ def save_cache(files, retained_from):
 
 
 def is_user_turn(v, msg):
-    """¿Turno ÚTIL del usuario? Un mensaje HUMANO real: fuera los meta, los
-    de subagente, los resultados de herramienta (llegan con rol user pero
-    los escribe la máquina) y los envoltorios de comandos locales. Es el
-    denominador de "tokens por turno útil" — réplica EXACTA del Rust
-    (is_user_turn en lib.rs, invariante #1)."""
+    """¿Turno ÚTIL del usuario? Envuelve a user_turn_text: UNA sola
+    implementación del filtro (réplica exacta del Rust, invariante #1)."""
+    return user_turn_text(v, msg) is not None
+
+
+def user_turn_text(v, msg):
+    """El TEXTO de un turno humano real (None = turno maquinal): fuera los
+    meta, los de subagente, los resultados de herramienta (llegan con rol
+    user pero los escribe la máquina) y los envoltorios de comandos
+    locales. Refactor 2026-08-11: la evidencia del análisis local
+    (docs/analisis-local.md) necesita los mensajes, no solo contarlos —
+    réplica EXACTA de user_turn_text en lib.rs (invariante #1)."""
     if v.get("type") != "user":
-        return False
+        return None
     if v.get("isSidechain") or v.get("isMeta"):
-        return False
+        return None
     if v.get("toolUseResult") is not None:
-        return False
+        return None
     if (msg.get("role") or "") != "user":
-        return False
+        return None
     c = msg.get("content")
     if isinstance(c, str):
         txt = c
     elif isinstance(c, list):
         for b in c:
             if isinstance(b, dict) and b.get("type") == "tool_result":
-                return False
+                return None
         txt = " ".join(b.get("text") or "" for b in c
                        if isinstance(b, dict) and b.get("type") == "text")
     else:
-        return False
+        return None
     t = txt.strip()
     # envoltorios que Claude Code o el IDE inyectan con rol user sin marcar
     # isMeta (el <ide_... se vio en logs reales del VPS, 2026-08-06). Lista
@@ -230,8 +237,8 @@ def is_user_turn(v, msg):
     if (not t or t.startswith("<command-") or t.startswith("<local-command")
             or t.startswith("<ide_") or t.startswith("<system-reminder")
             or t.startswith("[Request interrupted")):
-        return False
-    return True
+        return None
+    return t
 
 
 def parse_file(path, keep_after):
@@ -891,6 +898,9 @@ def _coach_default():
             # señales del clasificador de tarea viva (réplica del Rust,
             # docs/remediacion.md etapa 1b) — solo hechos, cero veredicto
             "todos_open": 0, "todos_total": 0, "trail": [],
+            # últimos 3 mensajes HUMANOS truncados a 300 chars: la evidencia
+            # del análisis local (docs/analisis-local.md), réplica del Rust
+            "umsgs": [],
             "commit_clean": False,
             # cwd COMPLETO de la sesión (barras normalizadas): con qué se casa
             # una sesión con un relevo abierto en esa carpeta (etapa 3b)
@@ -1001,6 +1011,12 @@ def coach_scan(projects_dir):
                             if t2:
                                 st["title"] = t2
                         msg = v.get("message") or {}
+                        # evidencia del análisis local: mismos cortes que Rust
+                        # (300 chars, últimos 3)
+                        utxt = user_turn_text(v, msg)
+                        if utxt is not None:
+                            st["umsgs"] = (st.get("umsgs", [])
+                                           + [utxt[:300]])[-3:]
                         usage = msg.get("usage")
                         side = bool(v.get("isSidechain"))
                         if isinstance(usage, dict) and not side:
@@ -1116,7 +1132,9 @@ def coach_scan(projects_dir):
                         topen=st["todos_open"], ttotal=st["todos_total"],
                         cont=cont, gclean=st["commit_clean"],
                         full=ctx_full(st.get("model", ""), st.get("ctx_seen", 0)),
-                        scwd=st.get("scwd", ""))
+                        scwd=st.get("scwd", ""),
+                        title=st.get("title", ""),
+                        msgs=st.get("umsgs", []))
                 # auto-compact reciente y sin avisar (30 min: no revivir
                 # compactaciones viejas si el estado se reconstruye de cero)
                 if (st["acomp_ts"] and st["acomp_ts"] != st["acomp_done"]

@@ -285,6 +285,12 @@
   .int-badge{position:absolute;top:-8px;right:10px;font-size:9.5px;font-weight:700;
     letter-spacing:.6px;text-transform:uppercase;color:var(--accent-ink);
     background:var(--accent);border-radius:999px;padding:2px 8px}
+  /* insignia del ANÁLISIS LOCAL (docs/analisis-local.md regla #8): una
+     INFERENCIA se ve distinta de un hecho — borde punteado y tonos suaves,
+     nunca el acento sólido del "Recomendado" determinista */
+  .int-opt.airec{border-style:dashed;border-color:var(--accent-line)}
+  .int-badge.ai{background:var(--card-hi);color:var(--txt-mut);
+    border:1px dashed var(--accent-line);text-transform:none;letter-spacing:.2px}
   .int-ot{font-size:12.5px;font-weight:600;color:var(--txt)}
   .int-ob{font-size:11.5px;color:var(--txt-mut);line-height:1.5;margin-top:3px}
   .int-warn{font-size:11px;color:var(--warn);line-height:1.5;margin-top:5px}
@@ -1389,6 +1395,27 @@
         <span id="simMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
       </div>
     </div>
+    <!-- ANÁLISIS LOCAL (IA) — docs/analisis-local.md, LEERLO antes de tocar.
+         Nace APAGADO; solo pinta una insignia en la tarjeta de intención
+         cuando el veredicto determinista quedó en `unsure`. El modelo corre
+         en 127.0.0.1 bajo demanda y nada sale de la máquina. -->
+    <div class="sect">
+      <div class="eyebrow" data-i18n="ai_lab"></div>
+      <label class="cfg-row" style="cursor:pointer">
+        <span data-i18n="ai_on"></span><input type="checkbox" id="aiChk">
+      </label>
+      <p class="fnd-note" style="margin:4px 4px 8px" data-i18n="ai_hint"></p>
+      <div id="aiCfgRows" hidden>
+        <div class="cfg-row"><span data-i18n="ai_srv"></span>
+          <input type="text" id="aiSrv" style="max-width:190px" spellcheck="false"></div>
+        <div class="cfg-row"><span data-i18n="ai_mdl"></span>
+          <input type="text" id="aiMdl" style="max-width:190px" spellcheck="false"></div>
+        <div class="btnrow" style="margin-top:6px">
+          <button id="aiTestBtn" data-i18n="ai_test"></button>
+          <span id="aiMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- AVISOS: alarmas de %, presupuesto y celular son el mismo tema
@@ -1973,6 +2000,23 @@ en:{
   pill_ses:"session", pill_week:"week",
   card_ses:"Session", card_week:"Weekly",
   press_lab:"Context pressure",
+  ai_lab:"Local analysis (AI)",
+  ai_on:"Suggest /clear or /compact with a local model",
+  ai_hint:"Experimental. Runs llama.cpp on this machine — nothing leaves your computer. When the intent card has no clear verdict, a small local model reads the session topic and your last messages and adds its suggestion.",
+  ai_srv:"llama-server path (empty = use PATH)",
+  ai_mdl:"Model path (.gguf)",
+  ai_test:"Test",
+  ai_testing:"Analyzing… (a cold start takes ~20 s)",
+  ai_badge:"Local analysis",
+  ai_r_tema_nuevo:"new topic",
+  ai_r_tema_cruzado:"builds on this session",
+  ai_r_tarea_viva:"a task looks unfinished",
+  ai_r_cierre:"work looks finished",
+  err_ai_off:"local analysis is off",
+  err_ai_model:"model not found — check the .gguf path",
+  err_ai_start:"llama-server did not start — check the path",
+  err_ai_timeout:"the model did not answer in time",
+  err_ai_badout:"unreadable model output",
   int_t:"Your session is getting heavy",
   int_q:"Every message is costing you more. What do you want to do?",
   int_ev:"Michi detected",
@@ -2411,6 +2455,23 @@ es:{
   pill_ses:"sesión", pill_week:"semana",
   card_ses:"Sesión", card_week:"Semanal",
   press_lab:"Presión de contexto",
+  ai_lab:"Análisis local (IA)",
+  ai_on:"Sugerir /clear o /compact con un modelo local",
+  ai_hint:"Experimental. Usa llama.cpp en esta máquina — nada sale de tu computadora. Cuando la tarjeta de intención no tiene veredicto claro, un modelo local chico lee el tema de la sesión y tus últimos mensajes y añade su sugerencia.",
+  ai_srv:"Ruta de llama-server (vacío = usar el PATH)",
+  ai_mdl:"Ruta del modelo (.gguf)",
+  ai_test:"Probar",
+  ai_testing:"Analizando… (el arranque frío tarda ~20 s)",
+  ai_badge:"Análisis local",
+  ai_r_tema_nuevo:"tema nuevo",
+  ai_r_tema_cruzado:"se cruza con la sesión",
+  ai_r_tarea_viva:"hay una tarea a medias",
+  ai_r_cierre:"el trabajo parece terminado",
+  err_ai_off:"el análisis local está apagado",
+  err_ai_model:"no se encontró el modelo — revisa la ruta del .gguf",
+  err_ai_start:"no arrancó llama-server — revisa la ruta",
+  err_ai_timeout:"el modelo no respondió a tiempo",
+  err_ai_badout:"salida ilegible del modelo",
   int_t:"Tu sesión ya pesa mucho",
   int_q:"Cada mensaje te está costando más caro. ¿Qué quieres hacer?",
   int_ev:"Michi detectó",
@@ -2849,6 +2910,23 @@ pt:{
   pill_ses:"sessão", pill_week:"semana",
   card_ses:"Sessão", card_week:"Semanal",
   press_lab:"Pressão de contexto",
+  ai_lab:"Análise local (IA)",
+  ai_on:"Sugerir /clear ou /compact com um modelo local",
+  ai_hint:"Experimental. Usa llama.cpp nesta máquina — nada sai do seu computador. Quando o cartão de intenção não tem veredito claro, um modelo local pequeno lê o tema da sessão e suas últimas mensagens e adiciona sua sugestão.",
+  ai_srv:"Caminho do llama-server (vazio = usar o PATH)",
+  ai_mdl:"Caminho do modelo (.gguf)",
+  ai_test:"Testar",
+  ai_testing:"Analisando… (a partida fria leva ~20 s)",
+  ai_badge:"Análise local",
+  ai_r_tema_nuevo:"tema novo",
+  ai_r_tema_cruzado:"cruza com a sessão",
+  ai_r_tarea_viva:"há uma tarefa pela metade",
+  ai_r_cierre:"o trabalho parece concluído",
+  err_ai_off:"a análise local está desligada",
+  err_ai_model:"modelo não encontrado — confira o caminho do .gguf",
+  err_ai_start:"o llama-server não iniciou — confira o caminho",
+  err_ai_timeout:"o modelo não respondeu a tempo",
+  err_ai_badout:"saída ilegível do modelo",
   int_t:"Sua sessão já pesa muito",
   int_q:"Cada mensagem está custando mais caro. O que você quer fazer?",
   int_ev:"Michi detectou",
@@ -3287,6 +3365,23 @@ fr:{
   pill_ses:"session", pill_week:"semaine",
   card_ses:"Session", card_week:"Hebdo",
   press_lab:"Pression du contexte",
+  ai_lab:"Analyse locale (IA)",
+  ai_on:"Suggérer /clear ou /compact avec un modèle local",
+  ai_hint:"Expérimental. Utilise llama.cpp sur cette machine — rien ne quitte votre ordinateur. Quand la carte d'intention n'a pas de verdict clair, un petit modèle local lit le sujet de la session et vos derniers messages et ajoute sa suggestion.",
+  ai_srv:"Chemin de llama-server (vide = utiliser le PATH)",
+  ai_mdl:"Chemin du modèle (.gguf)",
+  ai_test:"Tester",
+  ai_testing:"Analyse… (le démarrage à froid prend ~20 s)",
+  ai_badge:"Analyse locale",
+  ai_r_tema_nuevo:"nouveau sujet",
+  ai_r_tema_cruzado:"recoupe la session",
+  ai_r_tarea_viva:"une tâche semble inachevée",
+  ai_r_cierre:"le travail semble terminé",
+  err_ai_off:"l'analyse locale est désactivée",
+  err_ai_model:"modèle introuvable — vérifiez le chemin du .gguf",
+  err_ai_start:"llama-server n'a pas démarré — vérifiez le chemin",
+  err_ai_timeout:"le modèle n'a pas répondu à temps",
+  err_ai_badout:"sortie du modèle illisible",
   int_t:"Ta session commence à peser lourd",
   int_q:"Chaque message te coûte de plus en plus cher. Que veux-tu faire ?",
   int_ev:"Michi a détecté",
@@ -3725,6 +3820,23 @@ de:{
   pill_ses:"Sitzung", pill_week:"Woche",
   card_ses:"Sitzung", card_week:"Woche",
   press_lab:"Kontextdruck",
+  ai_lab:"Lokale Analyse (KI)",
+  ai_on:"/clear oder /compact mit einem lokalen Modell vorschlagen",
+  ai_hint:"Experimentell. Nutzt llama.cpp auf diesem Rechner — nichts verlässt deinen Computer. Hat die Absichtskarte kein klares Urteil, liest ein kleines lokales Modell das Thema der Sitzung und deine letzten Nachrichten und ergänzt seinen Vorschlag.",
+  ai_srv:"Pfad zu llama-server (leer = PATH verwenden)",
+  ai_mdl:"Pfad zum Modell (.gguf)",
+  ai_test:"Testen",
+  ai_testing:"Analysiere… (Kaltstart dauert ~20 s)",
+  ai_badge:"Lokale Analyse",
+  ai_r_tema_nuevo:"neues Thema",
+  ai_r_tema_cruzado:"knüpft an die Sitzung an",
+  ai_r_tarea_viva:"eine Aufgabe scheint offen",
+  ai_r_cierre:"die Arbeit scheint fertig",
+  err_ai_off:"die lokale Analyse ist aus",
+  err_ai_model:"Modell nicht gefunden — prüfe den .gguf-Pfad",
+  err_ai_start:"llama-server startete nicht — prüfe den Pfad",
+  err_ai_timeout:"das Modell hat nicht rechtzeitig geantwortet",
+  err_ai_badout:"unlesbare Modellausgabe",
   int_t:"Deine Sitzung wird schwer",
   int_q:"Jede Nachricht kostet dich mehr. Was möchtest du tun?",
   int_ev:"Michi hat erkannt",
@@ -4163,6 +4275,23 @@ ja:{
   pill_ses:"セッション", pill_week:"週",
   card_ses:"セッション", card_week:"週間",
   press_lab:"コンテキスト圧",
+  ai_lab:"ローカル分析（AI）",
+  ai_on:"ローカルモデルで /clear か /compact を提案",
+  ai_hint:"実験的機能。このPC上のllama.cppを使い、データは一切外部へ送られません。意図カードに明確な判定がないとき、小さなローカルモデルがセッションの話題と直近のメッセージを読んで提案を添えます。",
+  ai_srv:"llama-server のパス（空 = PATH を使用）",
+  ai_mdl:"モデルのパス（.gguf）",
+  ai_test:"テスト",
+  ai_testing:"分析中…（コールドスタートは約20秒）",
+  ai_badge:"ローカル分析",
+  ai_r_tema_nuevo:"新しい話題",
+  ai_r_tema_cruzado:"セッションの続きの話題",
+  ai_r_tarea_viva:"未完了のタスクがあるようです",
+  ai_r_cierre:"作業は完了したようです",
+  err_ai_off:"ローカル分析はオフです",
+  err_ai_model:"モデルが見つかりません — .gguf のパスを確認してください",
+  err_ai_start:"llama-server を起動できません — パスを確認してください",
+  err_ai_timeout:"モデルが時間内に応答しませんでした",
+  err_ai_badout:"モデルの出力を解釈できません",
   int_t:"セッションが重くなっています",
   int_q:"メッセージごとのコストが上がっています。どうしますか？",
   int_ev:"Michiの検出",
@@ -4601,6 +4730,23 @@ ko:{
   pill_ses:"세션", pill_week:"주",
   card_ses:"세션", card_week:"주간",
   press_lab:"컨텍스트 압력",
+  ai_lab:"로컬 분석(AI)",
+  ai_on:"로컬 모델로 /clear 또는 /compact 제안",
+  ai_hint:"실험적 기능. 이 컴퓨터의 llama.cpp를 사용하며 어떤 데이터도 밖으로 나가지 않아요. 의도 카드에 명확한 판정이 없으면 작은 로컬 모델이 세션 주제와 최근 메시지를 읽고 제안을 덧붙여요.",
+  ai_srv:"llama-server 경로(비우면 PATH 사용)",
+  ai_mdl:"모델 경로(.gguf)",
+  ai_test:"테스트",
+  ai_testing:"분석 중… (콜드 스타트는 약 20초)",
+  ai_badge:"로컬 분석",
+  ai_r_tema_nuevo:"새로운 주제",
+  ai_r_tema_cruzado:"세션과 이어지는 주제",
+  ai_r_tarea_viva:"끝나지 않은 작업이 있는 것 같아요",
+  ai_r_cierre:"작업이 끝난 것 같아요",
+  err_ai_off:"로컬 분석이 꺼져 있어요",
+  err_ai_model:"모델을 찾을 수 없어요 — .gguf 경로를 확인하세요",
+  err_ai_start:"llama-server를 시작할 수 없어요 — 경로를 확인하세요",
+  err_ai_timeout:"모델이 제때 응답하지 않았어요",
+  err_ai_badout:"모델 출력을 해석할 수 없어요",
   int_t:"세션이 무거워지고 있어요",
   int_q:"메시지마다 비용이 늘고 있어요. 어떻게 할까요?",
   int_ev:"Michi가 감지함",
@@ -5039,6 +5185,23 @@ zh:{
   pill_ses:"会话", pill_week:"周",
   card_ses:"会话", card_week:"每周",
   press_lab:"上下文压力",
+  ai_lab:"本地分析（AI）",
+  ai_on:"用本地模型建议 /clear 或 /compact",
+  ai_hint:"实验性功能。使用本机的 llama.cpp，任何数据都不会离开你的电脑。当意图卡片没有明确判定时，一个小型本地模型会阅读会话主题和你最近的消息，并附上它的建议。",
+  ai_srv:"llama-server 路径（留空 = 使用 PATH）",
+  ai_mdl:"模型路径（.gguf）",
+  ai_test:"测试",
+  ai_testing:"分析中…（冷启动约需 20 秒）",
+  ai_badge:"本地分析",
+  ai_r_tema_nuevo:"新话题",
+  ai_r_tema_cruzado:"与本会话相关",
+  ai_r_tarea_viva:"似乎有未完成的任务",
+  ai_r_cierre:"工作似乎已完成",
+  err_ai_off:"本地分析已关闭",
+  err_ai_model:"找不到模型 — 请检查 .gguf 路径",
+  err_ai_start:"无法启动 llama-server — 请检查路径",
+  err_ai_timeout:"模型未及时响应",
+  err_ai_badout:"无法解析模型输出",
   int_t:"会话越来越重了",
   int_q:"每条消息的成本越来越高。你想怎么做？",
   int_ev:"Michi 检测到",
@@ -6891,6 +7054,14 @@ function renderTips(){
   for(const c of ints){
     try{
       const h=c.h, v=intentVerdict(h);
+      // insignia del ANÁLISIS LOCAL (docs/analisis-local.md): solo si el
+      // veredicto determinista SIGUE en unsure al pintar — si entre tanto
+      // llegó un hecho (TodoWrite, commit), el hecho manda y la inferencia
+      // se calla. Sesgo asimétrico: /clear solo con razón tema_nuevo;
+      // cualquier otra recomendación solo puede señalar /compact.
+      const ai=(v==="unsure"&&c.ai&&c.ai.rec&&c.ai.rec!=="unsure")?c.ai:null;
+      const aiClear=!!(ai&&ai.rec==="clear"&&ai.reason==="tema_nuevo");
+      const aiComp=!!(ai&&ai.rec==="compact");
       const donde=[h.project||"",h.origin||t("src_local")].filter(Boolean).join(" · ");
       // etapa 3b: si ESTA sesión está abierta con relevo, se dice — es la
       // diferencia entre "cópiate el comando" y lo que vendrá en la 3c. Solo
@@ -6904,8 +7075,9 @@ function renderTips(){
       // etapa 3c: con relevo casado, además de copiar el comando se puede
       // PEDIR que lo aplique. El botón solo aparece si hay relevo — sin él
       // no hay nada que pulsar, y prometerlo sería vender humo.
-      const opt=(cmd,tt,bb,rec,extra)=>`<div class="int-opt${rec?" rec":""}">${
-          rec?`<span class="int-badge">${t("int_rec")}</span>`:""
+      const opt=(cmd,tt,bb,rec,aib,extra)=>`<div class="int-opt${rec?" rec":aib?" airec":""}">${
+          rec?`<span class="int-badge">${t("int_rec")}</span>`
+             :aib?`<span class="int-badge ai">${t("ai_badge")}${aib!=="na"?" · "+t("ai_r_"+aib):""}</span>`:""
         }<div class="int-ot">${tt}</div><div class="int-ob">${bb}</div>${extra||""
         }<div class="int-row"><code>${cmd}</code><button class="int-copy" data-cmd="${cmd}">${t("int_copy")}</button>${
           rly?`<button class="int-apply" data-cmd="${cmd}" data-pid="${rly.pid}" data-origin="${esc(rly.origin||"")}">${t("rly_apply")}</button>`:""
@@ -6917,8 +7089,8 @@ function renderTips(){
         rly?`<span class="int-rly" title="${esc(t("rly_badge_tip"))}">${t("rly_badge")}</span>`:""
       }</span></div>
       <div class="fnd-f"><div class="int-q">${t("int_q")}</div><div class="int-ev">${esc(t("int_ev"))}: ${esc(ev.join(" · "))}</div>${
-        opt("/compact",t("int_go_t"),t("int_go_b"),v==="alive")}${
-        opt("/clear",t("int_done_t"),t("int_done_b"),v==="boundary",
+        opt("/compact",t("int_go_t"),t("int_go_b"),v==="alive",aiComp?ai.reason:null)}${
+        opt("/clear",t("int_done_t"),t("int_done_b"),v==="boundary",aiClear?ai.reason:null,
           (h.topen||0)>0?`<div class="int-warn">⚠ ${t("int_warn",h.topen)}</div>`:"")
       }<div class="int-later">${t("int_later")}</div></div>
     </div>`});
@@ -7305,6 +7477,7 @@ async function coachPoll(){
     localStorage.setItem("tipSeen",JSON.stringify([...seen].slice(-300)));
     localStorage.setItem("tipDay",JSON.stringify(day));
     if(dirty) saveCoachCards(cards);
+    maybeAiIntent(pr);   // análisis local: solo si el veredicto quedó unsure
     renderTipsDot();
     if(lastPillArgs) emitPill(...lastPillArgs);   // el widget lo ve al instante
     if(!$("tab-tips").hidden && !relayBusy) renderTips();
@@ -7316,6 +7489,38 @@ async function coachPoll(){
 }
 setTimeout(coachPoll,60*1000);       // el primer sondeo, tras la carga inicial
 setInterval(coachPoll,3*60*1000);    // mismo compás que el ciclo del panel
+
+// ---------- análisis local (IA) en la tarjeta de intención ----------
+// docs/analisis-local.md — LEERLO antes de tocar. SOLO llena el hueco
+// `unsure` del clasificador determinista (los hechos mandan), UNA invocación
+// por sesión aunque falle (reintentar cada sondeo sería arrancar un servidor
+// de 1.3 GB en bucle) y solo pinta una insignia en la tarjeta MANUAL: las
+// compuertas del automático ni se enteran. La evidencia (msgs) viaja en el
+// hit press y NO se persiste: en el almacén solo queda el veredicto.
+function maybeAiIntent(pr){
+  try{
+    if(!invoke||!aiCfg||!aiCfg.enabled) return;
+    if(!pr||!(pr.msgs||[]).length) return;   // sin evidencia (exportador viejo)
+    if(simRunning||simFnd) return;           // los simuladores no analizan
+    const cards=coachCardsStore();
+    const c=cards.find(x=>x.h.rule==="intent"&&x.h.session===(pr.session||""));
+    if(!c||c.ai||c.aiTried) return;
+    if(intentVerdict(c.h)!=="unsure") return;
+    c.aiTried=true; saveCoachCards(cards);
+    flog("ai: analizando "+(pr.session||""));
+    invoke("ai_intent",{title:pr.title||"",msgs:pr.msgs||[],cont:pr.cont||0})
+      .then(vd=>{
+        const cs=coachCardsStore();
+        const c2=cs.find(x=>x.h.rule==="intent"&&x.h.session===(pr.session||""));
+        if(!c2) return;                      // la despacharon mientras tanto
+        c2.ai={rec:vd.rec||"unsure",reason:vd.reason||"na"};
+        saveCoachCards(cs);
+        flog("ai: veredicto "+c2.ai.rec+" · "+c2.ai.reason);
+        if(!$("tab-tips").hidden && !relayBusy) renderTips();
+      })
+      .catch(e=>flog("ai: "+String(e)));
+  }catch(_){/* el análisis jamás tumba el sondeo */}
+}
 
 // ---------- simulador de HALLAZGOS y CONSEJOS (solo dev, como el 🐱) ----------
 // Idea de Oscar (2026-07-31): recorrer las superficies del analizador y el
@@ -8073,6 +8278,52 @@ fndBadgeCalc();                       // lo pendiente de ayer revive al abrir
 EVENT?.listen("panel:findings",()=>showTab("findings"));
 // y el post-it acento / punto del coach: directo en Consejos
 EVENT?.listen("panel:tips",()=>showTab("tips"));
+// ---------- análisis local (IA): config y prueba (docs/analisis-local.md) --
+let aiCfg=null;
+function aiRowsSync(){ $("aiCfgRows").hidden=!(aiCfg&&aiCfg.enabled); }
+async function aiInit(){
+  if(!invoke) return;
+  try{ aiCfg=await invoke("ai_get_config"); }catch(_){ return; }
+  $("aiChk").checked=!!aiCfg.enabled;
+  $("aiSrv").value=aiCfg.server||"";
+  $("aiMdl").value=aiCfg.model||"";
+  aiRowsSync();
+}
+function aiSave(){
+  if(!invoke) return;
+  aiCfg=aiCfg||{enabled:false,server:"",model:"",port:0};
+  aiCfg.enabled=$("aiChk").checked;
+  aiCfg.server=$("aiSrv").value.trim();
+  aiCfg.model=$("aiMdl").value.trim();
+  aiRowsSync();
+  invoke("ai_set_config",{cfg:aiCfg}).catch(()=>{});
+}
+function aiErr(code){
+  const map={ERR_AI_OFF:"err_ai_off",ERR_AI_MODEL:"err_ai_model",
+    ERR_AI_START:"err_ai_start",ERR_AI_TIMEOUT:"err_ai_timeout",
+    ERR_AI_BADOUT:"err_ai_badout"};
+  const c=String(code); return map[c]?t(map[c]):c;
+}
+$("aiChk").addEventListener("change",aiSave);
+$("aiSrv").addEventListener("change",aiSave);
+$("aiMdl").addEventListener("change",aiSave);
+// Probar = la MISMA tubería real (ai_intent), con evidencia de ejemplo cuyo
+// último mensaje cambia claramente de tema: lo esperado es clear·tema_nuevo.
+// Sirve para validar rutas y modelo sin esperar una sesión al 80%.
+$("aiTestBtn").addEventListener("click",async()=>{
+  if(!invoke) return;
+  aiSave();
+  $("aiMsg").textContent=t("ai_testing");
+  try{
+    const v=await invoke("ai_intent",{title:"Fixing the tray widget CSS",
+      msgs:["the light bulb icon looks good now, commit and push it",
+            "now let's plan the marketing screenshots for the README"],cont:10});
+    $("aiMsg").textContent="✓ "+(v.rec||"?")+
+      (v.reason&&v.reason!=="na"?" · "+t("ai_r_"+v.reason):"");
+  }catch(e){ $("aiMsg").textContent="✕ "+aiErr(e); }
+});
+aiInit();
+
 $("fndBadgeChk").checked=fndBadgeOn();
 $("fndBadgeChk").addEventListener("change",()=>{
   if($("fndBadgeChk").checked) localStorage.removeItem("fndBadgeOff");
