@@ -6145,6 +6145,10 @@ pub fn run() {
                 // crea si el usuario cambia de widget. Ahí va el make_noactivate
                 // de esas cuatro ventanas (ver ensure_widget_windows).
                 ensure_widget_windows(app.handle(), &cfg.style);
+                // ...y ANTES de colocar nada, la corrección de una vez por la
+                // franja de pensamiento del gatito (necesita la ventana ya
+                // creada para saber la escala de la pantalla).
+                migrate_cat_geometry(app.handle());
                 // el globo de avisos sale con los DOS estilos, así que sigue
                 // declarado en tauri.conf.json y se le aplica aquí
                 if let Some(w) = app.get_webview_window("notif") {
@@ -6262,6 +6266,13 @@ pub fn run() {
 const MARGIN_X: u32 = 16;
 const TASKBAR_H: u32 = 56; // respaldo si no hay rect real de la barra
 const PANEL_GAP: u32 = 8;
+/// Franja de PENSAMIENTO sobre el gatito (px lógicos): la cápsula del % de
+/// sesión y el globo con la bombilla de presión de contexto viven ahí, encima
+/// del gato (2026-08-11). El gato sigue midiendo lo mismo — la ventana creció
+/// hacia arriba, y por eso este número aparece sumado en el solape de los dos
+/// globos: sin eso caerían sobre la bombilla en vez de junto a la cabeza.
+/// ÚNICO sitio donde se decide ese alto; cat.html lo da por hecho.
+const CAT_TOP_H: f64 = 48.0;
 
 // ---------- widget flotante (pill): pastilla SIEMPRE visible sobre la barra ----------
 // No va DENTRO de la barra (Windows 11 lo impide y un overlay tapa los iconos);
@@ -6279,6 +6290,41 @@ struct PillConfig {
     // "bottom" (pegado al fondo del escritorio, estilo Rainmeter).
     #[serde(default)]
     layer: String,
+    // versión de la GEOMETRÍA del widget. Sube cuando cambia el tamaño de una
+    // ventana del widget y hay que corregir la posición guardada una sola vez
+    // (ver migrate_cat_geometry). 0 = config anterior a la franja de
+    // pensamiento del gatito.
+    #[serde(default)]
+    geom: u8,
+}
+
+/// El gatito creció CAT_TOP_H hacia ARRIBA. La posición guardada es la esquina
+/// SUPERIOR izquierda, así que dejarla tal cual hunde al gato esa franja — y a
+/// quien lo tuviera posado sobre la barra de tareas (la posición por defecto)
+/// se le quedaría medio tapado. Se conserva el borde INFERIOR una sola vez,
+/// que es justo lo que ya hace `set_pill_style` al alternar pastilla ↔ gatito.
+/// En píxeles FÍSICOS: la posición lo es, la franja no (de ahí el factor de
+/// escala; con pantalla al 150% son 72 px, no 48).
+/// Con la pastilla puesta no hay nada que corregir —su tamaño no cambió— y si
+/// el usuario se pasa luego al gatito, `set_pill_style` mide las ventanas
+/// vivas y ya lo resuelve; por eso solo se marca la versión.
+fn migrate_cat_geometry(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let mut cfg = load_pill_config();
+    if cfg.geom >= 1 {
+        return;
+    }
+    if cfg.style == "cat" {
+        // sin ventana no hay escala que consultar: mejor no marcar la versión
+        // y reintentar en el próximo arranque que dar la posición por corregida
+        let Some(cat) = app.get_webview_window("cat") else { return };
+        if let Some(y) = cfg.y {
+            let s = cat.scale_factor().unwrap_or(1.0);
+            cfg.y = Some((y - (CAT_TOP_H * s).round() as i32).max(0));
+        }
+    }
+    cfg.geom = 1;
+    save_pill_config(&cfg);
 }
 
 /// Aplica la capa elegida a una ventana del widget. Windows a veces
@@ -6401,7 +6447,11 @@ fn hover_card(app: tauri::AppHandle, hovering: bool) {
         let _ = card.hide();
         return;
     }
-    place_balloon(&app, "card", 79.0, 70.0);
+    // +CAT_TOP_H: el globo baja hasta donde bajaba siempre —justo encima de
+    // la cabeza—, no hasta el borde de la ventana, que ahora empieza una
+    // franja más arriba. Mientras está abierto, cat.html esconde la columna
+    // (cápsula y bombilla) que le queda debajo.
+    place_balloon(&app, "card", 79.0, 70.0 + CAT_TOP_H);
     // prioridad: nunca dos globos a la vez — la notificación se esconde
     // mientras el de información está abierto; al plegarse, el gatito la
     // vuelve a pedir (emite notif:ready y el panel la re-muestra)
@@ -6487,7 +6537,9 @@ fn notif_overlap(cfg: &PillConfig) -> f64 {
     // Cápsula: la punta del popover no cae en el borde de la ventana sino a
     // unos 5 px (es un cuadrado girado 45° anclado a 8 px), así que se suma
     // esa diferencia para que roce el borde de la cápsula y no lo muerda.
-    if cfg.style == "cat" { 40.0 } else { 12.0 }
+    // El gatito suma su franja de pensamiento por lo mismo que el globo del
+    // hover: la punta debe morder al GATO, y el gato ya no empieza arriba.
+    if cfg.style == "cat" { 40.0 + CAT_TOP_H } else { 12.0 }
 }
 
 /// Pliega el detalle de la pastilla y devuelve la cápsula a su sitio.
@@ -7045,7 +7097,9 @@ fn ensure_widget_windows(app: &tauri::AppHandle, style: &str) {
     use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
     let wins: [(&str, &str, &str, f64, f64); 2] = if style == "cat" {
         [
-            ("cat", "cat.html", "MichiClaude — cat", 210.0, 157.0),
+            // 157 = el gato (su `.stage` en cat.html mide eso EXACTO y va
+            // pegado al fondo) + la franja de pensamiento encima.
+            ("cat", "cat.html", "MichiClaude — cat", 210.0, 157.0 + CAT_TOP_H),
             ("card", "card.html", "MichiClaude — card", 294.0, 322.0),
         ]
     } else {

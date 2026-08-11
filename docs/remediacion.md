@@ -620,10 +620,12 @@ lo había, que es el peor final posible.
   título y por eso hacen falta las dos — el título habla de la TERMINAL que
   tienes delante, el widget de la SESIÓN que Michi mide. Con una sola sesión
   coinciden; con varias, no, y confundirlas es volver a adivinar.
-  El campo `relay` viaja en `press` dentro de `quota:update`. En las cápsulas
-  (pastilla y gatito) es un punto relleno en el centro del arco del manómetro
-  —dentro y no al lado porque ahí no hay un píxel libre, y relleno para que
-  se lea a 24 px—. En el detalle y en el globo del gatito, donde SÍ hay
+  El campo `relay` viaja en `press` dentro de `quota:update`. En la cápsula de
+  la PASTILLA es un punto relleno en el centro del arco del manómetro —dentro
+  y no al lado porque ahí no hay un píxel libre, y relleno para que se lea a
+  24 px—. En el GATITO, desde que la presión es una bombilla (2026-08-11), el
+  mismo punto va en el casquillo: el sitio equivalente, el único hueco propio
+  del dibujo. En el detalle y en el globo del gatito, donde SÍ hay
   sitio, se dice con palabras («proyecto · relevo»): un punto solo puede
   insinuar, y una insinuación que no se entiende no sirve de nada.
 

@@ -4,12 +4,18 @@
 <meta charset="utf-8">
 <title>MichiClaude — cat</title>
 <style>
-  /* Widget mascota: el gatito SUSTITUYE a la pastilla. Sobre el gif va un
-     chip con el % de sesión (con etiqueta, para que se entienda) y una zona
-     invisible sobre la cabeza que abre el panel; la laptop solo arrastra.
+  /* Widget mascota: el gatito SUSTITUYE a la pastilla. Una zona invisible
+     sobre la cabeza abre el panel; la laptop solo arrastra.
      Hover → globo de diálogo (ventana 'card').
      Estética cómic a juego con el gato: papel y trazo se invierten con el
-     tema (claro = blanco/negro, oscuro = oscuro/claro). */
+     tema (claro = blanco/negro, oscuro = oscuro/claro).
+
+     COLUMNA (de abajo arriba, pedida por Oscar 2026-08-11): gato → globo de
+     pensamiento con la BOMBILLA de presión de contexto → cápsula del % de
+     sesión. Antes la presión era un manómetro de arco de 13 px metido en la
+     cápsula: se veía, pero no se LEÍA de un vistazo. La ventana creció 48 px
+     hacia arriba para que los tres respiren; ese alto vive en CAT_TOP_H
+     (lib.rs), no aquí. */
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
@@ -19,13 +25,25 @@
        #2ea3b4 anterior el número blanco daba ~2.7:1 de contraste y no se
        leía (lo notó Oscar 2026-08-04); este da ~4.7:1. */
     --acc:#128097;
+    /* paleta de la bombilla: el filamento se apaga de ámbar a gris y el
+       vidrio se agrisa. Son tonos PROPIOS (no --warn/--bad) a propósito: aquí
+       el ámbar significa ENCENDIDA, no alarma; la alarma la da la forma
+       —garabato roto, grieta— y la grieta sí usa --bad. */
+    --idea:#e08a3c; --idea-dim:#cf8a3e; --idea-dark:#a98330; --idea-dead:#8a929a;
+    /* el VIDRIO se enfría de cálido a gris. Es lo que más se lee a 26 px —los
+       rayitos y el filamento son detalle; la temperatura del cristal se ve de
+       reojo—, y por eso no puede quedarse en blanco: sobre el papel del globo
+       (casi blanco) la bombilla desaparecía. */
+    --glass:#ffeed4; --glass1:#f7ecdd; --glass2:#eeece8; --glass3:#e2e4e8;
+    --base:#d8ccae; --base-off:#b3b9bf;
     /* zona de clic sobre la CABEZA del gato (abre el panel). Rectángulo
        invisible; el resto de la ventana —laptop y márgenes— solo arrastra.
        Para calibrarla: pinta .head con background:rgba(255,0,0,.25).
        RECALIBRADA 2026-08-04 midiendo los píxeles blancos del gif (la
        original se pasaba 6% por la derecha y por arriba sobre el teclado
        y el vacío, y dejaba fuera cachete izquierdo y barbilla — lo notó
-       Oscar). Cabeza medida: x[50%,86.5%] y[53%,87.5%] de la ventana. */
+       Oscar). Cabeza medida: x[50%,86.5%] y[53%,87.5%] — porcentajes del
+       ESCENARIO (`.stage`), que es justo lo que medía la ventana entonces. */
     --hx:50%; --hy:52%; --hw:37%; --hh:36%;
     /* post-it de hallazgos nuevos pegado en la tapa de la laptop, lado
        izquierdo (iterado con Oscar en capturas, 2026-07-29). Variables
@@ -36,15 +54,29 @@
      en vez de quedarse en papel blanco, que era lo único del widget que no
      seguía al tema. Mismos tonos que el panel para que se lean como la misma
      app; el coral sube a #d97757 porque el #C15F3C se apaga sobre oscuro. */
-  body.dark{--paper:#20242c; --ink:#e9ebef}
+  body.dark{--paper:#20242c; --ink:#e9ebef;
+    --idea:#f5b942; --idea-dim:#d9a04a; --idea-dark:#a8823a; --idea-dead:#79828c;
+    /* en oscuro el vidrio va CLARO sobre el papel del globo (#20242c), no al
+       revés: si se queda a su altura, la bombilla se traga con el fondo */
+    --glass:#4d3f27; --glass1:#443a29; --glass2:#3a4049; --glass3:#30353e;
+    --base:#5a6373; --base-off:#434a56}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   body{font-family:var(--font);cursor:grab;user-select:none;-webkit-user-select:none}
   body:active{cursor:grabbing}
+  /* EL ESCENARIO DEL GATO. Mide EXACTAMENTE lo que medía la ventana entera
+     antes de la franja de pensamiento (210x157) y va pegado al fondo. Todo lo
+     que estaba calibrado en porcentajes sobre la ventana —el recorte de los
+     gifs, la zona de la cabeza, los post-its— cuelga de aquí, así que ni un
+     solo número de los de abajo cambia de significado al crecer la ventana.
+     REGLA: si algún día cambia el alto de la franja se toca CAT_TOP_H en
+     lib.rs y este `height` NO. */
+  .stage{position:absolute;left:0;right:0;bottom:0;height:157px}
   /* RECORTE por CSS del margen transparente de los gifs (medido con
      gifbbox: unión visible de los 3 estados = x[19,374] y[0,265] de 400².
-     La ventana es 210x157 (proporción 710x531); el img se escala y desplaza
-     para que esa caja llene la ventana — así el globo/chip/logo quedan
+     El ESCENARIO es 210x157 (proporción 710x531; era la ventana entera hasta
+     la franja de pensamiento); el img se escala y desplaza
+     para que esa caja llene el escenario — así el globo/chip/logo quedan
      pegados al gato y los 3 gifs no saltan entre sí. NO editar los gifs.
      El recorte va en PORCENTAJES a propósito: por eso sobrevivió intacto
      cuando el arte se reescaló de 800² a 400² el 2026-07-29 (medían 19 veces
@@ -66,30 +98,87 @@
      panel (sustituye al sticker). Todo lo demás de la ventana arrastra. */
   .head{position:absolute;left:var(--hx);top:var(--hy);width:var(--hw);height:var(--hh);
     border:0;background:transparent;padding:0;cursor:pointer;z-index:3}
-  /* cápsula "sesión 39%" flotando sobre la cabeza del gato: stadium
-     (radio = altura/2) rotada +15.5°, rótulo anclado al gato (deliberado).
-     Se oculta mientras el globo del hover está desplegado. */
-  .plabel{position:absolute;left:72.4%;top:37.9%;
-    transform:translate(-50%,-50%) rotate(15.5deg);
+  /* cápsula "Sesión 39%": stadium (radio = altura/2), ahora en lo ALTO de la
+     columna, encima del globo de pensamiento. Antes iba posada sobre la
+     cabeza y ladeada +15.5° para seguir la tapa de la laptop; suelta ahí
+     arriba esa inclinación no tenía a qué agarrarse, así que queda un -4°
+     de dibujo a mano. Se oculta mientras el globo del hover está desplegado.
+     Va centrada en el mismo 64% que la bombilla —el eje de la cabeza del
+     gato— para que las tres piezas se lean como UNA columna. */
+  .plabel{position:absolute;left:64%;top:13px;
+    transform:translate(-50%,-50%) rotate(-4deg);
     display:flex;align-items:baseline;gap:4px;white-space:nowrap;
     background:var(--paper);border:1.5px solid var(--ink);border-radius:999px;
     padding:2px 10px;z-index:3;transition:opacity .15s;
     box-shadow:0 1px 3px rgba(0,0,0,.25)}
   .plabel .lab{font-size:10.5px;font-weight:600;color:var(--ink)}
   .plabel b{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--ink)}
-  /* manómetro de PRESIÓN DE CONTEXTO en la cápsula (docs/remediacion.md
-     etapa 1): arco diminuto junto al %; solo con sesión activa. El número
-     y el proyecto viven en el globo del hover. */
-  .pgauge{display:inline-flex;align-self:center}
-  .pgauge svg{width:13px;height:13px;display:block}
+  /* BOMBILLA DE PRESIÓN DE CONTEXTO (docs/remediacion.md etapa 1). Sustituye
+     al manómetro de arco de 13 px que vivía dentro de la cápsula: la misma
+     cifra, contada como dibujo. El gato "piensa" y su idea se degrada según
+     se llena el contexto — filamento, brillo y vidrio van cayendo hasta el
+     garabato roto. Cuatro niveles por `data-lvl`, con los MISMOS umbrales
+     que tenía el arco (60 ámbar, 85 rojo) más un paso intermedio en 40 para
+     que el cambio se vea ANTES de que importe. Solo aparece con sesión
+     activa (hit `press`): sin ella el gatito queda tan limpio como antes.
+     El número exacto y el proyecto siguen viviendo en el globo del hover.
+     `pointer-events:none` para que la franja no se coma el arrastre. */
+  .idea{position:absolute;left:64%;top:34px;transform:translateX(-50%);
+    width:76px;height:96px;z-index:2;transition:opacity .15s;pointer-events:none}
+  .idea svg{display:block;width:100%;height:100%}
+  /* el globo de pensamiento: nube de ocho bollos y dos burbujitas bajando
+     hacia la cabeza. Papel y trazo del tema, como todo el cómic. */
+  .cloud{fill:var(--paper);stroke:var(--ink);stroke-width:2.4;stroke-linejoin:round}
+  .dot{stroke-width:2}
+  /* piezas de la bombilla; las que son de un nivel concreto llevan .lv */
+  .idea .lv{display:none}
+  .idea[data-lvl="0"] .l0,
+  .idea[data-lvl="1"] .l1,
+  .idea[data-lvl="2"] .l2,
+  .idea[data-lvl="3"] .l3{display:block}
+  .glow{fill:var(--idea);opacity:.2}
+  .rays{fill:none;stroke:var(--idea);stroke-width:2;stroke-linecap:round}
+  .rays.dim{stroke:var(--idea-dim);opacity:.75}
+  .glass{fill:var(--glass);stroke:var(--ink);stroke-width:2.6}
+  .base{fill:var(--base);stroke:var(--ink);stroke-width:2.2}
+  .baseln{stroke:var(--ink);stroke-width:1.3}
+  /* el vidrio se enfría y el casquillo se apaga al degradarse la idea */
+  .idea[data-lvl="1"] .glass{fill:var(--glass1)}
+  .idea[data-lvl="2"] .glass{fill:var(--glass2)}
+  .idea[data-lvl="3"] .glass{fill:var(--glass3)}
+  .idea[data-lvl="2"] .base,.idea[data-lvl="3"] .base{fill:var(--base-off)}
+  /* punto en el casquillo = esta sesión tiene RELEVO (lo mismo que el punto
+     del manómetro de la pastilla; ver pill.html) */
+  .rly{fill:var(--ink)}
+  .fil{fill:none;stroke-linecap:round;stroke-width:2.4}
+  .f0{stroke:var(--idea)}
+  .f1{stroke:var(--idea-dim);animation:flick 2.6s infinite}
+  .f2{stroke:var(--idea-dark);stroke-width:2.2}
+  .f3{stroke:var(--idea-dead);stroke-width:2.2}
+  .crack{fill:none;stroke:var(--bad);stroke-width:1.8;stroke-linecap:round}
+  .smoke{fill:none;stroke:var(--idea-dead);stroke-width:2;stroke-linecap:round;
+    opacity:.6;transform-box:fill-box;transform-origin:center;
+    animation:smoke 2.8s ease-out infinite}
+  /* temblor del filamento cuando la idea ya no se sostiene (niveles 2 y 3) */
+  .jit{transform-box:fill-box;transform-origin:center;animation:jit .45s steps(2) infinite}
+  @keyframes jit{0%{transform:translate(0,0) rotate(0)}
+    25%{transform:translate(.5px,-.5px) rotate(3deg)}
+    50%{transform:translate(-.5px,.5px) rotate(-2deg)}
+    75%{transform:translate(.5px,.5px) rotate(1.5deg)}
+    100%{transform:translate(0,0)}}
+  @keyframes flick{0%,42%,52%,78%,88%,100%{opacity:1}46%{opacity:.3}82%{opacity:.45}}
+  @keyframes smoke{0%{opacity:0;transform:translateY(3px) scale(.9)}
+    35%{opacity:.6}100%{opacity:0;transform:translateY(-4px) scale(1.1)}}
   /* INVARIANTE 10bis, ahora también aquí: cualquier regla con `display`
      anula a [hidden] en silencio. Pasó el 2026-08-08 — la cuenta atrás del
      automático (.m.auto / .pauto) traía display propio, escrito DESPUÉS de
      las reglas por clase de abajo, y se quedaba pegada como un círculo
      ámbar vacío en la cápsula. Con la global no puede repetirse. */
   [hidden]{display:none !important}
-  .pgauge[hidden]{display:none}
-  body.hovering .plabel{opacity:0}
+  /* con el globo del hover desplegado se esconden las dos: el globo baja
+     justo encima de la cabeza y taparía la columna a medias, y además ya
+     lleva dentro el % de sesión y la presión con su número */
+  body.hovering .plabel,body.hovering .idea{opacity:0}
   /* Al arrancar (o sin token) todavía no hay % que enseñar. Mejor que el
      gatito salga solo a que enseñe una cápsula vacía, que parece un error. */
   body.nodata .plabel{display:none}
@@ -157,23 +246,49 @@
 </style>
 </head>
 <body class="nodata">
-<img class="cat" id="cat" src="cat-black.gif" alt="" draggable="false">
-<button class="head" id="head" aria-label="MichiClaude"></button>
-<div class="fstack" id="fstack"><i class="fn2"></i><i class="fn1"></i><button class="fbadge" id="fbadge">!</button></div>
-<div class="tstack" id="tstack"><i class="tn2"></i><i class="tn1"></i><button class="tbadge" id="tbadge">!</button></div>
+<!-- el gato y todo lo calibrado sobre él, en su escenario de 210x157 -->
+<div class="stage">
+  <img class="cat" id="cat" src="cat-black.gif" alt="" draggable="false">
+  <button class="head" id="head" aria-label="MichiClaude"></button>
+  <div class="fstack" id="fstack"><i class="fn2"></i><i class="fn1"></i><button class="fbadge" id="fbadge">!</button></div>
+  <div class="tstack" id="tstack"><i class="tn2"></i><i class="tn1"></i><button class="tbadge" id="tbadge">!</button></div>
+</div>
+<!-- lo que el gato PIENSA: la bombilla de presión de contexto. Las burbujitas
+     bajan hacia la cabeza; el hueco de la izquierda queda libre para las
+     llamas del estado 'fire' y el de la derecha para las Z del 'zzz'. -->
+<div class="idea" id="idea" data-lvl="0" hidden aria-hidden="true">
+  <svg viewBox="0 0 76 96">
+    <path class="cloud" d="M63,36 A10.5,10.5 0 0 1 55.7,53.7 A10.5,10.5 0 0 1 38,61
+      A10.5,10.5 0 0 1 20.3,53.7 A10.5,10.5 0 0 1 13,36 A10.5,10.5 0 0 1 20.3,18.3
+      A10.5,10.5 0 0 1 38,11 A10.5,10.5 0 0 1 55.7,18.3 A10.5,10.5 0 0 1 63,36 Z"/>
+    <circle class="cloud dot" cx="46" cy="75" r="5.2"/>
+    <circle class="cloud dot" cx="53" cy="88" r="3.4"/>
+    <!-- La bombilla, dibujada en su propio espacio de 40x54 (el vidrio es un
+         círculo r13 centrado en 20,19) y encajada SIN reducir: a escala 0.85
+         el filamento no se distinguía. La traslación deja el vidrio un pelín
+         por encima del centro de la nube, que es donde cae su peso visual con
+         el casquillo colgando. Los rayos son cortos a propósito: los del
+         boceto llegaban a r19 y rozaban el borde de la nube. -->
+    <g transform="translate(18,13.5)">
+      <circle class="lv l0 glow" cx="20" cy="19" r="17"/>
+      <g class="lv l0 rays"><line x1="20" y1="3.5" x2="20" y2="0.5"/><line x1="9" y1="8" x2="6.9" y2="5.9"/><line x1="31" y1="8" x2="33.1" y2="5.9"/><line x1="4.5" y1="19" x2="1.5" y2="19"/><line x1="35.5" y1="19" x2="38.5" y2="19"/></g>
+      <g class="lv l1 rays dim"><line x1="20" y1="3.5" x2="20" y2="1.5"/><line x1="9" y1="8" x2="7.3" y2="6.3"/><line x1="31" y1="8" x2="32.7" y2="6.3"/></g>
+      <circle class="glass" cx="20" cy="19" r="13"/>
+      <rect class="base" x="14" y="30" width="12" height="9" rx="2"/>
+      <line class="baseln" x1="15" y1="33" x2="25" y2="33"/>
+      <circle class="rly" id="ideaRly" cx="20" cy="36.3" r="1.9" hidden/>
+      <!-- el filamento: bucle limpio → onda → maraña → dos trozos sueltos -->
+      <path class="lv l0 fil f0" d="M13,20 C13,11 27,11 27,20 C27,25 20,25 20,20"/>
+      <path class="lv l1 fil f1" d="M13,21 q3,-9 7,-4 q4,5 7,-5"/>
+      <path class="lv l2 fil f2 jit" d="M12,22 q5,-10 9,-3 q-5,3 -1,7 q6,1 3,-6 q-3,-5 -8,1"/>
+      <path class="lv l3 fil f3 jit" d="M13,17 l4,4 l-3,3 l5,3 M22,16 l-2,8"/>
+      <path class="lv l3 crack" d="M20,7 l-3,6 l4,3 l-3,6"/>
+      <path class="lv l3 smoke" d="M28,11 q4,-2 3,-6"/>
+    </g>
+  </svg>
+</div>
 <div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b>
   <span class="pauto" id="cAuto" hidden><b id="cNum"></b></span>
-  <span class="pgauge" id="pg" hidden aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-      stroke-linecap="round">
-      <path d="M4 17.5a8.5 8.5 0 1 1 16 0" opacity=".3" pathLength="100"/>
-      <path id="pgArc" d="M4 17.5a8.5 8.5 0 1 1 16 0" pathLength="100"
-        stroke-dasharray="0 100"/>
-      <!-- Punto = esta sesión tiene RELEVO (ver pill.html) -->
-      <circle id="pgRly" cx="12" cy="15" r="2.3" fill="currentColor"
-        stroke="none" hidden/>
-    </svg>
-  </span>
 </div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
@@ -236,15 +351,23 @@ function apply(d){
     $("tbadge").textContent = tc.n>9 ? "9+" : String(tc.n);
     $("tbadge").title = tc.tip||"";
   }
-  // manómetro de contexto en la cápsula: también antes del early-return (la
-  // presión sale de los logs, no del endpoint). Umbrales propios 60/85; en
-  // calma va del color de la tinta, como el resto de la cápsula.
+  // bombilla de contexto: también antes del early-return (la presión sale de
+  // los logs, no del endpoint — un fallo de la cuota no debe apagarla).
+  // Umbrales: los MISMOS 60/85 que usaba el manómetro de arco, con un paso
+  // extra en 40 que solo cambia el dibujo. Sin hit `press` no hay sesión
+  // activa que medir y el globo entero desaparece.
   const pr=d.press;
-  $("pg").hidden=!pr;
+  $("idea").hidden=!pr;
   if(pr){
-    $("pg").style.color = pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--ink)";
-    $("pgArc").setAttribute("stroke-dasharray",Math.max(3,pr.pct)+" 100");
-    $("pgRly").hidden=!pr.relay;
+    const p=Math.round(pr.pct);
+    $("idea").dataset.lvl = p>=85?"3":p>=60?"2":p>=40?"1":"0";
+    // OJO, `toggleAttribute` y no `.hidden`: la propiedad `hidden` vive en
+    // HTMLElement y este punto es un <circle> SVG — asignarla ahí crea una
+    // propiedad suelta en JS y NO toca el atributo, así que el punto se
+    // quedaría escondido para siempre. Comprobado en Chromium: `hidden` no
+    // está en SVGElement.prototype. El CSS sí funciona ([hidden] es un
+    // selector de ATRIBUTO y le da igual el namespace).
+    $("ideaRly").toggleAttribute("hidden", !pr.relay);
   }
   if(d.ok===false) return;                 // conserva el último % bueno
   const s=d.session;

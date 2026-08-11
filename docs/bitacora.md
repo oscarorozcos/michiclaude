@@ -3299,3 +3299,86 @@ De paso: el interruptor tiene que reconocer sus PROPIAS rutas anteriores.
 Si no, tras mover cuál michi.exe se usa, ve su ruta vieja como "wrapper
 ajeno", se niega a pisarla (regla correcta con uno de verdad ajeno) y se
 queda encallado en OTHER sin forma de salir desde la interfaz.
+
+## 2026-08-11 — la presión de contexto deja de ser un arco y pasa a ser una idea
+
+Petición de Oscar con dos bocetos HTML propios: la presión de contexto del
+gatito, contada como una BOMBILLA que se degrada, con el gato "pensándola".
+La columna que pidió, de abajo arriba: gato → bombilla en medio → cápsula del
+% de sesión, y "que no quede amontonado".
+
+El manómetro anterior era un arco SVG de 13 px metido dentro de la cápsula.
+Funcionaba y era honesto, pero competía por el espacio con el %, el rótulo y
+la cuenta atrás del automático: se VEÍA y no se LEÍA. Un dibujo que cambia de
+forma —filamento limpio, onda, maraña, dos trozos y una grieta— se entiende
+sin mirarlo fijo, que es justo lo que hace un widget de bandeja.
+
+**Lo que se conservó tal cual** (era la mitad del trabajo): niveles con los
+umbrales de siempre (60 y 85, más un paso nuevo en 40 que solo cambia el
+dibujo), el punto del RELEVO —ahora en el casquillo—, la bombilla fuera del
+early-return de la cuota (la presión sale de los logs, no del endpoint), y el
+número exacto con su proyecto en el globo del hover. La pastilla NO se tocó:
+sigue con su arco.
+
+**El truco que hizo barato el cambio: `.stage`.** La ventana tenía que crecer
+hacia arriba, y sobre esos 210x157 estaba calibrado casi todo el widget en
+PORCENTAJES: el recorte de los gifs, la zona de clic de la cabeza, los dos
+post-its. Recalcularlos habría sido una tarde y un rosario de bugs finos. En
+vez de eso, el gato y todo lo suyo se metieron en un `.stage` que mide
+EXACTAMENTE lo que medía la ventana (210x157) y va pegado al fondo: los
+porcentajes resuelven contra él y ni uno cambió de significado. Verificado
+pintando la zona de la cabeza de rojo y forzando los post-its: caen donde
+caían.
+
+**Tres trampas que no se ven leyendo el código:**
+
+1. **El gato se hundía.** La posición guardada es la esquina SUPERIOR
+   izquierda; al crecer la ventana 48 px hacia arriba, quien tuviera el gatito
+   posado sobre la barra de tareas (la posición por defecto) se lo habría
+   encontrado medio tapado. `migrate_cat_geometry` conserva el borde INFERIOR
+   una sola vez (campo `geom`), que es lo que ya hacía `set_pill_style` al
+   alternar pastilla ↔ gatito. Y va en píxeles FÍSICOS: con pantalla al 150%
+   son 72, no 48 — de ahí el factor de escala.
+2. **Los globos caían sobre la bombilla.** Su solape está medido contra el
+   BORDE de la ventana, no contra el gato. Sumarles `CAT_TOP_H` los devuelve
+   exactamente donde estaban respecto a la cabeza. Por eso el alto de la
+   franja es una constante y no un número suelto en tres sitios.
+3. **El vidrio no contrastaba.** El primer render salió correcto de geometría
+   y mudo de lectura: el cristal casi blanco sobre el papel del globo (casi
+   blanco también) desaparecía, y a escala 0.85 el filamento no se distinguía.
+   Se arregló con lo que sí se lee a 26 px — la TEMPERATURA del vidrio, cálida
+   encendida y fría muerta — y subiendo la bombilla a escala 1:1, con los
+   rayos acortados para que no rocen el borde de la nube.
+
+**Cómo se verificó sin Windows.** El VPS no tiene ni toolchain de Rust ni
+Pillow, así que: (a) un decodificador GIF en stdlib para MIRAR el arte y medir
+dónde caen las llamas del estado `fire` (arriba-izquierda) y las Z del `zzz`
+(arriba-derecha) — la bombilla se colocó en el pasillo libre que queda entre
+las dos; (b) una composición de la ventana nueva con las cajas de la columna
+encima, para ver choques y aire; (c) chromium headless renderizando un banco
+que EXTRAE el `<style>` y el marcado reales de cat.html —nada retecleado— en
+los cuatro niveles y las dos pieles. `cargo check` sigue pendiente del Windows
+de Oscar: aquí no hay cargo.
+
+De paso, el simulador recorre los cuatro niveles (`p` en SIM_CAT → `simPress`,
+resuelto DENTRO de emitPill y no parcheando `lastPill`, que la regla prohíbe).
+Sin eso, ver el estado "muerta" costaba llenar un contexto de verdad hasta el
+85%.
+
+**Y una cuarta trampa, de regalo: `.hidden` no existe en SVG.** Al copiar el
+patrón del punto del relevo (`$("x").hidden = !relay`) saltó la duda: `hidden`
+es una propiedad de `HTMLElement`, y ese punto es un `<circle>`. Comprobado en
+Chromium: no está en `SVGElement.prototype`, así que la asignación crea una
+propiedad suelta en JS y NO toca el atributo — el punto nace oculto y se queda
+oculto PARA SIEMPRE, sin un solo error en consola. El CSS sí funcionaba y por
+eso engañaba: `[hidden]` es un selector de ATRIBUTO y le da igual el
+namespace. Lo mismo pasaba en `pill.html` desde la etapa 3b: **el punto del
+relevo de la pastilla no se ha enseñado nunca**. Los dos van ya con
+`toggleAttribute`. Lección: una propiedad que no existe no avisa, solo no hace
+nada; cuando el mismo patrón se copia a otro tipo de elemento, hay que
+comprobar que el patrón siga siendo válido ahí.
+
+**Lo que queda peor y hay que saberlo:** la ventana es 48 px más alta, y esos
+48 px son transparentes pero SÍ atrapan el clic (una ventana es un rectángulo;
+no hay hit-testing por píxel). Sobre el escritorio no molesta; encima de otra
+ventana, es un poco más de superficie muerta.

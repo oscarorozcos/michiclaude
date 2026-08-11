@@ -1,26 +1,26 @@
 # CLAUDE.md — MichiClaude (antes Claude Code Meter)
 
 Contexto del proyecto para Claude Code. **Léelo completo antes de modificar
-nada.** Aquí vive solo lo VIGENTE: reglas, invariantes y pendientes. El
-HISTORIAL completo (jornadas, validaciones, bugs con autopsia, decisiones
-con su porqué) está en `docs/bitacora.md` — buscar ahí antes de rediscutir
-una decisión vieja. Al cerrar una jornada: validaciones a la bitácora;
-aquí solo reglas y pendientes. REGLA DURA: este archivo por debajo de 40k
+nada.** Aquí vive solo lo VIGENTE: reglas, invariantes y pendientes; el
+HISTORIAL (jornadas, validaciones, bugs con autopsia, decisiones con su
+porqué) está en `docs/bitacora.md` — buscar ahí antes de rediscutir una
+decisión vieja, y allí van las validaciones al cerrar la jornada.
+REGLA DURA: este archivo por debajo de 40k
 caracteres — Claude Code corta lo que sobre (pasó con 118.8k y dos tercios
 del archivo sin leerse).
 
 ## Qué es esta app
 
-Widget de bandeja para Windows 11 con **Tauri 2** que mide en tiempo real
-el uso de Claude por suscripción:
+Widget de bandeja para Windows 11 (**Tauri 2**) que mide en tiempo real el
+uso de Claude por suscripción:
 
 - **Cuota real del plan** (sesión de 5 h + semanales con buckets por
-  modelo) — la misma de claude.ai → Configuración → Uso, compartida
-  entre claude.ai, Claude Code e IDEs.
-- **Marcador de ritmo** y **proyección de burn rate** ("al 100% en X min").
+  modelo) — la de claude.ai → Configuración → Uso, compartida entre
+  claude.ai, Claude Code e IDEs.
+- **Marcador de ritmo** y **burn rate** ("al 100% en X min").
 - **Gasto por proyecto** (equiv. API) y modelo más usado, de los logs
-  locales. Nota `spend_only_cc`: los $ son SOLO de Claude Code; claude.ai
-  gasta cuota pero no es medible en dinero.
+  locales. Nota `spend_only_cc`: los $ son SOLO de Claude Code; claude.ai gasta
+  cuota pero no es medible en dinero.
 - **Icono de bandeja** dinámico (% de sesión dibujado en canvas).
 - **Analizador de fugas** (Hallazgos) y **coach** (Consejos).
 - **Modo HUB** multi-máquina y **avisos al celular** (ntfy).
@@ -28,8 +28,7 @@ el uso de Claude por suscripción:
 ## Arquitectura
 
 ```
-src/index.html          # Frontend completo: HTML+CSS+JS vanilla, un archivo,
-                        # sin frameworks, sin bundler, sin deps npm de runtime.
+src/index.html          # Frontend completo: HTML+CSS+JS vanilla, un archivo
 src/pill.html pcard.html cat.html card.html notif.html   # ventanas del widget
 src-tauri/src/main.rs   # Entry point (windows_subsystem = "windows")
 src-tauri/src/lib.rs    # Backend: comandos, tray, ventanas, Win32
@@ -46,7 +45,7 @@ respaldo WSL y luego `remotes.json` (el PRIMER token vigente gana; viaja
 por SSH, solo vive en memoria). NUNCA llamar a la API con token vencido
 (provoca 429). `GET https://api.anthropic.com/api/oauth/usage` con
 `anthropic-beta: oauth-2025-04-20`. Endpoint NO oficial: el frontend extrae
-buckets de forma recursiva y dinámica (`extractBuckets()` busca
+buckets recursiva y dinámicamente (`extractBuckets()` busca
 `utilization`/`resets_at`) y pinta los que existan. El endpoint NO envía el
 plan (verificado con quota_debug.json real). Respuesta cruda a
 `quota_debug.json` para diagnóstico.
@@ -61,7 +60,7 @@ archivos — la dedup global es imprescindible). Tokens "de trabajo" =
 input + output + cache_write; **cache_read excluido** (infla ~100×) salvo
 para el coste (a 10% del input). `<synthetic>` fuera. Fuente WSL:
 `wsl.exe -l -q` (UTF-16LE) + `\\wsl.localhost\<distro>\{home/*,root}\.claude`,
-sufijo `wsl-<distro>`. Incremental: lo más viejo que la ventana ni se abre; de lo reciente se
+sufijo `wsl-<distro>`. Incremental: lo más viejo que la ventana ni se abre; de lo reciente
 cachea el PARSEO por tamaño+mtime (`scan_cache.json`), nunca el coste. Agrega por proyecto (ventana 1/7/30,
 `by_model`), por modelo, coste hoy/ventana y serie `daily` de 30 días.
 Los proyectos remotos llevan el sufijo del nombre del server.
@@ -79,8 +78,7 @@ fuente deja de publicarlo, el número baja a la vista.
 `price_key()` unifica PUNTO→GUIÓN entre dígitos (OpenRouter escribe
 `claude-opus-4.8`, el resto `claude-opus-4-8`): sin eso la 3.ª fuente
 casaba 6 de 14, ocho modelos sin precio ni techo EN SILENCIO. Auditadas:
-las 3 coinciden al céntimo; el techo discrepante es sonnet-4-5 (200k
-base, beta de 1M).
+coinciden al céntimo; el techo discrepante es sonnet-4-5 (200k / 1M beta).
 
 **C) Remotas (dentro de `get_local_stats`):** `remotes.json` en
 `%APPDATA%\com.oscarorozco.michiclaude\`; por fuente, `ssh -o BatchMode=yes
@@ -88,7 +86,7 @@ base, beta de 1M).
 (**AMBOS lados en sincronía** — invariante #1). Fusión: totales sumados,
 proyectos etiquetados. SSH falla → se ignora en silencio. El alta sube el
 exportador EMBEBIDO (include_str!, saltos a LF) a
-`~/.michiclaude/meter-export.py` y lo re-sube al arrancar — editar el .py
+`~/.michiclaude/meter-export.py` y lo re-sube al arrancar: editar el .py
 en el VPS NO tiene efecto, hay que recompilar. `install_remote(host,python)`
 verifica el binario de Python (`verify_python`); sin Python debe fallar con
 ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
@@ -99,30 +97,35 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   alwaysOnTop, skipTaskbar. Clic en tray abre; se oculta al perder foco
   (salvo drag); ✕ oculta a bandeja; arrastrable del encabezado. Pestañas
   (Principal · Fuentes de datos · Hallazgos · Consejos · Reporte ·
-  Ajustes), encabezado+pestañas sticky en `.p-top` (el padding superior
-  vive AHÍ, no en `.panel` — si no, rendija al hacer scroll).
-  Pie Hoy/Semana solo en Principal. El panel es el ÚNICO que llama al
-  endpoint; el tray se actualiza desde su ciclo (`updateTray`).
+  Ajustes), con encabezado sticky en `.p-top` (el padding superior vive
+  AHÍ, no en `.panel`: si no, rendija al scroll).
+  Pie Hoy/Semana solo en Principal. El panel es el ÚNICO que llama al endpoint;
+  el tray se actualiza desde su ciclo (`updateTray`).
 - **Pastilla** (`pill`, 280x54) + **detalle** (`pcard`, 280x300): cápsula
   de cristal con asa ⠿, gatito como MARCA, "Sesión X%", hueco semanal y
   hueco semanal POR MODELO (si el endpoint no lo reporta, no se pinta).
   Clic en cápsula = desplegar detalle; clic en la MARCA = abrir panel; ⠿
-  arrastra (pliega antes); clic derecho oculta. NO robar foco
+  arrastra (pliega antes); clic derecho oculta. NO roba foco
   (WS_EX_NOACTIVATE). NUNCA llama al endpoint: el panel emite
   `quota:update` y cada ventana pide el último dato con `pill:ready` al
   cargar (toda ventana nueva DEBE emitirlo). El detalle son DOS ventanas;
   `toggle_pill_card()` elige pose (abajo si cabe; si no `body.up`
-  invierte). Cabecera del detalle = geometría IDÉNTICA a la cápsula (el
-  margen de 6 px las alinea; sin él el halo del box-shadow se corta en
-  recto); con el detalle abierto esconde números. Es funcional: el gatito
-  abre panel y el asa arrastra vía `drag_pill_from_card`. SIN tooltips. El hover para desplegar se probó y se DEVOLVIÓ a clic —
-  no reintroducir. El % en color: acento en "todo bien", ÁMBAR y ROJO se
+  invierte). Cabecera del detalle = geometría IDÉNTICA a la cápsula (el margen de 6 px
+  las alinea; sin él el halo del box-shadow se corta en recto); con el
+  detalle abierto esconde números. Es funcional: el gatito abre
+  panel y el asa arrastra vía `drag_pill_from_card`. SIN tooltips. El hover
+  para desplegar se probó y se DEVOLVIÓ a clic: no reintroducir. El % en color: acento en "todo bien", ÁMBAR y ROJO se
   conservan. Los tamaños se definen en `ensure_widget_windows`, NO en el
-  json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos),
-  SVG inline (la CSP no permite fuentes externas).
-- **Gatito** (estilo `cat`): 4 ventanas — `cat` (gif + cápsula "Sesión X%"
-  + zona `.head`), `card` (globo resumen al hover), `notif` (globo de
-  alarma), pastilla oculta. Estados por gravedad (`mascotState()`):
+  json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos), SVG inline
+  (la CSP no permite fuentes externas).
+- **Gatito** (estilo `cat`, 210x205): 4 ventanas — `cat` (gif + BOMBILLA +
+  cápsula "Sesión X%" + zona `.head`), `card` (globo resumen al hover),
+  `notif` (globo de alarma), pastilla oculta. COLUMNA de abajo arriba: gato →
+  globo con la BOMBILLA de presión (sustituye al arco; sin hit `press` no se
+  pinta) → cápsula. El gato y lo calibrado sobre él viven en `.stage`
+  (210x157 al fondo = la ventana de antes); encima va `CAT_TOP_H` (48,
+  lib.rs), que los DOS globos SUMAN a su solape. Bitácora 2026-08-11.
+  Estados por gravedad (`mascotState()`):
   cat-zzz (`hit:week`) / cat-break (`hit:session`) / cat-fire
   (`ackPending:alarm`) / normal; los banderines `hit:*` los limpia
   `trackResets()` con ventana nueva. Cápsula nace OCULTA (`body.nodata`)
@@ -133,7 +136,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   Laptop y márgenes arrastran. Post-its en la tapa:
   pilita ROJA de hallazgos (`.fstack`, vars `--bx/--by/--bs`, rojo FIJO)
   y pilita TURQUESA del coach (`.tstack`, #128097 para que el número
-  blanco dé ~4.7:1, tamaño .95bs, offset 1.8bs). Clic en post-it = panel directo en su pestaña
+  blanco dé ~4.7:1). Clic en post-it = panel directo en su pestaña
   (`panel:findings` / `panel:tips`). Gifs 400² transparentes en variantes
   -black/-white por tema, recortados por CSS EN PORCENTAJES — NO editar
   los archivos; `cat-break-black.gif` vino en lienzo distinto y se
@@ -165,7 +168,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   (`set_size`): WebView2 deja de pintar. Tamaño fijo que se muestra u oculta.
 - **Creación en caliente:** `pill`/`pcard`/`cat`/`card` NO están en
   tauri.conf.json — las crea `ensure_widget_windows()` (solo el par del
-  estilo elegido; al cambiar se DESTRUYE el viejo, ahorra ~115 MB). Sus tamaños se tocan en Rust. Las capabilities
+  estilo elegido; al cambiar se DESTRUYE el viejo, ahorra ~115 MB). Las capabilities
   siguen con las 6 etiquetas (los permisos van por etiqueta).
 - **Tray dinámico:** número a 24 px con contorno de 4 px (legible en barra
   clara u oscura sin detectar el tema) + barrita semanal. Con cuota en error:
@@ -299,12 +302,11 @@ la pestaña si tiene >5 min. Precarga a los 15 s.
 **Avisos (sin globo):** post-it rojo / campana / contador encienden con
 hallazgos NO VISTOS. Pasada ligera 1d compartida `fndPass()`: al NACER UN
 RECIBO (cierre local; freno 15 min `fndEventLast`, marcado ANTES) y cada
-3 h de respaldo (era 20 h: los nacidos en el VPS no disparan cierre local
-y quedaban invisibles un día). "LEÍDO" = CLIC en la tarjeta, estilo
+3 h de respaldo (era 20 h: demasiado para los nacidos en el VPS). "LEÍDO" = CLIC en la tarjeta, estilo
 Gmail: abrir la pestaña o el post-it NO marca nada; contador y post-it
 descuentan tarjeta por tarjeta al clicarla (plegar/desplegar marca;
-Ignorar apaga la suya; restaurar ignorados revive las no leídas). Esto
-ENTIERRA la TRAMPA DEL VIGILANTE (4 mordidas): nada nace visto por estar
+Ignorar apaga la suya; restaurar ignorados revive las no leídas). TRAMPA DEL
+VIGILANTE (4 mordidas): nada nace visto por estar
 mirando la pestaña. Los hallazgos NUNCA van al celular
 (privacidad ntfy). El interruptor de Ajustes ("Avisarme en el widget")
 apaga SOLO el widget; los contadores de pestaña quedan siempre. Para
@@ -324,17 +326,16 @@ con contexto y quieta <10 min (`PRESS_QUIET_MAX`), `value` = tokens de
 contexto crudos, campos aditivos `quiet` + señales del clasificador
 `topen/ttotal` (último TodoWrite), `cont` (Jaccard % archivos, últimos
 10 vs 10 previos del rastro `trail` tope 20) y `gclean` (commit sin
-ediciones después); NO es ficha ni aviso — coachPoll la aparta (como
-done/ask), elige la más fresca y emitPill la monta como campo `press`
-en quota:update (umbrales 60/85). EL TECHO NO ES CONSTANTE: el hit trae
-`full` = techo del modelo de esa sesión y `pressFull()/pressPct()` son
-el ÚNICO sitio que divide. Sale
-de `ctx_for()` (ver Arquitectura; `[1m]` manda y se mira ANTES de
+ediciones después); NO es ficha ni aviso: coachPoll la aparta (como
+done/ask), elige la más fresca y emitPill la monta como `press` en
+quota:update (umbrales 60/85). EL TECHO NO ES CONSTANTE: el hit trae
+`full` = techo del modelo de esa sesión; `pressFull()/pressPct()` son el
+ÚNICO sitio que divide. Sale de `ctx_for()` (ver Arquitectura; `[1m]` manda y se mira ANTES de
 price_key, que lo recorta; en la duda 200k). Y
 si lo MEDIDO supera a la tabla, manda lo medido: `ctx_full` sube al
 siguiente escalón de `CTX_LADDER` (devolver lo visto a secas dejaría el
-manómetro clavado en 100%). Autopsia en la bitácora. Gauge SVG en pastilla y gatito; número+proyecto en pcard y en el globo
-del hover. Nunca viaja a ntfy ni al hub. El motor manda
+manómetro clavado en 100%). Autopsia en la bitácora. Arco en la pastilla y BOMBILLA en el gatito;
+número+proyecto en pcard y en el globo del hover. Nunca viaja a ntfy ni al hub. El motor manda
 HECHOS crudos: el veredicto Alive/Boundary/Uncertain vive UNA sola vez
 en JS (`intentVerdict`, reina = topen>0). Con presión ≥80
 (`INTENT_PCT`) coachPoll sintetiza el hit LOCAL `intent` → tarjeta de
@@ -434,8 +435,8 @@ presion-y-rendimiento §"Qué queda vivo".
       elementos de dos líneas, FLEX antes que grid; panel a 446 px; nada
       de `color-mix()` (demasiado reciente para WebView2); al MOVER un
       bloque de pestaña, buscar qué inicialización dependía de abrir la
-      pestaña vieja. El widget CONSERVA su estética propia — el rediseño
-      fue solo del panel; armonizarlo sería otra ronda.
+      pestaña vieja. El widget conserva su estética propia
+      (armonizarlo sería otra ronda).
 - [ ] VALIDACIÓN PASIVA (con el uso normal): alarmas reales (umbral,
       100%, ventana nueva), camino ntfy completo (con PC apagada) y el
       aviso de hallazgos naciendo natural (fuga nueva, panel cerrado,

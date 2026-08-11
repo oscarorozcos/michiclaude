@@ -5379,7 +5379,7 @@ function emitPill(ses, wk, extras){
     coach: fndBadgeOn()&&coachCount() ? {n:coachCount(), tip:t("tips_tab")} : null,
     // manómetro de presión de contexto: LECTURA, no aviso — no pasa por el
     // interruptor de avisos ni por contadores (como el % de sesión)
-    press: pressField(),
+    press: simPressField(),
     tip: ses?t("tray_tip",Math.round(ses.pct),fmtReset(ses.resets),weekPct!=null?Math.round(weekPct):null):t("tray_no_data")};
   EVENT?.emit("quota:update", lastPill);
 }
@@ -5407,6 +5407,19 @@ setInterval(()=>{
 // Los globos simulados NO tocan el localStorage (nada de ackPending ni
 // infoBalloon): al terminar no debe quedar ningún aviso pendiente falso.
 let simRunning=false, simMascot=null, simTimer=null, simTick=null, simB=null;
+// presión de contexto FORZADA por el paso del simulador (null = la real). La
+// bombilla del gatito tiene cuatro estados y el último llega al 85% de un
+// contexto: sin esto, verlos todos costaría llenar una sesión de verdad.
+// Vive DENTRO de emitPill —no parcheando lastPill, que la regla prohíbe— para
+// que cualquier reemisión durante la simulación (el tic del minuto, un cambio
+// de tema) siga enseñando el nivel simulado, y para que al parar vuelva el
+// dato real sin tener que restaurar nada.
+let simPress=null;
+function simPressField(){
+  const real=pressField();
+  if(simPress==null) return real;
+  return {pct:simPress, proj:real?real.proj:"", relay:real?real.relay:false};
+}
 // el paso puede sobreescribir lo que calcula balloonMeta (p. ej. forzar la
 // severidad para enseñar el mismo aviso en ámbar y en rojo)
 function simBalloon(o){
@@ -5424,6 +5437,12 @@ function simAlarmBody(){
   return thr>=95 ? t("notif_hi",thr) : t("notif_lo",thr);
 }
 const SIM_CAT=[
+  // la bombilla de presión de contexto, sus cuatro estados seguidos: es la
+  // única forma de comparar el dibujo de uno con el del siguiente
+  {m:"normal", p:15},                                                  // idea clara
+  {m:"normal", p:45},                                                  // titila
+  {m:"normal", p:70},                                                  // se enreda
+  {m:"normal", p:92},                                                  // muerta
   {m:"normal"},                                                        // sin globo
   {m:"fire",   b:()=>({kind:"alarm",   body:simAlarmBody()})},
   {m:"break",  b:()=>({kind:"break",   body:breakBody(simReset("session",8*60000))})},
@@ -5468,7 +5487,7 @@ function simLabel(){
 }
 function simStop(msg){
   clearTimeout(simTimer); clearInterval(simTick); simTimer=null; simTick=null;
-  simRunning=false; simMascot=null; simB=null; simPush();
+  simRunning=false; simMascot=null; simB=null; simPress=null; simPush();
   invoke?.("set_notif_visible",{visible:false});
   processAcks();          // si había un aviso REAL pendiente, vuelve a salir
   $("simBtn").textContent=simLabel();
@@ -5477,7 +5496,7 @@ function simStop(msg){
 function simStep(i){
   if(i>=simSeq.length){ simStop("listo · de vuelta al estado real"); return; }
   const step=simSeq[i];
-  simMascot=step.m||null; simPush();
+  simMascot=step.m||null; simPress=step.p!=null?step.p:null; simPush();
   // el globo se queda entre pasos y solo cambia de texto (así no parpadea);
   // si al paso no le toca globo, se cierra
   simB = step.b ? step.b() : null;
@@ -5485,7 +5504,8 @@ function simStep(i){
   else invoke?.("set_notif_visible",{visible:false});
   let left=simMs();
   const paint=()=>{ $("simMsg").textContent=
-    `${i+1}/${simSeq.length} · ${simB?(simB.sev||simB.kind):step.m} · ${simLeft(left)}`; };
+    `${i+1}/${simSeq.length} · ${simB?(simB.sev||simB.kind)
+      :(step.p!=null?"bombilla "+step.p+"%":step.m)} · ${simLeft(left)}`; };
   paint();
   clearInterval(simTick);
   simTick=setInterval(()=>{ left-=1000; if(left>0) paint(); },1000);
