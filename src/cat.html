@@ -10,12 +10,12 @@
      Estética cómic a juego con el gato: papel y trazo se invierten con el
      tema (claro = blanco/negro, oscuro = oscuro/claro).
 
-     COLUMNA (de abajo arriba, pedida por Oscar 2026-08-11): gato → globo de
-     pensamiento con la BOMBILLA de presión de contexto → cápsula del % de
-     sesión. Antes la presión era un manómetro de arco de 13 px metido en la
-     cápsula: se veía, pero no se LEÍA de un vistazo. La ventana creció 48 px
-     hacia arriba para que los tres respiren; ese alto vive en CAT_TOP_H
-     (lib.rs), no aquí. */
+     COLUMNA (de abajo arriba, 2026-08-11): gato → BOMBILLA de presión de
+     contexto → cápsula del % de sesión. Antes la presión era un manómetro de
+     arco de 13 px metido en la cápsula: se veía, pero no se LEÍA de un
+     vistazo. La primera versión traía globo de pensamiento y una franja de
+     48 px de ventana extra; se devolvieron el mismo día (bombilla pequeña y
+     suelta): cabía todo, y esa franja transparente se tragaba clics. */
   :root{
     --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
     --mono:"Cascadia Code",ui-monospace,"Consolas",monospace;
@@ -30,10 +30,9 @@
        el ámbar significa ENCENDIDA, no alarma; la alarma la da la forma
        —garabato roto, grieta— y la grieta sí usa --bad. */
     --idea:#e08a3c; --idea-dim:#cf8a3e; --idea-dark:#a98330; --idea-dead:#8a929a;
-    /* el VIDRIO se enfría de cálido a gris. Es lo que más se lee a 26 px —los
-       rayitos y el filamento son detalle; la temperatura del cristal se ve de
-       reojo—, y por eso no puede quedarse en blanco: sobre el papel del globo
-       (casi blanco) la bombilla desaparecía. */
+    /* el VIDRIO se enfría de cálido a gris. A este tamaño es lo que más se
+       lee: los rayitos y el filamento son detalle, la temperatura del cristal
+       se ve de reojo. */
     --glass:#ffeed4; --glass1:#f7ecdd; --glass2:#eeece8; --glass3:#e2e4e8;
     --base:#d8ccae; --base-off:#b3b9bf;
     /* zona de clic sobre la CABEZA del gato (abre el panel). Rectángulo
@@ -42,8 +41,7 @@
        RECALIBRADA 2026-08-04 midiendo los píxeles blancos del gif (la
        original se pasaba 6% por la derecha y por arriba sobre el teclado
        y el vacío, y dejaba fuera cachete izquierdo y barbilla — lo notó
-       Oscar). Cabeza medida: x[50%,86.5%] y[53%,87.5%] — porcentajes del
-       ESCENARIO (`.stage`), que es justo lo que medía la ventana entonces. */
+       Oscar). Cabeza medida: x[50%,86.5%] y[53%,87.5%] del ESCENARIO. */
     --hx:50%; --hy:52%; --hw:37%; --hh:36%;
     /* post-it de hallazgos nuevos pegado en la tapa de la laptop, lado
        izquierdo (iterado con Oscar en capturas, 2026-07-29). Variables
@@ -56,26 +54,25 @@
      app; el coral sube a #d97757 porque el #C15F3C se apaga sobre oscuro. */
   body.dark{--paper:#20242c; --ink:#e9ebef;
     --idea:#f5b942; --idea-dim:#d9a04a; --idea-dark:#a8823a; --idea-dead:#79828c;
-    /* en oscuro el vidrio va CLARO sobre el papel del globo (#20242c), no al
-       revés: si se queda a su altura, la bombilla se traga con el fondo */
+    /* en oscuro el vidrio se oscurece con el tema, pero SIEMPRE separado del
+       trazo: lo que la hace legible sobre cualquier escritorio es la tinta
+       gruesa y la sombra, como en el gato */
     --glass:#4d3f27; --glass1:#443a29; --glass2:#3a4049; --glass3:#30353e;
     --base:#5a6373; --base-off:#434a56}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   body{font-family:var(--font);cursor:grab;user-select:none;-webkit-user-select:none}
   body:active{cursor:grabbing}
-  /* EL ESCENARIO DEL GATO. Mide EXACTAMENTE lo que medía la ventana entera
-     antes de la franja de pensamiento (210x157) y va pegado al fondo. Todo lo
-     que estaba calibrado en porcentajes sobre la ventana —el recorte de los
-     gifs, la zona de la cabeza, los post-its— cuelga de aquí, así que ni un
-     solo número de los de abajo cambia de significado al crecer la ventana.
-     REGLA: si algún día cambia el alto de la franja se toca CAT_TOP_H en
-     lib.rs y este `height` NO. */
+  /* EL ESCENARIO DEL GATO: 210x157 pegado al fondo, o sea la ventana entera
+     hoy. Existe para que el gato quede ANCLADO ABAJO — de él cuelga todo lo
+     calibrado en porcentajes (el recorte de los gifs, la zona de la cabeza,
+     los post-its), así que si la ventana vuelve a crecer por arriba ninguno
+     de esos números cambia de significado. Se ganó el sitio el día que creció
+     y volvió a encoger; sale gratis y ahorra esa recalibración. */
   .stage{position:absolute;left:0;right:0;bottom:0;height:157px}
   /* RECORTE por CSS del margen transparente de los gifs (medido con
      gifbbox: unión visible de los 3 estados = x[19,374] y[0,265] de 400².
-     El ESCENARIO es 210x157 (proporción 710x531; era la ventana entera hasta
-     la franja de pensamiento); el img se escala y desplaza
+     El ESCENARIO es 210x157 (proporción 710x531); el img se escala y desplaza
      para que esa caja llene el escenario — así el globo/chip/logo quedan
      pegados al gato y los 3 gifs no saltan entre sí. NO editar los gifs.
      El recorte va en PORCENTAJES a propósito: por eso sobrevivió intacto
@@ -98,47 +95,48 @@
      panel (sustituye al sticker). Todo lo demás de la ventana arrastra. */
   .head{position:absolute;left:var(--hx);top:var(--hy);width:var(--hw);height:var(--hh);
     border:0;background:transparent;padding:0;cursor:pointer;z-index:3}
-  /* cápsula "Sesión 39%": stadium (radio = altura/2), ahora en lo ALTO de la
-     columna, encima del globo de pensamiento. Antes iba posada sobre la
-     cabeza y ladeada +15.5° para seguir la tapa de la laptop; suelta ahí
-     arriba esa inclinación no tenía a qué agarrarse, así que queda un -4°
-     de dibujo a mano. Se oculta mientras el globo del hover está desplegado.
-     Va centrada en el mismo 64% que la bombilla —el eje de la cabeza del
-     gato— para que las tres piezas se lean como UNA columna. */
-  .plabel{position:absolute;left:64%;top:13px;
-    transform:translate(-50%,-50%) rotate(-4deg);
+  /* cápsula "Sesión 39%": stadium (radio = altura/2) posada sobre la cabeza
+     del gato y ladeada +15.5° para seguir la tapa de la laptop — su sitio de
+     siempre. Con la bombilla en pantalla sube (`body.hasidea`) para hacerle
+     hueco, y vuelve sola cuando no hay sesión que medir: el widget no debe
+     dejar un agujero donde había algo. Se oculta mientras está desplegado el
+     globo del hover o la ficha de contexto. */
+  .plabel{position:absolute;left:72.4%;top:37.9%;
+    transform:translate(-50%,-50%) rotate(15.5deg);
     display:flex;align-items:baseline;gap:4px;white-space:nowrap;
     background:var(--paper);border:1.5px solid var(--ink);border-radius:999px;
-    padding:2px 10px;z-index:3;transition:opacity .15s;
+    padding:2px 10px;z-index:3;transition:opacity .15s,top .18s ease-out;
     box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  body.hasidea .plabel{top:14%}
   .plabel .lab{font-size:10.5px;font-weight:600;color:var(--ink)}
   .plabel b{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--ink)}
   /* BOMBILLA DE PRESIÓN DE CONTEXTO (docs/remediacion.md etapa 1). Sustituye
      al manómetro de arco de 13 px que vivía dentro de la cápsula: la misma
-     cifra, contada como dibujo. El gato "piensa" y su idea se degrada según
-     se llena el contexto — filamento, brillo y vidrio van cayendo hasta el
-     garabato roto. Cuatro niveles por `data-lvl`, con los MISMOS umbrales
-     que tenía el arco (60 ámbar, 85 rojo) más un paso intermedio en 40 para
-     que el cambio se vea ANTES de que importe. Solo aparece con sesión
-     activa (hit `press`): sin ella el gatito queda tan limpio como antes.
-     El número exacto y el proyecto siguen viviendo en el globo del hover.
-     `pointer-events:none` para que la franja no se coma el arrastre. */
-  .idea{position:absolute;left:64%;top:34px;transform:translateX(-50%);
-    width:76px;height:96px;z-index:2;transition:opacity .15s;pointer-events:none}
+     cifra, contada como dibujo que se degrada. Cuatro niveles por `data-lvl`
+     con los MISMOS umbrales que tenía el arco (60 ámbar, 85 rojo) más un paso
+     en 40 para que el cambio se vea ANTES de que importe, y CADA nivel con su
+     propio movimiento: respira, titila, tiembla, se apaga humeando.
+     Va en el eje de la cápsula, entre ella y la cabeza. Solo aparece con
+     sesión activa (hit `press`); sin ella, el gatito queda como siempre.
+     Sin globo de pensamiento y sin fondo: flota sobre el escritorio, así que
+     lo que la hace legible sobre cualquier fondo es lo mismo que al gato —
+     trazo grueso de tinta y sombra propia. */
+  .idea{position:absolute;left:72.4%;top:36px;transform:translateX(-50%);
+    width:34px;height:44px;z-index:3;transition:opacity .15s;cursor:default;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
   .idea svg{display:block;width:100%;height:100%}
-  /* el globo de pensamiento: nube de ocho bollos y dos burbujitas bajando
-     hacia la cabeza. Papel y trazo del tema, como todo el cómic. */
-  .cloud{fill:var(--paper);stroke:var(--ink);stroke-width:2.4;stroke-linejoin:round}
-  .dot{stroke-width:2}
   /* piezas de la bombilla; las que son de un nivel concreto llevan .lv */
   .idea .lv{display:none}
   .idea[data-lvl="0"] .l0,
   .idea[data-lvl="1"] .l1,
   .idea[data-lvl="2"] .l2,
   .idea[data-lvl="3"] .l3{display:block}
-  .glow{fill:var(--idea);opacity:.2}
-  .rays{fill:none;stroke:var(--idea);stroke-width:2;stroke-linecap:round}
-  .rays.dim{stroke:var(--idea-dim);opacity:.75}
+  .glow{fill:var(--idea);opacity:.2;transform-box:fill-box;transform-origin:center;
+    animation:breathe 3.4s ease-in-out infinite}
+  .rays{fill:none;stroke:var(--idea);stroke-width:2;stroke-linecap:round;
+    transform-box:fill-box;transform-origin:center;
+    animation:breathe 3.4s ease-in-out infinite}
+  .rays.dim{stroke:var(--idea-dim);opacity:.75;animation:none}
   .glass{fill:var(--glass);stroke:var(--ink);stroke-width:2.6}
   .base{fill:var(--base);stroke:var(--ink);stroke-width:2.2}
   .baseln{stroke:var(--ink);stroke-width:1.3}
@@ -155,7 +153,8 @@
   .f1{stroke:var(--idea-dim);animation:flick 2.6s infinite}
   .f2{stroke:var(--idea-dark);stroke-width:2.2}
   .f3{stroke:var(--idea-dead);stroke-width:2.2}
-  .crack{fill:none;stroke:var(--bad);stroke-width:1.8;stroke-linecap:round}
+  .crack{fill:none;stroke:var(--bad);stroke-width:1.8;stroke-linecap:round;
+    animation:alarm 1.6s ease-in-out infinite}
   .smoke{fill:none;stroke:var(--idea-dead);stroke-width:2;stroke-linecap:round;
     opacity:.6;transform-box:fill-box;transform-origin:center;
     animation:smoke 2.8s ease-out infinite}
@@ -166,19 +165,46 @@
     50%{transform:translate(-.5px,.5px) rotate(-2deg)}
     75%{transform:translate(.5px,.5px) rotate(1.5deg)}
     100%{transform:translate(0,0)}}
+  @keyframes breathe{0%,100%{opacity:.2;transform:scale(1)}
+    50%{opacity:.34;transform:scale(1.06)}}
   @keyframes flick{0%,42%,52%,78%,88%,100%{opacity:1}46%{opacity:.3}82%{opacity:.45}}
+  @keyframes alarm{0%,100%{opacity:1}55%{opacity:.4}}
   @keyframes smoke{0%{opacity:0;transform:translateY(3px) scale(.9)}
     35%{opacity:.6}100%{opacity:0;transform:translateY(-4px) scale(1.1)}}
+  /* FICHA DE CONTEXTO: al pasar el mouse por la bombilla. Vive aquí y no en el
+     globo del resumen porque son dos cosas distintas —aquello es la CUOTA del
+     plan, esto la sesión que tienes abierta— y mezclarlas obligaba a abrir el
+     resumen entero para mirar un número. Ocupa la banda de la cápsula, que se
+     aparta mientras tanto: en 210 px no caben las dos. */
+  .ptip{display:none;position:absolute;left:50%;top:4px;transform:translateX(-50%);
+    max-width:198px;background:var(--paper);border:1.5px solid var(--ink);
+    border-radius:9px;padding:3px 8px 4px;z-index:5;
+    box-shadow:0 2px 4px rgba(0,0,0,.3)}
+  .ptip .pl{display:flex;align-items:baseline;gap:4px;white-space:nowrap}
+  .ptip b{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--ink)}
+  .ptip .lab{font-size:10px;font-weight:600;color:var(--ink)}
+  .ptip i{display:block;font-style:normal;font-size:9.5px;color:var(--ink);
+    opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* el :not() evita depender del ORDEN de las reglas: con el globo del
+     resumen abierto la ficha no sale aunque el mouse esté sobre la bombilla.
+     Y la clase del BODY se llama distinto que la del elemento a propósito: con
+     las dos como `ptip`, el selector `.ptip{display:none}` casaba también con
+     el <body> y apagaba el widget ENTERO al pasar el mouse. */
+  body.showtip:not(.hovering) .ptip{display:block}
   /* INVARIANTE 10bis, ahora también aquí: cualquier regla con `display`
      anula a [hidden] en silencio. Pasó el 2026-08-08 — la cuenta atrás del
      automático (.m.auto / .pauto) traía display propio, escrito DESPUÉS de
      las reglas por clase de abajo, y se quedaba pegada como un círculo
      ámbar vacío en la cápsula. Con la global no puede repetirse. */
   [hidden]{display:none !important}
-  /* con el globo del hover desplegado se esconden las dos: el globo baja
-     justo encima de la cabeza y taparía la columna a medias, y además ya
-     lleva dentro el % de sesión y la presión con su número */
-  body.hovering .plabel,body.hovering .idea{opacity:0}
+  /* con el globo del resumen desplegado se apartan las dos: baja justo
+     encima de la cabeza y las taparía a medias (y el % de sesión ya va
+     dentro). Con la ficha de contexto abierta se aparta solo la cápsula:
+     comparten banda, y la bombilla es justo lo que estás señalando. */
+  body.hovering .plabel,body.hovering .idea,body.showtip .plabel{opacity:0}
+  /* invisible NO es inerte: sin esto, el hover seguía cazando la bombilla
+     transparente por debajo del globo y abría la ficha detrás de él */
+  body.hovering .idea{pointer-events:none}
   /* Al arrancar (o sin token) todavía no hay % que enseñar. Mejor que el
      gatito salga solo a que enseñe una cápsula vacía, que parece un error. */
   body.nodata .plabel{display:none}
@@ -253,39 +279,32 @@
   <div class="fstack" id="fstack"><i class="fn2"></i><i class="fn1"></i><button class="fbadge" id="fbadge">!</button></div>
   <div class="tstack" id="tstack"><i class="tn2"></i><i class="tn1"></i><button class="tbadge" id="tbadge">!</button></div>
 </div>
-<!-- lo que el gato PIENSA: la bombilla de presión de contexto. Las burbujitas
-     bajan hacia la cabeza; el hueco de la izquierda queda libre para las
-     llamas del estado 'fire' y el de la derecha para las Z del 'zzz'. -->
-<div class="idea" id="idea" data-lvl="0" hidden aria-hidden="true">
-  <svg viewBox="0 0 76 96">
-    <path class="cloud" d="M63,36 A10.5,10.5 0 0 1 55.7,53.7 A10.5,10.5 0 0 1 38,61
-      A10.5,10.5 0 0 1 20.3,53.7 A10.5,10.5 0 0 1 13,36 A10.5,10.5 0 0 1 20.3,18.3
-      A10.5,10.5 0 0 1 38,11 A10.5,10.5 0 0 1 55.7,18.3 A10.5,10.5 0 0 1 63,36 Z"/>
-    <circle class="cloud dot" cx="46" cy="75" r="5.2"/>
-    <circle class="cloud dot" cx="53" cy="88" r="3.4"/>
-    <!-- La bombilla, dibujada en su propio espacio de 40x54 (el vidrio es un
-         círculo r13 centrado en 20,19) y encajada SIN reducir: a escala 0.85
-         el filamento no se distinguía. La traslación deja el vidrio un pelín
-         por encima del centro de la nube, que es donde cae su peso visual con
-         el casquillo colgando. Los rayos son cortos a propósito: los del
-         boceto llegaban a r19 y rozaban el borde de la nube. -->
-    <g transform="translate(18,13.5)">
-      <circle class="lv l0 glow" cx="20" cy="19" r="17"/>
-      <g class="lv l0 rays"><line x1="20" y1="3.5" x2="20" y2="0.5"/><line x1="9" y1="8" x2="6.9" y2="5.9"/><line x1="31" y1="8" x2="33.1" y2="5.9"/><line x1="4.5" y1="19" x2="1.5" y2="19"/><line x1="35.5" y1="19" x2="38.5" y2="19"/></g>
-      <g class="lv l1 rays dim"><line x1="20" y1="3.5" x2="20" y2="1.5"/><line x1="9" y1="8" x2="7.3" y2="6.3"/><line x1="31" y1="8" x2="32.7" y2="6.3"/></g>
-      <circle class="glass" cx="20" cy="19" r="13"/>
-      <rect class="base" x="14" y="30" width="12" height="9" rx="2"/>
-      <line class="baseln" x1="15" y1="33" x2="25" y2="33"/>
-      <circle class="rly" id="ideaRly" cx="20" cy="36.3" r="1.9" hidden/>
-      <!-- el filamento: bucle limpio → onda → maraña → dos trozos sueltos -->
-      <path class="lv l0 fil f0" d="M13,20 C13,11 27,11 27,20 C27,25 20,25 20,20"/>
-      <path class="lv l1 fil f1" d="M13,21 q3,-9 7,-4 q4,5 7,-5"/>
-      <path class="lv l2 fil f2 jit" d="M12,22 q5,-10 9,-3 q-5,3 -1,7 q6,1 3,-6 q-3,-5 -8,1"/>
-      <path class="lv l3 fil f3 jit" d="M13,17 l4,4 l-3,3 l5,3 M22,16 l-2,8"/>
-      <path class="lv l3 crack" d="M20,7 l-3,6 l4,3 l-3,6"/>
-      <path class="lv l3 smoke" d="M28,11 q4,-2 3,-6"/>
-    </g>
+<!-- BOMBILLA: la presión de contexto. Va suelta sobre el escritorio (sin
+     globo de pensamiento), entre la cápsula y la cabeza del gato. El hueco de
+     la izquierda queda libre para las llamas del estado 'fire' y el de la
+     derecha para las Z del 'zzz'. -->
+<div class="idea" id="idea" data-lvl="0" hidden>
+  <svg viewBox="0 0 40 52">
+    <circle class="lv l0 glow" cx="20" cy="19" r="17"/>
+    <g class="lv l0 rays"><line x1="20" y1="3.5" x2="20" y2="0.5"/><line x1="9" y1="8" x2="6.9" y2="5.9"/><line x1="31" y1="8" x2="33.1" y2="5.9"/><line x1="4.5" y1="19" x2="1.5" y2="19"/><line x1="35.5" y1="19" x2="38.5" y2="19"/></g>
+    <g class="lv l1 rays dim"><line x1="20" y1="3.5" x2="20" y2="1.5"/><line x1="9" y1="8" x2="7.3" y2="6.3"/><line x1="31" y1="8" x2="32.7" y2="6.3"/></g>
+    <circle class="glass" cx="20" cy="19" r="13"/>
+    <rect class="base" x="14" y="30" width="12" height="9" rx="2"/>
+    <line class="baseln" x1="15" y1="33" x2="25" y2="33"/>
+    <circle class="rly" id="ideaRly" cx="20" cy="36.3" r="1.9" hidden/>
+    <!-- el filamento: bucle limpio → onda → maraña → dos trozos sueltos -->
+    <path class="lv l0 fil f0" d="M13,20 C13,11 27,11 27,20 C27,25 20,25 20,20"/>
+    <path class="lv l1 fil f1" d="M13,21 q3,-9 7,-4 q4,5 7,-5"/>
+    <path class="lv l2 fil f2 jit" d="M12,22 q5,-10 9,-3 q-5,3 -1,7 q6,1 3,-6 q-3,-5 -8,1"/>
+    <path class="lv l3 fil f3 jit" d="M13,17 l4,4 l-3,3 l5,3 M22,16 l-2,8"/>
+    <path class="lv l3 crack" d="M20,7 l-3,6 l4,3 l-3,6"/>
+    <path class="lv l3 smoke" d="M28,11 q4,-2 3,-6"/>
   </svg>
+</div>
+<!-- ficha de contexto: sale al pasar el mouse por la bombilla -->
+<div class="ptip" id="ptip" aria-hidden="true">
+  <span class="pl"><b id="ptipPct">—</b><span class="lab" id="ptipLab"></span></span>
+  <i id="ptipProj"></i>
 </div>
 <div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b>
   <span class="pauto" id="cAuto" hidden><b id="cNum"></b></span>
@@ -358,9 +377,18 @@ function apply(d){
   // activa que medir y el globo entero desaparece.
   const pr=d.press;
   $("idea").hidden=!pr;
+  // la cápsula baja a su sitio de siempre cuando no hay bombilla que alojar
+  document.body.classList.toggle("hasidea", !!pr);
+  if(!pr) document.body.classList.remove("showtip");
   if(pr){
     const p=Math.round(pr.pct);
     $("idea").dataset.lvl = p>=85?"3":p>=60?"2":p>=40?"1":"0";
+    // ficha del hover: el número y el proyecto que antes iban en el globo del
+    // resumen. Con relevo se DICE (el punto del casquillo solo insinúa).
+    $("ptipPct").textContent=p+"%";
+    if(d.labels&&d.labels.press) $("ptipLab").textContent=d.labels.press;
+    $("ptipProj").textContent=(pr.proj||"")+(pr.relay?" · "+(d.labels?.relay||"relay"):"");
+    $("ptipProj").hidden=!$("ptipProj").textContent;
     // OJO, `toggleAttribute` y no `.hidden`: la propiedad `hidden` vive en
     // HTMLElement y este punto es un <circle> SVG — asignarla ahí crea una
     // propiedad suelta en JS y NO toca el atributo, así que el punto se
@@ -420,7 +448,19 @@ $("head").addEventListener("mouseenter",()=>{
 // tarde: el temporizador se cancela al salir de la cabeza (si el globo ya
 // está abierto, se queda hasta salir de la ventana)
 $("head").addEventListener("mouseleave",()=>clearTimeout(hoverT));
-document.body.addEventListener("mouseleave",foldBubble);
+document.body.addEventListener("mouseleave",()=>{ foldBubble(); hideTip(); });
+
+// hover sobre la BOMBILLA → ficha de contexto (número y proyecto). Es una capa
+// dentro de esta misma ventana, no otra ventana: cada WebView2 cuesta ~57 MB de
+// piso y esto es una etiqueta. Espera menos que el globo del resumen (120 ms):
+// el blanco es pequeño, y si ya apuntaste ahí es que lo estabas buscando.
+let tipT=null;
+function hideTip(){ clearTimeout(tipT); document.body.classList.remove("showtip"); }
+$("idea").addEventListener("mouseenter",()=>{
+  clearTimeout(tipT);
+  tipT=setTimeout(()=>document.body.classList.add("showtip"),120);
+});
+$("idea").addEventListener("mouseleave",hideTip);
 
 // la LAPTOP y los márgenes son asa de arrastre (se puede llevar a cualquier
 // parte); al empezar a arrastrar, el globo se pliega. La cabeza queda fuera:

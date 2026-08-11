@@ -79,14 +79,11 @@
     <div class="track"><i class="fill" id="sFill"></i></div>
     <div class="rst" id="sRst"></div>
   </div>
-  <!-- presión de contexto de la sesión activa (docs/remediacion.md etapa 1):
-       el número del manómetro de la cápsula, con barra y proyecto. Solo
-       aparece con una sesión de Claude Code trabajando. -->
-  <div class="blk" id="pBlk" hidden>
-    <div class="r"><span class="lab" id="pLab">Context pressure</span><b class="pct" id="pPct">—</b></div>
-    <div class="track"><i class="fill" id="pFill"></i></div>
-    <div class="rst" id="pProj"></div>
-  </div>
+  <!-- La presión de contexto YA NO vive aquí (2026-08-11, Oscar): este globo
+       habla de la CUOTA del plan —sesión, semanal, buckets por modelo— y
+       aquella de la sesión que tienes abierta. Mezcladas, había que desplegar
+       el resumen entero para mirar un número. Ahora tiene su propia ficha, al
+       pasar el mouse por la bombilla del gatito (cat.html). -->
   <div class="blk">
     <div class="r"><span class="lab" id="wLab">Weekly</span><b class="pct" id="wPct">—</b></div>
     <div class="track"><i class="fill wk" id="wFill"></i></div>
@@ -143,17 +140,6 @@ function render(d){
   $("wPct").textContent = w ? Math.round(w.pct)+"%" : "—";
   $("wFill").style.width = w ? Math.min(100,Math.round(w.pct))+"%" : "0";
   $("wRst").textContent = d.wkReset||"";
-  // presión de contexto: umbrales propios 60/85 (no son los de ritmo)
-  const pr=d.press;
-  $("pBlk").hidden=!pr;
-  if(pr){
-    if(d.labels&&d.labels.press) $("pLab").textContent=d.labels.press;
-    $("pPct").textContent=pr.pct+"%";
-    $("pFill").style.width=Math.min(100,pr.pct)+"%";
-    $("pFill").style.background=pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--ok)";
-    // con relevo se DICE: el punto de la cápsula solo insinúa
-    $("pProj").textContent=(pr.proj||"")+(pr.relay?" · "+(d.labels?.relay||"relay"):"");
-  }
   $("dot").style.background = s ? col(Math.round(s.pct), s.pace) : "var(--mut)";
   // buckets semanales extra (Fable, futuros…): filas dinámicas con la
   // etiqueta tal cual la reporta el endpoint (textContent = sin HTML)
@@ -182,9 +168,8 @@ if(EVENT){
 }else{
   render({ok:true, session:{pct:51,pace:30}, weekly:{pct:26},
     sesReset:"reset en 19 min", wkReset:"reset en 29 h 49 min",
-    press:{pct:64, proj:"demo", relay:true},
     extras:[{label:"Semanal · Fable", pct:23, resets:"reset en 29 h 49 min"}],
-    labels:{cardSes:"Sesión",cardWeek:"Semanal",press:"Presión de contexto",relay:"relevo"}});  // preview en navegador
+    labels:{cardSes:"Sesión",cardWeek:"Semanal"}});  // preview en navegador
 }
 
 // si el mouse entra al globo y sale, también se pliega

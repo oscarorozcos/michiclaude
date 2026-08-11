@@ -1382,6 +1382,7 @@
       <div class="btnrow" id="devSimRow" hidden style="margin-top:6px">
         <button id="simBtn">🐱 Simular estados</button>
         <button id="sfBtn">🧪 Simular hallazgos</button>
+        <button id="ctxBtn">💡 Simular contexto</button>
         <button id="flowBtn" title="Copiar la bitácora del flujo (Mayús+clic la vacía)">📜</button>
         <input id="simMin" type="number" min="0.1" max="60" step="0.5" style="max-width:62px">
         <span style="font-size:10.5px;color:var(--txt-dim)">min c/u</span>
@@ -5437,12 +5438,6 @@ function simAlarmBody(){
   return thr>=95 ? t("notif_hi",thr) : t("notif_lo",thr);
 }
 const SIM_CAT=[
-  // la bombilla de presión de contexto, sus cuatro estados seguidos: es la
-  // única forma de comparar el dibujo de uno con el del siguiente
-  {m:"normal", p:15},                                                  // idea clara
-  {m:"normal", p:45},                                                  // titila
-  {m:"normal", p:70},                                                  // se enreda
-  {m:"normal", p:92},                                                  // muerta
   {m:"normal"},                                                        // sin globo
   {m:"fire",   b:()=>({kind:"alarm",   body:simAlarmBody()})},
   {m:"break",  b:()=>({kind:"break",   body:breakBody(simReset("session",8*60000))})},
@@ -5496,7 +5491,7 @@ function simStop(msg){
 function simStep(i){
   if(i>=simSeq.length){ simStop("listo · de vuelta al estado real"); return; }
   const step=simSeq[i];
-  simMascot=step.m||null; simPress=step.p!=null?step.p:null; simPush();
+  simMascot=step.m||null; simPush();
   // el globo se queda entre pasos y solo cambia de texto (así no parpadea);
   // si al paso no le toca globo, se cierra
   simB = step.b ? step.b() : null;
@@ -5504,8 +5499,7 @@ function simStep(i){
   else invoke?.("set_notif_visible",{visible:false});
   let left=simMs();
   const paint=()=>{ $("simMsg").textContent=
-    `${i+1}/${simSeq.length} · ${simB?(simB.sev||simB.kind)
-      :(step.p!=null?"bombilla "+step.p+"%":step.m)} · ${simLeft(left)}`; };
+    `${i+1}/${simSeq.length} · ${simB?(simB.sev||simB.kind):step.m} · ${simLeft(left)}`; };
   paint();
   clearInterval(simTick);
   simTick=setInterval(()=>{ left-=1000; if(left>0) paint(); },1000);
@@ -5679,7 +5673,48 @@ aboutInit();
 if(invoke) invoke("is_dev").then(d=>{ if(d) $("devSimRow").hidden=false; }).catch(()=>{});
 $("simMin").value=localStorage.getItem("simMin")||"1";
 $("simMin").addEventListener("change",()=>localStorage.setItem("simMin",$("simMin").value));
+// ---------- simulador de la BOMBILLA de contexto (solo dev) ----------
+// Guion aparte del gatito porque prueba otra cosa: aquel recorre estados de
+// ánimo y avisos, este los cuatro dibujos de la bombilla y el salto de la
+// cápsula. Sin él, ver el último nivel costaba llenar un contexto de verdad
+// hasta el 85%. Empuja con emitPill —no parcheando `lastPill`— así que
+// cualquier refresco durante la simulación sigue enseñando el nivel simulado.
+const SIM_CTX=[8,45,70,92,100];
+let ctxTimer=null;
+function ctxPush(){
+  if(lastPillArgs){ emitPill(...lastPillArgs); return; }
+  EVENT?.emit("quota:update",{ok:false, mascot:simMascot||"normal",
+    press: simPress==null?null:{pct:simPress, proj:"", relay:false},
+    theme:document.body.classList.contains("light")?"light":"dark"});
+}
+function ctxStop(msg){
+  clearTimeout(ctxTimer); clearInterval(simTick); ctxTimer=null; simTick=null;
+  simRunning=false; simPress=null; ctxPush();
+  $("ctxBtn").textContent="💡 Simular contexto";
+  $("simMsg").textContent=msg||"";
+}
+function ctxStep(i){
+  if(i>=SIM_CTX.length){ ctxStop("listo · de vuelta al dato real"); return; }
+  simPress=SIM_CTX[i]; ctxPush();
+  let left=simMs();
+  const paint=()=>{ $("simMsg").textContent=
+    `${i+1}/${SIM_CTX.length} · bombilla ${SIM_CTX[i]}% · ${simLeft(left)}`; };
+  paint();
+  clearInterval(simTick);
+  simTick=setInterval(()=>{ left-=1000; if(left>0) paint(); },1000);
+  ctxTimer=setTimeout(()=>{ clearInterval(simTick); ctxStep(i+1); }, simMs());
+}
+$("ctxBtn").addEventListener("click",()=>{
+  if(ctxTimer){ ctxStop("detenido"); return; }
+  if(simFnd){ sfStop("detenido"); return; }
+  if(simRunning){ simStop("detenido"); return; }
+  if(!pillOn){ $("simMsg").textContent="activa el widget primero"; return; }
+  simRunning=true;                       // ni pushes ni acks durante la prueba
+  $("ctxBtn").textContent="■ Detener"; ctxStep(0);
+});
+
 $("simBtn").addEventListener("click",()=>{
+  if(ctxTimer){ ctxStop("detenido"); return; }   // corría el de contexto
   if(simFnd){ sfStop("detenido"); return; }  // corría el de hallazgos: pararlo
   if(simRunning){ simStop("detenido"); return; }
   // sin widget en pantalla no hay dónde pintar nada de esto

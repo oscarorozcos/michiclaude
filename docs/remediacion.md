@@ -625,8 +625,8 @@ lo había, que es el peor final posible.
   y no al lado porque ahí no hay un píxel libre, y relleno para que se lea a
   24 px—. En el GATITO, desde que la presión es una bombilla (2026-08-11), el
   mismo punto va en el casquillo: el sitio equivalente, el único hueco propio
-  del dibujo. En el detalle y en el globo del gatito, donde SÍ hay
-  sitio, se dice con palabras («proyecto · relevo»): un punto solo puede
+  del dibujo. En el detalle de la pastilla y en la ficha de la
+  bombilla, donde SÍ hay sitio, se dice con palabras («proyecto · relevo»): un punto solo puede
   insinuar, y una insinuación que no se entiende no sirve de nada.
 
 ## El atajo del PATH (2026-08-08): que `claude` pase por el relevo

@@ -95,22 +95,21 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 
 - **Panel** (`main`, 446x660): flyout sin decoraciones, transparente,
   alwaysOnTop, skipTaskbar. Clic en tray abre; se oculta al perder foco
-  (salvo drag); ✕ oculta a bandeja; arrastrable del encabezado. Pestañas
+  (salvo drag); ✕ oculta a bandeja; se arrastra del encabezado. Pestañas
   (Principal · Fuentes de datos · Hallazgos · Consejos · Reporte ·
   Ajustes), con encabezado sticky en `.p-top` (el padding superior vive
   AHÍ, no en `.panel`: si no, rendija al scroll).
   Pie Hoy/Semana solo en Principal. El panel es el ÚNICO que llama al endpoint;
   el tray se actualiza desde su ciclo (`updateTray`).
 - **Pastilla** (`pill`, 280x54) + **detalle** (`pcard`, 280x300): cápsula
-  de cristal con asa ⠿, gatito como MARCA, "Sesión X%", hueco semanal y
-  hueco semanal POR MODELO (si el endpoint no lo reporta, no se pinta).
+  de cristal con asa ⠿, gatito como MARCA, "Sesión X%" y huecos semanales,
+  global y POR MODELO (si el endpoint no los reporta, no se pintan).
   Clic en cápsula = desplegar detalle; clic en la MARCA = abrir panel; ⠿
   arrastra (pliega antes); clic derecho oculta. NO roba foco
   (WS_EX_NOACTIVATE). NUNCA llama al endpoint: el panel emite
   `quota:update` y cada ventana pide el último dato con `pill:ready` al
-  cargar (toda ventana nueva DEBE emitirlo). El detalle son DOS ventanas;
-  `toggle_pill_card()` elige pose (abajo si cabe; si no `body.up`
-  invierte). Cabecera del detalle = geometría IDÉNTICA a la cápsula (el margen de 6 px
+  cargar (toda ventana nueva DEBE emitirlo). El detalle son DOS ventanas y
+  `toggle_pill_card()` elige pose (abajo si cabe; si no, `body.up` invierte). Cabecera del detalle = geometría IDÉNTICA a la cápsula (el margen de 6 px
   las alinea; sin él el halo del box-shadow se corta en recto); con el
   detalle abierto esconde números. Es funcional: el gatito abre
   panel y el asa arrastra vía `drag_pill_from_card`. SIN tooltips. El hover
@@ -118,20 +117,19 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   conservan. Los tamaños se definen en `ensure_widget_windows`, NO en el
   json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos), SVG inline
   (la CSP no permite fuentes externas).
-- **Gatito** (estilo `cat`, 210x205): 4 ventanas — `cat` (gif + BOMBILLA +
+- **Gatito** (estilo `cat`, 210x157): 4 ventanas — `cat` (gif + BOMBILLA +
   cápsula "Sesión X%" + zona `.head`), `card` (globo resumen al hover),
-  `notif` (globo de alarma), pastilla oculta. COLUMNA de abajo arriba: gato →
-  globo con la BOMBILLA de presión (sustituye al arco; sin hit `press` no se
-  pinta) → cápsula. El gato y lo calibrado sobre él viven en `.stage`
-  (210x157 al fondo = la ventana de antes); encima va `CAT_TOP_H` (48,
-  lib.rs), que los DOS globos SUMAN a su solape. Bitácora 2026-08-11.
+  `notif` (globo de alarma), pastilla oculta. COLUMNA: gato → BOMBILLA
+  (4 niveles animados; sin hit `press` no se pinta) → cápsula, que sube con
+  `body.hasidea` y vuelve a su sitio sin ella. Hover en la bombilla = ficha de
+  contexto en la MISMA ventana (`body.showtip`); el globo del resumen ya no la
+  lleva. El gato cuelga de `.stage`, anclado abajo (bitácora 2026-08-11).
   Estados por gravedad (`mascotState()`):
   cat-zzz (`hit:week`) / cat-break (`hit:session`) / cat-fire
   (`ackPending:alarm`) / normal; los banderines `hit:*` los limpia
   `trackResets()` con ventana nueva. Cápsula nace OCULTA (`body.nodata`)
   hasta tener lectura real; sin arte, cae al gif normal.
-  Zona `.head` en vars CSS `--hx:50% --hy:52% --hw:37% --hh:36%` (para
-  recalibrar, pintar .head de rojo). El HOVER del globo resumen vive SOLO
+  Zona `.head` en vars CSS (para recalibrar, pintarla de rojo). El HOVER del globo resumen vive SOLO
   en `.head` (salir de la ventana pliega; rozar <300ms lo cancela).
   Laptop y márgenes arrastran. Post-its en la tapa:
   pilita ROJA de hallazgos (`.fstack`, vars `--bx/--by/--bs`, rojo FIJO)
@@ -335,7 +333,7 @@ price_key, que lo recorta; en la duda 200k). Y
 si lo MEDIDO supera a la tabla, manda lo medido: `ctx_full` sube al
 siguiente escalón de `CTX_LADDER` (devolver lo visto a secas dejaría el
 manómetro clavado en 100%). Autopsia en la bitácora. Arco en la pastilla y BOMBILLA en el gatito;
-número+proyecto en pcard y en el globo del hover. Nunca viaja a ntfy ni al hub. El motor manda
+número+proyecto en pcard y en la ficha de la bombilla. Nunca viaja a ntfy ni al hub. El motor manda
 HECHOS crudos: el veredicto Alive/Boundary/Uncertain vive UNA sola vez
 en JS (`intentVerdict`, reina = topen>0). Con presión ≥80
 (`INTENT_PCT`) coachPoll sintetiza el hit LOCAL `intent` → tarjeta de

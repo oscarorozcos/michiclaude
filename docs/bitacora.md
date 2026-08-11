@@ -3382,3 +3382,59 @@ comprobar que el patrón siga siendo válido ahí.
 48 px son transparentes pero SÍ atrapan el clic (una ventana es un rectángulo;
 no hay hit-testing por píxel). Sobre el escritorio no molesta; encima de otra
 ventana, es un poco más de superficie muerta.
+
+## 2026-08-11 (segunda) — la bombilla, en su sitio: pequeña, suelta y con su propia ficha
+
+Oscar probó la primera versión y volvió con capturas y ajustes. Todos apuntaban
+al mismo sitio: la bombilla se había comido el widget en vez de sumarse a él.
+
+Lo que pidió y quedó: bombilla PEQUEÑA (34x44 en vez de 76x96), SIN globo de
+pensamiento, animada en cada estado, en el eje de la cápsula y con poco aire
+entre las tres piezas; la cápsula vuelve a su alineación de siempre —posada
+sobre la cabeza y ladeada 15.5°— y solo SUBE cuando hay bombilla que alojar
+(`body.hasidea`), bajando sola cuando no hay sesión; la información de contexto
+sale del globo de resumen y pasa a una ficha propia al pasar el mouse por la
+bombilla.
+
+**Al quitar el globo, la ventana volvió a caber en sí misma.** Los 48 px de
+franja que había ganado esta mañana se devolvieron: `CAT_TOP_H` desaparece, los
+dos globos recuperan sus solapes de siempre y se acaba la zona muerta
+transparente que se tragaba clics. Queda `CAT_GEOM_V1_TOP` con un único
+cometido: DESHACER el desplazamiento en las configuraciones que alcanzaron a
+guardar la versión 1 (migración `geom` 1 → 2). Una corrección de posición no se
+puede "revertir con el código": el archivo del usuario ya cambió.
+
+`.stage` se queda aunque hoy mida lo mismo que la ventana. Sale gratis, ancla al
+gato abajo y, si algún día vuelve a crecer por arriba, ninguna de las
+calibraciones en porcentajes cambia de significado. Ese fue el trabajo de la
+mañana; conservarlo cuesta una línea.
+
+**Separar cuota de contexto era lo correcto y no solo una preferencia.** El
+globo del resumen habla del PLAN (sesión, semanal, buckets por modelo) y la
+presión de la SESIÓN que tienes abierta; mezcladas, había que desplegar el
+resumen entero para mirar un número. La ficha nueva vive DENTRO de la ventana
+del gatito, no en una ventana Tauri: cada WebView2 arranca en ~57 MB y esto es
+una etiqueta de dos renglones.
+
+**El bug que solo se ve renderizando.** La clase de estado del `<body>` se
+llamaba igual que la clase del elemento: `ptip`. Como la regla del elemento es
+`.ptip{display:none}`, el selector casaba TAMBIÉN con el `<body>` — y al pasar
+el mouse por la bombilla el widget ENTERO desaparecía. No hay error en consola,
+no hay nada raro en el diff: solo una ventana que se apaga. Salió a la primera
+captura del estado de hover, y de ahí la regla: **el nombre de una clase de
+ESTADO en el body nunca puede coincidir con el de una clase de ELEMENTO**
+(ahora `body.showtip` frente a `.ptip`).
+
+De paso, dos trampas del banco de pruebas que conviene no repetir: en
+`chromium --headless`, `--window-size` va en píxeles de DISPOSITIVO (con
+`--force-device-scale-factor=2` el viewport CSS es la mitad, y las columnas de
+más se quedan fuera del recorte pareciendo vacías), y con factores altos este
+chromium de snap devuelve la captura en blanco — se amplía con `zoom` en CSS.
+Y el banco necesita un ancestro `position:relative`: en vivo ese papel lo hace
+la ventana, y sin él todo lo absoluto se va al fondo del viewport.
+
+El simulador de la bombilla ya no viaja dentro del guion del gatito: tiene botón
+propio (💡 Simular contexto, solo dev) porque prueban cosas distintas —aquel
+recorre estados de ánimo y avisos, este los cuatro dibujos y el salto de la
+cápsula—, y empuja con `emitPill`, así que cualquier refresco durante la prueba
+sigue enseñando el nivel simulado.
