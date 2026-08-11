@@ -3524,3 +3524,44 @@ esperado es `clear · tema nuevo` en segundos (arranque frío ~10-20 s).
 Pendiente de `cargo check` en el Windows de Oscar (aquí no hay toolchain);
 el JS y el Python pasaron sus verificadores. 18 claves i18n nuevas ×8
 idiomas.
+
+## 2026-08-11 (cierre) — descarga guiada: el análisis local sin escribir rutas
+
+Oscar probó la pantalla nueva y vio lo que vería un usuario nuevo: dos cajas
+de ruta vacías y un error. Pregunta suya: "¿hay manera de que lo haga en
+automático cuando active?". La hay, y era la mitad de la etapa 2 que valía la
+pena adelantar (la otra mitad, los embeddings, siguen esperando su turno).
+
+Al encender el interruptor, si falta algo aparece **Descargar todo
+(~1.4 GB)** — o "(~17 MB)" si solo falta llama.cpp — con progreso en vivo y
+una nota que dice de dónde viene cada cosa. `ai_setup` baja el zip del
+release de GitHub y el GGUF de Hugging Face, verifica las huellas SHA-256,
+descomprime, rellena la config y enciende. Las cajas de ruta quedan como
+ajuste avanzado: quien ya tiene los archivos (Oscar) no ve el botón.
+
+Decisiones y por qué:
+
+- **URLs y huellas en CUATRO CONSTANTES del binario** (b10362 de llama.cpp y
+  el GGUF exacto de la investigación, con sus SHA-256 consultadas de las
+  fuentes al implementar). Es la regla del updater: nada de esto puede salir
+  jamás de un archivo descargado. Al actualizar el pin, las cuatro juntas.
+- **Verificación con `Get-FileHash` y descompresión con `Expand-Archive`**:
+  PowerShell del sistema antes que un crate de sha256 o de zip (invariante
+  #4, la misma decisión que la etapa 2 de remediación). Si la huella no
+  casa, el archivo SE BORRA — medio archivo corrupto no puede quedarse
+  esperando a que alguien confíe en él.
+- **`llama-server.exe` se BUSCA dentro de lo descomprimido** (`find_ls`): el
+  zip de llama.cpp ha cambiado de forma entre builds y suponer la ruta es
+  apostar a que no vuelva a cambiar.
+- **Sin resume**: media descarga se rehace entera. La verificación es por
+  huella del archivo completo; reanudar añadiría estados a medias por
+  ahorrar minutos de una operación que se hace UNA vez.
+- **Idempotente**: el botón baja solo lo que falte, así que "reintentar"
+  tras un fallo es el mismo clic.
+- **Es la única conexión de la app que no va a api.anthropic.com** — GitHub
+  y Hugging Face, una vez, opt-in y anunciada en la propia interfaz. Quedó
+  escrito en CLAUDE.md porque toca el matiz del invariante #3.
+
+Pendiente igual que la v1: `cargo check` y la prueba en vivo en el Windows
+de Oscar (aquí ni toolchain ni Windows). El camino feliz del usuario nuevo
+quedó en: encender → Descargar → esperar la barra → Probar.

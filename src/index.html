@@ -1405,6 +1405,13 @@
         <span data-i18n="ai_on"></span><input type="checkbox" id="aiChk">
       </label>
       <p class="fnd-note" style="margin:4px 4px 8px" data-i18n="ai_hint"></p>
+      <div id="aiDlRow" hidden>
+        <div class="btnrow" style="margin:2px 0 4px">
+          <button id="aiDlBtn"></button>
+          <span id="aiDlMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+        </div>
+        <p class="fnd-note" style="margin:0 4px 8px" data-i18n="ai_dl_note"></p>
+      </div>
       <div id="aiCfgRows" hidden>
         <div class="cfg-row"><span data-i18n="ai_srv"></span>
           <input type="text" id="aiSrv" style="max-width:190px" spellcheck="false"></div>
@@ -2008,6 +2015,15 @@ en:{
   ai_test:"Test",
   ai_testing:"Analyzing… (a cold start takes ~20 s)",
   ai_badge:"Local analysis",
+  ai_dl:"Download everything (~1.4 GB)",
+  ai_dl_only_srv:"Download llama.cpp (~17 MB)",
+  ai_dl_note:"One-time download: llama.cpp from GitHub and the model from Hugging Face, with verified checksums. After that everything runs offline.",
+  ai_dl_start:"connecting…",
+  ai_dl_srv:n=>`downloading llama.cpp… ${n}%`,
+  ai_dl_mdl:n=>`downloading the model… ${n}%`,
+  ai_dl_done:"ready — local analysis is on",
+  err_ai_dl:"the download failed — check your connection and retry",
+  err_ai_sha:"the download arrived corrupted — retry",
   ai_r_tema_nuevo:"new topic",
   ai_r_tema_cruzado:"builds on this session",
   ai_r_tarea_viva:"a task looks unfinished",
@@ -2463,6 +2479,15 @@ es:{
   ai_test:"Probar",
   ai_testing:"Analizando… (el arranque frío tarda ~20 s)",
   ai_badge:"Análisis local",
+  ai_dl:"Descargar todo (~1.4 GB)",
+  ai_dl_only_srv:"Descargar llama.cpp (~17 MB)",
+  ai_dl_note:"Descarga única: llama.cpp desde GitHub y el modelo desde Hugging Face, con huellas verificadas. Después todo corre sin internet.",
+  ai_dl_start:"conectando…",
+  ai_dl_srv:n=>`descargando llama.cpp… ${n}%`,
+  ai_dl_mdl:n=>`descargando el modelo… ${n}%`,
+  ai_dl_done:"listo — el análisis local quedó encendido",
+  err_ai_dl:"falló la descarga — revisa tu conexión y reintenta",
+  err_ai_sha:"la descarga llegó corrupta — reintenta",
   ai_r_tema_nuevo:"tema nuevo",
   ai_r_tema_cruzado:"se cruza con la sesión",
   ai_r_tarea_viva:"hay una tarea a medias",
@@ -2918,6 +2943,15 @@ pt:{
   ai_test:"Testar",
   ai_testing:"Analisando… (a partida fria leva ~20 s)",
   ai_badge:"Análise local",
+  ai_dl:"Baixar tudo (~1,4 GB)",
+  ai_dl_only_srv:"Baixar llama.cpp (~17 MB)",
+  ai_dl_note:"Download único: llama.cpp do GitHub e o modelo do Hugging Face, com somas verificadas. Depois tudo roda sem internet.",
+  ai_dl_start:"conectando…",
+  ai_dl_srv:n=>`baixando llama.cpp… ${n}%`,
+  ai_dl_mdl:n=>`baixando o modelo… ${n}%`,
+  ai_dl_done:"pronto — a análise local ficou ligada",
+  err_ai_dl:"o download falhou — verifique sua conexão e tente de novo",
+  err_ai_sha:"o download chegou corrompido — tente de novo",
   ai_r_tema_nuevo:"tema novo",
   ai_r_tema_cruzado:"cruza com a sessão",
   ai_r_tarea_viva:"há uma tarefa pela metade",
@@ -3373,6 +3407,15 @@ fr:{
   ai_test:"Tester",
   ai_testing:"Analyse… (le démarrage à froid prend ~20 s)",
   ai_badge:"Analyse locale",
+  ai_dl:"Tout télécharger (~1,4 Go)",
+  ai_dl_only_srv:"Télécharger llama.cpp (~17 Mo)",
+  ai_dl_note:"Téléchargement unique : llama.cpp depuis GitHub et le modèle depuis Hugging Face, sommes vérifiées. Ensuite tout fonctionne hors ligne.",
+  ai_dl_start:"connexion…",
+  ai_dl_srv:n=>`téléchargement de llama.cpp… ${n}%`,
+  ai_dl_mdl:n=>`téléchargement du modèle… ${n}%`,
+  ai_dl_done:"prêt — l'analyse locale est activée",
+  err_ai_dl:"le téléchargement a échoué — vérifiez votre connexion et réessayez",
+  err_ai_sha:"le téléchargement est arrivé corrompu — réessayez",
   ai_r_tema_nuevo:"nouveau sujet",
   ai_r_tema_cruzado:"recoupe la session",
   ai_r_tarea_viva:"une tâche semble inachevée",
@@ -3828,6 +3871,15 @@ de:{
   ai_test:"Testen",
   ai_testing:"Analysiere… (Kaltstart dauert ~20 s)",
   ai_badge:"Lokale Analyse",
+  ai_dl:"Alles herunterladen (~1,4 GB)",
+  ai_dl_only_srv:"llama.cpp herunterladen (~17 MB)",
+  ai_dl_note:"Einmaliger Download: llama.cpp von GitHub und das Modell von Hugging Face, mit geprüften Prüfsummen. Danach läuft alles offline.",
+  ai_dl_start:"verbinde…",
+  ai_dl_srv:n=>`lade llama.cpp… ${n}%`,
+  ai_dl_mdl:n=>`lade das Modell… ${n}%`,
+  ai_dl_done:"fertig — lokale Analyse ist an",
+  err_ai_dl:"der Download schlug fehl — Verbindung prüfen und erneut versuchen",
+  err_ai_sha:"der Download kam beschädigt an — erneut versuchen",
   ai_r_tema_nuevo:"neues Thema",
   ai_r_tema_cruzado:"knüpft an die Sitzung an",
   ai_r_tarea_viva:"eine Aufgabe scheint offen",
@@ -4283,6 +4335,15 @@ ja:{
   ai_test:"テスト",
   ai_testing:"分析中…（コールドスタートは約20秒）",
   ai_badge:"ローカル分析",
+  ai_dl:"すべてダウンロード（約1.4 GB）",
+  ai_dl_only_srv:"llama.cpp をダウンロード（約17 MB）",
+  ai_dl_note:"ダウンロードは一度だけ：GitHub から llama.cpp、Hugging Face からモデルを取得し、チェックサムを検証します。以後はすべてオフラインで動作します。",
+  ai_dl_start:"接続中…",
+  ai_dl_srv:n=>`llama.cpp をダウンロード中… ${n}%`,
+  ai_dl_mdl:n=>`モデルをダウンロード中… ${n}%`,
+  ai_dl_done:"完了 — ローカル分析が有効になりました",
+  err_ai_dl:"ダウンロードに失敗しました — 接続を確認して再試行してください",
+  err_ai_sha:"ダウンロードが破損していました — 再試行してください",
   ai_r_tema_nuevo:"新しい話題",
   ai_r_tema_cruzado:"セッションの続きの話題",
   ai_r_tarea_viva:"未完了のタスクがあるようです",
@@ -4738,6 +4799,15 @@ ko:{
   ai_test:"테스트",
   ai_testing:"분석 중… (콜드 스타트는 약 20초)",
   ai_badge:"로컬 분석",
+  ai_dl:"전체 다운로드(약 1.4 GB)",
+  ai_dl_only_srv:"llama.cpp 다운로드(약 17 MB)",
+  ai_dl_note:"한 번만 다운로드해요: GitHub에서 llama.cpp, Hugging Face에서 모델을 받아 체크섬을 검증해요. 이후에는 모두 오프라인으로 동작해요.",
+  ai_dl_start:"연결 중…",
+  ai_dl_srv:n=>`llama.cpp 다운로드 중… ${n}%`,
+  ai_dl_mdl:n=>`모델 다운로드 중… ${n}%`,
+  ai_dl_done:"완료 — 로컬 분석이 켜졌어요",
+  err_ai_dl:"다운로드에 실패했어요 — 연결을 확인하고 다시 시도하세요",
+  err_ai_sha:"다운로드가 손상되었어요 — 다시 시도하세요",
   ai_r_tema_nuevo:"새로운 주제",
   ai_r_tema_cruzado:"세션과 이어지는 주제",
   ai_r_tarea_viva:"끝나지 않은 작업이 있는 것 같아요",
@@ -5193,6 +5263,15 @@ zh:{
   ai_test:"测试",
   ai_testing:"分析中…（冷启动约需 20 秒）",
   ai_badge:"本地分析",
+  ai_dl:"全部下载（约 1.4 GB）",
+  ai_dl_only_srv:"下载 llama.cpp（约 17 MB）",
+  ai_dl_note:"仅需下载一次：从 GitHub 获取 llama.cpp，从 Hugging Face 获取模型，并校验哈希。之后一切均离线运行。",
+  ai_dl_start:"连接中…",
+  ai_dl_srv:n=>`正在下载 llama.cpp… ${n}%`,
+  ai_dl_mdl:n=>`正在下载模型… ${n}%`,
+  ai_dl_done:"完成 — 本地分析已开启",
+  err_ai_dl:"下载失败 — 请检查网络后重试",
+  err_ai_sha:"下载文件已损坏 — 请重试",
   ai_r_tema_nuevo:"新话题",
   ai_r_tema_cruzado:"与本会话相关",
   ai_r_tarea_viva:"似乎有未完成的任务",
@@ -8288,6 +8367,7 @@ async function aiInit(){
   $("aiSrv").value=aiCfg.server||"";
   $("aiMdl").value=aiCfg.model||"";
   aiRowsSync();
+  aiDlSync();
 }
 function aiSave(){
   if(!invoke) return;
@@ -8297,13 +8377,46 @@ function aiSave(){
   aiCfg.model=$("aiMdl").value.trim();
   aiRowsSync();
   invoke("ai_set_config",{cfg:aiCfg}).catch(()=>{});
+  aiDlSync();
 }
 function aiErr(code){
   const map={ERR_AI_OFF:"err_ai_off",ERR_AI_MODEL:"err_ai_model",
     ERR_AI_START:"err_ai_start",ERR_AI_TIMEOUT:"err_ai_timeout",
-    ERR_AI_BADOUT:"err_ai_badout"};
+    ERR_AI_BADOUT:"err_ai_badout",ERR_AI_DL:"err_ai_dl",
+    ERR_AI_SHA:"err_ai_sha"};
   const c=String(code); return map[c]?t(map[c]):c;
 }
+// Descarga guiada: el botón solo existe si FALTA algo (quien puso rutas a
+// mano no lo ve). Trae llama.cpp (GitHub, ~17 MB) y el modelo (Hugging
+// Face, ~1.3 GB) con huellas verificadas, y rellena la config él solo.
+async function aiDlSync(){
+  if(!invoke||!aiCfg||!aiCfg.enabled){ $("aiDlRow").hidden=true; return; }
+  try{
+    const st=await invoke("ai_setup_status");
+    const need=!st.server||!st.model;
+    $("aiDlRow").hidden=!need;
+    if(need) $("aiDlBtn").textContent=t(st.model?"ai_dl_only_srv":"ai_dl");
+  }catch(_){ $("aiDlRow").hidden=true; }
+}
+$("aiDlBtn").addEventListener("click",async()=>{
+  if(!invoke) return;
+  $("aiDlBtn").disabled=true;
+  $("aiDlMsg").textContent=t("ai_dl_start");
+  try{
+    aiCfg=await invoke("ai_setup");
+    $("aiChk").checked=true;
+    $("aiSrv").value=aiCfg.server||"";
+    $("aiMdl").value=aiCfg.model||"";
+    aiRowsSync();
+    $("aiDlMsg").textContent="✓ "+t("ai_dl_done");
+  }catch(e){ $("aiDlMsg").textContent="✕ "+aiErr(e); }
+  $("aiDlBtn").disabled=false;
+  aiDlSync();
+});
+EVENT?.listen("ai:dl",e=>{
+  const d=e.payload||{};
+  $("aiDlMsg").textContent=t(d.phase==="model"?"ai_dl_mdl":"ai_dl_srv", d.pct||0);
+});
 $("aiChk").addEventListener("change",aiSave);
 $("aiSrv").addEventListener("change",aiSave);
 $("aiMdl").addEventListener("change",aiSave);

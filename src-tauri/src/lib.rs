@@ -4057,6 +4057,223 @@ async fn ai_intent(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerd
         .map_err(|e| e.to_string())?
 }
 
+// --- descarga guiada (un clic, sin rutas) --------------------------------
+// URLs y huellas SHA-256 FIJAS en el binario — la regla del updater: jamás
+// salen de algo descargado. Pineadas a un build concreto de llama.cpp y al
+// GGUF exacto de la investigación (docs/modelos-locales-cpu.md); actualizar
+// las cuatro constantes JUNTAS. Es la ÚNICA conexión de la app que no va a
+// api.anthropic.com: GitHub y Hugging Face, una vez, opt-in y anunciada en
+// la propia interfaz (ai_dl_note).
+const AI_LS_URL: &str = "https://github.com/ggml-org/llama.cpp/releases/download/b10362/llama-b10362-bin-win-cpu-x64.zip";
+const AI_LS_SHA: &str = "a9d95d26cf00664f2902f73cb0fd9b167a3a1f252294bb2f8b236305f57d6363";
+const AI_MODEL_URL: &str =
+    "https://huggingface.co/unsloth/Qwen3.5-2B-MTP-GGUF/resolve/main/Qwen3.5-2B-UD-Q4_K_XL.gguf";
+const AI_MODEL_SHA: &str = "9f7b15d04cf2d5878c8122a7c181dbc09f050cd66080ce3374576e734ccb0910";
+
+fn ai_dir() -> PathBuf {
+    app_data_dir().join("ai")
+}
+fn ai_model_file() -> PathBuf {
+    ai_dir().join("Qwen3.5-2B-UD-Q4_K_XL.gguf")
+}
+
+/// Busca llama-server dentro de lo descomprimido: el zip de llama.cpp ha
+/// cambiado de forma entre builds (a veces raíz, a veces subcarpeta), así
+/// que se busca el exe donde haya caído en vez de suponer la ruta.
+fn find_ls(dir: &std::path::Path) -> Option<PathBuf> {
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(d) = stack.pop() {
+        if let Ok(rd) = fs::read_dir(&d) {
+            for e in rd.flatten() {
+                let p = e.path();
+                if p.is_dir() {
+                    stack.push(p);
+                } else if p
+                    .file_name()
+                    .map_or(false, |n| n == "llama-server.exe" || n == "llama-server")
+                {
+                    return Some(p);
+                }
+            }
+        }
+    }
+    None
+}
+
+#[derive(Serialize, Clone, Default)]
+struct AiSetupStatus {
+    server: bool,
+    model: bool,
+}
+
+/// ¿Qué falta por descargar? Cuenta tanto lo configurado a mano (rutas del
+/// usuario) como lo nuestro: el botón solo aparece si de verdad falta algo.
+#[tauri::command]
+fn ai_setup_status() -> AiSetupStatus {
+    let cfg = load_ai_config();
+    let server = (!cfg.server.trim().is_empty()
+        && std::path::Path::new(cfg.server.trim()).is_file())
+        || find_ls(&ai_dir().join("bin")).is_some();
+    let model = (!cfg.model.trim().is_empty()
+        && std::path::Path::new(cfg.model.trim()).is_file())
+        || ai_model_file().is_file();
+    AiSetupStatus { server, model }
+}
+
+/// Descarga con progreso a eventos `ai:dl` hacia el panel. Un `.part` viejo
+/// no se reanuda: se rehace entero (la verificación es por huella completa).
+async fn ai_download(
+    app: &tauri::AppHandle,
+    phase: &str,
+    url: &str,
+    dest: &std::path::Path,
+) -> Result<(), String> {
+    use std::io::Write;
+    use tauri::Emitter;
+    let _ = fs::remove_file(dest);
+    let mut resp = reqwest::get(url).await.map_err(|_| "ERR_AI_DL".to_string())?;
+    if !resp.status().is_success() {
+        return Err("ERR_AI_DL".into());
+    }
+    let total = resp.content_length().unwrap_or(0);
+    let mut f = fs::File::create(dest).map_err(|_| "ERR_AI_DL".to_string())?;
+    let mut got: u64 = 0;
+    let mut last: u64 = 200; // imposible: fuerza el primer evento
+    while let Some(chunk) = resp.chunk().await.map_err(|_| "ERR_AI_DL".to_string())? {
+        f.write_all(&chunk).map_err(|_| "ERR_AI_DL".to_string())?;
+        got += chunk.len() as u64;
+        let pct = if total > 0 { got * 100 / total } else { 0 };
+        if pct != last {
+            last = pct;
+            let _ = app.emit_to(
+                "main",
+                "ai:dl",
+                serde_json::json!({ "phase": phase, "pct": pct }),
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Verifica la huella SHA-256 de lo descargado. En Windows con Get-FileHash
+/// (viene con el sistema; misma decisión que la etapa 2 de remediación:
+/// PowerShell antes que una dependencia nueva — invariante #4). Si no casa,
+/// el archivo se BORRA: medio archivo corrupto no puede quedarse esperando.
+fn ai_check_sha(p: &std::path::Path, want: &str) -> Result<(), String> {
+    #[cfg(windows)]
+    let got = {
+        let mut cmd = std::process::Command::new("powershell");
+        cmd.args([
+            "-NoProfile",
+            "-Command",
+            &format!(
+                "(Get-FileHash -Algorithm SHA256 -LiteralPath \"{}\").Hash.ToLower()",
+                p.display()
+            ),
+        ]);
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        let out = cmd.output().map_err(|_| "ERR_AI_DL".to_string())?;
+        String::from_utf8_lossy(&out.stdout).trim().to_lowercase()
+    };
+    #[cfg(not(windows))]
+    let got = {
+        // el producto es Windows; en el espejo de desarrollo vale sha256sum
+        let out = std::process::Command::new("sha256sum")
+            .arg(p)
+            .output()
+            .map_err(|_| "ERR_AI_DL".to_string())?;
+        String::from_utf8_lossy(&out.stdout)
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .to_lowercase()
+    };
+    if got != want {
+        let _ = fs::remove_file(p);
+        return Err("ERR_AI_SHA".into());
+    }
+    Ok(())
+}
+
+/// Descomprime el zip del binario (Expand-Archive: viene con Windows).
+fn ai_unzip(zip: &std::path::Path, dest: &std::path::Path) -> Result<(), String> {
+    let _ = fs::create_dir_all(dest);
+    #[cfg(windows)]
+    {
+        let mut cmd = std::process::Command::new("powershell");
+        cmd.args([
+            "-NoProfile",
+            "-Command",
+            &format!(
+                "Expand-Archive -Force -LiteralPath \"{}\" -DestinationPath \"{}\"",
+                zip.display(),
+                dest.display()
+            ),
+        ]);
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        let out = cmd.output().map_err(|_| "ERR_AI_DL".to_string())?;
+        if !out.status.success() {
+            return Err("ERR_AI_DL".into());
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let ok = std::process::Command::new("unzip")
+            .arg("-o")
+            .arg(zip)
+            .arg("-d")
+            .arg(dest)
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+        if !ok {
+            return Err("ERR_AI_DL".into());
+        }
+    }
+    Ok(())
+}
+
+/// El botón "Descargar": trae SOLO lo que falte (respeta rutas manuales que
+/// ya funcionen), verifica huellas, rellena la config y enciende el
+/// análisis. Idempotente: se puede reintentar tras un fallo a media bajada.
+#[tauri::command]
+async fn ai_setup(app: tauri::AppHandle) -> Result<AiConfig, String> {
+    let dir = ai_dir();
+    let _ = fs::create_dir_all(&dir);
+    let st = ai_setup_status();
+    if !st.server {
+        let zip = dir.join("llama-cpu.zip");
+        ai_download(&app, "server", AI_LS_URL, &zip).await?;
+        ai_check_sha(&zip, AI_LS_SHA)?;
+        ai_unzip(&zip, &dir.join("bin"))?;
+        let _ = fs::remove_file(&zip);
+        if find_ls(&dir.join("bin")).is_none() {
+            return Err("ERR_AI_DL".into());
+        }
+    }
+    if !st.model {
+        let part = dir.join("model.part");
+        ai_download(&app, "model", AI_MODEL_URL, &part).await?;
+        ai_check_sha(&part, AI_MODEL_SHA)?;
+        fs::rename(&part, ai_model_file()).map_err(|_| "ERR_AI_DL".to_string())?;
+    }
+    let mut cfg = load_ai_config();
+    cfg.enabled = true;
+    if cfg.server.trim().is_empty() || !std::path::Path::new(cfg.server.trim()).is_file() {
+        if let Some(exe) = find_ls(&dir.join("bin")) {
+            cfg.server = exe.display().to_string();
+        }
+    }
+    if cfg.model.trim().is_empty() || !std::path::Path::new(cfg.model.trim()).is_file() {
+        cfg.model = ai_model_file().display().to_string();
+    }
+    let s = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;
+    fs::write(ai_config_path(), s).map_err(|e| e.to_string())?;
+    Ok(cfg)
+}
+
 /// Escapa un campo de CSV: comillas alrededor y las internas duplicadas. Antes
 /// se sustituían las comas por espacios, que mutila el dato en vez de citarlo.
 fn csv_field(v: &str) -> String {
@@ -6316,6 +6533,8 @@ pub fn run() {
             ai_get_config,
             ai_set_config,
             ai_intent,
+            ai_setup,
+            ai_setup_status,
             update_tray,
             get_remotes,
             save_remotes,

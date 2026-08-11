@@ -40,9 +40,9 @@ docs/                   # bitacora.md + diseños (leer antes de tocar su área)
 
 **A) Cuota real — `get_quota` (Rust):** token OAuth de
 `~/.claude/.credentials.json` (respeta `CLAUDE_CONFIG_DIR`); si venció,
-respaldo WSL y luego `remotes.json` (el PRIMER token vigente gana; viaja
-por SSH, solo vive en memoria). NUNCA llamar a la API con token vencido
-(provoca 429). `GET https://api.anthropic.com/api/oauth/usage` con
+respaldo WSL y luego `remotes.json` (el PRIMER vigente gana; viaja por
+SSH, solo vive en memoria). NUNCA llamar a la API con token vencido
+(429). `GET https://api.anthropic.com/api/oauth/usage` con
 `anthropic-beta: oauth-2025-04-20`. Endpoint NO oficial: el frontend extrae
 buckets recursiva y dinámicamente (`extractBuckets()` busca
 `utilization`/`resets_at`) y pinta los que existan. El endpoint NO envía el
@@ -55,7 +55,7 @@ plan (verificado con quota_debug.json real). Respuesta cruda a
 Claude Code v2.1.221+ pone ahí los transcripts de subagentes — sin entrar
 ahí ni el costo ni el detector los ven.
 Dedup por `message.id + requestId` (los duplicados TAMBIÉN cruzan
-archivos — la dedup global es imprescindible). Tokens "de trabajo" =
+archivos: la dedup global es imprescindible). Tokens "de trabajo" =
 input + output + cache_write; **cache_read excluido** (infla ~100×) salvo
 para el coste (a 10% del input). `<synthetic>` fuera. Fuente WSL:
 `wsl.exe -l -q` (UTF-16LE) + `\\wsl.localhost\<distro>\{home/*,root}\.claude`,
@@ -64,8 +64,8 @@ cachea el PARSEO por tamaño+mtime (`scan_cache.json`), nunca el coste. Agrega p
 `by_model`), por modelo, coste hoy/ventana y serie `daily` de 30 días.
 Los proyectos remotos llevan el sufijo del nombre del server.
 
-**Precios Y TECHO DE CONTEXTO:** misma tabla y misma cascada (LiteLLM →
-models.dev → OpenRouter, caché 24 h en `prices_cache.json`, RESPALDO no
+**Precios Y TECHO DE CONTEXTO:** misma tabla y cascada (LiteLLM →
+models.dev → OpenRouter, caché 24 h en `prices_cache.json`, RESPALDO, no
 verificación cruzada). `price_for()` cae a la embebida
 `price_table()` y `ctx_for()` a `ctx_table()`; las dos deciden por VERSIÓN,
 no familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75; Fable/Mythos
@@ -246,9 +246,9 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   red; NUNCA reintentar rápido un rate-limit); cuerpo a quota_debug.json;
   cadencia de cuota 3 min (60 s disparaba 429); el gauge conserva el
   último dato bueno 15 min. Muchos arranques seguidos = 429 de 60 MIN.
-- Instancia única (single-instance, registrado el primero).
-- Si se toca algo que `emitPill()` calcula: `emitPill(...lastPillArgs)`,
-  NUNCA parchear un campo suelto de `lastPill` (dejaba el tema viejo).
+- Instancia única (single-instance).
+- Tocar algo que `emitPill()` calcula: `emitPill(...lastPillArgs)`, NUNCA
+  parchear un campo suelto de `lastPill` (dejaba el tema viejo).
 - Export CSV/JSON: UNA fila por hecho (fecha × proyecto × modelo ×
   origen); BOM en CSV; campos entre comillas; filas solo al exportar
   (`want_rows`); el ORIGEN lo pone quien lee; sin totales; periodo propio
@@ -329,9 +329,9 @@ price_key, que lo recorta; en la duda 200k). Y
 si lo MEDIDO supera a la tabla, manda lo medido: `ctx_full` sube al
 siguiente escalón de `CTX_LADDER` (devolver lo visto a secas dejaría el
 manómetro clavado en 100%). Autopsia en la bitácora. Arco en la pastilla y BOMBILLA en el gatito;
-número+proyecto en pcard y en la ficha de la bombilla. Nunca viaja a ntfy ni al hub. El motor manda
-HECHOS crudos: el veredicto Alive/Boundary/Uncertain vive UNA sola vez
-en JS (`intentVerdict`, reina = topen>0). Con presión ≥80
+número+proyecto en pcard y en la ficha de la bombilla. Nunca viaja a ntfy ni al hub. El motor manda HECHOS crudos: el veredicto
+Alive/Boundary/Uncertain vive UNA vez en JS (`intentVerdict`, reina =
+topen>0). Con presión ≥80
 (`INTENT_PCT`) coachPoll sintetiza el hit LOCAL `intent` → tarjeta de
 intención en Consejos (exenta del tope diario, una por sesión vía
 tipSeen, se refresca sin renacer, ✕/"Ahora no" no resucitan): dos
@@ -348,7 +348,9 @@ automático; evidencia = `title`+`msgs` del press (3 mensajes humanos
 ×300 chars; `user_turn_text` = ÚNICO filtro, el bool lo envuelve, réplica
 en exportador); `msgs` NO se persiste (solo `c.ai`); UNA invocación por
 sesión aunque falle; fail-quiet; interruptor nace OFF; Probar = la misma
-tubería. Regla `acomp`:
+tubería. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 4 CONSTANTES
+(actualizar JUNTAS); única conexión fuera de api.anthropic.com, opt-in y
+anunciada; respeta rutas manuales. Regla `acomp`:
 `compact_boundary` con trigger≠manual y <30 min → ficha con los preTokens
 (los manuales no avisan: los hiciste tú; los INYECTADOS por el relevo
 entran como manual y se auditan solos). TODO `compact_boundary` —de quien
@@ -374,9 +376,9 @@ la más reciente arriba—; las frías del catálogo, abajo. PENDIENTE FANTASMA
 (blindado): un turno nuevo del hilo principal LIMPIA pending_tool; los
 tool_use de subagentes no lo tocan. El nombre del proyecto va RESUELTO desde Rust (`pname`, cwd real). Aviso
 en widget: post-it turquesa / foco ámbar, campo `coach` en quota:update,
-mismo interruptor. El recibo NO manda push (su push fue el "terminó"). Al depurar "no llegó X": LEER PRIMERO `coach_debug.json` (compuertas por
-sesión en cada sondeo) y la bitácora `flowLog` (botón 📜 en dev).
-coachHits queda SOLO para el simulador.
+mismo interruptor. El recibo NO manda push (su push fue el "terminó"). Depurar "no llegó X": PRIMERO `coach_debug.json` (compuertas por sesión
+en cada sondeo) y la bitácora `flowLog` (📜 en dev). coachHits queda SOLO
+para el simulador.
 
 ## Avisos al celular (ntfy)
 
@@ -445,10 +447,9 @@ presion-y-rendimiento §"Qué queda vivo".
       reales. Etapa 2 (embeddings + descarga) SOLO tras validar.
 - [ ] Updater: repo público + tag v* y probar completo.
 - [ ] Capturas del README (Oscar).
-- [ ] MÉTRICAS DE RENDIMIENTO Y REPORTE EJECUTIVO (diseño en
-      `docs/presion-y-rendimiento.md` — LEERLO antes de tocar). CERRADO
-      HASTA DONDE ESTÁ (Oscar, 2026-08-07): fases 1 y 2 hechas; queda
-      por si al usarlo falta algo. Qué existe: (a) TURNOS ÚTILES `uturns`
+- [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
+      LEERLO antes de tocar). CERRADO HASTA DONDE ESTÁ (Oscar,
+      2026-08-07): fases 1 y 2 hechas. Qué existe: (a) TURNOS ÚTILES `uturns`
       en LocalStats/proyectos/daily (mensajes HUMANOS: fuera meta,
       sidechain, tool_result, comandos locales e inyecciones `<ide_…`;
       `is_user_turn` réplica exacta Rust/Python, invariante #1); 0 turnos
@@ -462,19 +463,19 @@ presion-y-rendimiento §"Qué queda vivo".
       periodo, jamás fija; el $ pegado a su dato de tokens (.as-money);
       caché POR PERIODO y render PROGRESIVO. Fase 3 y lo DESCARTADO, en
       el doc.
-- [x] REMEDIACIÓN — LAS 4 ETAPAS COMPLETAS Y VALIDADAS EN VIVO
-      (2026-08-07/10). Diseño, historia y lo descartado en
-      `docs/remediacion.md` — LEERLO antes de tocar nada de esto. Aquí
-      solo las REGLAS que no se pueden romper.
+- [x] REMEDIACIÓN — 4 ETAPAS COMPLETAS Y VALIDADAS EN VIVO
+      (2026-08-07/10). Diseño, historia y descartes en
+      `docs/remediacion.md` — LEERLO antes de tocar esto. Aquí solo las
+      REGLAS que no se pueden romper.
       ETAPA 2 (zombies MCP + archivado ≥365d a `%APPDATA%\<app>\archive`):
-      firma = arg más largo del MCP stdio de ~/.claude.json y barras a `/`
+      firma = arg más largo del MCP stdio de ~/.claude.json, barras a `/`
       al casar; huérfano = padre muerto o PID reciclado; el kill
       re-verifica PID+exe+arranque y su veredicto sale de RE-CONSULTAR el
-      PID, nunca de `$?`; PowerShell desde Rust con saltos de línea REALES
-      (en una línea muere en el parser); `actions_log.json` (tope 200,
-      crudo, el panel traduce); desbloqueo progresivo `remCfg`/`remFirst`
-      (zombie ON / archive OFF, primera vez SIEMPRE manual); sondeo
-      horario `remPoll`; lo raro deja `rem_debug.json`. SOLO LOCAL.
+      PID, nunca de `$?`; PowerShell desde Rust con saltos REALES (en una
+      línea muere el parser); `actions_log.json` (tope 200, crudo, el
+      panel traduce); desbloqueo progresivo `remCfg`/`remFirst` (zombie
+      ON / archive OFF, la primera SIEMPRE manual); sondeo horario
+      `remPoll`; lo raro deja `rem_debug.json`. SOLO LOCAL.
       ETAPA 3, REGLAS DURAS:
       crate APARTE `relevo/` (la app no gana deps, invariante #4);
       canal por ARCHIVOS `%APPDATA%\<app>\relevo\<pid>.json|.cmd`
@@ -518,8 +519,8 @@ presion-y-rendimiento §"Qué queda vivo".
       `cmd /c claude` puede resolver a NUESTRO shim y ciclar) — por ahí
       pasa el chat de la extensión, que no es una terminal.
       Y AUN ASÍ EL CHAT SE RELEVA, por otra puerta:
-      `claudeCode.claudeProcessWrapper`
-      es enganche OFICIAL y `michi-relevo.py wrap` proxea stream-json —
+      `claudeCode.claudeProcessWrapper` es enganche OFICIAL y
+      `michi-relevo.py wrap` proxea stream-json —
       `/compact` como línea `user` lo INTERCEPTA la CLI ($0, turno
       `<synthetic>`). Ahí R1 se cumple POR CONSTRUCCIÓN (líneas atómicas)
       y R2 es CERTEZA (`user` entra → `result` sale): más seguro que la
@@ -532,10 +533,10 @@ presion-y-rendimiento §"Qué queda vivo".
       el banner «michi · relevo activo», uno por conversación y delante
       del PRIMER mensaje (en el init aún no pinta).
       Residual: no vemos el borrador del cuadro.
-      ETAPA 4: el relevo del VPS va en PYTHON (`michi-relevo.py`, stdlib
-      pty; allí no hay Rust), embebido y re-subido como el exportador
-      junto a `michi-wrap.sh`, con las MISMAS constantes/esquema/códigos
-      que main.rs. `scan_relays_remote` lee por SSH con UNA conexión por
+      ETAPA 4: el relevo del VPS va en PYTHON (`michi-relevo.py`,
+      stdlib pty; allí no hay Rust), embebido y re-subido como el
+      exportador junto a `michi-wrap.sh`, MISMAS constantes/esquema/
+      códigos que main.rs. `scan_relays_remote` lee por SSH con UNA conexión por
       servidor (solo en el compás del coach; el sondeo de 5 s conserva
       las remotas) y `relay_inject_remote` escribe el `.cmd` con
       tmp+rename EN el servidor, con el comando por STDIN y jamás
@@ -566,14 +567,14 @@ presion-y-rendimiento §"Qué queda vivo".
       por TEXTO (línea sola en su renglón, verificando que siga siendo
       JSON) porque es del usuario. `wrap_debug.txt` porque la extensión
       se come stderr: un enganche que no arranca se ve igual que uno que
-      funciona. El aviso sale tras el `result` del PRIMER turno —con el
-      mensaje en vuelo la extensión no lo pinta; en Linux va delante y ahí
-      sí—. En DEV manda el michi.exe que compila el crate, no la copia que
-      `tauri dev` rehace, y el interruptor reconoce sus rutas viejas o se
+      funciona. El aviso sale tras el `result` del PRIMER turno (con el
+      mensaje en vuelo la extensión no lo pinta; en Linux va delante). En
+      DEV manda el michi.exe que compila el crate, no la copia que
+      `tauri dev` rehace; el interruptor reconoce sus rutas viejas o se
       encalla en OTHER.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
-  gamificación ligera. NO hacer: rastrear otras herramientas, BD de
-  historial, modo equipo.
+  gamificación ligera. NO: rastrear otras herramientas, BD de historial,
+  modo equipo.
 
 ## Consumo de recursos (medido en release)
 
@@ -614,8 +615,8 @@ sin `Compiling`) — corre el exe viejo y el bug "no se arregla". Arreglo:
 `(Get-Item src\main.rs).LastWriteTime = Get-Date` y recompilar;
 `cargo clean -p` NO basta.
 
-**Simulador** (solo dev, `is_dev`): gatito / avisos / hallazgos.
-`simRunning` es la bandera (NO simMascot). NUNCA toca localStorage ni
+**Simulador** (solo dev, `is_dev`): gatito / avisos / hallazgos /
+contexto. Bandera `simRunning` (NO simMascot). NUNCA toca localStorage ni
 manda pushes; al parar, `processAcks()` restaura lo real. Pausa `simMin`
 (mín. 5 s). Único control sin `t()`.
 

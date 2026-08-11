@@ -127,10 +127,35 @@ un hecho, el hecho manda). Una sola invocación por sesión aunque falle
 (el fallo también se anota — reintentar cada sondeo sería arrancar un
 server de 1.3 GB en bucle).
 
-**Ajustes:** interruptor "Análisis local (IA)" (nace APAGADO) + rutas de
-llama-server y del .gguf + botón **Probar** con evidencia de ejemplo, que
-enseña veredicto o error traducido. La prueba es la misma tubería real
-(`ai_intent`), no un camino aparte.
+**Ajustes:** interruptor "Análisis local (IA)" (nace APAGADO) + botón
+**Descargar** (ver abajo) + rutas de llama-server y del .gguf como ajuste
+avanzado + botón **Probar** con evidencia de ejemplo, que enseña veredicto
+o error traducido. La prueba es la misma tubería real (`ai_intent`), no un
+camino aparte.
+
+## Descarga guiada (v1.1 — mismo día, pedida por Oscar)
+
+Un usuario nuevo no tiene llama.cpp ni el modelo, y pedirle rutas era
+pedirle que se complicara. Al encender el interruptor, si FALTA algo
+(`ai_setup_status` cuenta también las rutas manuales: quien ya los tiene
+no ve el botón), aparece **Descargar** con el tamaño real y una nota que
+dice de dónde viene. `ai_setup`:
+
+1. llama.cpp (~17 MB): zip del release de GitHub → SHA-256 verificada →
+   `Expand-Archive` (PowerShell del sistema; misma decisión que la etapa 2
+   de remediación: nada de deps nuevas) → se busca `llama-server.exe`
+   donde haya caído (el zip cambia de forma entre builds).
+2. El modelo (~1.3 GB): GGUF directo de Hugging Face → a `.part` →
+   SHA-256 verificada → rename. Sin resume: media descarga corrupta se
+   borra y se rehace (la verificación es por huella completa).
+3. Rellena `ai_config.json` (respetando rutas manuales que ya funcionen)
+   y enciende el análisis.
+
+REGLAS: URLs y huellas son CUATRO CONSTANTES en el binario (la regla del
+updater: jamás salen de algo descargado; actualizar juntas). Progreso por
+eventos `ai:dl` al panel. Idempotente: reintentar tras un fallo baja solo
+lo que falte. Es la ÚNICA conexión de la app que no va a api.anthropic.com
+— GitHub y Hugging Face, una vez, opt-in y anunciada en la propia UI.
 
 ## Errores (códigos, invariante #10)
 
@@ -153,9 +178,8 @@ tarjeta; solo el botón Probar los enseña.
 
 - Embeddings (multilingual-e5-small GGUF, ~120 MB) como peldaño previo:
   similitud coseno título+viejo ↔ reciente; <0.45 = tema_nuevo, >0.65 =
-  tema_cruzado, y el 2B queda solo para la banda media.
-- Descarga de modelos desde la app (hoy: rutas manuales — quien prueba la
-  v1 ya los tiene).
+  tema_cruzado, y el 2B queda solo para la banda media. (La descarga de
+  modelos se adelantó a la v1.1.)
 - Decidir si el veredicto del modelo puede DEGRADAR una recomendación
   determinista (freno, nunca acelerador): un "tarea_viva" del modelo sobre
   un Boundary… hoy NO — primero medir cuánto acierta.
