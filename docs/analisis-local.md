@@ -176,6 +176,13 @@ tarjeta; solo el botón Probar los enseña.
 
 ## Etapa 2 (después de validar la v1)
 
+- ESPEJO en GitHub Releases del repo (cuando sea público, idea de Oscar
+  2026-08-11): release `modelos-v1` con el GGUF, el zip de llama.cpp y el
+  futuro modelo de embeddings — Apache 2.0 y MIT permiten redistribuir con
+  su licencia adjunta, y los assets aguantan hasta 2 GB. En el código, URL
+  de RESPALDO por constante (HF primero, espejo si falla); la MISMA SHA
+  valida ambos: la autoridad es la huella, no el servidor. Hoy el riesgo
+  es solo de alta (usuarios nuevos): los existentes corren sin internet.
 - Embeddings (multilingual-e5-small GGUF, ~120 MB) como peldaño previo:
   similitud coseno título+viejo ↔ reciente; <0.45 = tema_nuevo, >0.65 =
   tema_cruzado, y el 2B queda solo para la banda media. (La descarga de
