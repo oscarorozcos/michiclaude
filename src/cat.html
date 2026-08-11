@@ -107,7 +107,7 @@
     background:var(--paper);border:1.5px solid var(--ink);border-radius:999px;
     padding:2px 10px;z-index:3;transition:opacity .15s,top .18s ease-out;
     box-shadow:0 1px 3px rgba(0,0,0,.25)}
-  body.hasidea .plabel{top:14%}
+  body.hasidea .plabel{top:20%}
   .plabel .lab{font-size:10.5px;font-weight:600;color:var(--ink)}
   .plabel b{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--ink)}
   /* BOMBILLA DE PRESIÓN DE CONTEXTO (docs/remediacion.md etapa 1). Sustituye
@@ -116,12 +116,15 @@
      con los MISMOS umbrales que tenía el arco (60 ámbar, 85 rojo) más un paso
      en 40 para que el cambio se vea ANTES de que importe, y CADA nivel con su
      propio movimiento: respira, titila, tiembla, se apaga humeando.
-     Va en el eje de la cápsula, entre ella y la cabeza. Solo aparece con
+     Va sobre el eje de la CABEZA (68%, no el 72.4% de la cápsula) y casi
+     posada en ella: repartida por el hueco se leía como tres cosas sueltas;
+     pegada al gato se lee como suya (calibrado con Oscar 2026-08-11).
+     Solo aparece con
      sesión activa (hit `press`); sin ella, el gatito queda como siempre.
      Sin globo de pensamiento y sin fondo: flota sobre el escritorio, así que
      lo que la hace legible sobre cualquier fondo es lo mismo que al gato —
      trazo grueso de tinta y sombra propia. */
-  .idea{position:absolute;left:72.4%;top:36px;transform:translateX(-50%);
+  .idea{position:absolute;left:68%;top:47px;transform:translateX(-50%);
     width:34px;height:44px;z-index:3;transition:opacity .15s;cursor:default;
     filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
   .idea svg{display:block;width:100%;height:100%}

@@ -3438,3 +3438,14 @@ propio (💡 Simular contexto, solo dev) porque prueban cosas distintas —aquel
 recorre estados de ánimo y avisos, este los cuatro dibujos y el salto de la
 cápsula—, y empuja con `emitPill`, así que cualquier refresco durante la prueba
 sigue enseñando el nivel simulado.
+
+**Calibración final de la columna (misma tarde, con capturas de Oscar).** Tres
+números y el porqué, para que nadie los "arregle" luego: la bombilla va en el
+eje de la CABEZA (`left:68%`), no en el de la cápsula (72.4%), y casi posada en
+ella (`top:47px`, ~3 px de aire); la cápsula con bombilla baja al 20%. Repartido
+por el hueco, el trío se leía como tres cosas sueltas; junto y pegado al gato se
+lee como algo SUYO. Comprobado contra los tres estados que podían chocar: las
+llamas del `fire` quedan al otro lado, las Z del `zzz` libres —moverla a la
+izquierda ayudó— y la ficha del hover no la toca. Único roce: en `zzz` la
+bombilla se posa sobre la punta del gorro de dormir; con su trazo y su sombra se
+lee como encima, y se deja así antes que meter una excepción por estado.
