@@ -207,7 +207,11 @@ function render(d){
   if(pr){
     $("pBox").style.color = pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--acc)";
     $("pArc").setAttribute("stroke-dasharray",Math.max(3,pr.pct)+" 100");
-    $("pRly").hidden=!pr.relay;
+    // `toggleAttribute` y no `.hidden`: es un <circle> SVG y la propiedad
+    // `hidden` solo existe en HTMLElement — asignarla no tocaba el atributo y
+    // el punto del relevo no se ha enseñado nunca (cazado el 2026-08-11 al
+    // repetir el patrón en el gatito).
+    $("pRly").toggleAttribute("hidden", !pr.relay);
   }
   if(!d || d.ok===false){
     document.body.classList.add("stale");
