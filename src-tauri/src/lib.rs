@@ -4055,7 +4055,7 @@ fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdi
          - A task still seems unfinished -> rec=compact, reason=tarea_viva\n\
          - Work seems done and nothing new started -> rec=unsure, reason=cierre\n\
          - When in doubt NEVER answer clear: answer compact or unsure.\n\
-         Answer ONLY the JSON.",
+         Answer ONLY the JSON. /no_think",
         title.replace('"', "'"),
         ev,
         cont
@@ -4063,7 +4063,16 @@ fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdi
     let body = serde_json::json!({
         "messages": [{"role": "user", "content": prompt}],
         "response_format": {"type": "json_object", "schema": ai_schema()},
-        "max_tokens": 40,
+        // Qwen3.5 RAZONA por defecto y el `--reasoning-budget 0` del servidor
+        // es solo un default: lo pisa la plantilla de chat. Sin esto el modelo
+        // gastó su presupuesto entero en "Thinking Process:" y dejó `content`
+        // VACÍO (finish_reason: length) — así falló la primera prueba real
+        // (2026-08-12). Ya estaba avisado en modelos-locales-cpu.md §3, que
+        // además da el cinturón: el `/no_think` del final del prompt.
+        "chat_template_kwargs": {"enable_thinking": false},
+        // 64 y no 40: el JSON son ~20 tokens, pero un margen barato evita
+        // volver a quedarse a medias si el modelo escribe algo delante
+        "max_tokens": 64,
         "temperature": 0,
     })
     .to_string();

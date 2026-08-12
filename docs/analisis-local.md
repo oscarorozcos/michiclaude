@@ -126,6 +126,17 @@ llama-server convierte él mismo a gramática: los `enum` se cumplen al
 MUESTREAR, no al validar. El parseo además es tolerante (mira
 `reasoning_content` si `content` viene vacío y recorta al primer `{...}`).
 
+**SEGUNDA TRAMPA, del mismo día:** Qwen3.5 **razona por defecto**, y el
+`--reasoning-budget 0` de la línea de comandos es solo un default que la
+plantilla de chat pisa. Resultado: el modelo gastó su presupuesto de
+tokens en "Thinking Process:", dejó `content` VACÍO y devolvió
+`finish_reason: length`. Se apaga en la PETICIÓN con
+`"chat_template_kwargs": {"enable_thinking": false}`, y el prompt termina
+en `/no_think` como cinturón (las dos vías están en
+modelos-locales-cpu.md §3 — estaban escritas ANTES de que costaran una
+ronda). Ojo también: la gramática del `response_format` solo restringe el
+canal `content`; lo que el modelo escriba razonando NO pasa por ella.
+
 **Rastro `ai_debug.txt`** (carpeta de datos de la app, se SOBRESCRIBE): la
 petición y la respuesta cruda del último intento. Misma familia que
 quota_debug.json y wrap_debug.txt — un fallo que solo dice "no se pudo

@@ -3648,3 +3648,36 @@ clasificador determinista manda —en la primera prueba dio `alive` por el
 botones de copiar comando funcionan, el simulador no ensucia el almacén real
 ("Ahora no" filtra `coachHits`, no localStorage) y el modelo carga y responde
 en el tiempo esperado.
+
+**Segunda autopsia, mismo día — el modelo sí contestaba, pero pensando.**
+Con el `ai_debug.txt` ya escribiendo, el segundo `ERR_AI_BADOUT` se resolvió
+en una lectura:
+
+```
+"finish_reason":"length", "content":"",
+"reasoning_content":"Thinking Process:\n\n1. **Analyze the Request:**..."
+```
+
+Qwen3.5 **razona por defecto**. El `--reasoning-budget 0` que le pasamos a
+llama-server es solo un DEFAULT del servidor y la plantilla de chat lo pisa,
+así que el modelo gastó sus 40 tokens redactando un "Thinking Process:" y
+dejó `content` vacío. Y un detalle que conviene recordar: la gramática del
+`response_format` restringe SOLO el canal `content` — lo que el modelo
+escriba razonando no pasa por ella, así que no hay blindaje que valga si el
+razonamiento está encendido.
+
+Lo humillante y lo útil: **la solución llevaba escrita desde el principio en
+`modelos-locales-cpu.md` §3**, en la sección de configuración del cliente —
+`{"chat_template_kwargs": {"enable_thinking": false}}` y, como alternativa "a
+prueba de balas", `/no_think` al final del mensaje. Yo leí ese documento
+entero para diseñar esto y aun así implementé solo la mitad de la receta: la
+del servidor. Ahora van las dos, cinturón y tirantes.
+
+Regla que queda: **cuando un documento de investigación dice "el servidor
+solo pone un default y el cliente lo pisa", eso es una instrucción para el
+CLIENTE, no una curiosidad.**
+
+Datos buenos del mismo volcado: el prefill fue de 208 tokens a 60.8 tok/s
+(3.4 s) y la generación a 13.9 tok/s — o sea que el análisis completo saldrá
+en ~6-8 s con el servidor ya caliente, dentro de lo prometido. Y confirmó que
+corre el GGUF descargado por la app y el build `b10362` que pineamos.
