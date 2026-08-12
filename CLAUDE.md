@@ -83,10 +83,10 @@ coinciden al céntimo; el techo discrepante es sonnet-4-5 (200k / 1M beta).
 `%APPDATA%\com.oscarorozco.michiclaude\`; por fuente, `ssh -o BatchMode=yes
 <host> <command>`. `meter-export.py` replica la MISMA agregación
 (**AMBOS lados en sincronía** — invariante #1). Fusión: totales sumados,
-proyectos etiquetados. SSH falla → se ignora en silencio. El alta sube el
-exportador EMBEBIDO (include_str!, saltos a LF) a
-`~/.michiclaude/meter-export.py` y lo re-sube al arrancar: editar el .py
-en el VPS NO tiene efecto, hay que recompilar. `install_remote(host,python)`
+proyectos etiquetados. SSH falla → se ignora en silencio. El alta sube el exportador
+EMBEBIDO (include_str!, saltos a LF) a `~/.michiclaude/meter-export.py` y
+lo re-sube al arrancar: editar el .py en el VPS NO tiene efecto, hay que
+recompilar. `install_remote(host,python)`
 verifica el binario de Python (`verify_python`); sin Python debe fallar con
 ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 
@@ -443,9 +443,9 @@ presion-y-rendimiento §"Qué queda vivo".
       hallazgos naciendo natural (fuga nueva, panel cerrado, sin re-armar
       fndSeen). Auto-/compact y /clear con red ya pasaron; falta el
       AUTO-/clear disparándose solo.
-- [ ] ANÁLISIS LOCAL v1: cadena VALIDADA en simulador (2026-08-12,
-      `clear · tema_nuevo`). Falta verla en tarjeta REAL y anotar si
-      acierta unos días; eso decide la etapa 2 (embeddings).
+- [ ] ANÁLISIS LOCAL v1: cadena validada en simulador (2026-08-12).
+      Falta verla en tarjeta REAL y anotar si acierta — eso decide la
+      etapa 2 (embeddings).
 - [ ] Updater: repo público + tag v* y probar completo.
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
@@ -481,8 +481,7 @@ presion-y-rendimiento §"Qué queda vivo".
       crate APARTE `relevo/` (la app no gana deps, invariante #4);
       canal por ARCHIVOS `%APPDATA%\<app>\relevo\<pid>.json|.cmd`
       (tmp+rename con `.tmp` sobre el nombre ENTERO); viva = estado
-      <15 s; LISTA BLANCA (/compact, /clear) comprobada en LOS DOS
-      lados; R2 se INFIERE del silencio de la PTY (en el chat es CERTEZA:
+      <15 s; LISTA BLANCA (/compact, /clear) comprobada en LOS DOS lados; R2 se INFIERE del silencio de la PTY (en el chat es CERTEZA:
       entra un `user`, sale un `result`). **ConPTY negocia
       `win32-input-mode`** — las teclas llegan como `ESC[…_`; los avisos
       del terminal (foco, cursor) NO son teclas; UNA fuente de verdad
@@ -571,8 +570,7 @@ presion-y-rendimiento §"Qué queda vivo".
       funciona. El aviso sale tras el `result` del PRIMER turno (con el
       mensaje en vuelo la extensión no lo pinta; en Linux va delante). En
       DEV manda el michi.exe que compila el crate, no la copia que
-      `tauri dev` rehace; el interruptor reconoce sus rutas viejas o se
-      encalla en OTHER.
+      `tauri dev` rehace; el interruptor reconoce sus rutas viejas o se encalla en OTHER.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO: rastrear otras herramientas, BD de historial,
   modo equipo.
