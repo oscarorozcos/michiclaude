@@ -71,9 +71,9 @@ verificación cruzada). `price_for()` cae a la embebida
 no familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75; Fable/Mythos
 $10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`, la UI marca "~". Viajan al exportador
 por STDIN (`--prices-stdin`). Descarga fallando >1 semana: aviso ⚠ junto
-a "costo estimado", no toast. La sección de
-Ajustes informa de AMBAS cosas (`ctx_count` = modelos con techo): si una
-fuente deja de publicarlo, el número baja a la vista.
+a "costo estimado", no toast. La sección de Ajustes informa de AMBAS
+cosas (`ctx_count` = modelos con techo): si una fuente deja de publicarlo,
+el número baja a la vista.
 `price_key()` unifica PUNTO→GUIÓN entre dígitos (OpenRouter escribe
 `claude-opus-4.8`, el resto `claude-opus-4-8`): sin eso la 3.ª fuente
 casaba 6 de 14, ocho modelos sin precio ni techo EN SILENCIO. Auditadas:
@@ -122,7 +122,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   (4 niveles animados; sin hit `press` no se pinta) → cápsula, que sube con
   `body.hasidea` y vuelve a su sitio sin ella. Hover en la bombilla = ficha de
   contexto en la MISMA ventana (`body.showtip`); el globo del resumen ya no la
-  lleva. El gato cuelga de `.stage`, anclado abajo (bitácora 2026-08-11).
+  lleva. El gato cuelga de `.stage`, anclado abajo.
   Estados por gravedad (`mascotState()`):
   cat-zzz (`hit:week`) / cat-break (`hit:session`) / cat-fire
   (`ackPending:alarm`) / normal; los banderines `hit:*` los limpia
@@ -344,9 +344,9 @@ degrada solo (validado en vivo, sondeo ~80 ms). ANÁLISIS LOCAL (IA),
 `docs/analisis-local.md` — LEERLO: con veredicto unsure, `ai_intent`
 (llama-server BAJO DEMANDA en 127.0.0.1, gramática por
 `response_format`, se MATA al terminar) pinta insignia PROPIA punteada; JAMÁS toca compuertas del
-automático; evidencia = `title`+`msgs` del press (3 mensajes humanos
-×300 chars; `user_turn_text` = ÚNICO filtro, el bool lo envuelve, réplica
-en exportador); `msgs` NO se persiste (solo `c.ai`); UNA invocación por
+automático; evidencia = `title`+`msgs` del press (3 mensajes humanos ×300
+chars; `user_turn_text` = ÚNICO filtro, el bool lo envuelve, réplica en
+exportador); `msgs` NO se persiste (solo `c.ai`); UNA invocación por
 sesión aunque falle; fail-quiet; interruptor nace OFF; Probar = la misma
 tubería. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 4 CONSTANTES
 (actualizar JUNTAS); única conexión fuera de api.anthropic.com, opt-in y
