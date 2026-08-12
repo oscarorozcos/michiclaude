@@ -3606,3 +3606,45 @@ siendo la real. De paso, el veredicto se escribe también en `flowLog`: el
 Lección: un simulador que hereda demasiado del estado real puede reproducir
 el camino EQUIVOCADO con total fidelidad. Al forzar un escenario hay que
 neutralizar justo las variables que lo definen.
+
+## 2026-08-12 — el primer veredicto del modelo local, y el mecanismo equivocado
+
+Segunda prueba del 🎯 (ya con las señales deterministas neutras) y el rastro
+del flujo dio la respuesta en una línea: `sim intención: ERR_AI_BADOUT`. El
+modelo arrancaba, contestaba, y su salida no se podía leer.
+
+**La causa, verificada en la documentación de llama.cpp:** el parámetro
+`grammar` (GBNF) SOLO existe en el endpoint NATIVO `/completion`. En
+`/v1/chat/completions` —el que usamos, porque es el que aplica la plantilla
+de chat del modelo— se ignora **en silencio**: no da error, simplemente no
+restringe nada. Así que el 2B contestaba en prosa libre y
+`serde_json::from_str` moría. La vía correcta en ese endpoint es
+`response_format` con esquema (`{"type":"json_object","schema":{…}}`), que
+llama-server convierte él mismo a gramática: mismo blindaje, endpoint
+correcto — los `enum` se cumplen al MUESTREAR, no al validar.
+
+Lección para el archivo: **un parámetro ignorado en silencio es peor que uno
+rechazado.** Si la petición hubiera fallado con 400, el diagnóstico habría
+sido inmediato; al aceptarla y no aplicarla, el fallo aparece tres capas más
+abajo, disfrazado de "el modelo no sabe responder". Antes de dar por bueno un
+mecanismo de restricción, hay que comprobar que el ENDPOINT concreto lo
+implementa.
+
+De ahí salió también **`ai_debug.txt`** (carpeta de datos, se sobrescribe):
+petición y respuesta CRUDA del último intento. Es la misma familia que
+`quota_debug.json`, `wrap_debug.txt` y `rem_debug.json`, y la misma lección
+que dejó el chat de VS Code el 2026-08-10: *un enganche invisible necesita
+rastro desde el primer día*. Aquí se saltó ese paso al construir y costó una
+ronda entera de adivinar.
+
+De paso, el parseo se volvió tolerante: mira `reasoning_content` si `content`
+viene vacío, recorta al primer `{…}` por si el modelo pone algo delante, y
+detecta el campo `error` del servidor en vez de tratarlo como salida ilegible.
+
+**Lo que la prueba SÍ validó** (todo lo demás de la cadena funciona): la
+tarjeta nace con datos reales (86%, proyecto y origen correctos), el
+clasificador determinista manda —en la primera prueba dio `alive` por el
+`cont` real y suprimió la inferencia, exactamente como está diseñado—, los
+botones de copiar comando funcionan, el simulador no ensucia el almacén real
+("Ahora no" filtra `coachHits`, no localStorage) y el modelo carga y responde
+en el tiempo esperado.

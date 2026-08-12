@@ -315,12 +315,12 @@ servidor SSH — el exportador replica el motor bajo `--coach` (invariante
 #1; estado incremental en `~/.cache/michiclaude/coach_state.json` del
 servidor, reconstruible; subagentes fuera, plano como en Rust) y
 `get_coach` fusiona poniendo `origin` (vacío = local; el panel lo enseña
-en fichas, recibos y pushes). Regla `press` (manómetro): un hit por sesión
-con contexto y quieta <10 min (`PRESS_QUIET_MAX`), `value` = tokens de
+en fichas, recibos y pushes). Regla `press` (manómetro): un hit por sesión con
+contexto y quieta <10 min (`PRESS_QUIET_MAX`), `value` = tokens de
 contexto crudos, campos aditivos `quiet` + señales del clasificador
-`topen/ttotal` (último TodoWrite), `cont` (Jaccard % archivos, últimos
-10 vs 10 previos del rastro `trail` tope 20) y `gclean` (commit sin
-ediciones después); NO es ficha ni aviso: coachPoll la aparta (como
+`topen/ttotal` (último TodoWrite), `cont` (Jaccard % archivos, últimos 10 vs 10
+previos del rastro `trail` tope 20) y `gclean` (commit sin ediciones
+después); NO es ficha ni aviso: coachPoll la aparta (como
 done/ask), elige la más fresca y emitPill la monta como `press` en
 quota:update (umbrales 60/85). EL TECHO NO ES CONSTANTE: el hit trae
 `full` = techo del modelo de esa sesión; `pressFull()/pressPct()` son el
@@ -331,10 +331,10 @@ siguiente escalón de `CTX_LADDER` (devolver lo visto a secas dejaría el
 manómetro clavado en 100%). Autopsia en la bitácora. Arco en la pastilla y BOMBILLA en el gatito;
 número+proyecto en pcard y en la ficha de la bombilla. Nunca viaja a ntfy ni al hub. El motor manda HECHOS crudos: el veredicto
 Alive/Boundary/Uncertain vive UNA vez en JS (`intentVerdict`, reina =
-topen>0). Con presión ≥80
-(`INTENT_PCT`) coachPoll sintetiza el hit LOCAL `intent` → tarjeta de
-intención en Consejos (exenta del tope diario, una por sesión vía
-tipSeen, se refresca sin renacer, ✕/"Ahora no" no resucitan): dos
+topen>0). Con presión ≥80 (`INTENT_PCT`)
+coachPoll sintetiza el hit LOCAL `intent` → tarjeta de intención en
+Consejos (exenta del tope diario, una por sesión vía tipSeen, se refresca
+sin renacer, ✕/"Ahora no" no resucitan): dos
 opciones en llano con comando al lado, insignia "Recomendado" solo con
 veredicto (unsure = sin insignia), advertencia si hay pendientes, botón
 "Copiar comando" → `plugin:clipboard-manager|write_text` invocado
@@ -342,8 +342,8 @@ directo (capability `clipboard-manager:allow-write-text`, sin wrapper
 npm). Exportador viejo: ignora --coach → cero hits, se
 degrada solo (validado en vivo, sondeo ~80 ms). ANÁLISIS LOCAL (IA),
 `docs/analisis-local.md` — LEERLO: con veredicto unsure, `ai_intent`
-(llama-server BAJO DEMANDA en 127.0.0.1, gramática GBNF, se MATA al
-terminar) pinta insignia PROPIA punteada; JAMÁS toca compuertas del
+(llama-server BAJO DEMANDA en 127.0.0.1, gramática por
+`response_format`, se MATA al terminar) pinta insignia PROPIA punteada; JAMÁS toca compuertas del
 automático; evidencia = `title`+`msgs` del press (3 mensajes humanos
 ×300 chars; `user_turn_text` = ÚNICO filtro, el bool lo envuelve, réplica
 en exportador); `msgs` NO se persiste (solo `c.ai`); UNA invocación por

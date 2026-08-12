@@ -105,18 +105,32 @@ PATH; `port` default 8791, solo `127.0.0.1`. Comandos `ai_get_config` /
    kill-on-drop → `ERR_AI_START`.
 3. Sondea `/health` hasta 45 s (la carga fría del GGUF tarda) →
    `ERR_AI_TIMEOUT`.
-4. POST `/v1/chat/completions` con el prompt y `grammar` GBNF; 60 s →
+4. POST `/v1/chat/completions` con el prompt y `response_format`; 60 s →
    `ERR_AI_TIMEOUT`.
 5. Parsea el enum; cualquier otra cosa → `ERR_AI_BADOUT`. Mata el server.
 
 Prompt (inglés — el 2B instruye mejor en inglés; la evidencia va verbatim
-en su idioma) con las reglas del sesgo. Gramática:
+en su idioma) con las reglas del sesgo. La forma se FUERZA con esquema:
 
+```json
+"response_format": {"type": "json_object", "schema": {
+  "rec":    {"enum": ["clear", "compact", "unsure"]},
+  "reason": {"enum": ["tema_nuevo","tema_cruzado","tarea_viva","cierre","na"]}}}
 ```
-root ::= "{\"rec\":\"" rec "\",\"reason\":\"" reason "\"}"
-rec ::= "clear" | "compact" | "unsure"
-reason ::= "tema_nuevo" | "tema_cruzado" | "tarea_viva" | "cierre" | "na"
-```
+
+**TRAMPA (costó la primera prueba real, 2026-08-12):** `grammar` (GBNF)
+solo lo acepta el endpoint NATIVO `/completion`. En el de chat se IGNORA
+en silencio — el modelo contesta en prosa y el parseo muere con
+`ERR_AI_BADOUT`. La vía correcta ahí es `response_format` con esquema, que
+llama-server convierte él mismo a gramática: los `enum` se cumplen al
+MUESTREAR, no al validar. El parseo además es tolerante (mira
+`reasoning_content` si `content` viene vacío y recorta al primer `{...}`).
+
+**Rastro `ai_debug.txt`** (carpeta de datos de la app, se SOBRESCRIBE): la
+petición y la respuesta cruda del último intento. Misma familia que
+quota_debug.json y wrap_debug.txt — un fallo que solo dice "no se pudo
+leer" obliga a adivinar. Contiene la evidencia del prompt: es local, como
+todo lo demás de esta función.
 
 **Panel:** en `coachPoll`, al sintetizar la tarjeta de intención: si el
 veredicto es `unsure`, hay `msgs` y el análisis está encendido →

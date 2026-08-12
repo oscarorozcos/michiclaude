@@ -3876,13 +3876,45 @@ const AI_HEALTH_WAIT_MS: u64 = 45_000; // carga fría del GGUF desde disco
 const AI_ANSWER_WAIT_MS: u64 = 60_000; // prefill + decode en CPU
 const AI_PORT: u16 = 8791;
 
-/// Gramática GBNF: el modelo SOLO puede emitir el enum. Es la lección
-/// central de docs/modelos-locales-cpu.md — la forma se FUERZA, no se pide.
-const AI_GRAMMAR: &str = concat!(
-    "root ::= \"{\\\"rec\\\":\\\"\" rec \"\\\",\\\"reason\\\":\\\"\" reason \"\\\"}\"\n",
-    "rec ::= \"clear\" | \"compact\" | \"unsure\"\n",
-    "reason ::= \"tema_nuevo\" | \"tema_cruzado\" | \"tarea_viva\" | \"cierre\" | \"na\"\n"
-);
+/// La forma se FUERZA, no se pide (lección central de
+/// docs/modelos-locales-cpu.md). OJO CON EL MECANISMO: `grammar` (GBNF) solo
+/// lo acepta el endpoint NATIVO `/completion`; en el de chat se IGNORA en
+/// silencio — el modelo contesta en prosa y el parseo muere con BADOUT (así
+/// falló la primera prueba real, 2026-08-12). Aquí la vía correcta es
+/// `response_format` con esquema: llama-server lo convierte él mismo a
+/// gramática, así que los `enum` se cumplen al muestrear, no al validar.
+fn ai_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "rec": {"type": "string", "enum": ["clear", "compact", "unsure"]},
+            "reason": {"type": "string",
+                "enum": ["tema_nuevo", "tema_cruzado", "tarea_viva", "cierre", "na"]}
+        },
+        "required": ["rec", "reason"],
+        "additionalProperties": false
+    })
+}
+
+/// Rastro del análisis: la petición y la respuesta CRUDA del último intento.
+/// Misma familia que quota_debug.json / wrap_debug.txt — un fallo que solo
+/// dice "no se pudo leer" obliga a adivinar, y eso ya costó una ronda.
+/// Se sobrescribe (no crece) y vive en la carpeta de datos de la app: la
+/// evidencia es local, como todo lo demás de esta función.
+fn ai_dbg(req: &str, resp: &str) {
+    let _ = fs::create_dir_all(app_data_dir());
+    let cut = |s: &str, n: usize| -> String {
+        s.chars().take(n).collect::<String>()
+    };
+    let _ = fs::write(
+        app_data_dir().join("ai_debug.txt"),
+        format!(
+            "--- PETICIÓN ---\n{}\n\n--- RESPUESTA CRUDA ---\n{}\n",
+            cut(req, 4000),
+            cut(resp, 4000)
+        ),
+    );
+}
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
@@ -4030,17 +4062,34 @@ fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdi
     );
     let body = serde_json::json!({
         "messages": [{"role": "user", "content": prompt}],
-        "grammar": AI_GRAMMAR,
+        "response_format": {"type": "json_object", "schema": ai_schema()},
         "max_tokens": 40,
         "temperature": 0,
-    });
+    })
+    .to_string();
     let (_, payload) =
-        ai_http(port, "POST /v1/chat/completions", Some(&body.to_string()), AI_ANSWER_WAIT_MS)?;
+        ai_http(port, "POST /v1/chat/completions", Some(&body), AI_ANSWER_WAIT_MS)?;
+    ai_dbg(&body, &payload);
     let v: serde_json::Value =
         serde_json::from_str(payload.trim()).map_err(|_| "ERR_AI_BADOUT".to_string())?;
-    let content = v["choices"][0]["message"]["content"].as_str().unwrap_or("");
+    if !v["error"].is_null() {
+        return Err("ERR_AI_BADOUT".into()); // el servidor rechazó la petición
+    }
+    let msg = &v["choices"][0]["message"];
+    // con algunos modelos el texto útil cae en `reasoning_content` si el
+    // separador de razonamiento se activa: se mira el segundo antes de rendirse
+    let mut content = msg["content"].as_str().unwrap_or("");
+    if content.trim().is_empty() {
+        content = msg["reasoning_content"].as_str().unwrap_or("");
+    }
+    // el objeto puede venir con algo delante o detrás: se recorta al primer
+    // {...} (llaves ASCII, así que los índices caen en frontera de carácter)
+    let slice = match (content.find('{'), content.rfind('}')) {
+        (Some(i), Some(j)) if j > i => &content[i..=j],
+        _ => content.trim(),
+    };
     let out: AiVerdict =
-        serde_json::from_str(content.trim()).map_err(|_| "ERR_AI_BADOUT".to_string())?;
+        serde_json::from_str(slice).map_err(|_| "ERR_AI_BADOUT".to_string())?;
     match out.rec.as_str() {
         "clear" | "compact" | "unsure" => Ok(out),
         _ => Err("ERR_AI_BADOUT".into()),
