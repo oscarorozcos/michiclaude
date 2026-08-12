@@ -186,6 +186,10 @@ gatito — la tarjeta cae entre "se enreda" (60%) y "muerta" (85%).
    al 80%. Vive en memoria (como el de hallazgos): el veredicto se cuelga
    del hit (`_ai`) porque en modo simulación las tarjetas se rehacen en
    cada render. El 💡 es otra cosa: fuerza la bombilla, no la tarjeta.
+   REGLA del simulador: las señales deterministas van NEUTRAS (topen,
+   ttotal, cont, gclean en cero) — copiar el `cont` real de una sesión de
+   trabajo da "alive" y suprime la insignia del modelo, que es justo lo
+   que se quiere ver (pasó en la primera prueba). La evidencia sí es real.
 3. Lo que decide si esto se queda: ¿la insignia acierta en tus sesiones
    reales? Anotar aciertos/fallos unos días antes de construir la etapa 2.
 

@@ -7686,12 +7686,18 @@ function siFakeIntent(){
   // mensajes es el punto de todo esto
   const pr=pressAll.filter(h=>(h.msgs||[]).length)
     .sort((a,b)=>(a.quiet||0)-(b.quiet||0))[0];
-  if(pr) return {rule:"intent", session:"sim-int", value:86,
-    project:pr.project||"", origin:pr.origin||"", quiet:pr.quiet||0,
-    topen:0, ttotal:0, cont:pr.cont||0, gclean:false, scwd:"",
-    title:pr.title||"", msgs:pr.msgs||[]};
-  return {rule:"intent", session:"sim-int", value:86, project:"-sim-demo",
-    origin:"", quiet:2, topen:0, ttotal:0, cont:10, gclean:false, scwd:"",
+  // Señales deterministas NEUTRAS a propósito (topen/ttotal/cont/gclean en
+  // cero): el análisis local SOLO vive en el hueco `unsure`, así que copiar
+  // el `cont` real —que en una sesión de trabajo suele ir ≥40 y da "alive"—
+  // apagaba justo lo que se quiere probar (pasó en la primera prueba de
+  // Oscar: salió la insignia RECOMENDADA determinista y la del modelo, bien
+  // suprimida por diseño, no llegó a verse). La EVIDENCIA sí es real:
+  // título y mensajes de tu sesión.
+  const base={rule:"intent", session:"sim-int", value:86,
+    topen:0, ttotal:0, cont:0, gclean:false, scwd:""};
+  if(pr) return {...base, project:pr.project||"", origin:pr.origin||"",
+    quiet:pr.quiet||0, title:pr.title||"", msgs:pr.msgs||[]};
+  return {...base, project:"-sim-demo", origin:"", quiet:2,
     title:"Fixing the tray widget CSS",
     msgs:["the light bulb icon looks good now, commit and push it",
           "now let's plan the marketing screenshots for the README"]};
@@ -7714,7 +7720,10 @@ $("intBtn").addEventListener("click",async()=>{
     const v=await invoke("ai_intent",{title:h.title,msgs:h.msgs,cont:h.cont});
     h._ai={rec:v.rec||"unsure", reason:v.reason||"na"};
     $("simMsg").textContent="✓ "+(v.rec||"?")+" · "+(v.reason||"na");
-  }catch(e){ $("simMsg").textContent="✕ "+aiErr(e); }
+    // el simMsg vive en Ajustes y la tarjeta en Consejos: sin esto, un
+    // veredicto "unsure" (que no pinta insignia) se ve igual que un fallo
+    flog("sim intención: "+(v.rec||"?")+" · "+(v.reason||"na"));
+  }catch(e){ $("simMsg").textContent="✕ "+aiErr(e); flog("sim intención: "+String(e)); }
   if(simFnd) renderTips();             // si no lo pararon mientras tanto
 });
 

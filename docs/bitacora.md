@@ -3588,3 +3588,21 @@ larga cayera además en la zona gris. Detalle de implementación: en modo
 simulación las tarjetas se reconstruyen desde `coachHits` en cada render, así
 que el veredicto se cuelga del HIT (`_ai`) y no del envoltorio persistido —
 si no, se perdía en el primer repintado.
+
+**Primera prueba del 🎯 y el fallo del propio simulador (2026-08-12, madrugada).**
+La tarjeta salió perfecta —86%, proyecto y origen reales, las dos opciones—
+pero con la insignia RECOMENDADO determinista, no con la del modelo. No era
+un fallo del análisis: `siFakeIntent` copiaba el `cont` REAL de la sesión
+viva, y en una sesión de trabajo ese Jaccard va alto ("sigues en los mismos
+archivos") → `intentVerdict` = **alive** → el render suprime la inferencia,
+tal y como manda la regla #2 del diseño (los hechos ganan). O sea: el
+mecanismo funcionó exactamente como debía y lo que estaba mal era el banco
+de pruebas. Las señales deterministas del hit simulado van ahora NEUTRAS
+(topen/ttotal/cont/gclean en cero); la evidencia —título y mensajes— sigue
+siendo la real. De paso, el veredicto se escribe también en `flowLog`: el
+`simMsg` vive en Ajustes y la tarjeta en Consejos, así que un "unsure"
+—que por diseño no pinta insignia— se veía igual que un fallo.
+
+Lección: un simulador que hereda demasiado del estado real puede reproducir
+el camino EQUIVOCADO con total fidelidad. Al forzar un escenario hay que
+neutralizar justo las variables que lo definen.
