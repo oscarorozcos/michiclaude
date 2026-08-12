@@ -3906,3 +3906,13 @@ Regenerar: `npm run icons` si algún día cambia app-icon.png.
 Lección: un workflow que nunca ha corrido es una promesa, no una pieza.
 La primera ejecución ES parte de la validación — por eso el updater se
 prueba completo ANTES de que exista un solo usuario.
+
+**Release #2 verde… a medias (misma noche).** El instalador se publicó, pero
+sin `.sig` ni `latest.json`: el endpoint del updater daba 404 — o sea, app
+instalable pero incapaz de enterarse de versiones nuevas, que era EL punto de
+toda la prueba. Causa: faltaba `"createUpdaterArtifacts": true` en el
+`bundle` de tauri.conf.json — sin ella Tauri v2 no firma los artefactos y el
+workflow no tiene con qué armar el latest.json (su includeUpdaterJson por
+defecto no encuentra nada que incluir). Segunda pieza del updater que solo se
+podía descubrir EJECUTANDO: el workflow nunca había corrido y la config nunca
+había empaquetado un updater de verdad.

@@ -49,6 +49,7 @@
     "targets": [
       "nsis"
     ],
+    "createUpdaterArtifacts": true,
     "resources": {
       "../relevo/target/release/michi.exe": "michi.exe"
     },
