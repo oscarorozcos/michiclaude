@@ -3925,3 +3925,43 @@ existe: v0.1.0. Dos fallos quemados por el camino —iconos ignorados y
 createUpdaterArtifacts ausente— que solo la ejecución real podía enseñar.
 Queda el cierre del círculo: instalar el exe de Releases, publicar v0.1.1 y
 ver a la app actualizarse sola.
+
+## 2026-08-12 (noche) — EL UPDATER FUNCIONA: el círculo completo en una tarde
+
+La tarde empezó con Oscar confesando el freno real del lanzamiento: "no
+quiero que un usuario descargue algo roto y no pueda actualizarlo". Terminó
+con la v0.1.0 instalada desde Releases detectando, descargando, verificando
+la firma e instalándose la v0.1.1 sola, con la configuración intacta. El
+miedo ya no tiene objeto: el canal de reparación existe y está probado.
+
+Cuatro mordidas en el camino, ninguna evitable sin ejecutar:
+
+1. **Release #1, rojo:** `icons/icon.ico not found` — los iconos estaban
+   gitignorados; en la máquina de desarrollo existen, el runner parte de un
+   clon limpio. Van commiteados, como en la plantilla oficial de Tauri.
+2. **Release #2, verde a medias:** instalador sin `.sig` ni `latest.json` —
+   faltaba `createUpdaterArtifacts: true` en el bundle. App instalable pero
+   sorda a versiones nuevas, que era EL punto.
+3. **Release #3 (v0.1.1), verde con versión vieja:** el tag se creó sin
+   `git pull` previo y apuntó al commit anterior al bump. La red funcionó
+   sola: latest.json anunciaba 0.1.0 y ninguna app se habría "actualizado"
+   a lo mismo. Se borró release+tag y se re-etiquetó desde el VPS.
+4. **La franja nunca llegó sola:** el check automático corría UNA vez, 8 s
+   tras arrancar — y la app llevaba abierta desde antes del release. Para
+   una app de bandeja que vive semanas sin reiniciar, eso es no enterarse
+   nunca. Ahora: al arrancar Y cada 12 h, con guarda `v===updVer` para no
+   re-anunciar lo ya anunciado (la REGLA ÚNICA de los globos: cerrado no
+   vuelve).
+
+Lección de la jornada, la misma cuatro veces: **cada pieza de la tubería
+que nunca había corrido escondía exactamente un fallo, y ninguno era
+visible leyendo el código.** El workflow, el empaquetado del updater, el
+proceso humano de etiquetar y la cadencia del check — los cuatro se
+estrenaron hoy y los cuatro mordieron una vez. Por eso se prueba con cero
+usuarios.
+
+Estado: MichiClaude es público, con dos releases reales y un canal de
+actualización validado. Lo que queda para el LANZAMIENTO (cuando Oscar
+quiera ser encontrado): capturas del README, el espejo de modelos en un
+release, y la apuesta #2 (tarjeta compartible + gamificación) como pieza
+de crecimiento.

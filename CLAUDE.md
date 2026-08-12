@@ -415,13 +415,20 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 
 ## Auto-updater
 
-Implementado, SIN probar (falta publicar un tag). Comandos propios Rust
-(`check_update`/`install_update`/`open_releases`), sin API JS del plugin
-(invariante #4). Franja en cabecera + globo persistente. Fallo al instalar → "descárgala a mano" con botón a `RELEASES_URL`,
+PROBADO DE PUNTA A PUNTA (2026-08-12): v0.1.0 instalada desde Releases
+detectó, descargó, verificó firma e instaló la v0.1.1 sola. Comandos
+propios Rust (`check_update`/`install_update`/`open_releases`), sin API
+JS del plugin (invariante #4). Franja en cabecera + globo persistente.
+Check al arrancar (8 s) Y cada 12 h (una app de bandeja vive semanas sin
+reiniciar); la guarda `v===updVer` evita re-anunciar lo ya anunciado —
+el globo cerrado NO vuelve. `createUpdaterArtifacts: true` en el bundle
+es OBLIGATORIO: sin él no hay .sig ni latest.json (mordió en el release
+#2). Los iconos van COMMITEADOS (el runner parte de un clon limpio;
+mordió en el #1). Al RE-etiquetar: borrar release+tag, y el tag SIEMPRE
+tras `git pull` (el #3 salió con la versión vieja por saltárselo). Fallo al instalar → "descárgala a mano" con botón a `RELEASES_URL`,
 CONSTANTE en Rust y que jamás sale de un archivo descargado. Llave
 pública en tauri.conf.json, privada en secretos del repo y copias de
-Oscar (si se pierde: llave nueva + instalar a mano UNA vez). Firma el
-workflow. BLOQUEADO: repo PRIVADO → releases dan 404 sin auth.
+Oscar (si se pierde: llave nueva + instalar a mano UNA vez). Firma el workflow.
 
 ## Estado / pendientes
 
@@ -453,7 +460,8 @@ presion-y-rendimiento §"Qué queda vivo".
       (60% de `ctx_full`) al cerrar la prueba. Con techo 1M avisa al 12%
       (Oscar salta entre modelos); mismo bug que tuvo el manómetro.
       Réplica en exportador (invariante #1).
-- [ ] Updater: repo público + tag v* y probar completo.
+- [x] REPO PÚBLICO + UPDATER COMPLETO (2026-08-12): v0.1.0 y v0.1.1
+      publicadas; el ciclo detectar→descargar→instalar validado en vivo.
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
       LEERLO antes de tocar). CERRADO HASTA DONDE ESTÁ (Oscar,

@@ -5904,6 +5904,11 @@ async function updCheck(){
   let v=null;
   try{ v=await invoke("check_update"); }catch(e){ return; }
   if(!v) return;
+  // la MISMA versión ya anunciada no se re-anuncia: el check ahora es
+  // periódico, y sin esta guarda cada pasada re-mostraría el globo que el
+  // usuario ya cerró — violando la REGLA ÚNICA de los globos (cerrado no
+  // vuelve). La franja es idempotente; el globo no.
+  if(v===updVer) return;
   updVer=v;
   updShow(t("upd_found",v), t("upd_do"), async()=>{
     $("updBtn").disabled=true;
@@ -5922,6 +5927,12 @@ async function updCheck(){
   showBalloon(t("upd_balloon",v), "update");
 }
 setTimeout(updCheck, 8000);   // sin competir con la primera carga del panel
+// ...y cada 12 h mientras la app viva: es una app de bandeja que se deja
+// corriendo semanas, y con el check solo-al-arranque quien nunca reinicia
+// jamás se entera (se vio el 2026-08-12 en la primera prueba real del
+// updater: la 0.1.1 salió con la app ya abierta y la franja nunca llegó
+// sola — hizo falta el botón de Acerca de).
+setInterval(updCheck, 12*3600*1000);
 
 // ---------- Acerca de ----------
 // Reúne lo que ya existía suelto: la comprobación de versión (que solo
