@@ -3805,3 +3805,41 @@ cuenta atrás y el invariante del workflow). De 40.248 a 33.942: seis mil
 bytes de margen para dejar de pellizcar palabras en cada regla nueva.
 Verificado byte a byte que el bloque llegó entero antes de borrarlo del
 origen.
+
+## 2026-08-12 (tarde) — auditoría pre-público: el repo está listo, quedan dos decisiones
+
+Oscar puso en palabras el freno real del lanzamiento: el miedo a que un
+usuario descargue algo roto y no pueda actualizarlo. El antídoto es probar el
+updater, y para eso el repo tiene que ser público — así que se auditó TODO lo
+que se publicaría, historial incluido (lo que está en el historial se publica
+con el repo y ya no se puede retirar después sin reescribirlo).
+
+**Limpio, verificado:**
+- gitleaks sobre los 397 commits: cero fugas. Barrido manual extra de
+  patrones (ghp_, sk-ant, AKIA, llaves SSH, correos personales, IPs
+  públicas) sobre TODO el historial: nada.
+- Las notas de negocio del analizador: solo se referencia su RUTA externa
+  (`~/.michiclaude/`), el contenido jamás entró al repo — el diseño funcionó.
+- Archivos borrados en el historial: arte viejo y un .pyc; inofensivos.
+- Workflow de release: los secretos van por `secrets.*` de GitHub, nada
+  incrustado. Updater: pubkey (pública por diseño), endpoint y RELEASES_URL
+  correctos y constantes.
+- README: usuarios ficticios e IPs de documentación (TEST-NET). Un solo tag
+  (`pre-rediseno-20260805`), sin ramas sueltas ni stashes.
+
+**Las dos decisiones que solo puede tomar Oscar, ANTES de abrir:**
+1. **Los correos de autor de los commits** (396 con una dirección personal,
+   9 con otra) se publican con el repo. Opciones: aceptarlo (normal en open
+   source) o reescribir el historial AHORA al correo noreply de GitHub —
+   gratis mientras el repo es privado y sin colaboradores; imposible de
+   deshacer limpiamente después.
+2. **`docs/modelos-locales-cpu.md`** trae contexto de OTRO negocio (despliegue
+   en equipos de clientes, pipeline de destilación). Ya está en el historial:
+   quitarlo de verdad = la misma reescritura. Opciones: publicarlo (es
+   investigación honesta y da credibilidad) o sacarlo en la misma pasada que
+   el punto 1.
+
+La bitácora misma se publica y se queda: es la transparencia que el producto
+vende. Si Oscar decide reescribir (1 y/o 2), es una sola operación con
+`git-filter-repo` + force push; después, repo público → tag pre-release →
+probar el updater de punta a punta.
