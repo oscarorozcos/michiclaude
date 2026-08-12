@@ -3873,3 +3873,17 @@ Nota para el futuro: el clon de Windows queda desincronizado por la
 reescritura — `git fetch origin && git reset --hard origin/main` (y
 `git fetch --tags --force`), NUNCA `git pull`, que intentaría fusionar las
 dos historias.
+
+**Ejecutado y verificado (misma tarde).** 408 → 407 commits (el que solo
+añadía el doc se podó solo). Verificación completa post-reescritura: UNA sola
+identidad de autor (el noreply con ID), el doc fuera de TODO el historial,
+cero rastros de los correos/username viejo en contenidos y mensajes, gitleaks
+limpio sobre la historia nueva, y el tag `pre-rediseno-20260805` reescrito y
+re-empujado. El force push llegó al remoto (verificado con ls-remote: main =
+hash nuevo). El token de GitHub salió del config del repo (filter-repo había
+tirado el remoto original): ahora un credential.helper lo lee de
+`~/.secrets/github-token` al momento del push, y los commits futuros nacen
+con el noreply en este clon — falta la MISMA config en el clon de Windows.
+Matiz honesto: GitHub conserva un tiempo los objetos viejos inalcanzables en
+su servidor; como el repo jamás fue público y nadie más tiene los hashes, el
+riesgo práctico es cero, y al hacerse público solo se clona lo alcanzable.
