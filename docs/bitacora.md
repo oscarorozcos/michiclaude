@@ -3681,3 +3681,23 @@ Datos buenos del mismo volcado: el prefill fue de 208 tokens a 60.8 tok/s
 (3.4 s) y la generación a 13.9 tok/s — o sea que el análisis completo saldrá
 en ~6-8 s con el servidor ya caliente, dentro de lo prometido. Y confirmó que
 corre el GGUF descargado por la app y el build `b10362` que pineamos.
+
+**FUNCIONA (2026-08-12, 00:39).** `sim intención: clear · tema_nuevo`, con la
+insignia punteada "Análisis local · tema nuevo" sobre la opción `/clear` y
+claramente distinta del "RECOMENDADO" sólido del clasificador determinista.
+La evidencia era la de ejemplo —"commit y push de la bombilla" seguido de
+"planeemos las capturas del README"— y el veredicto es el correcto: tema
+nuevo, no necesita lo anterior.
+
+Cadena validada de punta a punta: motor (Rust + exportador) → evidencia en el
+hit `press` → llama-server bajo demanda → esquema que fuerza el enum →
+insignia que dice de dónde viene. Tres autopsias hicieron falta y ninguna fue
+del diseño: binario viejo (empate de mtime), `grammar` ignorado en el
+endpoint de chat, y el razonamiento encendido por defecto.
+
+**Lo que queda para cerrar la v1** (validación pasiva, con el uso):
+1. Ver la insignia en una tarjeta REAL —sesión al 80% con veredicto
+   `unsure`—, no simulada.
+2. Anotar unos días si ACIERTA. Ese es el dato que decide la etapa 2
+   (embeddings como peldaño previo) o si hay que afinar el prompt.
+3. Cuando el repo sea público: el espejo de modelos en GitHub Releases.

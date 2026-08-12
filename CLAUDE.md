@@ -443,8 +443,9 @@ presion-y-rendimiento §"Qué queda vivo".
       hallazgos naciendo natural (fuga nueva, panel cerrado, sin re-armar
       fndSeen). Auto-/compact y /clear con red ya pasaron; falta el
       AUTO-/clear disparándose solo.
-- [ ] ANÁLISIS LOCAL v1 (2026-08-11): validar con Probar y tarjetas
-      reales. Etapa 2 (embeddings + descarga) SOLO tras validar.
+- [ ] ANÁLISIS LOCAL v1: cadena VALIDADA en simulador (2026-08-12,
+      `clear · tema_nuevo`). Falta verla en tarjeta REAL y anotar si
+      acierta unos días; eso decide la etapa 2 (embeddings).
 - [ ] Updater: repo público + tag v* y probar completo.
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
