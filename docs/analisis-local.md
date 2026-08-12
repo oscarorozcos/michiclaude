@@ -269,6 +269,18 @@ ACOTADO: `AI_WAIT_MIN` (10 min) desde que nació la tarjeta, y un fallo del
 análisis marca `aiErr` para dejar de esperar de inmediato. La presión de
 contexto solo sube, así que esperar nunca empeora nada.
 
+**La cuenta atrás DICE QUÉ va a aplicar** (2026-08-12, encontrado al
+escribirle los ejemplos a Oscar): antes solo se veía el segundero, así que
+la cuenta de un `/compact` y la de un `/clear` eran idénticas en pantalla —
+y una resume mientras la otra BORRA. Ahora el chip lleva el comando y el
+color: ÁMBAR `/compact 15`, ROJO `/clear 30`. En el gatito no caben las dos
+cosas, así que mientras la cuenta corre el "Sesión X%" se aparta y la
+cápsula queda dedicada a lo único que importa esos segundos. El texto
+completo (`rly_auto_msg`) ya viajaba en el evento desde la etapa 3c-2 y
+nadie lo pintaba. Regla hermana de la del veredicto ✓/✕: **una cuenta atrás
+que no dice qué va a hacer deja al usuario adivinando igual que una que
+acaba en silencio.**
+
 **Cómo se audita la prueba de unos días.** El rastro del flujo (📜 en dev)
 distingue quién lo decidió: `relevo auto: aplicado /clear por IA
 (tema_nuevo)` frente a `… por hecho`. Es EL dato de la prueba: si aparece

@@ -271,6 +271,16 @@
     min-width:20px;height:16px;padding:0 5px;margin-left:4px;border-radius:999px;
     background:var(--warn);color:#1a1206;font-weight:700;font-size:10.5px;
     font-variant-numeric:tabular-nums}
+  /* QUÉ va a aplicar, no solo cuánto falta: /compact resume y /clear BORRA,
+     y con solo el segundero las dos cuentas se veían idénticas (2026-08-12).
+     Aquí no cabe todo: mientras la cuenta corre, el "Sesión X%" se aparta y
+     la cápsula queda dedicada a lo único que importa en esos segundos. */
+  .pauto i{font-style:normal;font-size:9.5px;font-weight:800;margin-right:3px}
+  .pauto i:empty{display:none}
+  .pauto.dest{background:var(--bad);color:#fff}
+  body.autorun .plabel .lab,body.autorun #chipPct{display:none}
+  body.autorun .pauto{margin-left:0}
+  /* el veredicto va DESPUÉS: gana a .dest por orden a igual especificidad */
   .pauto.bad{background:var(--bad);color:#fff}
   .pauto.good{background:var(--ok);color:#04231a}
 </style>
@@ -311,7 +321,7 @@
   <i id="ptipProj"></i>
 </div>
 <div class="plabel"><span class="lab" id="chipLab"></span><b id="chipPct"></b>
-  <span class="pauto" id="cAuto" hidden><b id="cNum"></b></span>
+  <span class="pauto" id="cAuto" hidden><i id="cCmd"></i><b id="cNum"></b></span>
 </div>
 <script>
 // Nunca llama al endpoint: escucha el resumen que emite el panel.
@@ -420,6 +430,10 @@ if(EVENT){
       // el veredicto cierra la cuenta: ✓ aplicado, ✕ el relevo se negó. Una
       // cuenta atrás que acaba en silencio deja al usuario adivinando.
       $("cNum").textContent = a.mark==="ok" ? "✓" : a.mark==="err" ? "✕" : a.left;
+      // el comando A LA VISTA mientras corre; con el veredicto ya no hace
+      // falta (lo que iba a pasar, pasó) y la cápsula vuelve a su sitio
+      $("cCmd").textContent = a.mark ? "" : (a.cmd||"");
+      $("cAuto").classList.toggle("dest", !a.mark && a.cmd==="/clear");
       $("cAuto").classList.toggle("bad", a.mark==="err");
       $("cAuto").classList.toggle("good", a.mark==="ok");
     }

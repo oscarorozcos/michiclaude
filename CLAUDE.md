@@ -484,17 +484,16 @@ presion-y-rendimiento §"Qué queda vivo".
       canal por ARCHIVOS `%APPDATA%\<app>\relevo\<pid>.json|.cmd`
       (tmp+rename con `.tmp` sobre el nombre ENTERO); viva = estado
       <15 s; LISTA BLANCA (/compact, /clear) comprobada en LOS DOS lados; R2 se INFIERE del silencio de la PTY (en el chat es CERTEZA:
-      entra un `user`, sale un `result`). **ConPTY negocia
-      `win32-input-mode`** — las teclas llegan como `ESC[…_`; los avisos
-      del terminal (foco, cursor) NO son teclas; UNA fuente de verdad
-      para "hay texto"; un Enter no limpia hasta ver si Claude REACCIONA;
-      JAMÁS escribe lo tecleado. `TitleMark` antepone la marca al título:
+      entra un `user`, sale un `result`). **ConPTY negocia `win32-input-mode`** — las
+      teclas llegan como `ESC[…_`; los avisos del terminal (foco, cursor)
+      NO son teclas; UNA fuente de verdad para "hay texto"; un Enter no
+      limpia hasta ver si Claude REACCIONA; JAMÁS escribe lo tecleado. `TitleMark` antepone la marca al título:
       ÚNICA excepción al paso transparente, lee el número OSC ENTERO
       (`ESC]10;` es color), fail-open con tope. Casado sesión↔relevo por `cwd` COMPLETO
       (`scwd` del hit `press`), FAIL-CLOSED ante ambigüedad. DECIDE el
-      relevo: `attend()` revuelve R1-R3 al escribir. `relayBusy` impide
-      repintar con una cuenta viva. El motivo del rechazo va en línea
-      propia, nunca en el botón.
+      relevo: `attend()` revuelve R1-R3 al escribir. `relayBusy` impide repintar
+      con una cuenta viva. El motivo del rechazo va en línea propia, nunca
+      en el botón.
       Desbloqueo en `relayDone` (/compact 2, /clear 3; lo que TECLEAS TÚ
       también cuenta). AUTO-/CLEAR CON RED (doc §El auto-/clear con red):
       solo Boundary + `relayClear` (nace OFF) + 3 manuales + relevo v≥2
@@ -505,11 +504,11 @@ presion-y-rendimiento §"Qué queda vivo".
       MENÚ — jamás a secas. **El Enter va SEPARADO del texto** (`type_line`,
       ENTER_GAP_MS 250): juntos, la TUI los toma por PEGADO y la línea se
       queda escrita sin ejecutarse. El AUTOMÁTICO exige widget A LA VISTA —la
-      cuenta atrás vive en la cápsula—, dura 15 s, cualquier toque la para (en el gatito el manejador va en CAPTURA) y
+      cuenta atrás vive en la cápsula—, dura 15 s (30 por inferencia) y DICE el comando (rojo si borra),
+      cualquier toque la para (en el gatito el manejador va en CAPTURA) y
       se marca ANTES de empezar. Un rechazo del candado es TRANSITORIO: `done` solo tras
-      aplicar; un fallo guarda el momento y reintenta a los 10 min. La
-      cuenta CIERRA con veredicto ✓/✕: acabar en silencio deja al usuario
-      adivinando. ATAJO DEL PATH (`set_relay_alias`):
+      aplicar; un fallo reintenta a los 10 min. La cuenta CIERRA con
+      veredicto ✓/✕: acabar en silencio deja al usuario adivinando. ATAJO DEL PATH (`set_relay_alias`):
       `claude.cmd` en `%APPDATA%\<app>\bin` DELANTE del PATH de usuario —
       resuelve Windows, no el shell; NO alcanza WSL/SSH ni rutas
       absolutas. NUNCA deja sin Claude Code
@@ -521,19 +520,17 @@ presion-y-rendimiento §"Qué queda vivo".
       pasa el chat de la extensión, que no es una terminal.
       Y AUN ASÍ EL CHAT SE RELEVA, por otra puerta:
       `claudeCode.claudeProcessWrapper` es enganche OFICIAL y
-      `michi-relevo.py wrap` proxea stream-json —
-      `/compact` como línea `user` lo INTERCEPTA la CLI ($0, turno
-      `<synthetic>`). Ahí R1 se cumple POR CONSTRUCCIÓN (líneas atómicas)
+      `michi-relevo.py wrap` proxea stream-json — `/compact` como línea
+      `user` lo INTERCEPTA la CLI ($0, turno `<synthetic>`). Ahí R1 se cumple POR CONSTRUCCIÓN (líneas atómicas)
       y R2 es CERTEZA (`user` entra → `result` sale): más seguro que la
-      terminal; casado por `session_id`. `michi-wrap.sh` va en el ajuste,
-      con 3 caminos de emergencia. OJO: `--replay-user-messages` NO
+      terminal; casado por `session_id`. `michi-wrap.sh` va en el ajuste, con 3 caminos
+      de emergencia. OJO: `--replay-user-messages` NO
       replica comandos: el relevo emite él la línea de replay para que
       la inyección SE VEA (solo al chat; JSONL intacto) CON LA FORMA
       COMPLETA del replay (`replay_line`: sid/uuid/isReplay) — el `user`
       a secas (`user_line`, la del hijo) lo DESCARTA en silencio. Igual
       el banner «michi · relevo activo», uno por conversación y delante
       del PRIMER mensaje (en el init aún no pinta).
-      Residual: no vemos el borrador del cuadro.
       ETAPA 4: el relevo del VPS va en PYTHON (`michi-relevo.py`,
       stdlib pty; allí no hay Rust), embebido y re-subido como el
       exportador junto a `michi-wrap.sh`, MISMAS constantes/esquema/

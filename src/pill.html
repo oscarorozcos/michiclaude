@@ -91,7 +91,18 @@
   .m.auto{display:flex;align-items:center;justify-content:center;min-width:22px;
     height:18px;padding:0 6px;border-radius:999px;background:var(--warn);
     color:#1a1206;font-weight:700;font-size:11px;font-variant-numeric:tabular-nums}
+  /* QUÉ va a aplicar, no solo cuánto falta: /compact resume y /clear BORRA,
+     y con solo el segundero las dos cuentas se veían idénticas (2026-08-12).
+     Prima hermana de la regla del veredicto ✓/✕: una cuenta atrás que no
+     dice qué va a hacer deja al usuario adivinando igual. */
+  .m.auto i{font-style:normal;font-size:9.5px;font-weight:800;margin-right:4px;
+    letter-spacing:.2px}
+  .m.auto i:empty{display:none}
+  /* el que BORRA va en rojo desde el primer segundo */
+  .m.auto.dest{background:var(--bad);color:#fff}
   body.autorun .cap{box-shadow:0 0 0 1.5px var(--warn) inset}
+  body.autorun.destrun .cap{box-shadow:0 0 0 1.5px var(--bad) inset}
+  /* el veredicto va DESPUÉS: gana a .dest por orden a igual especificidad */
   .m.auto.bad{background:var(--bad);color:#fff}
   .m.auto.good{background:var(--ok);color:#04231a}
 </style>
@@ -108,7 +119,7 @@
   <!-- Cuenta atrás del automático (3c-2): mientras corre, la cápsula ENTERA
        es el botón de parar. Un solo control y sin texto largo: aquí no cabe.
        El segundero es la promesa de que puedes intervenir. -->
-  <span class="m auto" id="aBox" hidden><b id="aNum"></b></span>
+  <span class="m auto" id="aBox" hidden><i id="aCmd"></i><b id="aNum"></b></span>
   <span class="m" id="pBox" hidden aria-hidden="true">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
       stroke-linecap="round">
@@ -249,6 +260,12 @@ if(EVENT){
       // el veredicto cierra la cuenta: ✓ aplicado, ✕ el relevo se negó. Una
       // cuenta atrás que acaba en silencio deja al usuario adivinando.
       $("aNum").textContent = a.mark==="ok" ? "✓" : a.mark==="err" ? "✕" : a.left;
+      // el comando A LA VISTA mientras corre; con el veredicto ya no hace
+      // falta (lo que iba a pasar, pasó) y el hueco vuelve a su tamaño
+      $("aCmd").textContent = a.mark ? "" : (a.cmd||"");
+      const dest = !a.mark && a.cmd==="/clear";
+      $("aBox").classList.toggle("dest", dest);
+      document.body.classList.toggle("destrun", dest);
       $("aBox").classList.toggle("bad", a.mark==="err");
       $("aBox").classList.toggle("good", a.mark==="ok");
     }

@@ -3767,3 +3767,30 @@ modelo.
 recortar prosa de otras. Cuando vuelva a apretar, lo sano es mover el bloque
 de REMEDIACIÓN —7.5 k, y su propio doc ya dice tenerlo todo— y dejar aquí solo
 el puntero.
+
+**La cuenta atrás no decía QUÉ iba a aplicar (encontrado 2026-08-12 al
+escribir los ejemplos).** Oscar pidió los casos del `/clear` explicados con
+ejemplos del día y "qué voy a ver en cada uno". Al ir a describir lo que se ve
+—en vez de asumirlo— salió el hueco: el widget pintaba SOLO el segundero, así
+que la cuenta de un `/compact` y la de un `/clear` eran idénticas en pantalla.
+Una resume y la otra BORRA, y con dos razones posibles (hecho o inferencia) la
+ambigüedad crecía justo el día que se enciende el camino nuevo.
+
+Lo más llamativo: el texto completo —"Michi va a aplicar /clear en 30 s, toca
+para parar"— ya viajaba en el evento `relay:auto` desde la etapa 3c-2. Estaba
+construido y **nadie lo pintaba**. Se emitía, se traducía a 8 idiomas y se
+tiraba.
+
+Arreglado: el chip lleva el comando y el color habla — ÁMBAR `/compact 15`,
+ROJO `/clear 30`. En la pastilla cabe entero; en el gatito no caben las dos
+cosas, así que mientras la cuenta corre el "Sesión X%" se aparta (`body.autorun`)
+y la cápsula queda dedicada a lo único que importa esos segundos. Verificado
+renderizando los tres estados con el marcado idéntico al de producción —la
+primera captura mentía porque al banco le faltaba el `id` del `%` y no aplicaba
+la regla que lo esconde—.
+
+Regla que queda, hermana de la del veredicto ✓/✕: **una cuenta atrás que no
+dice qué va a hacer deja al usuario adivinando igual que una que acaba en
+silencio.** Y la lección de proceso: escribir la documentación de cara al
+usuario ("qué vas a ver") encuentra huecos que revisar el código no encuentra,
+porque obliga a mirar la pantalla y no la lógica.
