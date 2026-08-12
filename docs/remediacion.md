@@ -1170,7 +1170,15 @@ destruye si antes existe una copia VERIFICADA de la conversación.
   cancelable) MÁS: interruptor propio `remCfg.relayClear` (nace
   APAGADO), sus 3 manuales de `/clear` ganadas, veredicto **Boundary**
   del clasificador (todos al 100% o commit limpio — en la duda gana
-  /compact, que no borra), y relevo v≥2. El manual (botón de la tarjeta
+  /compact, que no borra), y relevo v≥2.
+  **AMPLIACIÓN 2026-08-12 (camino por INFERENCIA):** además del Boundary
+  hay una segunda razón válida — veredicto `unsure` + el análisis local
+  diciendo `clear` por `tema_nuevo` — con interruptor APARTE
+  (`remCfg.relayClearAi`, cuelga del anterior y nace APAGADO), `topen === 0`
+  obligatorio y cuenta atrás de **30 s** en vez de 15. Todo lo demás,
+  incluida la red del /export, se exige igual. El detalle y el porqué en
+  `analisis-local.md` §"El automático por inferencia" — LEERLO antes de
+  tocar esa rama. El manual (botón de la tarjeta
   de intención) también lleva la red cuando el relevo sabe (v2).
 - **Las copias caducan a los 90 días** (`HANDOFF_KEEP_DAYS`, limpieza
   al arrancar el relevo). No viajan a ningún sitio: disco local de la

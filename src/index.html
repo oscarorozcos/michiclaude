@@ -1560,6 +1560,15 @@
         <span data-i18n="rly_clear_on"></span><input type="checkbox" id="rlyClearChk">
       </label>
       <div class="cfg-note" id="rlyClearLock" hidden style="color:var(--warn)"></div>
+      <!-- El /clear automático por INFERENCIA del análisis local. Interruptor
+           APARTE del anterior porque cambia la naturaleza de la decisión: allí
+           la dispara un hecho medido, aquí la opinión de un modelo chico. Nace
+           APAGADO y todo lo demás (red del /export, 3 manuales, relevo v2,
+           widget a la vista) sigue exigiéndose igual. -->
+      <label class="cfg-row" style="cursor:pointer">
+        <span data-i18n="rly_clear_ai_on"></span><input type="checkbox" id="rlyClearAiChk">
+      </label>
+      <div class="cfg-note" id="rlyClearAiNote"></div>
       <div class="cfg-note" id="rlyUnlock"></div>
       <div class="cfg-lbl" data-i18n="rem_log_label"></div>
       <div id="remLog" class="cfg-note"></div>
@@ -2016,6 +2025,10 @@ en:{
   ai_test:"Test",
   ai_testing:"Analyzing… (a cold start takes ~20 s)",
   ai_badge:"Local analysis",
+  rly_clear_ai_on:"…and also when the local analysis says «new topic»",
+  rly_clear_ai_note:"Riskiest option, and the reason it exists is to be tested: normally the automatic /clear needs a FACT (closed task list or clean commit). This also allows it on an inference from the local model — never with open tasks, always with the verified /export copy, and with a 30-second countdown instead of 15.",
+  rly_clear_ai_need:"Turn on the automatic /clear above first.",
+  rly_clear_ai_needai:"Needs «Local analysis (AI)» on, further down this tab.",
   ai_dl:"Download everything (~1.4 GB)",
   ai_dl_only_srv:"Download llama.cpp (~17 MB)",
   ai_dl_note:"One-time download: llama.cpp from GitHub and the model from Hugging Face, with verified checksums. After that everything runs offline.",
@@ -2480,6 +2493,10 @@ es:{
   ai_test:"Probar",
   ai_testing:"Analizando… (el arranque frío tarda ~20 s)",
   ai_badge:"Análisis local",
+  rly_clear_ai_on:"…y también cuando el análisis local diga «tema nuevo»",
+  rly_clear_ai_note:"La opción más arriesgada, y existe justo para probarla: normalmente el /clear automático exige un HECHO (lista de tareas cerrada o commit limpio). Esto lo permite además con una inferencia del modelo local — nunca con tareas abiertas, siempre con la copia /export verificada, y con 30 segundos de cuenta atrás en vez de 15.",
+  rly_clear_ai_need:"Enciende antes el /clear automático de arriba.",
+  rly_clear_ai_needai:"Necesita «Análisis local (IA)» encendido, más abajo en esta pestaña.",
   ai_dl:"Descargar todo (~1.4 GB)",
   ai_dl_only_srv:"Descargar llama.cpp (~17 MB)",
   ai_dl_note:"Descarga única: llama.cpp desde GitHub y el modelo desde Hugging Face, con huellas verificadas. Después todo corre sin internet.",
@@ -2944,6 +2961,10 @@ pt:{
   ai_test:"Testar",
   ai_testing:"Analisando… (a partida fria leva ~20 s)",
   ai_badge:"Análise local",
+  rly_clear_ai_on:"…e também quando a análise local disser «tema novo»",
+  rly_clear_ai_note:"A opção mais arriscada, e existe para ser testada: normalmente o /clear automático exige um FATO (lista de tarefas fechada ou commit limpo). Isto o permite também com uma inferência do modelo local — nunca com tarefas abertas, sempre com a cópia /export verificada, e com 30 segundos de contagem em vez de 15.",
+  rly_clear_ai_need:"Ligue primeiro o /clear automático acima.",
+  rly_clear_ai_needai:"Precisa de «Análise local (IA)» ligada, mais abaixo nesta aba.",
   ai_dl:"Baixar tudo (~1,4 GB)",
   ai_dl_only_srv:"Baixar llama.cpp (~17 MB)",
   ai_dl_note:"Download único: llama.cpp do GitHub e o modelo do Hugging Face, com somas verificadas. Depois tudo roda sem internet.",
@@ -3408,6 +3429,10 @@ fr:{
   ai_test:"Tester",
   ai_testing:"Analyse… (le démarrage à froid prend ~20 s)",
   ai_badge:"Analyse locale",
+  rly_clear_ai_on:"…et aussi quand l'analyse locale dit «nouveau sujet»",
+  rly_clear_ai_note:"L'option la plus risquée, et elle existe justement pour être testée : normalement le /clear automatique exige un FAIT (liste de tâches close ou commit propre). Ceci l'autorise aussi sur une inférence du modèle local — jamais avec des tâches ouvertes, toujours avec la copie /export vérifiée, et avec 30 secondes de compte à rebours au lieu de 15.",
+  rly_clear_ai_need:"Activez d'abord le /clear automatique ci-dessus.",
+  rly_clear_ai_needai:"Nécessite « Analyse locale (IA) » activée, plus bas dans cet onglet.",
   ai_dl:"Tout télécharger (~1,4 Go)",
   ai_dl_only_srv:"Télécharger llama.cpp (~17 Mo)",
   ai_dl_note:"Téléchargement unique : llama.cpp depuis GitHub et le modèle depuis Hugging Face, sommes vérifiées. Ensuite tout fonctionne hors ligne.",
@@ -3872,6 +3897,10 @@ de:{
   ai_test:"Testen",
   ai_testing:"Analysiere… (Kaltstart dauert ~20 s)",
   ai_badge:"Lokale Analyse",
+  rly_clear_ai_on:"…und auch, wenn die lokale Analyse «neues Thema» sagt",
+  rly_clear_ai_note:"Die riskanteste Option, und sie existiert genau zum Testen: normalerweise verlangt das automatische /clear eine TATSACHE (geschlossene Aufgabenliste oder sauberer Commit). Dies erlaubt es auch auf eine Schlussfolgerung des lokalen Modells — nie bei offenen Aufgaben, immer mit der geprüften /export-Kopie und mit 30 statt 15 Sekunden Countdown.",
+  rly_clear_ai_need:"Schalte zuerst das automatische /clear oben ein.",
+  rly_clear_ai_needai:"Benötigt «Lokale Analyse (KI)» eingeschaltet, weiter unten in diesem Tab.",
   ai_dl:"Alles herunterladen (~1,4 GB)",
   ai_dl_only_srv:"llama.cpp herunterladen (~17 MB)",
   ai_dl_note:"Einmaliger Download: llama.cpp von GitHub und das Modell von Hugging Face, mit geprüften Prüfsummen. Danach läuft alles offline.",
@@ -4336,6 +4365,10 @@ ja:{
   ai_test:"テスト",
   ai_testing:"分析中…（コールドスタートは約20秒）",
   ai_badge:"ローカル分析",
+  rly_clear_ai_on:"…ローカル分析が「新しい話題」と言ったときも",
+  rly_clear_ai_note:"最もリスクの高い選択で、まさに試すために用意しています。通常、自動 /clear は事実（タスクリストの完了、またはクリーンなコミット）を必要とします。これはローカルモデルの推論でも許可します — 未完了タスクがあるときは決して実行せず、必ず検証済みの /export コピーを取り、カウントダウンは15秒ではなく30秒です。",
+  rly_clear_ai_need:"先に上の自動 /clear を有効にしてください。",
+  rly_clear_ai_needai:"このタブの下にある「ローカル分析（AI）」を有効にしてください。",
   ai_dl:"すべてダウンロード（約1.4 GB）",
   ai_dl_only_srv:"llama.cpp をダウンロード（約17 MB）",
   ai_dl_note:"ダウンロードは一度だけ：GitHub から llama.cpp、Hugging Face からモデルを取得し、チェックサムを検証します。以後はすべてオフラインで動作します。",
@@ -4800,6 +4833,10 @@ ko:{
   ai_test:"테스트",
   ai_testing:"분석 중… (콜드 스타트는 약 20초)",
   ai_badge:"로컬 분석",
+  rly_clear_ai_on:"…로컬 분석이 «새로운 주제»라고 할 때도",
+  rly_clear_ai_note:"가장 위험한 선택이고, 바로 시험해 보려고 만든 거예요. 보통 자동 /clear는 사실(닫힌 작업 목록이나 깨끗한 커밋)을 요구해요. 이 옵션은 로컬 모델의 추론으로도 허용해요 — 열린 작업이 있으면 절대 실행하지 않고, 항상 검증된 /export 사본을 만들며, 카운트다운은 15초가 아니라 30초예요.",
+  rly_clear_ai_need:"위의 자동 /clear를 먼저 켜세요.",
+  rly_clear_ai_needai:"이 탭 아래의 «로컬 분석(AI)»을 켜야 해요.",
   ai_dl:"전체 다운로드(약 1.4 GB)",
   ai_dl_only_srv:"llama.cpp 다운로드(약 17 MB)",
   ai_dl_note:"한 번만 다운로드해요: GitHub에서 llama.cpp, Hugging Face에서 모델을 받아 체크섬을 검증해요. 이후에는 모두 오프라인으로 동작해요.",
@@ -5264,6 +5301,10 @@ zh:{
   ai_test:"测试",
   ai_testing:"分析中…（冷启动约需 20 秒）",
   ai_badge:"本地分析",
+  rly_clear_ai_on:"…以及本地分析判定「新话题」时",
+  rly_clear_ai_note:"这是最有风险的选项，而它的存在正是为了测试：通常自动 /clear 需要一个事实（任务清单已完成或提交干净）。此项允许它也基于本地模型的推断触发 —— 有未完成任务时绝不执行，始终先生成经校验的 /export 副本，倒计时为 30 秒而非 15 秒。",
+  rly_clear_ai_need:"请先开启上面的自动 /clear。",
+  rly_clear_ai_needai:"需要开启本标签页下方的「本地分析（AI）」。",
   ai_dl:"全部下载（约 1.4 GB）",
   ai_dl_only_srv:"下载 llama.cpp（约 17 MB）",
   ai_dl_note:"仅需下载一次：从 GitHub 获取 llama.cpp，从 Hugging Face 获取模型，并校验哈希。之后一切均离线运行。",
@@ -7598,7 +7639,16 @@ function maybeAiIntent(pr){
         flog("ai: veredicto "+c2.ai.rec+" · "+c2.ai.reason);
         if(!$("tab-tips").hidden && !relayBusy) renderTips();
       })
-      .catch(e=>flog("ai: "+String(e)));
+      .catch(e=>{
+        // se marca el FALLO: sin esto el automático por inferencia se
+        // quedaría esperando un veredicto que no va a llegar
+        try{
+          const cs=coachCardsStore();
+          const c2=cs.find(x=>x.h.rule==="intent"&&x.h.session===(pr.session||""));
+          if(c2){ c2.aiErr=true; saveCoachCards(cs); }
+        }catch(_){}
+        flog("ai: "+String(e));
+      });
   }catch(_){/* el análisis jamás tumba el sondeo */}
 }
 
@@ -8541,6 +8591,13 @@ function remUi(){
   const faltaC=Math.max(0,RELAY_UNLOCK["/clear"]-(c["/clear"]||0));
   $("rlyClearLock").hidden=!(remOn("relayClear")&&faltaC>0);
   $("rlyClearLock").textContent=t("rly_auto_lock",faltaC);
+  // camino por INFERENCIA: solo tiene sentido con el /clear automático ya
+  // pedido, y sin el análisis local encendido no dispararía nunca — se dice
+  // en vez de dejar un interruptor que no haría nada (invariante #8)
+  $("rlyClearAiChk").checked=remOn("relayClearAi");
+  $("rlyClearAiChk").disabled=!remOn("relayClear");
+  $("rlyClearAiNote").textContent = !remOn("relayClear") ? t("rly_clear_ai_need")
+    : (!aiCfg||!aiCfg.enabled) ? t("rly_clear_ai_needai") : t("rly_clear_ai_note");
 }
 $("rlyAutoChk").addEventListener("change",()=>{
   const cf=remCfg(); cf.relay=$("rlyAutoChk").checked;
@@ -8550,8 +8607,16 @@ $("rlyAutoChk").addEventListener("change",()=>{
 });
 $("rlyClearChk").addEventListener("change",()=>{
   const cf=remCfg(); cf.relayClear=$("rlyClearChk").checked;
+  // apagar el de arriba apaga el de la inferencia: el camino IA cuelga de él
+  if(!cf.relayClear) cf.relayClearAi=false;
   localStorage.setItem("remCfg",JSON.stringify(cf));
   flog("relevo: auto-/clear con red → "+(cf.relayClear?"on":"off"));
+  remUi();
+});
+$("rlyClearAiChk").addEventListener("change",()=>{
+  const cf=remCfg(); cf.relayClearAi=$("rlyClearAiChk").checked;
+  localStorage.setItem("remCfg",JSON.stringify(cf));
+  flog("relevo: auto-/clear por IA → "+(cf.relayClearAi?"on":"off"));
   remUi();
 });
 for(const [id,k] of [["remZombieChk","zombie"],["remArchChk","archive"]])
@@ -8938,6 +9003,12 @@ function relayApply(btn){
 // red: /export VERIFICADO antes de borrar; sin copia no hay /clear
 // (ERR_RELAY_EXPORT, fail-closed). La copia queda en <datos>/handoff/.
 const RELAY_AUTO_WAIT=15;   // más larga que la manual: esto no lo pediste tú
+// Cuenta atrás del /clear disparado por el ANÁLISIS LOCAL: el DOBLE que la
+// del automático normal. La proporción es deliberada y sigue la escalera que
+// ya usa el resto: 5 s cuando lo pides tú, 15 cuando lo decide un HECHO, 30
+// cuando lo decide una INFERENCIA. Cuanto más blanda la razón, más tiempo
+// para pararlo (docs/analisis-local.md §"El automático por inferencia").
+const RELAY_AUTO_WAIT_AI=30;
 let autoRun=null;           // {cmd,pid,timer} mientras corre la cuenta
 // Memoria del automático por sesión: "done" = ya se aplicó y no se vuelve a
 // tocar; un número = momento del último INTENTO fallido. Un rechazo del
@@ -8959,6 +9030,27 @@ function autoBlocked(sid){
   return false;
 }
 function autoStamp(sid,val){ const m=autoMap(); m[sid]=val; autoSave(m); }
+// El veredicto del ANÁLISIS LOCAL de esa sesión, tal como lo dejó
+// maybeAiIntent en la tarjeta de intención. null = todavía no hay.
+function aiVerdictFor(sid){
+  try{
+    const c=coachCardsStore().find(x=>x.h.rule==="intent"&&x.h.session===sid);
+    return c&&c.ai&&c.ai.rec ? c.ai : null;
+  }catch(_){ return null; }
+}
+// ¿El análisis está EN CAMINO para esa sesión? Sirve para que el automático
+// espere el veredicto en vez de aplicar /compact antes de que el modelo
+// alcance a hablar (si no, el camino nuevo no serviría de nada). Acotado en
+// el tiempo: pasados AI_WAIT_MIN desde que nació la tarjeta se deja de
+// esperar y el automático sigue su curso de siempre.
+const AI_WAIT_MIN=10;
+function aiPending(sid){
+  try{
+    const c=coachCardsStore().find(x=>x.h.rule==="intent"&&x.h.session===sid);
+    if(!c||c.ai||c.aiErr) return false;          // ya contestó, o ya falló
+    return (Date.now()-(c.born||0)) < AI_WAIT_MIN*60000;
+  }catch(_){ return false; }
+}
 // Le dice al widget qué pintar. `mark` cierra la cuenta con ✓ o ✕: una cuenta
 // atrás que termina en silencio no dice si actuó o no — y el usuario se queda
 // adivinando, que es peor que no haber avisado.
@@ -8986,20 +9078,43 @@ async function relayAutoCheck(pr){
   if(!rly) return;                           // sin pareja inequívoca, nada
   if(!pillOn) return;                        // sin widget no hay cuenta atrás
   // ¿/clear con red o /compact? /clear SOLO con: su interruptor propio, sus
-  // 3 manuales, veredicto Boundary (tarea cerrada — el mismo que reparte la
-  // insignia de la tarjeta; en la duda gana /compact, que no borra nada) y
-  // un relevo v2 que sepa exportar antes. El hit "press" trae las señales
-  // del clasificador, así que intentVerdict lee directo de él.
-  const clearOk=remOn("relayClear")&&relayUnlocked("/clear")
-    &&intentVerdict(pr)==="boundary"&&(rly.v||1)>=2;
+  // 3 manuales, un relevo v2 que sepa exportar antes, y una razón que lo
+  // justifique. El hit "press" trae las señales del clasificador, así que
+  // intentVerdict lee directo de él.
+  //
+  // DOS razones posibles, y la segunda es nueva (2026-08-12, pedida por
+  // Oscar para probarla unos días — docs/analisis-local.md §"El automático
+  // por inferencia"):
+  //   a) HECHO: veredicto Boundary (lista de tareas cerrada o commit limpio).
+  //   b) INFERENCIA: los hechos NO deciden (`unsure`) y el análisis local
+  //      dice `clear` por `tema_nuevo`. Lleva interruptor APARTE porque
+  //      cambia la naturaleza de la decisión, y encima exige que NO haya
+  //      tareas abiertas: un hecho no se sobreescribe con una opinión —
+  //      aunque `unsure` ya lo implica, se comprueba igual (defensa en
+  //      profundidad: si mañana cambia intentVerdict, esto sigue en pie).
+  const det=intentVerdict(pr);
+  const aiv=aiVerdictFor(sid);
+  const aiClear=remOn("relayClearAi")&&det==="unsure"&&(pr.topen||0)===0
+    &&!!aiv&&aiv.rec==="clear"&&aiv.reason==="tema_nuevo";
+  // Con el camino (b) armado y el veredicto aún en camino se ESPERA un ciclo:
+  // el automático aplicaría /compact antes de que el modelo alcance a decir
+  // "tema nuevo", y el camino nuevo nunca llegaría a usarse. La presión solo
+  // sube, así que esperar no cuesta nada; aiPending está acotado en tiempo.
+  if(remOn("relayClearAi")&&det==="unsure"&&aiPending(sid)) return;
+  const clearOk=remOn("relayClear")&&relayUnlocked("/clear")&&(rly.v||1)>=2
+    &&(det==="boundary"||aiClear);
   const cmd=clearOk?"/clear":"/compact";
   if(!clearOk&&!relayUnlocked("/compact")) return;
   // Se sella el INTENTO antes de empezar: si algo revienta a medias, el
   // sello impide un bucle que teclee en la terminal. Solo pasa a "done"
   // cuando de verdad se aplicó.
   autoStamp(sid, Date.now());
-  let left=RELAY_AUTO_WAIT;
-  flog("relevo auto: cuenta atrás para "+cmd+" en pid "+rly.pid+(clearOk?" (con red /export)":""));
+  // por INFERENCIA la cuenta es el doble: la razón es más blanda, el tiempo
+  // para pararla más largo
+  const byAi=clearOk&&det!=="boundary";
+  let left=byAi?RELAY_AUTO_WAIT_AI:RELAY_AUTO_WAIT;
+  flog("relevo auto: cuenta atrás para "+cmd+" en pid "+rly.pid
+    +(clearOk?" (con red /export)":"")+(byAi?" [IA: tema_nuevo]":""));
   autoBeam(left,cmd);
   autoRun={cmd,pid:rly.pid,timer:setInterval(async ()=>{
     left--;
@@ -9013,7 +9128,8 @@ async function relayAutoCheck(pr){
       await invoke("relay_inject",{pid:rly.pid,text:cmd,auto:true,origin:rly.origin||"",export:clearOk});
       autoStamp(sid,"done");                 // hecho: esta sesión ya está
       autoBeam(null,null,"ok");
-      flog("relevo auto: aplicado "+cmd);
+      // quién lo decidió va al rastro: es EL dato de la prueba de unos días
+      flog("relevo auto: aplicado "+cmd+(byAi?" por IA (tema_nuevo)":" por hecho"));
     }catch(e){
       // el candado se negó (Claude generando, texto sin enviar, copia que
       // no apareció: ERR_RELAY_EXPORT…). Es transitorio: NO se quema la

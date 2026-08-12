@@ -76,7 +76,7 @@ cosas (`ctx_count` = modelos con techo): si una fuente deja de publicarlo,
 el número baja a la vista.
 `price_key()` unifica PUNTO→GUIÓN entre dígitos (OpenRouter escribe
 `claude-opus-4.8`, el resto `claude-opus-4-8`): sin eso la 3.ª fuente
-casaba 6 de 14, ocho modelos sin precio ni techo EN SILENCIO. Auditadas:
+casaba 6 de 14, ocho modelos sin precio ni techo EN SILENCIO. Auditadas
 coinciden al céntimo; el techo discrepante es sonnet-4-5 (200k / 1M beta).
 
 **C) Remotas (dentro de `get_local_stats`):** `remotes.json` en
@@ -246,15 +246,15 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   red; NUNCA reintentar rápido un rate-limit); cuerpo a quota_debug.json;
   cadencia de cuota 3 min (60 s disparaba 429); el gauge conserva el
   último dato bueno 15 min. Muchos arranques seguidos = 429 de 60 MIN.
-- Instancia única (single-instance).
+- Instancia única.
 - Tocar algo que `emitPill()` calcula: `emitPill(...lastPillArgs)`, NUNCA
   parchear un campo suelto de `lastPill` (dejaba el tema viejo).
 - Export CSV/JSON: UNA fila por hecho (fecha × proyecto × modelo ×
   origen); BOM en CSV; campos entre comillas; filas solo al exportar
   (`want_rows`); el ORIGEN lo pone quien lee; sin totales; periodo propio
   (1/7/15/30). Un export es una foto.
-- Presupuesto semanal: contra la suma de los últimos 7 días de la
-  serie diaria, no la ventana elegida.
+- Presupuesto semanal: contra la suma de los últimos 7 días de la serie
+  diaria, no la ventana elegida.
 - Autostart solo en release, una vez (marker); apagado se respeta.
 
 ## Analizador de fugas (pestaña Hallazgos)
@@ -266,17 +266,17 @@ en sincronía (invariante #1): motor en `meter-export.py`
 MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
 
 **Detectores y umbrales** (constantes; detalle en el doc): reread (≥3
-lecturas y ~2k tok — MIDE chars devueltos), inflate (+50k, 10+ turnos),
+lecturas, ~2k tok — MIDE chars devueltos), inflate (+50k, 10+ turnos),
 cachebreak (≥300k reescritos; fuera isSidechain y compactaciones ±120 s),
 mech (≥5; git/pytest/cargo/npm), subagents (≥50k de sidechain),
-hooks_noise (≥15 disparos y ≥10k tok; attachments hook_success),
+hooks_noise (≥15 disparos, ≥10k tok; attachments hook_success),
 mcp_unused (resta de conjuntos), skills_unused, claudemd (solo 7d+;
 identificadores por línea contra texto crudo, rojo solo si NINGUNA
 mención; costo PISO chars/4 × sesiones, NUNCA líneas × turnos) y
 claudemdsize (>40k `CLAUDEMD_LOAD_LIMIT`: lo que sobra no se carga;
 costo 0, solo 7d+).
-Tope 12 por costo en backend. REGLA: los de "lo instalado" señalan lo
-que NO se usa y su costo de carga, nunca si algo usado "gastó de más".
+Tope 12 por costo en backend. REGLA: los de "lo instalado" señalan lo que
+NO se usa y su costo de carga, nunca si algo usado "gastó de más".
 
 **Orden:** `ts` desc, luego costo. Llevan ts los de sesión
 (reread/inflate/cachebreak) y los agregados con actividad
@@ -347,7 +347,9 @@ degrada solo (validado en vivo, sondeo ~80 ms). ANÁLISIS LOCAL (IA),
 automático; evidencia = `title`+`msgs` del press (3 mensajes humanos ×300
 chars; `user_turn_text` = ÚNICO filtro, el bool lo envuelve, réplica en
 exportador); `msgs` NO se persiste (solo `c.ai`); UNA invocación por
-sesión aunque falle; fail-quiet; interruptor nace OFF; Probar = la misma
+sesión aunque falle; AUTOMÁTICO POR INFERENCIA: `relayClearAi` (OFF, bajo
+relayClear) = 2.ª razón del auto-/clear (`unsure`+`tema_nuevo`, `topen==0`,
+30 s), resto IGUAL, red incluida, espera el veredicto; fail-quiet; interruptor nace OFF; Probar = la misma
 tubería. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 4 CONSTANTES
 (actualizar JUNTAS); única conexión fuera de api.anthropic.com, opt-in y
 anunciada; respeta rutas manuales. Regla `acomp`:
@@ -376,8 +378,8 @@ la más reciente arriba—; las frías del catálogo, abajo. PENDIENTE FANTASMA
 (blindado): un turno nuevo del hilo principal LIMPIA pending_tool; los
 tool_use de subagentes no lo tocan. El nombre del proyecto va RESUELTO desde Rust (`pname`, cwd real). Aviso
 en widget: post-it turquesa / foco ámbar, campo `coach` en quota:update,
-mismo interruptor. El recibo NO manda push (su push fue el "terminó"). Depurar "no llegó X": PRIMERO `coach_debug.json` (compuertas por sesión
-en cada sondeo) y la bitácora `flowLog` (📜 en dev). coachHits queda SOLO
+mismo interruptor. El recibo NO manda push (su push fue el "terminó"). Depurar "no llegó X": PRIMERO `coach_debug.json` y la bitácora `flowLog`
+(📜 en dev). coachHits queda SOLO
 para el simulador.
 
 ## Avisos al celular (ntfy)
@@ -503,15 +505,14 @@ presion-y-rendimiento §"Qué queda vivo".
       MENÚ — jamás a secas. **El Enter va SEPARADO del texto** (`type_line`,
       ENTER_GAP_MS 250): juntos, la TUI los toma por PEGADO y la línea se
       queda escrita sin ejecutarse. El AUTOMÁTICO exige widget A LA VISTA —la
-      cuenta atrás vive en la cápsula—, dura 15 s, cualquier toque la
-      para (en el gatito el manejador va en CAPTURA) y se marca ANTES de
-      empezar. Un rechazo del candado es TRANSITORIO: `done` solo tras
+      cuenta atrás vive en la cápsula—, dura 15 s, cualquier toque la para (en el gatito el manejador va en CAPTURA) y
+      se marca ANTES de empezar. Un rechazo del candado es TRANSITORIO: `done` solo tras
       aplicar; un fallo guarda el momento y reintenta a los 10 min. La
-      cuenta CIERRA con veredicto ✓/✕: acabar en silencio deja al
-      usuario adivinando. ATAJO DEL PATH (`set_relay_alias`): un
-      `claude.cmd` en `%APPDATA%\<app>\bin` DELANTE del PATH de usuario
-      — resuelve Windows, no el shell (cualquier terminal/editor); NO
-      alcanza WSL/SSH ni rutas absolutas. NUNCA deja sin Claude Code
+      cuenta CIERRA con veredicto ✓/✕: acabar en silencio deja al usuario
+      adivinando. ATAJO DEL PATH (`set_relay_alias`):
+      `claude.cmd` en `%APPDATA%\<app>\bin` DELANTE del PATH de usuario —
+      resuelve Windows, no el shell; NO alcanza WSL/SSH ni rutas
+      absolutas. NUNCA deja sin Claude Code
       (con `MICHI_RELEVO` o sin michi.exe ejecuta el real). PATH por
       `SetEnvironmentVariable`, JAMÁS `setx` (trunca a 1024); copia en
       `path_backup.txt` y quita EXACTA su entrada. FAIL-OPEN sin consola:
@@ -558,15 +559,14 @@ presion-y-rendimiento §"Qué queda vivo".
       `wsl.exe` NO entrega `$1` a `sh -c` (ssh sí) → nombre y op DENTRO
       del comando contra lista cerrada; y un op desconocido caía en
       APAGAR y contestaba OK (✓ falso) → ahora BADOP.
-      `tests/claude-falso.sh` prueba el relevo sin Claude Code.
       4e CHAT DE WINDOWS HECHO Y VALIDADO: `michi.exe wrap`, ajuste
       apuntando a michi.exe A SECAS (la llamada de la extensión se conoce
-      por `--input-format`), `attend`/`handoff` por un `Speaker` —la
-      terminal TECLEA, el chat MANDA protocolo, y R1-R5 y la red del
-      /export NO se duplican—, y el interruptor escribe el settings.json
-      por TEXTO (línea sola en su renglón, verificando que siga siendo
-      JSON) porque es del usuario. `wrap_debug.txt` porque la extensión
-      se come stderr: un enganche que no arranca se ve igual que uno que
+      por `--input-format`), `attend`/`handoff` por un `Speaker` (la
+      terminal TECLEA, el chat MANDA protocolo: R1-R5 y la red no se
+      duplican), y el interruptor escribe el settings.json por TEXTO
+      (línea sola en su renglón, verificando que siga siendo JSON) porque
+      es del usuario. `wrap_debug.txt` porque la extensión se
+      come stderr: un enganche que no arranca se ve igual que uno que
       funciona. El aviso sale tras el `result` del PRIMER turno (con el
       mensaje en vuelo la extensión no lo pinta; en Linux va delante). En
       DEV manda el michi.exe que compila el crate, no la copia que
@@ -606,7 +606,7 @@ de subir: el compilador no está para avisar.
 
 LECTURA DE ARCHIVOS GRANDES: no abrir entero uno de miles de líneas
 (`index.html` ≈ 137k tokens): grep y leer SOLO ese rango — lo leído viaja
-en cada turno siguiente (medido: 7 relecturas, sesión de $96.86).
+en cada turno (medido: 7 relecturas, sesión de $96.86).
 
 TRAS `git pull`, LA HORA DEL BINARIO: pull en el MISMO MINUTO que la
 última compilación = Cargo ve empate y NO recompila (`Finished` en 0.1 s,
@@ -614,8 +614,8 @@ sin `Compiling`) — corre el exe viejo y el bug "no se arregla". Arreglo:
 `(Get-Item src\main.rs).LastWriteTime = Get-Date` y recompilar;
 `cargo clean -p` NO basta.
 
-**Simulador** (solo dev, `is_dev`): gatito / avisos / hallazgos /
-contexto. Bandera `simRunning` (NO simMascot). NUNCA toca localStorage ni
+**Simulador** (solo dev): gatito / avisos / hallazgos / contexto /
+intención. Bandera `simRunning` (NO simMascot). NUNCA toca localStorage ni
 manda pushes; al parar, `processAcks()` restaura lo real. Pausa `simMin`
 (mín. 5 s). Único control sin `t()`.
 

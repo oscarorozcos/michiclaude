@@ -15,10 +15,15 @@ distinta de la determinista, y nada más que eso.
 
 ## Reglas duras (no negociables)
 
-1. **El modelo jamás sustituye una compuerta.** El auto-/clear sigue
-   exigiendo veredicto `Boundary` DETERMINISTA (TodoWrite cerrado o commit
-   limpio). Un "tema_nuevo" del modelo NO dispara nada: pinta una insignia
-   en la tarjeta MANUAL y ahí se acaba su poder.
+1. **El modelo jamás sustituye una compuerta** (REVISADA 2026-08-12, ver
+   §"El automático por inferencia"). En la v1 el modelo solo pintaba una
+   insignia en la tarjeta MANUAL. Ahora puede además disparar el
+   auto-/clear, pero NO sustituyendo la compuerta `Boundary`: es un camino
+   PARALELO con interruptor propio (`relayClearAi`, nace APAGADO) que
+   mantiene TODO lo demás — red del /export verificada, 3 manuales, relevo
+   v≥2, widget a la vista, una vez por sesión, cuenta atrás cancelable — y
+   encima añade dos exigencias suyas. Lo que NO cambia: **un hecho nunca se
+   sobreescribe con una opinión**.
 2. **Solo entra en `unsure`.** Si `intentVerdict()` ya decidió con hechos
    (todos abiertos, lista al 100%, commit limpio, cont≥40), el modelo ni se
    invoca. Los hechos le ganan a las inferencias, siempre.
@@ -217,6 +222,64 @@ gatito — la tarjeta cae entre "se enreda" (60%) y "muerta" (85%).
    que se quiere ver (pasó en la primera prueba). La evidencia sí es real.
 3. Lo que decide si esto se queda: ¿la insignia acierta en tus sesiones
    reales? Anotar aciertos/fallos unos días antes de construir la etapa 2.
+
+## El automático por inferencia (2026-08-12, a petición de Oscar)
+
+Oscar lo pidió explícitamente para probarlo unos días: que el `/clear` se
+aplique solo cuando lo recomiende el modelo, con las reglas y la red ya
+existentes. Cruza la regla #1 de la v1, así que se implementó como CAMINO
+PARALELO y no como sustitución: hay DOS razones válidas para el
+auto-/clear y cada una tiene su interruptor.
+
+| | Razón (a) — HECHO | Razón (b) — INFERENCIA |
+|---|---|---|
+| Qué la dispara | `Boundary`: lista de tareas al 100% o commit limpio | `unsure` + el modelo dice `clear` por `tema_nuevo` |
+| Interruptor | `relayClear` | `relayClearAi` (cuelga del anterior) |
+| Cuenta atrás | 15 s | **30 s** |
+
+Todo lo demás se exige IGUAL en las dos: interruptor maestro del
+automático, sus 3 manuales de `/clear` ganadas a mano, relevo v≥2, widget A
+LA VISTA, una vez por sesión (sellada antes de empezar), cualquier toque la
+para, R1-R4 se revuelven al escribir, y la **red del `/export` verificado
+en disco o no hay `/clear`** (`ERR_RELAY_EXPORT`, fail-closed). La red es
+lo que hace esto defendible: un `/clear` por inferencia equivocada cuesta
+una copia que sigue en disco, no la conversación.
+
+**Las dos exigencias extra del camino (b):**
+
+1. **`topen === 0`** — con tareas abiertas NO se aplica, nunca. El
+   veredicto `unsure` ya lo implica (con tareas abiertas sería `alive`),
+   pero se comprueba otra vez a propósito: defensa en profundidad, para que
+   el día que alguien toque `intentVerdict` esta puerta siga cerrada.
+2. **`reason === "tema_nuevo"`** — el sesgo asimétrico de la regla #3
+   llevado al automático: `tema_cruzado`, `tarea_viva` y `cierre` NO
+   disparan `/clear`; caen al `/compact` de siempre, que no borra.
+
+**La cuenta atrás es el doble (30 s).** Sigue la escalera que ya usaba el
+proyecto: 5 s cuando lo pides tú, 15 cuando lo decide un hecho medido, 30
+cuando lo decide una inferencia. Cuanto más blanda la razón, más tiempo
+para pararla.
+
+**El automático ESPERA el veredicto** (`aiPending`). Sin esto el camino
+nuevo no serviría de nada: al llegar al 80% con veredicto `unsure`, el
+automático de siempre aplicaría `/compact` en el primer sondeo, antes de
+que el modelo alcance a hablar. Ahora, si el camino (b) está armado y el
+análisis está en marcha, el sondeo se abstiene y espera al siguiente. Está
+ACOTADO: `AI_WAIT_MIN` (10 min) desde que nació la tarjeta, y un fallo del
+análisis marca `aiErr` para dejar de esperar de inmediato. La presión de
+contexto solo sube, así que esperar nunca empeora nada.
+
+**Cómo se audita la prueba de unos días.** El rastro del flujo (📜 en dev)
+distingue quién lo decidió: `relevo auto: aplicado /clear por IA
+(tema_nuevo)` frente a `… por hecho`. Es EL dato de la prueba: si aparece
+un `por IA` donde no debía, ahí está la copia del `/export` en
+`<datos>/handoff/` (90 días) y el botón "abrir la copia" en el registro de
+acciones.
+
+**Si esto sale mal**, el orden de retirada es: apagar `relayClearAi` (el
+resto del automático sigue como estaba) → si el problema es el veredicto,
+afinar el prompt → si es sistemático, volver a la v1 (solo insignia). El
+camino (a) nunca depende del modelo.
 
 ## Etapa 2 (después de validar la v1)
 

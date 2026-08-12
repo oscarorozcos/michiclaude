@@ -3701,3 +3701,69 @@ endpoint de chat, y el razonamiento encendido por defecto.
 2. Anotar unos días si ACIERTA. Ese es el dato que decide la etapa 2
    (embeddings como peldaño previo) o si hay que afinar el prompt.
 3. Cuando el repo sea público: el espejo de modelos en GitHub Releases.
+
+## 2026-08-12 (tarde) — el automático por INFERENCIA: el modelo puede disparar el /clear
+
+Oscar lo pidió con todas las letras: que el `/clear` se aplique solo cuando lo
+recomiende el modelo, con las reglas y la red que ya existen, para probarlo
+unos días. Eso cruza la que yo había escrito como **regla #1** del análisis
+local ("el modelo jamás sustituye una compuerta"), así que lo primero fue
+decírselo y lo segundo diseñarlo de forma que la red aguante. Su decisión,
+implementada — y la regla #1 REESCRITA en el diseño en vez de dejarla
+mintiendo.
+
+**La forma: camino PARALELO, no sustitución.** El auto-/clear tiene ahora DOS
+razones válidas, cada una con su interruptor:
+
+| | (a) HECHO | (b) INFERENCIA |
+|---|---|---|
+| Dispara | `Boundary` (lista al 100% o commit limpio) | `unsure` + modelo dice `clear`/`tema_nuevo` |
+| Interruptor | `relayClear` | `relayClearAi` (cuelga del anterior, nace OFF) |
+| Cuenta atrás | 15 s | **30 s** |
+
+Todo lo demás se exige IGUAL: interruptor maestro, 3 manuales de `/clear`
+ganadas a mano, relevo v≥2, widget A LA VISTA, una vez por sesión sellada
+antes de empezar, cualquier toque la para, R1-R4 al escribir, y la **copia
+`/export` verificada en disco o no hay `/clear`**. Esa red es lo que hace la
+apuesta defendible: un `/clear` por inferencia equivocada cuesta una copia que
+sigue en `<datos>/handoff/`, no la conversación.
+
+**Dos exigencias extra que solo tiene el camino (b):**
+
+1. **`topen === 0`.** El veredicto `unsure` ya lo implica (con tareas abiertas
+   sería `alive`), pero se comprueba OTRA VEZ a propósito. Defensa en
+   profundidad: el día que alguien toque `intentVerdict`, esta puerta sigue
+   cerrada. Un hecho no se sobreescribe con una opinión.
+2. **`reason === "tema_nuevo"`.** El sesgo asimétrico llevado al automático:
+   `tema_cruzado`, `tarea_viva` y `cierre` NO borran, caen al `/compact`.
+
+**El detalle que decidía si esto servía de algo: el automático tiene que
+ESPERAR el veredicto.** Al llegar al 80% con `unsure`, el automático de
+siempre aplicaría `/compact` en el PRIMER sondeo — antes de que el modelo
+alcance a hablar — y el camino nuevo nunca se usaría. Ahora, con (b) armado y
+el análisis en marcha, el sondeo se abstiene y espera al siguiente
+(`aiPending`). Acotado: 10 min desde que nació la tarjeta, y un fallo del
+análisis marca `aiErr` para dejar de esperar de inmediato. La presión solo
+sube, así que esperar nunca empeora nada. Sin esta pieza el resto era decorado.
+
+**La cuenta atrás es el doble (30 s)** y con eso queda completa una escalera
+que el proyecto ya venía usando sin nombrarla: **5 s cuando lo pides tú, 15
+cuando lo decide un hecho medido, 30 cuando lo decide una inferencia.** Cuanto
+más blanda la razón, más tiempo para pararla.
+
+**Cómo se audita la prueba:** el rastro del flujo distingue quién decidió —
+`relevo auto: aplicado /clear por IA (tema_nuevo)` frente a `… por hecho`. Ese
+es EL dato de estos días. Y si aparece un `por IA` donde no debía, la copia
+está a un clic desde el registro de acciones.
+
+**Orden de retirada si sale mal** (escrito ANTES de probar, que es cuando se
+piensa con la cabeza fría): apagar `relayClearAi` y el resto del automático
+sigue como estaba → si el problema es el veredicto, afinar el prompt → si es
+sistemático, volver a la v1 (solo insignia). El camino (a) nunca depende del
+modelo.
+
+**Nota de mantenimiento:** CLAUDE.md quedó otra vez pegado al tope de 40k
+(39.982). Es la tercera vez en el día que meter una regla nueva obliga a
+recortar prosa de otras. Cuando vuelva a apretar, lo sano es mover el bloque
+de REMEDIACIÓN —7.5 k, y su propio doc ya dice tenerlo todo— y dejar aquí solo
+el puntero.
