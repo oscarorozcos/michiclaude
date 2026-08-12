@@ -3965,3 +3965,44 @@ actualización validado. Lo que queda para el LANZAMIENTO (cuando Oscar
 quiera ser encontrado): capturas del README, el espejo de modelos en un
 release, y la apuesta #2 (tarjeta compartible + gamificación) como pieza
 de crecimiento.
+
+## 2026-08-12 (tarde-2) — El espejo de modelos: el análisis local ya no depende de servidores ajenos
+
+Idea de Oscar del 2026-08-11 ("¿y si Hugging Face quita la URL o el
+modelo deja de existir? ¿no es mejor dejarlo en mi GitHub cuando sea
+público?"), ejecutada el mismo día que el repo se abrió — era el único
+bloqueador.
+
+**Qué se hizo:** release `modelos-v1` en el propio repo con copias byte a
+byte del GGUF (Qwen3.5-2B, 1.8 GB) y el zip de llama.cpp (b10362). En el
+código, dos constantes nuevas (`AI_LS_URL_MIRROR` / `AI_MODEL_URL_MIRROR`)
+y `ai_fetch()`: intenta la fuente original, y si falla la RED **o la
+HUELLA**, cae al espejo. El fallo de huella importa tanto como el de red:
+que Hugging Face responda 200 con OTRO archivo (lo reemplazaron) es
+exactamente el escenario que el espejo cubre. La misma SHA-256 valida
+ambas fuentes — la autoridad es la huella, no el servidor.
+
+**Dos detalles que evitaron romper lo de la mañana:**
+
+1. El release va como **PRERELEASE**: `releases/latest` (el endpoint del
+   updater validado horas antes) ignora prereleases. Sin esa marca,
+   `modelos-v1` habría tapado a la v0.1.1 y el updater se habría quedado
+   ciego. Verificado tras subir: `latest.json` sigue anunciando 0.1.1.
+2. El tag NO empieza con `v` → el workflow de release (`tags: v*`) no se
+   dispara: no compila nada, no publica instaladores fantasma.
+
+**Verificación en vivo, círculo completo:** bajados los originales al VPS
+→ huellas idénticas a las constantes → subidos con `gh release upload` →
+descargado el zip DE VUELTA del espejo sin ninguna autenticación → huella
+idéntica otra vez. El camino que recorrería la app de un usuario nuevo con
+Hugging Face caído está probado de punta a punta, salvo el salto mismo
+(imposible de probar sin tumbar la fuente original; el código del salto
+son 10 líneas de bucle sobre las mismas dos funciones ya validadas).
+
+**Regla para el futuro:** cambio de build o de modelo = actualizar las
+SEIS constantes juntas Y subir las copias a un release `modelos-v2` —
+no se reutiliza el viejo, misma regla que el updater: un binario ya
+publicado no se reemplaza.
+
+Pendiente de Windows: `cargo check` de este cambio (el VPS no tiene
+toolchain; los usos están todos grepeados y cuadran).

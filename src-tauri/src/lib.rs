@@ -4119,14 +4119,22 @@ async fn ai_intent(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerd
 // --- descarga guiada (un clic, sin rutas) --------------------------------
 // URLs y huellas SHA-256 FIJAS en el binario — la regla del updater: jamás
 // salen de algo descargado. Pineadas a un build concreto de llama.cpp y al
-// GGUF exacto de la investigación de modelos; actualizar
-// las cuatro constantes JUNTAS. Es la ÚNICA conexión de la app que no va a
+// GGUF exacto de la investigación de modelos. Cada archivo tiene su fuente
+// original Y un espejo en los Releases de este repo (release `modelos-v1`,
+// prerelease para que el updater no lo vea): si la fuente original muere o
+// cambia el archivo, la descarga cae sola al espejo. La MISMA huella valida
+// ambas fuentes (el espejo es copia byte a byte); al cambiar de build o de
+// modelo, actualizar las SEIS constantes juntas Y subir las copias nuevas a
+// un release `modelos-v2`. Es la ÚNICA conexión de la app que no va a
 // api.anthropic.com: GitHub y Hugging Face, una vez, opt-in y anunciada en
 // la propia interfaz (ai_dl_note).
 const AI_LS_URL: &str = "https://github.com/ggml-org/llama.cpp/releases/download/b10362/llama-b10362-bin-win-cpu-x64.zip";
+const AI_LS_URL_MIRROR: &str = "https://github.com/oscarorozcos/michiclaude/releases/download/modelos-v1/llama-b10362-bin-win-cpu-x64.zip";
 const AI_LS_SHA: &str = "a9d95d26cf00664f2902f73cb0fd9b167a3a1f252294bb2f8b236305f57d6363";
 const AI_MODEL_URL: &str =
     "https://huggingface.co/unsloth/Qwen3.5-2B-MTP-GGUF/resolve/main/Qwen3.5-2B-UD-Q4_K_XL.gguf";
+const AI_MODEL_URL_MIRROR: &str =
+    "https://github.com/oscarorozcos/michiclaude/releases/download/modelos-v1/Qwen3.5-2B-UD-Q4_K_XL.gguf";
 const AI_MODEL_SHA: &str = "9f7b15d04cf2d5878c8122a7c181dbc09f050cd66080ce3374576e734ccb0910";
 
 fn ai_dir() -> PathBuf {
@@ -4255,6 +4263,31 @@ fn ai_check_sha(p: &std::path::Path, want: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Descarga con respaldo: intenta cada URL en orden y valida la huella de lo
+/// que llegue. Que la fuente original responda pero con OTRO archivo (lo
+/// reemplazaron río arriba) también manda al espejo: el fallo de huella es
+/// tan definitivo como el de red. Devuelve el último error si ninguna fuente
+/// entrega el archivo correcto.
+async fn ai_fetch(
+    app: &tauri::AppHandle,
+    phase: &str,
+    urls: &[&str],
+    sha: &str,
+    dest: &std::path::Path,
+) -> Result<(), String> {
+    let mut last = "ERR_AI_DL".to_string();
+    for url in urls {
+        match ai_download(app, phase, url, dest).await {
+            Ok(()) => match ai_check_sha(dest, sha) {
+                Ok(()) => return Ok(()),
+                Err(e) => last = e,
+            },
+            Err(e) => last = e,
+        }
+    }
+    Err(last)
+}
+
 /// Descomprime el zip del binario (Expand-Archive: viene con Windows).
 fn ai_unzip(zip: &std::path::Path, dest: &std::path::Path) -> Result<(), String> {
     let _ = fs::create_dir_all(dest);
@@ -4304,8 +4337,7 @@ async fn ai_setup(app: tauri::AppHandle) -> Result<AiConfig, String> {
     let st = ai_setup_status();
     if !st.server {
         let zip = dir.join("llama-cpu.zip");
-        ai_download(&app, "server", AI_LS_URL, &zip).await?;
-        ai_check_sha(&zip, AI_LS_SHA)?;
+        ai_fetch(&app, "server", &[AI_LS_URL, AI_LS_URL_MIRROR], AI_LS_SHA, &zip).await?;
         ai_unzip(&zip, &dir.join("bin"))?;
         let _ = fs::remove_file(&zip);
         if find_ls(&dir.join("bin")).is_none() {
@@ -4314,8 +4346,7 @@ async fn ai_setup(app: tauri::AppHandle) -> Result<AiConfig, String> {
     }
     if !st.model {
         let part = dir.join("model.part");
-        ai_download(&app, "model", AI_MODEL_URL, &part).await?;
-        ai_check_sha(&part, AI_MODEL_SHA)?;
+        ai_fetch(&app, "model", &[AI_MODEL_URL, AI_MODEL_URL_MIRROR], AI_MODEL_SHA, &part).await?;
         fs::rename(&part, ai_model_file()).map_err(|_| "ERR_AI_DL".to_string())?;
     }
     let mut cfg = load_ai_config();

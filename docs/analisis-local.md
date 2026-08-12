@@ -294,15 +294,37 @@ resto del automático sigue como estaba) → si el problema es el veredicto,
 afinar el prompt → si es sistemático, volver a la v1 (solo insignia). El
 camino (a) nunca depende del modelo.
 
+## Espejo de modelos — HECHO (2026-08-12)
+
+Idea de Oscar (2026-08-11), ejecutada el día que el repo se hizo público.
+Release `modelos-v1` en el propio repo con el GGUF y el zip de llama.cpp
+(Apache 2.0 y MIT permiten redistribuir con su licencia adjunta; los
+assets aguantan hasta 2 GB). Reglas ganadas al hacerlo:
+
+- El release va como **PRERELEASE**: `releases/latest` (el endpoint del
+  updater) ignora prereleases — sin esa marca, `modelos-v1` taparía a la
+  versión real de la app. Y el tag NO empieza con `v`, así el workflow de
+  release no se dispara.
+- En el código: `AI_LS_URL_MIRROR` / `AI_MODEL_URL_MIRROR` y `ai_fetch()`
+  (fuente original primero, espejo después). La caída al espejo salta
+  tanto por fallo de RED como por fallo de HUELLA: que la fuente original
+  responda con OTRO archivo (lo reemplazaron río arriba) es exactamente el
+  caso que el espejo cubre. La MISMA SHA valida ambas fuentes: la
+  autoridad es la huella, no el servidor.
+- Al cambiar de build o de modelo: actualizar las SEIS constantes juntas
+  y subir las copias nuevas a un release `modelos-v2` (no reutilizar el
+  viejo: un binario ya publicado no se reemplaza, misma regla que el
+  updater).
+- Verificado en vivo: subido con `gh release upload`, descargado de
+  vuelta SIN autenticación y huella idéntica; `latest.json` siguió
+  anunciando la versión vigente.
+
+El riesgo que cubre es solo de ALTA (usuarios nuevos descargando): los
+existentes corren sin internet.
+
 ## Etapa 2 (después de validar la v1)
 
-- ESPEJO en GitHub Releases del repo (cuando sea público, idea de Oscar
-  2026-08-11): release `modelos-v1` con el GGUF, el zip de llama.cpp y el
-  futuro modelo de embeddings — Apache 2.0 y MIT permiten redistribuir con
-  su licencia adjunta, y los assets aguantan hasta 2 GB. En el código, URL
-  de RESPALDO por constante (HF primero, espejo si falla); la MISMA SHA
-  valida ambos: la autoridad es la huella, no el servidor. Hoy el riesgo
-  es solo de alta (usuarios nuevos): los existentes corren sin internet.
+- Modelo de embeddings al espejo cuando exista (mismo release-estante).
 - Embeddings (multilingual-e5-small GGUF, ~120 MB) como peldaño previo:
   similitud coseno título+viejo ↔ reciente; <0.45 = tema_nuevo, >0.65 =
   tema_cruzado, y el 2B queda solo para la banda media. (La descarga de

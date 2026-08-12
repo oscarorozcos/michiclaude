@@ -350,8 +350,11 @@ exportador); `msgs` NO se persiste (solo `c.ai`); UNA invocación por
 sesión aunque falle; AUTOMÁTICO POR INFERENCIA: `relayClearAi` (OFF, bajo
 relayClear) = 2.ª razón del auto-/clear (`unsure`+`tema_nuevo`, `topen==0`,
 30 s), resto IGUAL, red incluida, espera el veredicto; fail-quiet; interruptor nace OFF; Probar = la misma
-tubería. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 4 CONSTANTES
-(actualizar JUNTAS); única conexión fuera de api.anthropic.com, opt-in y
+tubería. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 6 CONSTANTES
+(original + ESPEJO `modelos-v1` por archivo — PRERELEASE y tag sin `v`,
+o rompe updater/workflow; `ai_fetch` cae al espejo por fallo de red O de
+huella; cambio de modelo = las 6 juntas + release `modelos-v2`, detalle
+en el doc); única conexión fuera de api.anthropic.com, opt-in y
 anunciada; respeta rutas manuales. Regla `acomp`:
 `compact_boundary` con trigger≠manual y <30 min → ficha con los preTokens
 (los manuales no avisan: los hiciste tú; los INYECTADOS por el relevo
