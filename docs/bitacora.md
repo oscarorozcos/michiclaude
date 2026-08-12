@@ -3887,3 +3887,22 @@ con el noreply en este clon — falta la MISMA config en el clon de Windows.
 Matiz honesto: GitHub conserva un tiempo los objetos viejos inalcanzables en
 su servidor; como el repo jamás fue público y nadie más tiene los hashes, el
 riesgo práctico es cero, y al hacerse público solo se clona lo alcanzable.
+
+## 2026-08-12 (noche) — REPO PÚBLICO, y el release #1 muere por los iconos
+
+Oscar lo hizo público. Primer tag `v0.1.0` → primera ejecución REAL del
+workflow de release (escrito hace semanas, jamás corrido) → rojo a los 7m51s:
+`icons/icon.ico not found`. La causa: `.gitignore` ignoraba `src-tauri/icons/`
+entero — en el Windows de Oscar los iconos existen porque los generó una vez
+con `npm run icons`, pero el runner parte de un clon limpio. El clásico
+"funciona en mi máquina" en su forma más pura, y nunca se pudo ver antes
+porque el workflow nunca había corrido.
+
+Arreglo: los iconos generados van COMMITEADOS, como en la plantilla oficial
+de Tauri (son artefactos deterministas de app-icon.png y el build los
+necesita); fuera del repo quedan solo las variantes móviles (android/ios).
+Regenerar: `npm run icons` si algún día cambia app-icon.png.
+
+Lección: un workflow que nunca ha corrido es una promesa, no una pieza.
+La primera ejecución ES parte de la validación — por eso el updater se
+prueba completo ANTES de que exista un solo usuario.
