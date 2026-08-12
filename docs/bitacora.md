@@ -3916,3 +3916,12 @@ workflow no tiene con qué armar el latest.json (su includeUpdaterJson por
 defecto no encuentra nada que incluir). Segunda pieza del updater que solo se
 podía descubrir EJECUTANDO: el workflow nunca había corrido y la config nunca
 había empaquetado un updater de verdad.
+
+**Release #3: VERDE Y COMPLETO (2026-08-12, 18:45).** Tercera ejecución, la
+buena: instalador + firma + latest.json publicados, y el endpoint del updater
+responde el JSON firmado (verificado desde fuera con curl, el mismo camino
+que recorrerá cada instalación). El primer release público de MichiClaude
+existe: v0.1.0. Dos fallos quemados por el camino —iconos ignorados y
+createUpdaterArtifacts ausente— que solo la ejecución real podía enseñar.
+Queda el cierre del círculo: instalar el exe de Releases, publicar v0.1.1 y
+ver a la app actualizarse sola.
