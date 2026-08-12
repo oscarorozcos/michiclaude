@@ -3843,3 +3843,33 @@ La bitácora misma se publica y se queda: es la transparencia que el producto
 vende. Si Oscar decide reescribir (1 y/o 2), es una sola operación con
 `git-filter-repo` + force push; después, repo público → tag pre-release →
 probar el updater de punta a punta.
+
+## 2026-08-12 (tarde) — limpieza pre-público: el historial se reescribe UNA vez
+
+Decisión de Oscar sobre las dos preguntas de la auditoría: las dos cosas
+fuera, y en general nada personal en el repo. Como lo que está en el
+historial se publica con el repo, la única forma real es reescribirlo — y el
+momento es AHORA, con el repo privado y sin colaboradores: gratis hoy,
+imposible de hacer limpio mañana.
+
+Lo que cambia (con respaldo `.bundle` completo en `~/.michiclaude` antes de
+tocar nada):
+
+1. **Correos de autor → noreply de GitHub** (los dos personales, 405 commits)
+   y nombre normalizado a "Oscar". Los commits futuros nacen ya con el
+   noreply (config del repo en las dos máquinas).
+2. **`docs/modelos-locales-cpu.md` fuera de TODO el historial**: trae
+   contexto de otro proyecto (despliegue en equipos de clientes,
+   destilación). Se muda ÍNTEGRO a `~/.michiclaude/`, junto a las notas de
+   negocio — mismo patrón: el conocimiento se usa, el contexto no se
+   publica. Las referencias del código y los docs apuntan ahora "a la
+   investigación de modelos (fuera del repo)"; las menciones narrativas de
+   la bitácora se quedan (cuentan QUÉ se aprendió, no exponen el contexto).
+3. **El username viejo de GitHub** (contenía el prefijo del correo personal)
+   sustituido por el actual en los contenidos históricos de CLAUDE.md y en
+   un mensaje de commit.
+
+Nota para el futuro: el clon de Windows queda desincronizado por la
+reescritura — `git fetch origin && git reset --hard origin/main` (y
+`git fetch --tags --force`), NUNCA `git pull`, que intentaría fusionar las
+dos historias.

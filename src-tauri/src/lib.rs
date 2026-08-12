@@ -3877,7 +3877,8 @@ const AI_ANSWER_WAIT_MS: u64 = 60_000; // prefill + decode en CPU
 const AI_PORT: u16 = 8791;
 
 /// La forma se FUERZA, no se pide (lección central de
-/// docs/modelos-locales-cpu.md). OJO CON EL MECANISMO: `grammar` (GBNF) solo
+/// la investigación de modelos, fuera del repo). OJO CON EL MECANISMO:
+/// `grammar` (GBNF) solo
 /// lo acepta el endpoint NATIVO `/completion`; en el de chat se IGNORA en
 /// silencio — el modelo contesta en prosa y el parseo muere con BADOUT (así
 /// falló la primera prueba real, 2026-08-12). Aquí la vía correcta es
@@ -3996,7 +3997,7 @@ fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdi
         cfg.server.trim().to_string()
     };
     let port = if cfg.port == 0 { AI_PORT } else { cfg.port };
-    // Flags de docs/modelos-locales-cpu.md §3, medidos en CPU sin GPU:
+    // Flags de la investigación de modelos (§3), medidos en CPU sin GPU:
     // -ngl 0 (la iGPU comparte la RAM), --no-mmap (GGML_ASSERT con memoria
     // fragmentada), sin razonamiento (12x), temp 0 (clasificación, no prosa).
     let port_s = port.to_string();
@@ -4067,7 +4068,7 @@ fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdi
         // es solo un default: lo pisa la plantilla de chat. Sin esto el modelo
         // gastó su presupuesto entero en "Thinking Process:" y dejó `content`
         // VACÍO (finish_reason: length) — así falló la primera prueba real
-        // (2026-08-12). Ya estaba avisado en modelos-locales-cpu.md §3, que
+        // (2026-08-12). Ya estaba avisado en la investigación §3, que
         // además da el cinturón: el `/no_think` del final del prompt.
         "chat_template_kwargs": {"enable_thinking": false},
         // 64 y no 40: el JSON son ~20 tokens, pero un margen barato evita
@@ -4118,7 +4119,7 @@ async fn ai_intent(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerd
 // --- descarga guiada (un clic, sin rutas) --------------------------------
 // URLs y huellas SHA-256 FIJAS en el binario — la regla del updater: jamás
 // salen de algo descargado. Pineadas a un build concreto de llama.cpp y al
-// GGUF exacto de la investigación (docs/modelos-locales-cpu.md); actualizar
+// GGUF exacto de la investigación de modelos; actualizar
 // las cuatro constantes JUNTAS. Es la ÚNICA conexión de la app que no va a
 // api.anthropic.com: GitHub y Hugging Face, una vez, opt-in y anunciada en
 // la propia interfaz (ai_dl_note).

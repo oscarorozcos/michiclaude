@@ -3,7 +3,8 @@
 > Diseño vivo. LEERLO antes de tocar `ai_intent`, la evidencia del hit
 > `press` o la insignia de la tarjeta de intención. La investigación de
 > modelos y los benchmarks que sostienen cada decisión están en
-> `modelos-locales-cpu.md` (mismo directorio). Aprobado por Oscar el
+> `~/.michiclaude/modelos-locales-cpu.md` (FUERA del repo, como las notas
+> de negocio: trae contexto de otro proyecto de Oscar). Aprobado el
 > 2026-08-11: empezar por ESTE caso, probar y pulir antes de abrir otros.
 
 ## La idea en una frase
@@ -138,7 +139,7 @@ tokens en "Thinking Process:", dejó `content` VACÍO y devolvió
 `finish_reason: length`. Se apaga en la PETICIÓN con
 `"chat_template_kwargs": {"enable_thinking": false}`, y el prompt termina
 en `/no_think` como cinturón (las dos vías están en
-modelos-locales-cpu.md §3 — estaban escritas ANTES de que costaran una
+la investigación §3 — estaban escritas ANTES de que costaran una
 ronda). Ojo también: la gramática del `response_format` solo restringe el
 canal `content`; lo que el modelo escriba razonando NO pasa por ella.
 
