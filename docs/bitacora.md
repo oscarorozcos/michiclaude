@@ -3794,3 +3794,14 @@ dice qué va a hacer deja al usuario adivinando igual que una que acaba en
 silencio.** Y la lección de proceso: escribir la documentación de cara al
 usuario ("qué vas a ver") encuentra huecos que revisar el código no encuentra,
 porque obliga a mirar la pantalla y no la lógica.
+
+**La mudanza anunciada (2026-08-12, tarde).** CLAUDE.md tocó su tope por
+tercera vez en el día al apuntar el pendiente de la ficha proporcional, y se
+ejecutó lo que la nota de ayer dejaba dicho: el bloque de REMEDIACIÓN (7,3k)
+se mudó ÍNTEGRO a `remediacion.md` §"REGLAS VIGENTES — resumen operativo", y
+en CLAUDE.md queda un puntero de ~15 líneas con solo lo transversal (crate
+aparte, lista blanca, la red del /export, las dos razones del auto-/clear, la
+cuenta atrás y el invariante del workflow). De 40.248 a 33.942: seis mil
+bytes de margen para dejar de pellizcar palabras en cada regla nueva.
+Verificado byte a byte que el bloque llegó entero antes de borrarlo del
+origen.
