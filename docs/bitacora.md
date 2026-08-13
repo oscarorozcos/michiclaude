@@ -4352,3 +4352,43 @@ sale a secas "(modelo)", el peldaño está fallando en el Windows de Oscar
 con su versión) — ai_debug.txt tras un "Probar" lo dirá, porque el
 Probar con la evidencia de ejemplo debería dar sim baja y decidir por
 embeddings en segundos.
+
+## 2026-08-13 (10) — el e5 estaba roto: autopsia con banco propio y cambio a EmbeddingGemma
+
+**El diagnóstico llegó por los micrófonos nuevos:** el emb_server.log de
+Oscar dijo la causa exacta — "bert model needs to define token type
+count": la conversión GGUF de cstr es vieja y no trae un metadato que el
+llama.cpp moderno exige. El peldaño moría al arrancar, siempre.
+
+**Banco de embeddings EN EL VPS (primera vez):** se bajó el build Linux
+de llama.cpp b10362 (el MISMO pineado para Windows) + libgomp extraída
+de un .deb sin sudo — y con eso las pruebas que antes exigían
+ida-y-vuelta con el Windows de Oscar se hicieron aquí en minutos:
+- cstr e5: reproduce el fallo exacto de Oscar. mili e5: core dump.
+  keisuke e5: carga… pero el tokenizer está dañado — "receta de
+  carbonara"↔"CSS del widget" da 0.93, MÁS que una subtarea del mismo
+  proyecto (0.90). Matriz completa pooling{mean,cls,last}×prefijo{query,
+  sin}: TODAS solapadas. Sin separación no hay umbral: e5-small en GGUF
+  comunitario está muerto como opción.
+- EmbeddingGemma-300M (GGUF OFICIAL ggml-org, 500k descargas): separa
+  limpio SIN prefijos — tema nuevo 0.15-0.36, continuación 0.53, mismo
+  tema entre idiomas 0.84 — y CALZA con los umbrales 0.45/0.65 del
+  diseño (el prefijo STS de su ficha comprime hacia la banda media: se
+  descartó con medida, no con opinión). Validación final con los flags
+  EXACTOS del Rust: probar=0.358→clear·emb, carbonara=0.155,
+  idiomas=0.844→compact·emb; 3 pares en 0.3 s ya cargado.
+
+**Cambios:** constantes AI_EMB_* → gemma (HF oficial + espejo modelos-v1
+verificado con descarga anónima y huella b5ce9d77…0d63); el e5 roto
+RETIRADO del estante (jamás lo referenció un release de la app — no es
+"reemplazar un binario publicado"); ai_emb_path() ignora la ruta del e5
+aunque siga en la config (sin esto, quien lo descargó hoy quedaba
+bloqueado para siempre) y ai_setup borra el archivo huérfano y pisa la
+ruta muerta; flags: -c 1024, sin --pooling (el GGUF oficial trae el
+suyo), sin prefijos; tamaños de la UI 126→319 MB y total 1.4→1.7 GB ×8
+idiomas.
+
+**Verificado:** carga + salud + separación con los flags exactos en el
+banco del VPS; espejo round-trip; node --check limpio. Pendiente Windows:
+cargo check (npm run dev) + Probar — esperado "✓ clear · tema nuevo ·
+embeddings 0.36" en segundos.

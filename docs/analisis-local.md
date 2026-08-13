@@ -327,18 +327,28 @@ existentes corren sin internet.
 El peldaño de embeddings quedó construido el día que el automático por
 inferencia se validó de punta a punta (terminal y chat, mismo día):
 
-- **Modelo:** `multilingual-e5-small-q8_0.gguf` (~126 MB, de
-  cstr/multilingual-e5-small-GGUF). Subido al MISMO release-estante
-  `modelos-v1` como asset NUEVO (aditivo: nada publicado se reemplazó, la
-  regla del modelos-v2 es para REEMPLAZOS) y verificado igual que los
-  otros: descarga anónima de vuelta, huella idéntica. Las constantes de la
-  descarga guiada ahora son NUEVE (`AI_EMB_URL/_MIRROR/_SHA`) y siguen
-  actualizándose juntas.
+- **Modelo: `embeddinggemma-300M-Q8_0.gguf`** (~319 MB, GGUF OFICIAL de
+  ggml-org — 500k+ descargas). NO es el e5-small del plan original, y el
+  cambio se ganó en el banco: las conversiones comunitarias de e5 salieron
+  ROTAS por partida doble — sin `token_type_count` NI CARGAN en llama.cpp
+  moderno ("bert model needs to define token type count", cazado en el
+  emb_server.log de Oscar), y la única que cargaba (keisuke) tenía el
+  tokenizer dañado: "receta de carbonara" ↔ "CSS del widget" daba 0.93,
+  MÁS que una subtarea del mismo proyecto (0.90) — sin separación no hay
+  umbral posible (matriz pooling×prefijo completa en el banco, todas
+  solapadas). Subido al release-estante `modelos-v1` como asset nuevo; el
+  e5 roto se RETIRÓ del estante (ningún release de la app lo referenció
+  jamás — no es "reemplazar un binario publicado"). Constantes: NUEVE,
+  juntas.
 - **Dónde corre:** `ai_emb_verdict()` DENTRO de `ai_intent_impl`, ANTES de
-  arrancar el 2B — mismo llama-server con `--embeddings --pooling mean
-  -c 512`, puerto del 2B +1, guard kill-on-drop. e5 exige el prefijo
-  `query: ` en ambos lados (tarea simétrica) — sin él la similitud se
-  degrada en silencio.
+  arrancar el 2B — mismo llama-server con `--embeddings -c 1024` (SIN
+  pisar el pooling: el GGUF oficial trae el suyo), puerto del 2B +1, guard
+  kill-on-drop. SIN prefijos, a propósito: en el banco gemma separó MEJOR
+  sin ellos (tema nuevo 0.15-0.36, continuación ~0.53, mismo tema entre
+  idiomas 0.84) y esa distribución CALZA con los umbrales del diseño; el
+  "task: sentence similarity | query:" de su ficha comprimía todo hacia
+  la banda media. Medido con los flags exactos: 3 pares en 0.3 s ya
+  cargado.
 - **La comparación del diseño:** TEMA = título + mensajes viejos; RECIENTE
   = el último mensaje. Coseno: `<0.45` → clear·tema_nuevo, `>0.65` →
   compact·tema_cruzado, banda media → el 2B como en la v1. Los umbrales

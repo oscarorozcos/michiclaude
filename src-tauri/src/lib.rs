@@ -4046,11 +4046,7 @@ fn emb_dbg(msg: &str) {
 }
 
 fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Option<f32> {
-    let emb = if cfg.emb.trim().is_empty() {
-        ai_emb_file()
-    } else {
-        PathBuf::from(cfg.emb.trim())
-    };
+    let emb = ai_emb_path(cfg);
     if !emb.is_file() {
         emb_dbg(&format!("sin GGUF de embeddings: {}", emb.display()));
         return None;
@@ -4083,14 +4079,13 @@ fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Opt
         "127.0.0.1",
         "--port",
         port_s.as_str(),
-        // e5 es un modelo de embeddings puro: sin este flag llama-server lo
-        // trata de chat y el endpoint no existe. Pooling mean explícito —
-        // es el del modelo, y así no dependemos del metadato del GGUF.
+        // modelo de embeddings puro: sin este flag llama-server lo trata de
+        // chat y el endpoint no existe. El pooling NO se pisa: el GGUF
+        // oficial de gemma trae el suyo en metadatos (calibrado así en el
+        // banco del 2026-08-13 — mismos flags que aquí).
         "--embeddings",
-        "--pooling",
-        "mean",
         "-c",
-        "512",
+        "1024",
         "-t",
         "4",
         "-ngl",
@@ -4129,10 +4124,13 @@ fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Opt
         }
         std::thread::sleep(std::time::Duration::from_millis(300));
     }
-    // e5 EXIGE el prefijo "query: " (tarea simétrica: en los dos lados);
-    // sin él la calidad de la similitud se degrada en silencio.
+    // SIN prefijos, a propósito: en el banco del 2026-08-13 gemma separó
+    // MEJOR sin ellos (tema nuevo 0.15-0.25, continuación ~0.53, mismo tema
+    // 0.84) y esa distribución calza con los umbrales 0.45/0.65 del diseño.
+    // El "task: sentence similarity | query:" de su ficha comprimía todo
+    // hacia la banda media (más invocaciones del 2B, más lento).
     let body = serde_json::json!({
-        "input": [format!("query: {theme}"), format!("query: {recent}")]
+        "input": [theme.as_str(), recent.as_str()]
     })
     .to_string();
     let (status, payload) = match ai_http(port, "POST /v1/embeddings", Some(&body), 15_000) {
@@ -4376,15 +4374,20 @@ const AI_MODEL_URL: &str =
 const AI_MODEL_URL_MIRROR: &str =
     "https://github.com/oscarorozcos/michiclaude/releases/download/modelos-v1/Qwen3.5-2B-UD-Q4_K_XL.gguf";
 const AI_MODEL_SHA: &str = "9f7b15d04cf2d5878c8122a7c181dbc09f050cd66080ce3374576e734ccb0910";
-// El peldaño de EMBEDDINGS de la etapa 2 (2026-08-13): multilingual-e5-small
-// en Q8_0 (~126 MB). Espejo verificado el mismo día (subida con gh, descarga
-// anónima de vuelta, huella idéntica). Con este, las constantes de la
-// descarga guiada son NUEVE — siguen actualizándose JUNTAS.
+// El peldaño de EMBEDDINGS de la etapa 2 (2026-08-13): EmbeddingGemma-300M
+// en Q8_0 (~319 MB), GGUF OFICIAL de ggml-org. NO es el e5-small del diseño:
+// las conversiones comunitarias de e5 salieron ROTAS (sin token_type_count —
+// ni cargan en llama.cpp moderno — y con el tokenizer dañado: las
+// similitudes no separaban clases, banco del 2026-08-13 en la bitácora).
+// Gemma se calibró en el mismo banco: SIN prefijo, los umbrales del diseño
+// (0.45/0.65) calzan con lo medido. Espejo verificado (descarga anónima,
+// huella idéntica). Las constantes de la descarga guiada son NUEVE —
+// siguen actualizándose JUNTAS.
 const AI_EMB_URL: &str =
-    "https://huggingface.co/cstr/multilingual-e5-small-GGUF/resolve/main/multilingual-e5-small-q8_0.gguf";
+    "https://huggingface.co/ggml-org/embeddinggemma-300M-GGUF/resolve/main/embeddinggemma-300M-Q8_0.gguf";
 const AI_EMB_URL_MIRROR: &str =
-    "https://github.com/oscarorozcos/michiclaude/releases/download/modelos-v1/multilingual-e5-small-q8_0.gguf";
-const AI_EMB_SHA: &str = "0a34067a40f25d3149b36885faa62bee0e5284d0f9edc102acfc00e115d953e8";
+    "https://github.com/oscarorozcos/michiclaude/releases/download/modelos-v1/embeddinggemma-300M-Q8_0.gguf";
+const AI_EMB_SHA: &str = "b5ce9d77a3fc4b3b39ccb5643c36777911cc4eb46a66962eadfa3f5f60490d63";
 
 fn ai_dir() -> PathBuf {
     app_data_dir().join("ai")
@@ -4393,7 +4396,21 @@ fn ai_model_file() -> PathBuf {
     ai_dir().join("Qwen3.5-2B-UD-Q4_K_XL.gguf")
 }
 fn ai_emb_file() -> PathBuf {
-    ai_dir().join("multilingual-e5-small-q8_0.gguf")
+    ai_dir().join("embeddinggemma-300M-Q8_0.gguf")
+}
+
+/// La ruta EFECTIVA del GGUF de embeddings: la manual si existe, si no la
+/// descargada. El e5 roto del primer intento (2026-08-13) se IGNORA aunque
+/// siga configurado — apuntar a un modelo que no carga es no tener modelo,
+/// y sin esto la config vieja de quien lo descargó ese día bloquearía la
+/// descarga del bueno para siempre.
+fn ai_emb_path(cfg: &AiConfig) -> PathBuf {
+    let manual = cfg.emb.trim();
+    if manual.is_empty() || manual.ends_with("multilingual-e5-small-q8_0.gguf") {
+        ai_emb_file()
+    } else {
+        PathBuf::from(manual)
+    }
 }
 
 /// Busca llama-server dentro de lo descomprimido: el zip de llama.cpp ha
@@ -4437,8 +4454,7 @@ fn ai_setup_status() -> AiSetupStatus {
     let model = (!cfg.model.trim().is_empty()
         && std::path::Path::new(cfg.model.trim()).is_file())
         || ai_model_file().is_file();
-    let emb = (!cfg.emb.trim().is_empty() && std::path::Path::new(cfg.emb.trim()).is_file())
-        || ai_emb_file().is_file();
+    let emb = ai_emb_path(&cfg).is_file();
     AiSetupStatus { server, model, emb }
 }
 
@@ -4604,7 +4620,10 @@ async fn ai_setup(app: tauri::AppHandle) -> Result<AiConfig, String> {
         ai_fetch(&app, "model", &[AI_MODEL_URL, AI_MODEL_URL_MIRROR], AI_MODEL_SHA, &part).await?;
         fs::rename(&part, ai_model_file()).map_err(|_| "ERR_AI_DL".to_string())?;
     }
-    // etapa 2: el modelo de embeddings (~126 MB). Mismo trato que los otros
+    // el e5 ROTO del primer intento de la etapa 2 (2026-08-13, ni cargaba):
+    // si quedó en disco, fuera — 126 MB huérfanos que ya no referencia nada
+    let _ = fs::remove_file(dir.join("multilingual-e5-small-q8_0.gguf"));
+    // etapa 2: el modelo de embeddings (~319 MB). Mismo trato que los otros
     // dos: solo si falta, huella verificada, y el fallo deja todo como
     // estaba (el análisis funciona sin él — el 2B decide solo).
     if !st.emb {
@@ -4622,7 +4641,12 @@ async fn ai_setup(app: tauri::AppHandle) -> Result<AiConfig, String> {
     if cfg.model.trim().is_empty() || !std::path::Path::new(cfg.model.trim()).is_file() {
         cfg.model = ai_model_file().display().to_string();
     }
-    if cfg.emb.trim().is_empty() || !std::path::Path::new(cfg.emb.trim()).is_file() {
+    // la ruta del e5 roto se pisa con la buena (ai_emb_path ya lo ignora,
+    // pero la config no debe seguir enseñando un camino muerto)
+    if cfg.emb.trim().is_empty()
+        || cfg.emb.trim().ends_with("multilingual-e5-small-q8_0.gguf")
+        || !std::path::Path::new(cfg.emb.trim()).is_file()
+    {
         cfg.emb = ai_emb_file().display().to_string();
     }
     let s = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;

@@ -351,11 +351,13 @@ sesión aunque falle; AUTOMÁTICO POR INFERENCIA: `relayClearAi` (OFF, bajo
 relayClear) = 2.ª razón del auto-/clear (`unsure`+`tema_nuevo`, `topen==0`,
 30 s), resto IGUAL, red incluida, espera el veredicto; fail-quiet; interruptor nace OFF; Probar = la misma
 tubería. ETAPA 2 HECHA (2026-08-13):
-peldaño de EMBEDDINGS (`ai_emb_verdict`, e5-small q8_0 ~126 MB) ANTES
-del 2B — coseno tema↔reciente con prefijo `query: `, <0.45 clear·
-tema_nuevo / >0.65 compact·tema_cruzado / banda media al 2B; fail-quiet
-total (sin GGUF = v1 exacta); `via`/`sim` al flowLog, tarjeta solo
-{rec,reason}. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 9 CONSTANTES
+peldaño de EMBEDDINGS (`ai_emb_verdict`, EmbeddingGemma-300M q8_0
+~319 MB, GGUF OFICIAL ggml-org — los e5 comunitarios están ROTOS, banco
+en bitácora) ANTES del 2B — coseno tema↔reciente SIN prefijos (calibrado:
+separan mejor), <0.45 clear·tema_nuevo / >0.65 compact·tema_cruzado /
+banda media al 2B; fail-quiet total (sin GGUF = v1 exacta) con rastro
+PROPIO `emb_debug.txt` + `emb_server.log`; `via`/`sim` al flowLog y al
+botón Probar, tarjeta solo {rec,reason}. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 9 CONSTANTES
 (original + ESPEJO `modelos-v1` por archivo — PRERELEASE y tag sin `v`,
 o rompe updater/workflow; `ai_fetch` cae al espejo por fallo de red O de
 huella; REEMPLAZAR un binario = constantes juntas + release `modelos-v2`;
