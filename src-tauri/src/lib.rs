@@ -4033,6 +4033,18 @@ fn emb_cos(a: &[f32], b: &[f32]) -> Option<f32> {
 /// devuelve la similitud (None = no se pudo medir). La decisión vive en
 /// ai_emb_verdict — separadas para que la similitud pueda viajar con el
 /// veredicto del 2B cuando cae en banda media (auditoría de la etapa 2).
+/// Rastro PROPIO del peldaño (`emb_debug.txt`, se sobrescribe). El
+/// fail-quiet de la escalera se traga la causa A PROPÓSITO (regla #4), pero
+/// tragarse el DIAGNÓSTICO fue un error: en la primera corrida real salió
+/// "(modelo)" a secas y no había forma de saber si fue banda media o un
+/// server que ni arrancó — y ai_debug.txt no sirve porque el 2B lo pisa.
+fn emb_dbg(msg: &str) {
+    let _ = fs::write(
+        app_data_dir().join("emb_debug.txt"),
+        format!("{}\n{msg}\n", Utc::now()),
+    );
+}
+
 fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Option<f32> {
     let emb = if cfg.emb.trim().is_empty() {
         ai_emb_file()
@@ -4040,12 +4052,14 @@ fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Opt
         PathBuf::from(cfg.emb.trim())
     };
     if !emb.is_file() {
+        emb_dbg(&format!("sin GGUF de embeddings: {}", emb.display()));
         return None;
     }
     // el TEMA = título + mensajes viejos; LO RECIENTE = el último mensaje.
     // Con un solo mensaje el tema es el título a secas — sigue funcionando.
     let recent = msgs.last()?.trim().to_string();
     if recent.is_empty() {
+        emb_dbg("sin mensaje reciente");
         return None;
     }
     let mut theme = title.trim().to_string();
@@ -4058,6 +4072,9 @@ fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Opt
     }
     let port = (if cfg.port == 0 { AI_PORT } else { cfg.port }) + AI_EMB_PORT_OFF;
     let port_s = port.to_string();
+    // el stderr del server va a emb_server.log: ahí dice llama-server por
+    // qué no carga un GGUF o no reconoce un flag — el oro del diagnóstico
+    let slog = fs::File::create(app_data_dir().join("emb_server.log"));
     let mut cmd = std::process::Command::new(server);
     cmd.args([
         "-m",
@@ -4082,17 +4099,27 @@ fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Opt
     ])
     .stdin(std::process::Stdio::null())
     .stdout(std::process::Stdio::null())
-    .stderr(std::process::Stdio::null());
+    .stderr(match slog {
+        Ok(f) => std::process::Stdio::from(f),
+        Err(_) => std::process::Stdio::null(),
+    });
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     }
-    let child = cmd.spawn().ok()?;
+    let child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(e) => {
+            emb_dbg(&format!("no arrancó «{server}»: {e}"));
+            return None;
+        }
+    };
     let _guard = AiChild(child); // muere también en todos los caminos de error
     let t0 = std::time::Instant::now();
     loop {
         if t0.elapsed().as_millis() as u64 > AI_EMB_WAIT_MS {
+            emb_dbg("health: 20 s sin contestar — mira emb_server.log");
             return None;
         }
         if let Ok((status, _)) = ai_http(port, "GET /health", None, 2_000) {
@@ -4108,17 +4135,36 @@ fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Opt
         "input": [format!("query: {theme}"), format!("query: {recent}")]
     })
     .to_string();
-    let (_, payload) = ai_http(port, "POST /v1/embeddings", Some(&body), 15_000).ok()?;
-    let v: serde_json::Value = serde_json::from_str(payload.trim()).ok()?;
-    let a = emb_vec(&v["data"][0]["embedding"])?;
-    let b = emb_vec(&v["data"][1]["embedding"])?;
-    let sim = emb_cos(&a, &b)?;
+    let (status, payload) = match ai_http(port, "POST /v1/embeddings", Some(&body), 15_000) {
+        Ok(v) => v,
+        Err(e) => {
+            emb_dbg(&format!("http /v1/embeddings: {e}"));
+            return None;
+        }
+    };
+    let head: String = payload.chars().take(400).collect();
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(payload.trim()) else {
+        emb_dbg(&format!("respuesta ilegible ({status}): {head}"));
+        return None;
+    };
+    let (Some(a), Some(b)) = (
+        emb_vec(&v["data"][0]["embedding"]),
+        emb_vec(&v["data"][1]["embedding"]),
+    ) else {
+        emb_dbg(&format!("sin vectores ({status}): {head}"));
+        return None;
+    };
+    let Some(sim) = emb_cos(&a, &b) else {
+        emb_dbg("coseno imposible (vectores vacíos o de largos distintos)");
+        return None;
+    };
     // al rastro de siempre (se sobrescribe): la evidencia y la similitud,
     // no los vectores — 768 floats no le sirven a nadie para depurar
     ai_dbg(
         &format!("[emb] tema: {theme}\n[emb] reciente: {recent}"),
         &format!("sim={sim:.3} (clear<{EMB_NEW} · compact>{EMB_CROSS})"),
     );
+    emb_dbg(&format!("ok · sim={sim:.3}"));
     Some(sim)
 }
 
