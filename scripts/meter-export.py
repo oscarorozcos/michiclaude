@@ -873,7 +873,9 @@ def scan_findings(projects_dir, window_ago, days, end):
 # tarjetas ni pushes). Los transcripts de subagentes NO entran: el coach
 # queda plano a propósito, como en Rust.
 COACH_ACTIVE_MIN = 30
-COACH_CTX_HIGH = 120_000
+# % del techo del modelo para sugerir /compact (antes 120k FIJO: con techo
+# de 1M avisaba al 12%). Con modelo desconocido ctx_full cae a 200k → 120k.
+COACH_CTX_PCT = 60
 COACH_GAP_MIN = 6
 COACH_GAP_CTX = 30_000
 COACH_REREAD = 3
@@ -923,7 +925,8 @@ def coach_leaks(st):
         f, n = max(reread, key=lambda x: x[1])
         base = f.replace("\\", "/").rsplit("/", 1)[-1]
         out.append({"kind": "reread", "file": base, "n": n})
-    if st["last_ctx"] >= COACH_CTX_HIGH:
+    if st["last_ctx"] >= (ctx_full(st.get("model", ""), st.get("ctx_seen", 0))
+                          * COACH_CTX_PCT // 100):
         out.append({"kind": "ctx", "file": "", "n": st["last_ctx"] // 1000})
     elif st["last_ctx"] >= COACH_GAP_CTX:
         out.append({"kind": "cache", "file": "", "n": st["last_ctx"] // 1000})
@@ -1105,7 +1108,9 @@ def coach_scan(projects_dir):
                     h.update(extra)
                     hits.append(h)
 
-                if st["last_ctx"] >= COACH_CTX_HIGH:
+                if st["last_ctx"] >= (ctx_full(st.get("model", ""),
+                                               st.get("ctx_seen", 0))
+                                      * COACH_CTX_PCT // 100):
                     hit("compact", st["last_ctx"] // 1000)
                 gap_min = (now - st["last_turn"]) // 60
                 if (st["last_turn"] > 0 and gap_min >= COACH_GAP_MIN

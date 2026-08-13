@@ -139,7 +139,8 @@ separadas por SO (triplican el catálogo y se desincronizan entre idiomas).
   `~$X`, oculto bajo medio centavo) y líneas ⚠ por cada fuga detectada con
   lo acumulado EN MEMORIA — nada de re-escaneo al cierre. Tres detectores
   v1, todos con ficha en el mismo catálogo: archivo releído ≥`COACH_REREAD`
-  veces (→ attach), contexto final ≥120k (→ compact) y pausas ≥6 min con
+  veces (→ attach), contexto final ≥60% del techo del modelo (→ compact;
+  proporcional desde 2026-08-13, antes 120k fijos) y pausas ≥6 min con
   contexto ≥30k contadas turno a turno (`gaps`, → cache). El push de ntfy
   solo lleva el conteo ("· 1 aviso de ahorro"); dólares y detalle, aquí.
   Subagentes y hooks siguen siendo de la pasada diaria de Hallazgos.
@@ -235,7 +236,10 @@ como las de Hallazgos:
    truncado = reinicio). SOLO fuentes locales: el consejo es para la
    sesión del teclado — divergencia con el exportador documentada, como
    WSL en Python. Tres reglas v1, umbrales en constantes: contexto del
-   último turno principal ≥120k (COACH_CTX_HIGH) → ficha `compact`;
+   último turno principal ≥60% del techo del modelo (COACH_CTX_PCT ×
+   `ctx_full`; era 120k FIJOS hasta 2026-08-13 — con techo 1M avisaba al
+   12%, mismo bug que tuvo el manómetro; con modelo desconocido cae a
+   200k y el umbral queda en los 120k de antes) → ficha `compact`;
    pausa ≥6 min con contexto ≥30k (COACH_GAP_MIN/_CTX) → ficha `cache`;
    mismo archivo leído ≥3 veces (COACH_REREAD, dedup por id de tool_use)
    → ficha `attach`. El backend solo reporta HECHOS ({rule, session,

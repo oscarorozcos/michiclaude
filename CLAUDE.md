@@ -367,7 +367,9 @@ ventana) NO se toca ni se sugiere apagar: es la red cuando MichiClaude no
 está, y apagarla desactiva su `precomputeCompactionEnabled`. Entramos al
 80% (`INTENT_PCT`): se gana por diseño, no por carrera. Y la compactación
 NO lleva `usage`: no se puede facturar, solo se ve en cuota.
-Reglas: ctx≥120k → compact; pausa≥6 min con ctx≥30k → cache; mismo
+Reglas: ctx ≥60% del techo (`COACH_CTX_PCT`×`ctx_full`, antes 120k
+fijos; el ⚠ "ctx" de `coach_leaks` usa el MISMO umbral) → compact;
+pausa≥6 min con ctx≥30k → cache; mismo
 archivo leído ≥3 → attach; `ask` (tool_use sin tool_result ≥3 min) y
 `done` (quieta 5 min, 5+ turnos) son SOLO push, no fichas; `sum` (quieta 10 min) = recibo con
 título AI, min/comandos/archivos, `· ~$X` y ⚠ de `coach_leaks()` (kinds
@@ -459,10 +461,10 @@ presion-y-rendimiento §"Qué queda vivo".
       Falta verla en tarjeta REAL y anotar si acierta — eso decide la
       etapa 2 (embeddings). Auto-/clear por inferencia y auto-/compact:
       EN PRUEBA, no tocar umbrales mientras Oscar mide.
-- [ ] Ficha `compact` del coach: umbral 120k FIJO → hacerlo proporcional
-      (60% de `ctx_full`) al cerrar la prueba. Con techo 1M avisa al 12%
-      (Oscar salta entre modelos); mismo bug que tuvo el manómetro.
-      Réplica en exportador (invariante #1).
+- [x] Ficha `compact` proporcional (2026-08-13): 60% de `ctx_full` en vez
+      de 120k fijos, en la ficha Y en el ⚠ "ctx" de `coach_leaks`; réplica
+      en exportador (invariante #1). Seguro respecto a la prueba en vivo:
+      el automático va por `press`/`INTENT_PCT`, camino aparte.
 - [x] REPO PÚBLICO + UPDATER COMPLETO (2026-08-12): v0.1.0 y v0.1.1
       publicadas; el ciclo detectar→descargar→instalar validado en vivo.
 - [ ] Capturas del README (Oscar).

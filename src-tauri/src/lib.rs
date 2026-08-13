@@ -3082,7 +3082,11 @@ async fn get_findings(days: Option<u32>, end: Option<i64>) -> Result<Vec<Finding
 // ---------------------------------------------------------------------------
 
 const COACH_ACTIVE_MIN: i64 = 30; // minutos sin tocar el log = sesión dormida
-const COACH_CTX_HIGH: u64 = 120_000; // tokens de contexto para sugerir /compact
+// % del techo del modelo para sugerir /compact. Antes era 120k FIJO: con un
+// techo de 1M avisaba al 12% — mismo bug que tuvo el manómetro. El techo sale
+// de ctx_full() (evidencia de la máquina incluida); con modelo desconocido
+// ctx_for() cae a 200k y el umbral queda en 120k, el comportamiento de antes.
+const COACH_CTX_PCT: u64 = 60;
 const COACH_GAP_MIN: i64 = 6; // minutos de pausa para avisar del caché vencido
 const COACH_GAP_CTX: u64 = 30_000; // ...solo si hay contexto que valga la pena
 const COACH_REREAD: u32 = 3; // lecturas del mismo archivo en la sesión
@@ -3183,10 +3187,10 @@ fn coach_leaks(st: &CoachSess) -> Vec<CoachLeak> {
         let base = base.rsplit('/').next().unwrap_or(f).to_string();
         out.push(CoachLeak { kind: "reread".into(), file: base, n: *n as u64 });
     }
-    if st.last_ctx >= COACH_CTX_HIGH {
+    if st.last_ctx >= ctx_full(&st.model, st.ctx_seen) * COACH_CTX_PCT / 100 {
         out.push(CoachLeak { kind: "ctx".into(), file: String::new(), n: st.last_ctx / 1000 });
     } else if st.last_ctx >= COACH_GAP_CTX {
-        // Cerró con contexto grande (sin llegar a los 120k del /compact):
+        // Cerró con contexto grande (sin llegar al umbral del /compact):
         // el usuario está lejos —por eso hay push— y el TTL del caché es de
         // minutos, así que para cuando lo lea ya venció. SIN esta rama el
         // push decía "terminó" a los 5 min y el panel sacaba el consejo del
@@ -3569,7 +3573,7 @@ fn coach_scan() -> Vec<CoachHit> {
                 .file_stem()
                 .map(|s| s.to_string_lossy().chars().take(8).collect())
                 .unwrap_or_default();
-            if st.last_ctx >= COACH_CTX_HIGH {
+            if st.last_ctx >= ctx_full(&st.model, st.ctx_seen) * COACH_CTX_PCT / 100 {
                 hits.push(CoachHit {
                     rule: "compact".into(),
                     session: sid.clone(),

@@ -4013,3 +4013,36 @@ vieja. Comprobadas además las cuatro URLs en vivo (espejo y originales,
 200 las cuatro) y que `releases/latest` sigue anunciando la v0.1.1 con su
 `.sig` — el prerelease `modelos-v1` no tapó al updater, que era el riesgo
 real de haber subido un release el mismo día.
+
+## 2026-08-13 — la ficha `compact` deja de avisar al 12%: el umbral se hace proporcional
+
+El último bug conocido vivo, y era un déjà vu: la ficha `compact` del
+coach (y, se descubrió al hacerlo, también el ⚠ "ctx" del recibo de
+cierre en `coach_leaks()`) disparaba a los 120k FIJOS de `COACH_CTX_HIGH`.
+Con un modelo de techo 1M eso es el 12% del contexto — la app gritaba
+"¡compacta!" con la sesión recién empezada, y Oscar salta entre modelos a
+diario. Exactamente el mismo bug que tuvo el manómetro clavado en 200k
+durante meses (§2026-08-08).
+
+**El arreglo:** `COACH_CTX_HIGH` (120k) muere y nace `COACH_CTX_PCT`
+(60): el umbral es ahora el 60% de `ctx_full(model, ctx_seen)` — la misma
+función, ya validada, que le da el techo al manómetro, con la evidencia
+medida de la máquina incluida. Con modelo desconocido `ctx_for()` cae a
+200k y el umbral queda en los 120k de siempre: el comportamiento viejo es
+el caso degenerado del nuevo. Cuatro sitios, dos por lado (invariante #1):
+la ficha y `coach_leaks` en `lib.rs`, y sus réplicas en `meter-export.py`.
+Sin `coach_leaks` el recibo habría contado otra historia que la ficha
+(fuga a 120k en una sesión que la ficha consideraba holgada con techo 1M).
+
+**Por qué se pudo hacer sin esperar el cierre de la prueba en vivo:** el
+pendiente decía "al cerrar la prueba" por prudencia, pero se verificó en
+el código que el `/compact` AUTOMÁTICO va por otro camino —
+`relayAutoCheck` dispara con `pressPct ≥ INTENT_PCT` (80% del techo, del
+hit `press`) — y no lee la ficha ni `COACH_CTX_HIGH`. Cambiar la ficha no
+mueve nada de lo que Oscar está midiendo.
+
+**Verificado:** `py_compile` limpio; grep sin referencias huérfanas a la
+constante vieja; `st`/`CoachSess` llevan `model` y `ctx_seen` en los
+cuatro sitios (el hit `press` vecino ya los usaba). Docs en sincronía:
+consejos-coach.md (dos menciones), CLAUDE.md (regla + pendiente cerrado).
+Pendiente de Windows: `cargo check` (el VPS sigue sin toolchain).
