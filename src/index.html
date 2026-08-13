@@ -2052,6 +2052,8 @@ en:{
   ai_dl_mdl:n=>`downloading the model… ${n}%`,
   ai_dl_emb:"Download the fast model (~126 MB)",
   ai_dl_embp:n=>`downloading embeddings… ${n}%`,
+  ai_via_emb:"embeddings",
+  ai_via_llm:"model",
   ai_dl_done:"ready — local analysis is on",
   err_ai_dl:"the download failed — check your connection and retry",
   err_ai_sha:"the download arrived corrupted — retry",
@@ -2525,6 +2527,8 @@ es:{
   ai_dl_mdl:n=>`descargando el modelo… ${n}%`,
   ai_dl_emb:"Descargar el modelo rápido (~126 MB)",
   ai_dl_embp:n=>`descargando embeddings… ${n}%`,
+  ai_via_emb:"embeddings",
+  ai_via_llm:"modelo",
   ai_dl_done:"listo — el análisis local quedó encendido",
   err_ai_dl:"falló la descarga — revisa tu conexión y reintenta",
   err_ai_sha:"la descarga llegó corrupta — reintenta",
@@ -2998,6 +3002,8 @@ pt:{
   ai_dl_mdl:n=>`baixando o modelo… ${n}%`,
   ai_dl_emb:"Baixar o modelo rápido (~126 MB)",
   ai_dl_embp:n=>`baixando embeddings… ${n}%`,
+  ai_via_emb:"embeddings",
+  ai_via_llm:"modelo",
   ai_dl_done:"pronto — a análise local ficou ligada",
   err_ai_dl:"o download falhou — verifique sua conexão e tente de novo",
   err_ai_sha:"o download chegou corrompido — tente de novo",
@@ -3471,6 +3477,8 @@ fr:{
   ai_dl_mdl:n=>`téléchargement du modèle… ${n}%`,
   ai_dl_emb:"Télécharger le modèle rapide (~126 Mo)",
   ai_dl_embp:n=>`téléchargement des embeddings… ${n}%`,
+  ai_via_emb:"embeddings",
+  ai_via_llm:"modèle",
   ai_dl_done:"prêt — l'analyse locale est activée",
   err_ai_dl:"le téléchargement a échoué — vérifiez votre connexion et réessayez",
   err_ai_sha:"le téléchargement est arrivé corrompu — réessayez",
@@ -3944,6 +3952,8 @@ de:{
   ai_dl_mdl:n=>`lade das Modell… ${n}%`,
   ai_dl_emb:"Schnelles Modell laden (~126 MB)",
   ai_dl_embp:n=>`lade Embeddings… ${n}%`,
+  ai_via_emb:"Embeddings",
+  ai_via_llm:"Modell",
   ai_dl_done:"fertig — lokale Analyse ist an",
   err_ai_dl:"der Download schlug fehl — Verbindung prüfen und erneut versuchen",
   err_ai_sha:"der Download kam beschädigt an — erneut versuchen",
@@ -4417,6 +4427,8 @@ ja:{
   ai_dl_mdl:n=>`モデルをダウンロード中… ${n}%`,
   ai_dl_emb:"高速モデルをダウンロード（約126 MB）",
   ai_dl_embp:n=>`埋め込みをダウンロード中… ${n}%`,
+  ai_via_emb:"埋め込み",
+  ai_via_llm:"モデル",
   ai_dl_done:"完了 — ローカル分析が有効になりました",
   err_ai_dl:"ダウンロードに失敗しました — 接続を確認して再試行してください",
   err_ai_sha:"ダウンロードが破損していました — 再試行してください",
@@ -4890,6 +4902,8 @@ ko:{
   ai_dl_mdl:n=>`모델 다운로드 중… ${n}%`,
   ai_dl_emb:"빠른 모델 다운로드(약 126 MB)",
   ai_dl_embp:n=>`임베딩 다운로드 중… ${n}%`,
+  ai_via_emb:"임베딩",
+  ai_via_llm:"모델",
   ai_dl_done:"완료 — 로컬 분석이 켜졌어요",
   err_ai_dl:"다운로드에 실패했어요 — 연결을 확인하고 다시 시도하세요",
   err_ai_sha:"다운로드가 손상되었어요 — 다시 시도하세요",
@@ -5363,6 +5377,8 @@ zh:{
   ai_dl_mdl:n=>`正在下载模型… ${n}%`,
   ai_dl_emb:"下载快速模型（约 126 MB）",
   ai_dl_embp:n=>`正在下载嵌入模型… ${n}%`,
+  ai_via_emb:"嵌入",
+  ai_via_llm:"模型",
   ai_dl_done:"完成 — 本地分析已开启",
   err_ai_dl:"下载失败 — 请检查网络后重试",
   err_ai_sha:"下载文件已损坏 — 请重试",
@@ -8679,8 +8695,14 @@ $("aiTestBtn").addEventListener("click",async()=>{
     const v=await invoke("ai_intent",{title:"Fixing the tray widget CSS",
       msgs:["the light bulb icon looks good now, commit and push it",
             "now let's plan the marketing screenshots for the README"],cont:10});
+    // quién decidió y con qué similitud (etapa 2): es el diagnóstico del
+    // peldaño de embeddings — "embeddings 0.38" en segundos = sano;
+    // "modelo" sin sim = el peldaño no pudo medir (ai_debug.txt dirá por qué)
+    const simTx=(v.sim||0)>0?" "+Math.round(v.sim*100)/100:"";
     $("aiMsg").textContent="✓ "+(v.rec||"?")+
-      (v.reason&&v.reason!=="na"?" · "+t("ai_r_"+v.reason):"");
+      (v.reason&&v.reason!=="na"?" · "+t("ai_r_"+v.reason):"")+
+      (v.via==="emb"?" · "+t("ai_via_emb")+simTx
+        :v.via==="llm"?" · "+t("ai_via_llm")+simTx:"");
   }catch(e){ $("aiMsg").textContent="✕ "+aiErr(e); }
 });
 aiInit();
