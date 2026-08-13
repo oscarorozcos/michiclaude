@@ -350,12 +350,17 @@ exportador); `msgs` NO se persiste (solo `c.ai`); UNA invocación por
 sesión aunque falle; AUTOMÁTICO POR INFERENCIA: `relayClearAi` (OFF, bajo
 relayClear) = 2.ª razón del auto-/clear (`unsure`+`tema_nuevo`, `topen==0`,
 30 s), resto IGUAL, red incluida, espera el veredicto; fail-quiet; interruptor nace OFF; Probar = la misma
-tubería. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 6 CONSTANTES
+tubería. ETAPA 2 HECHA (2026-08-13):
+peldaño de EMBEDDINGS (`ai_emb_verdict`, e5-small q8_0 ~126 MB) ANTES
+del 2B — coseno tema↔reciente con prefijo `query: `, <0.45 clear·
+tema_nuevo / >0.65 compact·tema_cruzado / banda media al 2B; fail-quiet
+total (sin GGUF = v1 exacta); `via`/`sim` al flowLog, tarjeta solo
+{rec,reason}. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 9 CONSTANTES
 (original + ESPEJO `modelos-v1` por archivo — PRERELEASE y tag sin `v`,
 o rompe updater/workflow; `ai_fetch` cae al espejo por fallo de red O de
-huella; cambio de modelo = las 6 juntas + release `modelos-v2`, detalle
-en el doc); única conexión fuera de api.anthropic.com, opt-in y
-anunciada; respeta rutas manuales. Regla `acomp`:
+huella; REEMPLAZAR un binario = constantes juntas + release `modelos-v2`;
+AÑADIR un asset nuevo al v1 está bien, detalle en el doc); única conexión
+fuera de api.anthropic.com, opt-in y anunciada; respeta rutas manuales. Regla `acomp`:
 `compact_boundary` con trigger≠manual y <30 min → ficha con los preTokens
 (los manuales no avisan: los hiciste tú; los INYECTADOS por el relevo
 entran como manual y se auditan solos). TODO `compact_boundary` —de quien
@@ -470,12 +475,14 @@ presion-y-rendimiento §"Qué queda vivo".
       (`session_jsonl(sid)`, sin /export; remediacion.md §"La copia SIN
       /export en el chat"); banco 3/3 en el VPS; falta cargo check en
       Windows y verlo en vivo con el chat real.
-- [ ] ANÁLISIS LOCAL v1: visto en tarjeta e inferencia REALES
-      (2026-08-13): 4 de 4 veredictos tema_nuevo acertados, ~13 s por
-      análisis (el hueco que los embeddings de la etapa 2 comprimirían a
-      ms). Falta muestra en uso NATURAL (sesiones de trabajo, no de
-      prueba) antes de decidir la etapa 2. No tocar umbrales mientras
-      Oscar mide.
+- [ ] ANÁLISIS LOCAL: v1 validada en vivo (5/5 tema_nuevo) y ETAPA 2
+      CONSTRUIDA (2026-08-13, ver §Coach y analisis-local.md §"Etapa 2 —
+      HECHA"): embeddings antes del 2B, espejo subido y verificado. Falta
+      verla decidir en vivo (primer `via:emb` en el flowLog) y muestra en
+      uso NATURAL antes de afinar umbrales (EMB_NEW/EMB_CROSS constantes
+      a propósito). VISOR DE COPIAS handoff (mismo día): botón "ver la
+      copia" en el registro de acciones — local, SSH y WSL
+      (`read_handoff`, RemAction.origin; transcript legible para .jsonl).
 - [x] Ficha `compact` proporcional (2026-08-13): 60% de `ctx_full` en vez
       de 120k fijos, en la ficha Y en el ⚠ "ctx" de `coach_leaks`; réplica
       en exportador (invariante #1). Seguro respecto a la prueba en vivo:

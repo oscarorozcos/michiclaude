@@ -3841,6 +3841,10 @@ struct AiConfig {
     server: String, // ruta de llama-server; vacía = el del PATH
     model: String,  // ruta del .gguf — obligatoria para analizar
     port: u16,      // 0 = 8791; solo se escucha en 127.0.0.1
+    /// ruta del GGUF de EMBEDDINGS (etapa 2, 2026-08-13); vacía = el que
+    /// bajó la descarga guiada (ai_emb_file). Sin archivo, el peldaño se
+    /// salta en silencio y decide el 2B — fail-quiet, regla #4.
+    emb: String,
 }
 
 fn ai_config_path() -> PathBuf {
@@ -3926,6 +3930,13 @@ fn ai_dbg(req: &str, resp: &str) {
 struct AiVerdict {
     rec: String,
     reason: String,
+    /// Qué peldaño de la escalera decidió (etapa 2, 2026-08-13): "emb" =
+    /// embeddings, "llm" = el 2B. Aditivo con default: el JSON del modelo
+    /// no lo trae y el panel viejo lo ignora. Es EL dato de la auditoría
+    /// de la etapa 2 — el flowLog lo enseña.
+    via: String,
+    /// Similitud coseno tema↔reciente cuando decidieron los embeddings.
+    sim: f32,
 }
 
 /// POST/GET HTTP/1.1 mínimo contra 127.0.0.1 (std puro). `Connection: close`
@@ -3983,6 +3994,148 @@ fn ai_http(port: u16, req: &str, body: Option<&str>, timeout_ms: u64) -> Result<
     Ok((status, String::from_utf8_lossy(&payload).to_string()))
 }
 
+// --- etapa 2: el peldaño de EMBEDDINGS (2026-08-13, docs/analisis-local.md
+// §"Etapa 2"). Similitud coseno entre EL TEMA (título + mensajes viejos) y
+// LO RECIENTE (el último mensaje): los casos claros se deciden en 1-3 s en
+// vez de los 10-26 s del 2B, que queda solo para la banda media. Umbrales
+// del diseño: <0.45 = tema_nuevo (clear), >0.65 = tema_cruzado (compact).
+// FAIL-QUIET en cadena (regla #4): sin GGUF, server que no arranca, salida
+// rara o banda media → None, y decide el 2B como en la v1 — este peldaño
+// solo puede ACELERAR, nunca cambiar lo que existe.
+const EMB_NEW: f32 = 0.45; // por debajo: el tema cambió — clear
+const EMB_CROSS: f32 = 0.65; // por encima: sigue el hilo — compact
+const AI_EMB_PORT_OFF: u16 = 1; // puerto del 2B + 1: nunca chocan
+const AI_EMB_WAIT_MS: u64 = 20_000; // carga fría del e5 (126 MB, no 1.3 GB)
+
+/// Vector f32 desde el JSON de /v1/embeddings.
+fn emb_vec(v: &serde_json::Value) -> Option<Vec<f32>> {
+    let a = v.as_array()?;
+    if a.is_empty() {
+        return None;
+    }
+    Some(a.iter().filter_map(|x| x.as_f64().map(|f| f as f32)).collect())
+}
+
+fn emb_cos(a: &[f32], b: &[f32]) -> Option<f32> {
+    if a.len() != b.len() || a.is_empty() {
+        return None;
+    }
+    let dot: f32 = a.iter().zip(b).map(|(x, y)| x * y).sum();
+    let na: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+    let nb: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if na == 0.0 || nb == 0.0 {
+        return None;
+    }
+    Some(dot / (na * nb))
+}
+
+/// El veredicto por embeddings, o None si este peldaño no decide (falta el
+/// modelo, algo falló, o la similitud cayó en la banda media del diseño).
+fn ai_emb_verdict(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Option<AiVerdict> {
+    let emb = if cfg.emb.trim().is_empty() {
+        ai_emb_file()
+    } else {
+        PathBuf::from(cfg.emb.trim())
+    };
+    if !emb.is_file() {
+        return None;
+    }
+    // el TEMA = título + mensajes viejos; LO RECIENTE = el último mensaje.
+    // Con un solo mensaje el tema es el título a secas — sigue funcionando.
+    let recent = msgs.last()?.trim().to_string();
+    if recent.is_empty() {
+        return None;
+    }
+    let mut theme = title.trim().to_string();
+    for m in &msgs[..msgs.len().saturating_sub(1)] {
+        theme.push_str(" · ");
+        theme.push_str(m);
+    }
+    if theme.trim().is_empty() || theme.trim() == "·" {
+        return None;
+    }
+    let port = (if cfg.port == 0 { AI_PORT } else { cfg.port }) + AI_EMB_PORT_OFF;
+    let port_s = port.to_string();
+    let mut cmd = std::process::Command::new(server);
+    cmd.args([
+        "-m",
+        emb.to_str()?,
+        "--host",
+        "127.0.0.1",
+        "--port",
+        port_s.as_str(),
+        // e5 es un modelo de embeddings puro: sin este flag llama-server lo
+        // trata de chat y el endpoint no existe. Pooling mean explícito —
+        // es el del modelo, y así no dependemos del metadato del GGUF.
+        "--embeddings",
+        "--pooling",
+        "mean",
+        "-c",
+        "512",
+        "-t",
+        "4",
+        "-ngl",
+        "0",
+        "--no-mmap",
+    ])
+    .stdin(std::process::Stdio::null())
+    .stdout(std::process::Stdio::null())
+    .stderr(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let child = cmd.spawn().ok()?;
+    let _guard = AiChild(child); // muere también en todos los caminos de error
+    let t0 = std::time::Instant::now();
+    loop {
+        if t0.elapsed().as_millis() as u64 > AI_EMB_WAIT_MS {
+            return None;
+        }
+        if let Ok((status, _)) = ai_http(port, "GET /health", None, 2_000) {
+            if status.contains(" 200") {
+                break;
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(300));
+    }
+    // e5 EXIGE el prefijo "query: " (tarea simétrica: en los dos lados);
+    // sin él la calidad de la similitud se degrada en silencio.
+    let body = serde_json::json!({
+        "input": [format!("query: {theme}"), format!("query: {recent}")]
+    })
+    .to_string();
+    let (_, payload) = ai_http(port, "POST /v1/embeddings", Some(&body), 15_000).ok()?;
+    let v: serde_json::Value = serde_json::from_str(payload.trim()).ok()?;
+    let a = emb_vec(&v["data"][0]["embedding"])?;
+    let b = emb_vec(&v["data"][1]["embedding"])?;
+    let sim = emb_cos(&a, &b)?;
+    // al rastro de siempre (se sobrescribe): la evidencia y la similitud,
+    // no los vectores — 768 floats no le sirven a nadie para depurar
+    ai_dbg(
+        &format!("[emb] tema: {theme}\n[emb] reciente: {recent}"),
+        &format!("sim={sim:.3} (clear<{EMB_NEW} · compact>{EMB_CROSS})"),
+    );
+    if sim < EMB_NEW {
+        Some(AiVerdict {
+            rec: "clear".into(),
+            reason: "tema_nuevo".into(),
+            via: "emb".into(),
+            sim,
+        })
+    } else if sim > EMB_CROSS {
+        Some(AiVerdict {
+            rec: "compact".into(),
+            reason: "tema_cruzado".into(),
+            via: "emb".into(),
+            sim,
+        })
+    } else {
+        None // banda media: la zona gris sigue siendo del 2B
+    }
+}
+
 /// El análisis en sí (síncrono; el comando lo envuelve en spawn_blocking).
 fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdict, String> {
     let cfg = load_ai_config();
@@ -4000,6 +4153,11 @@ fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdi
     } else {
         cfg.server.trim().to_string()
     };
+    // La escalera de la etapa 2: los embeddings deciden los casos claros en
+    // segundos; None (sin modelo, fallo o banda media) = el 2B, como en la v1.
+    if let Some(v) = ai_emb_verdict(&cfg, &server, &title, &msgs) {
+        return Ok(v);
+    }
     let port = if cfg.port == 0 { AI_PORT } else { cfg.port };
     // Flags de la investigación de modelos (§3), medidos en CPU sin GPU:
     // -ngl 0 (la iGPU comparte la RAM), --no-mmap (GGML_ASSERT con memoria
@@ -4105,7 +4263,10 @@ fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdi
     let out: AiVerdict =
         serde_json::from_str(slice).map_err(|_| "ERR_AI_BADOUT".to_string())?;
     match out.rec.as_str() {
-        "clear" | "compact" | "unsure" => Ok(out),
+        "clear" | "compact" | "unsure" => Ok(AiVerdict {
+            via: "llm".into(), // qué peldaño decidió, para la auditoría
+            ..out
+        }),
         _ => Err("ERR_AI_BADOUT".into()),
     }
     // _guard cae aquí: llama-server muere también en los caminos de error
@@ -4140,12 +4301,24 @@ const AI_MODEL_URL: &str =
 const AI_MODEL_URL_MIRROR: &str =
     "https://github.com/oscarorozcos/michiclaude/releases/download/modelos-v1/Qwen3.5-2B-UD-Q4_K_XL.gguf";
 const AI_MODEL_SHA: &str = "9f7b15d04cf2d5878c8122a7c181dbc09f050cd66080ce3374576e734ccb0910";
+// El peldaño de EMBEDDINGS de la etapa 2 (2026-08-13): multilingual-e5-small
+// en Q8_0 (~126 MB). Espejo verificado el mismo día (subida con gh, descarga
+// anónima de vuelta, huella idéntica). Con este, las constantes de la
+// descarga guiada son NUEVE — siguen actualizándose JUNTAS.
+const AI_EMB_URL: &str =
+    "https://huggingface.co/cstr/multilingual-e5-small-GGUF/resolve/main/multilingual-e5-small-q8_0.gguf";
+const AI_EMB_URL_MIRROR: &str =
+    "https://github.com/oscarorozcos/michiclaude/releases/download/modelos-v1/multilingual-e5-small-q8_0.gguf";
+const AI_EMB_SHA: &str = "0a34067a40f25d3149b36885faa62bee0e5284d0f9edc102acfc00e115d953e8";
 
 fn ai_dir() -> PathBuf {
     app_data_dir().join("ai")
 }
 fn ai_model_file() -> PathBuf {
     ai_dir().join("Qwen3.5-2B-UD-Q4_K_XL.gguf")
+}
+fn ai_emb_file() -> PathBuf {
+    ai_dir().join("multilingual-e5-small-q8_0.gguf")
 }
 
 /// Busca llama-server dentro de lo descomprimido: el zip de llama.cpp ha
@@ -4175,6 +4348,7 @@ fn find_ls(dir: &std::path::Path) -> Option<PathBuf> {
 struct AiSetupStatus {
     server: bool,
     model: bool,
+    emb: bool,
 }
 
 /// ¿Qué falta por descargar? Cuenta tanto lo configurado a mano (rutas del
@@ -4188,7 +4362,9 @@ fn ai_setup_status() -> AiSetupStatus {
     let model = (!cfg.model.trim().is_empty()
         && std::path::Path::new(cfg.model.trim()).is_file())
         || ai_model_file().is_file();
-    AiSetupStatus { server, model }
+    let emb = (!cfg.emb.trim().is_empty() && std::path::Path::new(cfg.emb.trim()).is_file())
+        || ai_emb_file().is_file();
+    AiSetupStatus { server, model, emb }
 }
 
 /// Descarga con progreso a eventos `ai:dl` hacia el panel. Un `.part` viejo
@@ -4353,6 +4529,14 @@ async fn ai_setup(app: tauri::AppHandle) -> Result<AiConfig, String> {
         ai_fetch(&app, "model", &[AI_MODEL_URL, AI_MODEL_URL_MIRROR], AI_MODEL_SHA, &part).await?;
         fs::rename(&part, ai_model_file()).map_err(|_| "ERR_AI_DL".to_string())?;
     }
+    // etapa 2: el modelo de embeddings (~126 MB). Mismo trato que los otros
+    // dos: solo si falta, huella verificada, y el fallo deja todo como
+    // estaba (el análisis funciona sin él — el 2B decide solo).
+    if !st.emb {
+        let part = dir.join("emb.part");
+        ai_fetch(&app, "emb", &[AI_EMB_URL, AI_EMB_URL_MIRROR], AI_EMB_SHA, &part).await?;
+        fs::rename(&part, ai_emb_file()).map_err(|_| "ERR_AI_DL".to_string())?;
+    }
     let mut cfg = load_ai_config();
     cfg.enabled = true;
     if cfg.server.trim().is_empty() || !std::path::Path::new(cfg.server.trim()).is_file() {
@@ -4362,6 +4546,9 @@ async fn ai_setup(app: tauri::AppHandle) -> Result<AiConfig, String> {
     }
     if cfg.model.trim().is_empty() || !std::path::Path::new(cfg.model.trim()).is_file() {
         cfg.model = ai_model_file().display().to_string();
+    }
+    if cfg.emb.trim().is_empty() || !std::path::Path::new(cfg.emb.trim()).is_file() {
+        cfg.emb = ai_emb_file().display().to_string();
     }
     let s = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;
     fs::write(ai_config_path(), s).map_err(|e| e.to_string())?;
@@ -4667,12 +4854,16 @@ struct RemAction {
     #[serde(default)]
     d2: String,
     /// relay + /clear con red: NOMBRE del archivo de copia (sin ruta), para
-    /// que el panel pueda ofrecer "abrir la copia". Solo el nombre a
+    /// que el panel pueda ofrecer "ver la copia". Solo el nombre a
     /// propósito: la carpeta la pone el backend y así una ruta del panel no
-    /// puede abrir nada de fuera (misma regla que LAST_EXPORT). Vacío en
-    /// remotas — esa copia vive en el servidor y aquí no hay qué abrir.
+    /// puede abrir nada de fuera (misma regla que LAST_EXPORT).
     #[serde(default)]
     file: String,
+    /// Dónde vive la copia: "" = esta máquina, nombre de servidor SSH, o
+    /// `wsl-<distro>` (2026-08-13, visor de copias). Con esto las remotas
+    /// también se pueden VER: el visor la trae por SSH con `read_handoff`.
+    #[serde(default)]
+    origin: String,
 }
 
 fn actions_log_path() -> PathBuf {
@@ -4682,11 +4873,21 @@ fn actions_log_path() -> PathBuf {
 /// Añade una entrada al registro (tope 200 — es una bitácora, no un
 /// histórico infinito). Nunca viaja a ntfy ni al hub: contiene nombres.
 fn log_action(kind: &str, auto: bool, ok: bool, d1: String, d2: String) {
-    log_action_file(kind, auto, ok, d1, d2, String::new())
+    log_action_file(kind, auto, ok, d1, d2, String::new(), String::new())
 }
 
-/// Igual, pero apuntando además el archivo de copia (ver RemAction.file).
-fn log_action_file(kind: &str, auto: bool, ok: bool, d1: String, d2: String, file: String) {
+/// Igual, pero apuntando además el archivo de copia y dónde vive (ver
+/// RemAction.file / RemAction.origin).
+#[allow(clippy::too_many_arguments)]
+fn log_action_file(
+    kind: &str,
+    auto: bool,
+    ok: bool,
+    d1: String,
+    d2: String,
+    file: String,
+    origin: String,
+) {
     let mut list: Vec<RemAction> = fs::read_to_string(actions_log_path())
         .ok()
         .and_then(|x| serde_json::from_str(&x).ok())
@@ -4699,6 +4900,7 @@ fn log_action_file(kind: &str, auto: bool, ok: bool, d1: String, d2: String, fil
         d1,
         d2,
         file,
+        origin,
     });
     let skip = list.len().saturating_sub(200);
     let list: Vec<_> = list.into_iter().skip(skip).collect();
@@ -4755,6 +4957,69 @@ fn open_handoff(name: String) -> Result<(), String> {
             .map_err(|_| "ERR_HANDOFF_OPEN".to_string())?;
     }
     Ok(())
+}
+
+/// El contenido de una copia del /clear con red, para el VISOR del panel
+/// (2026-08-13). Mismas reglas de nombre que `open_handoff`, y MÁS duras:
+/// en las remotas el nombre viaja dentro de un comando ssh, así que solo se
+/// acepta [A-Za-z0-9._-] — nada que un shell pueda interpretar. `origin`
+/// decide dónde vivir la lectura: "" = esta máquina, nombre de servidor =
+/// SSH (`cat` de su handoff/), `wsl-<distro>` = sistema de archivos de la
+/// distro. Tope de 4 MB: es un visor, no un descargador.
+#[tauri::command]
+async fn read_handoff(name: String, origin: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if name.is_empty()
+            || name.contains("..")
+            || !name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-')
+        {
+            return Err("ERR_HANDOFF_NAME".to_string());
+        }
+        const CAP: usize = 4_000_000;
+        fn capped(mut s: String) -> String {
+            if s.len() > CAP {
+                let mut i = CAP;
+                while !s.is_char_boundary(i) {
+                    i -= 1;
+                }
+                s.truncate(i);
+                s.push_str("\n… [recortado]");
+            }
+            s
+        }
+        if !origin.is_empty() {
+            if let Some(r) = load_remotes().into_iter().find(|r| r.name == origin) {
+                let s = ssh_out(&r.host, &format!("cat ~/.michiclaude/handoff/{name}"), "15")
+                    .ok_or("ERR_HANDOFF_GONE")?;
+                if s.is_empty() {
+                    return Err("ERR_HANDOFF_GONE".to_string());
+                }
+                return Ok(capped(s));
+            }
+            // WSL: la carpeta handoff es hermana del buzón del relevo
+            for (d, dir) in wsl_relay_dirs() {
+                if wsl_origin(&d) != origin {
+                    continue;
+                }
+                let Some(h) = dir.parent().map(|p| p.join("handoff")) else {
+                    continue;
+                };
+                let p = h.join(&name);
+                if let Ok(s) = fs::read_to_string(&p) {
+                    return Ok(capped(s));
+                }
+            }
+            return Err("ERR_HANDOFF_GONE".to_string());
+        }
+        let p = handoff_dir().join(&name);
+        fs::read_to_string(&p)
+            .map(capped)
+            .map_err(|_| "ERR_HANDOFF_GONE".to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -5108,13 +5373,16 @@ fn relay_write_cmd(path: &PathBuf, data: &str) -> bool {
 /// texto sale de una lista blanca de dos elementos, pero un día alguien
 /// ampliará esa lista y no quiero que ese día una comilla se convierta en
 /// ejecución remota. Se cierra la puerta antes de que exista.
+/// Devuelve la RUTA de la copia del /clear con red (vacía si no hubo), tal
+/// como la publicó el acuse del relevo remoto — el registro guarda solo su
+/// nombre (path_base) y el visor la trae por SSH cuando haga falta.
 fn relay_inject_remote(
     host: &str,
     pid: u32,
     text: &str,
     id: &str,
     export: bool,
-) -> Result<(), String> {
+) -> Result<String, String> {
     use std::io::Write;
     let body =
         serde_json::json!({"id": id, "op": "inject", "text": text, "export": export}).to_string();
@@ -5158,7 +5426,7 @@ fn relay_inject_remote(
             continue;
         }
         return if v["last"]["ok"].as_bool().unwrap_or(false) {
-            Ok(())
+            Ok(v["last"]["export"].as_str().unwrap_or("").to_string())
         } else {
             Err(v["last"]["err"].as_str().unwrap_or("ERR_RELAY_NOACK").to_string())
         };
@@ -5191,8 +5459,19 @@ async fn relay_inject(
             if let Some(r) = load_remotes().into_iter().find(|r| r.name == origin) {
                 let id = format!("app-{}", Utc::now().timestamp_millis());
                 let res = relay_inject_remote(&r.host, pid, &text, &id, export);
-                log_action("relay", auto, res.is_ok(), text.clone(), origin);
-                return res;
+                // la copia remota SÍ se apunta (2026-08-13): con el nombre y
+                // el origen, el visor puede traerla por SSH (read_handoff)
+                let copia = res.as_deref().map(path_base).unwrap_or_default();
+                log_action_file(
+                    "relay",
+                    auto,
+                    res.is_ok(),
+                    text.clone(),
+                    origin.clone(),
+                    copia,
+                    origin,
+                );
+                return res.map(|_| ());
             }
         }
         // WSL: el buzón se ve como carpeta, así que es el MISMO camino que el
@@ -5218,7 +5497,15 @@ async fn relay_inject(
         let id = format!("app-{}", Utc::now().timestamp_millis());
         match relay_inject_fs(&dir, pid, &text, &id, export) {
             Ok(a) => {
-                log_action_file("relay", auto, a.ok, text.clone(), proj.clone(), a.copia);
+                log_action_file(
+                    "relay",
+                    auto,
+                    a.ok,
+                    text.clone(),
+                    proj.clone(),
+                    a.copia,
+                    origin.clone(),
+                );
                 if a.ok {
                     Ok(())
                 } else {
@@ -6650,6 +6937,7 @@ pub fn run() {
             open_releases,
             open_export,
             open_handoff,
+            read_handoff,
             is_dev,
             app_version,
             get_pill_layer,

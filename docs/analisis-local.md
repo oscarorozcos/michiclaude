@@ -91,11 +91,11 @@ puede haberlo — el exportador es stdlib puro).
 4. nada decidió                    —  tarjeta genérica de hoy
 ```
 
-**La v1 implementa 1→3→4** (sin embeddings): Oscar ya tiene llama-server y
-el GGUF instalados — cero descargas para empezar a probar LO QUE DECIDE si
-esto sirve: la calidad del veredicto. Los embeddings son un atajo de
-velocidad y entran en la etapa 2, cuando el veredicto haya demostrado
-valer; añadirlos no cambia ninguna interfaz (misma salida, mismo sitio).
+**La v1 implementó 1→3→4**; desde 2026-08-13 la escalera está COMPLETA
+(1→2→3→4): el peldaño 2 entró tras validar la v1 en vivo (5/5 aciertos) —
+ver §"Etapa 2 — HECHA". Añadirlo no cambió ninguna interfaz: misma
+salida, mismo sitio, y sin el GGUF de embeddings todo se comporta
+exactamente como la v1.
 
 ## Piezas
 
@@ -322,13 +322,45 @@ assets aguantan hasta 2 GB). Reglas ganadas al hacerlo:
 El riesgo que cubre es solo de ALTA (usuarios nuevos descargando): los
 existentes corren sin internet.
 
-## Etapa 2 (después de validar la v1)
+## Etapa 2 — HECHA (2026-08-13; adelantada por Oscar con la v1 en 5/5)
 
-- Modelo de embeddings al espejo cuando exista (mismo release-estante).
-- Embeddings (multilingual-e5-small GGUF, ~120 MB) como peldaño previo:
-  similitud coseno título+viejo ↔ reciente; <0.45 = tema_nuevo, >0.65 =
-  tema_cruzado, y el 2B queda solo para la banda media. (La descarga de
-  modelos se adelantó a la v1.1.)
+El peldaño de embeddings quedó construido el día que el automático por
+inferencia se validó de punta a punta (terminal y chat, mismo día):
+
+- **Modelo:** `multilingual-e5-small-q8_0.gguf` (~126 MB, de
+  cstr/multilingual-e5-small-GGUF). Subido al MISMO release-estante
+  `modelos-v1` como asset NUEVO (aditivo: nada publicado se reemplazó, la
+  regla del modelos-v2 es para REEMPLAZOS) y verificado igual que los
+  otros: descarga anónima de vuelta, huella idéntica. Las constantes de la
+  descarga guiada ahora son NUEVE (`AI_EMB_URL/_MIRROR/_SHA`) y siguen
+  actualizándose juntas.
+- **Dónde corre:** `ai_emb_verdict()` DENTRO de `ai_intent_impl`, ANTES de
+  arrancar el 2B — mismo llama-server con `--embeddings --pooling mean
+  -c 512`, puerto del 2B +1, guard kill-on-drop. e5 exige el prefijo
+  `query: ` en ambos lados (tarea simétrica) — sin él la similitud se
+  degrada en silencio.
+- **La comparación del diseño:** TEMA = título + mensajes viejos; RECIENTE
+  = el último mensaje. Coseno: `<0.45` → clear·tema_nuevo, `>0.65` →
+  compact·tema_cruzado, banda media → el 2B como en la v1. Los umbrales
+  son constantes (`EMB_NEW`/`EMB_CROSS`) A PROPÓSITO: se afinan con la
+  muestra de uso natural, no en caliente.
+- **Fail-quiet en cadena (regla #4 intacta):** sin GGUF, server que no
+  arranca, salida rara → `None` y decide el 2B. El peldaño solo puede
+  ACELERAR (10-26 s → 1-3 s), jamás quitar lo que ya funciona.
+- **Auditoría:** `AiVerdict` gana `via` ("emb"/"llm") y `sim` (aditivos,
+  serde default). El flowLog los enseña ("ai: veredicto clear ·
+  tema_nuevo (embeddings 0.38)") y `ai_debug.txt` guarda tema/reciente y
+  la similitud — no los vectores. La tarjeta persistida sigue guardando
+  SOLO `{rec, reason}` (privacidad, regla #6).
+- **Descarga:** `ai_setup` baja el tercer archivo solo si falta
+  (idempotente); con la v1 ya instalada el botón dice "Descargar el
+  modelo rápido (~126 MB)" (`ai_dl_emb`). Rutas manuales: `ai_config.emb`
+  (vacía = la descargada).
+- PENDIENTE de la etapa 2: verla decidir en vivo (primer `via:emb` real)
+  y revisar umbrales tras unos días de muestra.
+
+## Etapa 3 (algún día, sin fecha)
+
 - Decidir si el veredicto del modelo puede DEGRADAR una recomendación
   determinista (freno, nunca acelerador): un "tarea_viva" del modelo sobre
   un Boundary… hoy NO — primero medir cuánto acierta.

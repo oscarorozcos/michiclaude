@@ -1357,9 +1357,21 @@ rama chat de `handoff()` (main.rs, decide por `sp.sid`).
 **Banco (VPS, 2026-08-13, claude falso sin /export como el real):**
 /clear con red → copia IDÉNTICA byte a byte + /clear ecoado al chat, sin
 /export tecleado; /compact → sin copia (regresión limpia); sid sin
-jsonl → ERR_RELAY_EXPORT y CERO /clear. Pendiente: cargo check del crate
-en Windows (el VPS no compila Rust; `npm run dev` lo compila solo) y
-verlo en vivo con el chat real.
+jsonl → ERR_RELAY_EXPORT y CERO /clear. **VALIDADO EN VIVO el mismo día**
+(19:44, chat del VPS): `aplicado /clear por IA (tema_nuevo)` con la copia
+.jsonl en handoff/ — la tabla del automático quedó 4/4 (compact y clear ×
+terminal y chat). Pendiente: cargo check del crate en Windows.
+
+**Visor de copias (2026-08-13, pedido por Oscar):** el botón del registro
+de acciones pasó de "abrir la copia" (solo local, Explorador) a "VER la
+copia" — un overlay del panel que enseña el CONTENIDO: las `.jsonl` como
+transcript legible (quién dijo qué, qué herramientas corrieron), las
+`.md` tal cual. Funciona con copias locales, de servidores SSH y de WSL:
+`RemAction` gana `origin` (aditivo), `relay_inject_remote` devuelve la
+ruta de la copia del acuse (antes se tiraba), y `read_handoff(name,
+origin)` la trae — nombre validado a [A-Za-z0-9._-] ANTES de componer
+nada (en remoto viaja dentro de un comando ssh), tope 4 MB, y "abrir en
+la carpeta" solo para las locales.
 
 ### El Enter NO puede ir pegado al texto (autopsia, 2026-08-09)
 

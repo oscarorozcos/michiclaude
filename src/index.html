@@ -531,6 +531,12 @@
   .pop-tt{font-size:10.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
     color:var(--txt-dim);margin-bottom:11px;padding-right:32px}
   .pop-foot{display:flex;gap:8px;margin-top:12px}
+  /* visor de copias del /clear (handoff): transcript en mono, scroll propio */
+  .hv-body{font-family:var(--mono);font-size:10.5px;line-height:1.55;
+    white-space:pre-wrap;word-break:break-word;color:var(--txt-mut);
+    background:var(--card);border:1px solid var(--stroke-soft);
+    border-radius:11px;padding:10px;max-height:52vh;overflow-y:auto}
+  .hv-body b{color:var(--txt)}
   .cbtn{border:0;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:700;
     border-radius:11px;padding:9px 12px;transition:.15s}
   .cbtn.ghost{background:var(--card);color:var(--txt-mut);border:1px solid var(--stroke)}
@@ -1710,6 +1716,15 @@
   </div>
 </div>
 
+<!-- visor de copias del /clear con red (2026-08-13): la red solo se gana la
+     confianza si la copia se puede VER — local, de un servidor o de WSL -->
+<div class="pop" id="handPop" hidden>
+  <button class="pop-x" id="handX" data-i18n-title="cal_cancel">✕</button>
+  <div class="pop-tt" id="handTt"></div>
+  <div class="hv-body" id="handBody"></div>
+  <div class="pop-hint" id="handHint" style="text-align:left"></div>
+</div>
+
 <script>
 // ---------- helpers ----------
 const $=id=>document.getElementById(id);
@@ -2035,6 +2050,8 @@ en:{
   ai_dl_start:"connecting…",
   ai_dl_srv:n=>`downloading llama.cpp… ${n}%`,
   ai_dl_mdl:n=>`downloading the model… ${n}%`,
+  ai_dl_emb:"Download the fast model (~126 MB)",
+  ai_dl_embp:n=>`downloading embeddings… ${n}%`,
   ai_dl_done:"ready — local analysis is on",
   err_ai_dl:"the download failed — check your connection and retry",
   err_ai_sha:"the download arrived corrupted — retry",
@@ -2085,7 +2102,10 @@ en:{
   rem_log_empty:"Nothing applied yet",
   rem_log_zombie:s=>`closed orphaned MCP «${s}»`,
   rem_log_arch:(n,mb)=>`archived ${n===1?"1 log":n+" logs"} (${mb} MB)`,
-  rem_log_copy:"open the copy",
+  rem_log_copy:"view the copy",
+  hand_folder:"open in folder",
+  hand_loading:"loading…",
+  hand_you:"You",
   rem_log_copy_gone:"copy no longer exists",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
@@ -2503,6 +2523,8 @@ es:{
   ai_dl_start:"conectando…",
   ai_dl_srv:n=>`descargando llama.cpp… ${n}%`,
   ai_dl_mdl:n=>`descargando el modelo… ${n}%`,
+  ai_dl_emb:"Descargar el modelo rápido (~126 MB)",
+  ai_dl_embp:n=>`descargando embeddings… ${n}%`,
   ai_dl_done:"listo — el análisis local quedó encendido",
   err_ai_dl:"falló la descarga — revisa tu conexión y reintenta",
   err_ai_sha:"la descarga llegó corrupta — reintenta",
@@ -2553,7 +2575,10 @@ es:{
   rem_log_empty:"Aún no se ha aplicado nada",
   rem_log_zombie:s=>`cerró el MCP huérfano «${s}»`,
   rem_log_arch:(n,mb)=>`archivó ${n===1?"1 log":n+" logs"} (${mb} MB)`,
-  rem_log_copy:"abrir la copia",
+  rem_log_copy:"ver la copia",
+  hand_folder:"abrir en la carpeta",
+  hand_loading:"cargando…",
+  hand_you:"Tú",
   rem_log_copy_gone:"la copia ya no existe",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
@@ -2971,6 +2996,8 @@ pt:{
   ai_dl_start:"conectando…",
   ai_dl_srv:n=>`baixando llama.cpp… ${n}%`,
   ai_dl_mdl:n=>`baixando o modelo… ${n}%`,
+  ai_dl_emb:"Baixar o modelo rápido (~126 MB)",
+  ai_dl_embp:n=>`baixando embeddings… ${n}%`,
   ai_dl_done:"pronto — a análise local ficou ligada",
   err_ai_dl:"o download falhou — verifique sua conexão e tente de novo",
   err_ai_sha:"o download chegou corrompido — tente de novo",
@@ -3021,7 +3048,10 @@ pt:{
   rem_log_empty:"Nada aplicado ainda",
   rem_log_zombie:s=>`fechou o MCP órfão «${s}»`,
   rem_log_arch:(n,mb)=>`arquivou ${n===1?"1 log":n+" logs"} (${mb} MB)`,
-  rem_log_copy:"abrir a cópia",
+  rem_log_copy:"ver a cópia",
+  hand_folder:"abrir na pasta",
+  hand_loading:"carregando…",
+  hand_you:"Você",
   rem_log_copy_gone:"a cópia não existe mais",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
@@ -3439,6 +3469,8 @@ fr:{
   ai_dl_start:"connexion…",
   ai_dl_srv:n=>`téléchargement de llama.cpp… ${n}%`,
   ai_dl_mdl:n=>`téléchargement du modèle… ${n}%`,
+  ai_dl_emb:"Télécharger le modèle rapide (~126 Mo)",
+  ai_dl_embp:n=>`téléchargement des embeddings… ${n}%`,
   ai_dl_done:"prêt — l'analyse locale est activée",
   err_ai_dl:"le téléchargement a échoué — vérifiez votre connexion et réessayez",
   err_ai_sha:"le téléchargement est arrivé corrompu — réessayez",
@@ -3489,7 +3521,10 @@ fr:{
   rem_log_empty:"Rien d'appliqué pour l'instant",
   rem_log_zombie:s=>`a fermé le MCP orphelin « ${s} »`,
   rem_log_arch:(n,mb)=>`a archivé ${n===1?"1 journal":n+" journaux"} (${mb} Mo)`,
-  rem_log_copy:"ouvrir la copie",
+  rem_log_copy:"voir la copie",
+  hand_folder:"ouvrir dans le dossier",
+  hand_loading:"chargement…",
+  hand_you:"Vous",
   rem_log_copy_gone:"la copie n'existe plus",
   rem_auto_lab:"auto",
   rem_man_lab:"manuel",
@@ -3907,6 +3942,8 @@ de:{
   ai_dl_start:"verbinde…",
   ai_dl_srv:n=>`lade llama.cpp… ${n}%`,
   ai_dl_mdl:n=>`lade das Modell… ${n}%`,
+  ai_dl_emb:"Schnelles Modell laden (~126 MB)",
+  ai_dl_embp:n=>`lade Embeddings… ${n}%`,
   ai_dl_done:"fertig — lokale Analyse ist an",
   err_ai_dl:"der Download schlug fehl — Verbindung prüfen und erneut versuchen",
   err_ai_sha:"der Download kam beschädigt an — erneut versuchen",
@@ -3957,7 +3994,10 @@ de:{
   rem_log_empty:"Noch nichts angewendet",
   rem_log_zombie:s=>`verwaisten MCP „${s}“ beendet`,
   rem_log_arch:(n,mb)=>`${n===1?"1 Log":n+" Logs"} archiviert (${mb} MB)`,
-  rem_log_copy:"Kopie öffnen",
+  rem_log_copy:"Kopie ansehen",
+  hand_folder:"im Ordner öffnen",
+  hand_loading:"lädt…",
+  hand_you:"Du",
   rem_log_copy_gone:"Kopie existiert nicht mehr",
   rem_auto_lab:"auto",
   rem_man_lab:"manuell",
@@ -4375,6 +4415,8 @@ ja:{
   ai_dl_start:"接続中…",
   ai_dl_srv:n=>`llama.cpp をダウンロード中… ${n}%`,
   ai_dl_mdl:n=>`モデルをダウンロード中… ${n}%`,
+  ai_dl_emb:"高速モデルをダウンロード（約126 MB）",
+  ai_dl_embp:n=>`埋め込みをダウンロード中… ${n}%`,
   ai_dl_done:"完了 — ローカル分析が有効になりました",
   err_ai_dl:"ダウンロードに失敗しました — 接続を確認して再試行してください",
   err_ai_sha:"ダウンロードが破損していました — 再試行してください",
@@ -4425,7 +4467,10 @@ ja:{
   rem_log_empty:"まだ何も適用されていません",
   rem_log_zombie:s=>`孤立 MCP「${s}」を終了`,
   rem_log_arch:(n,mb)=>`ログ ${n} 件をアーカイブ（${mb} MB）`,
-  rem_log_copy:"コピーを開く",
+  rem_log_copy:"コピーを表示",
+  hand_folder:"フォルダーで開く",
+  hand_loading:"読み込み中…",
+  hand_you:"あなた",
   rem_log_copy_gone:"コピーはもうありません",
   rem_auto_lab:"自動",
   rem_man_lab:"手動",
@@ -4843,6 +4888,8 @@ ko:{
   ai_dl_start:"연결 중…",
   ai_dl_srv:n=>`llama.cpp 다운로드 중… ${n}%`,
   ai_dl_mdl:n=>`모델 다운로드 중… ${n}%`,
+  ai_dl_emb:"빠른 모델 다운로드(약 126 MB)",
+  ai_dl_embp:n=>`임베딩 다운로드 중… ${n}%`,
   ai_dl_done:"완료 — 로컬 분석이 켜졌어요",
   err_ai_dl:"다운로드에 실패했어요 — 연결을 확인하고 다시 시도하세요",
   err_ai_sha:"다운로드가 손상되었어요 — 다시 시도하세요",
@@ -4893,7 +4940,10 @@ ko:{
   rem_log_empty:"아직 적용된 작업 없음",
   rem_log_zombie:s=>`고아 MCP «${s}» 종료`,
   rem_log_arch:(n,mb)=>`로그 ${n}개 보관 (${mb} MB)`,
-  rem_log_copy:"사본 열기",
+  rem_log_copy:"사본 보기",
+  hand_folder:"폴더에서 열기",
+  hand_loading:"불러오는 중…",
+  hand_you:"나",
   rem_log_copy_gone:"사본이 더 이상 없습니다",
   rem_auto_lab:"자동",
   rem_man_lab:"수동",
@@ -5311,6 +5361,8 @@ zh:{
   ai_dl_start:"连接中…",
   ai_dl_srv:n=>`正在下载 llama.cpp… ${n}%`,
   ai_dl_mdl:n=>`正在下载模型… ${n}%`,
+  ai_dl_emb:"下载快速模型（约 126 MB）",
+  ai_dl_embp:n=>`正在下载嵌入模型… ${n}%`,
   ai_dl_done:"完成 — 本地分析已开启",
   err_ai_dl:"下载失败 — 请检查网络后重试",
   err_ai_sha:"下载文件已损坏 — 请重试",
@@ -5361,7 +5413,10 @@ zh:{
   rem_log_empty:"尚未执行任何操作",
   rem_log_zombie:s=>`关闭了孤立 MCP «${s}»`,
   rem_log_arch:(n,mb)=>`归档了 ${n} 个日志（${mb} MB）`,
-  rem_log_copy:"打开副本",
+  rem_log_copy:"查看副本",
+  hand_folder:"在文件夹中打开",
+  hand_loading:"加载中…",
+  hand_you:"你",
   rem_log_copy_gone:"副本已不存在",
   rem_auto_lab:"自动",
   rem_man_lab:"手动",
@@ -7703,7 +7758,11 @@ function maybeAiIntent(pr){
         if(!c2) return;                      // la despacharon mientras tanto
         c2.ai={rec:vd.rec||"unsure",reason:vd.reason||"na"};
         saveCoachCards(cs);
-        flog("ai: veredicto "+c2.ai.rec+" · "+c2.ai.reason);
+        // qué peldaño decidió (etapa 2): "embeddings 0.38" o "modelo". Es
+        // EL dato de la auditoría — al rastro, no a la tarjeta persistida.
+        flog("ai: veredicto "+c2.ai.rec+" · "+c2.ai.reason
+          +(vd.via==="emb"?" (embeddings "+(Math.round((vd.sim||0)*100)/100)+")"
+            :vd.via==="llm"?" (modelo)":""));
         // El automático no espera al siguiente sondeo (2026-08-13): si la
         // cuenta estaba aguantando por este veredicto (aiPending), el
         // momento es AHORA. El pr del último sondeo (≤10 s bajo presión)
@@ -8573,9 +8632,13 @@ async function aiDlSync(){
   if(!invoke||!aiCfg||!aiCfg.enabled){ $("aiDlRow").hidden=true; return; }
   try{
     const st=await invoke("ai_setup_status");
-    const need=!st.server||!st.model;
+    const need=!st.server||!st.model||!st.emb;
     $("aiDlRow").hidden=!need;
-    if(need) $("aiDlBtn").textContent=t(st.model?"ai_dl_only_srv":"ai_dl");
+    // qué falta decide la etiqueta: todo → el paquete completo; solo el
+    // binario → llama.cpp; solo los embeddings (etapa 2 sobre una v1 ya
+    // instalada, el caso de Oscar) → el modelo rápido de 126 MB
+    if(need) $("aiDlBtn").textContent=t(!st.model?"ai_dl"
+      :!st.server?"ai_dl_only_srv":"ai_dl_emb");
   }catch(_){ $("aiDlRow").hidden=true; }
 }
 $("aiDlBtn").addEventListener("click",async()=>{
@@ -8595,7 +8658,8 @@ $("aiDlBtn").addEventListener("click",async()=>{
 });
 EVENT?.listen("ai:dl",e=>{
   const d=e.payload||{};
-  $("aiDlMsg").textContent=t(d.phase==="model"?"ai_dl_mdl":"ai_dl_srv", d.pct||0);
+  $("aiDlMsg").textContent=t(d.phase==="model"?"ai_dl_mdl"
+    :d.phase==="emb"?"ai_dl_embp":"ai_dl_srv", d.pct||0);
 });
 $("aiChk").addEventListener("change",aiSave);
 $("aiSrv").addEventListener("change",aiSave);
@@ -8781,21 +8845,68 @@ async function remLogLoad(){
         : a.kind==="relay"?t("rem_log_relay",a.d1,a.d2)
         : t("rem_log_arch",a.d1,a.d2);
       // Botón a la copia del /clear con red: sin él la copia queda en una
-      // ruta de AppData que nadie se sabe, y una red que no puedes ver a un
-      // clic es una red en la que no se confía. Solo con nombre de archivo
-      // (las remotas no lo traen: esa copia vive en el servidor).
-      const copia=a.file?` <button class="lnk hnd-open" data-f="${escapeHtml(a.file)}">${
-        t("rem_log_copy")}</button>`:"";
+      // ruta que nadie se sabe, y una red que no puedes ver a un clic es
+      // una red en la que no se confía. Desde 2026-08-13 el botón abre el
+      // VISOR del panel y las remotas también lo llevan (read_handoff la
+      // trae por SSH; `origin` dice dónde vive).
+      const copia=a.file?` <button class="lnk hnd-open" data-f="${escapeHtml(a.file)}" data-o="${
+        escapeHtml(a.origin||"")}">${t("rem_log_copy")}</button>`:"";
       return `<div class="rem-l">${when} · ${a.auto?t("rem_auto_lab"):t("rem_man_lab")} · ${
         escapeHtml(what)}${a.ok?"":" · ⚠ "+t("rem_fail_lab")}${copia}</div>`;
     }).join("");
     el.querySelectorAll(".hnd-open").forEach(b=>
-      b.addEventListener("click",async ()=>{
-        try{ await invoke("open_handoff",{name:b.dataset.f}); }
-        catch(e){ b.textContent=String(e).includes("GONE")?t("rem_log_copy_gone"):"✕"; }
-      }));
+      b.addEventListener("click",()=>handView(b.dataset.f,b.dataset.o||"")));
   }catch(_){ el.innerHTML=""; }
 }
+// ---------- visor de copias del /clear (2026-08-13) ----------
+// Enseña el CONTENIDO de la copia en el propio panel. Las .jsonl (la copia
+// que hace el relevo del chat) se pintan como transcript legible — quién
+// dijo qué y qué herramientas corrieron; las .md (el /export de la
+// terminal) tal cual. El texto pasa por escapeHtml SIEMPRE: la copia es
+// contenido del usuario, no HTML.
+function handRender(name,txt){
+  if(!name.endsWith(".jsonl")) return escapeHtml(txt);
+  const out=[];
+  for(const ln of txt.split("\n")){
+    const s=ln.trim(); if(!s) continue;
+    let v; try{ v=JSON.parse(s); }catch(_){ continue; }
+    if(v.isMeta) continue;
+    const m=v.message||{};
+    if(v.type==="user"){
+      const tx=typeof m.content==="string"?m.content
+        :(m.content||[]).map(b=>b&&b.type==="text"?b.text:"").join(" ").trim();
+      if(tx) out.push("<b>· "+t("hand_you")+"</b>\n"+escapeHtml(tx));
+    }else if(v.type==="assistant"){
+      for(const b of (m.content||[])){
+        if(!b) continue;
+        if(b.type==="text"&&b.text) out.push("<b>· Claude</b>\n"+escapeHtml(b.text));
+        else if(b.type==="tool_use") out.push("<b>· ⚙ "+escapeHtml(b.name||"tool")+"</b>");
+      }
+    }
+  }
+  return out.join("\n\n")||escapeHtml(txt);
+}
+async function handView(name,origin){
+  if(!invoke) return;
+  $("handTt").textContent=name+(origin?" · "+origin:"");
+  $("handBody").textContent=t("hand_loading");
+  // el "abrir en la carpeta" solo tiene sentido con la copia EN esta
+  // máquina; la remota vive en el servidor y aquí no hay qué señalar
+  $("handHint").innerHTML=origin?""
+    :`<button class="lnk" id="handFolder">${t("hand_folder")}</button>`;
+  $("handPop").hidden=false;
+  $("handFolder")?.addEventListener("click",()=>{
+    invoke("open_handoff",{name}).catch(()=>{});
+  });
+  try{
+    const txt=await invoke("read_handoff",{name,origin});
+    $("handBody").innerHTML=handRender(name,txt);
+  }catch(e){
+    $("handBody").textContent=String(e).includes("GONE")
+      ?t("rem_log_copy_gone"):String(e);
+  }
+}
+$("handX").addEventListener("click",()=>{ $("handPop").hidden=true; });
 // Sondeo de fondo: cada hora (la foto de procesos vía PowerShell cuesta
 // ~1 s — cadencia baja a propósito). Con automático ganado, cierra y
 // registra; si aún no, nace la tarjeta en Consejos para el clic manual.

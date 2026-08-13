@@ -4289,3 +4289,39 @@ detección ≤10-20 s (compás caliente), veredicto 13-26 s (llama en CPU —
 LA cifra que los embeddings de la etapa 2 bajarían a ms), cuenta 30 s
 (DELIBERADA: es la ventana de cancelación, no se recorta). Piso real
 actual ≈ 1 min desde que la sesión cruza el 80% estando quieta.
+
+## 2026-08-13 (8) — visor de copias handoff y etapa 2 del análisis local (embeddings)
+
+**Visor de copias (pedido de Oscar: "¿hay manera de verlo si lo
+requiero?"):** el "abrir la copia" del registro de acciones solo servía
+para copias LOCALES (Explorador) y las de Oscar viven en el VPS. Ahora el
+botón dice "ver la copia" y abre un overlay del panel (patrón .pop
+reusado) con el CONTENIDO: .jsonl como transcript legible, .md tal cual.
+Piezas: RemAction.origin (aditivo), relay_inject_remote devolviendo la
+ruta del acuse (se tiraba), read_handoff(name, origin) con nombre
+validado a [A-Za-z0-9._-] antes de componer nada (en remoto viaja en un
+comando ssh), tope 4 MB, i18n en los 8 idiomas. "Abrir en la carpeta"
+queda solo para locales.
+
+**Etapa 2 del análisis local — embeddings (pedido del mismo día):**
+la escalera queda completa (determinista → embeddings → 2B → nada).
+`ai_emb_verdict()` corre DENTRO de ai_intent_impl antes de arrancar el
+2B: mismo llama-server con `--embeddings --pooling mean -c 512` (puerto
++1, guard kill-on-drop), prefijo `query: ` en ambos lados (e5 lo exige),
+coseno TEMA (título+viejos) ↔ RECIENTE (último msg); <0.45 →
+clear·tema_nuevo, >0.65 → compact·tema_cruzado, banda media → el 2B.
+Fail-quiet en cadena: sin GGUF o con cualquier fallo, v1 exacta. via/sim
+aditivos en AiVerdict → flowLog ("(embeddings 0.38)" / "(modelo)") y
+ai_debug.txt con tema/reciente/sim (vectores no). Modelo:
+multilingual-e5-small-q8_0 (~126 MB, cstr/multilingual-e5-small-GGUF),
+SUBIDO al release-estante modelos-v1 como asset NUEVO (aditivo — la
+regla del modelos-v2 es para reemplazos) y verificado con descarga
+anónima + huella idéntica (0a34067a…53e8). Constantes de la descarga:
+NUEVE. ai_setup baja solo lo que falte → con la v1 instalada el botón
+ofrece "Descargar el modelo rápido (~126 MB)".
+
+**Verificado:** node --check limpio (visor + i18n + escalera JS);
+espejo round-trip con huella idéntica. PENDIENTE Windows: cargo check
+(visor Rust + embeddings Rust comparten commit con el relevo del chat),
+descargar el e5 con el botón nuevo y ver el primer `via:emb` en vivo.
+Los umbrales EMB_NEW/EMB_CROSS no se afinan hasta tener muestra natural.
