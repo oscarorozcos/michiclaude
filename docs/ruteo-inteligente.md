@@ -417,3 +417,56 @@ auto-/clear y del análisis local v1 — comparten zona (coach/gatito) y
 contaminarían la medición. Estratégicamente esto ES la apuesta "asesor"
 (la #3 de diferenciadores): va después de pulir Windows, como estaba
 previsto.
+
+---
+
+## 11. Plan de tareas final (2026-08-13)
+
+Compuerta de arranque: cerrar las pruebas vivas (auto-/clear y análisis
+local v1). Cada etapa se termina, se mide y se valida antes de la
+siguiente; las etapas 1-3 son el MVP publicable.
+
+**Etapa 0 — Experimento de 10 minutos (Windows de Oscar).**
+Hook `PreToolUse` de juguete que reescriba el `model` de un subagente
+vía `updatedInput` (objeto COMPLETO) y verificación en el JSONL de que
+el subagente corrió con el modelo impuesto. Si falla, el plan B es la
+config estática soportada (frontmatter `model:` /
+`CLAUDE_CODE_SUBAGENT_MODEL`) sugerida desde el gatito.
+
+**Etapa 1 — La nota del refri (`router_state.json`).**
+El ciclo del panel (único llamador del endpoint) escribe el estado
+grueso: bucket redondeado, horas al reset, modo del proyecto, cooldown.
+Los hooks solo LEEN; >10 min de viejo = no hacer nada (fail-quiet).
+
+**Etapa 2 — Hook B, el ahorrador silencioso (subagentes).**
+Script embebido (patrón `include_str!` de meter-export.py), botón
+opt-in "Activar ruteo" + botón "Quitar hooks" que deja todo como
+estaba; escritura atómica en settings del usuario. Log de decisiones en
+JSON plano (patrón quota_history.json — NUNCA SQLite). Exploración →
+Haiku; implementación → Sonnet; análisis → según cuota.
+
+**Etapa 3 — La medición (pestaña Reporte).**
+Cruce del log de decisiones × JSONL reales × quota_history.json:
+"N subagentes redirigidos, X tokens ahorrados, el ruteo costó Y".
+Incluye el AUTOCONSUMO del propio sistema (invariante #8: correlación
+honesta, jamás un % sin base). Con esto el Hook B ya es demo publicable.
+
+**Etapa 4 — El gatito consejero (cambios de sesión con histéresis).**
+Perfil conductual colgado del escaneo del coach (NO segunda pasada de
+JSONL): contador de turnos ligeros que se REINICIA con cada turno de
+código (regla de sesión mixta). Sugerir bajar SOLO con 8-10 ligeros
+consecutivos + cuota apretada; subir sin cooldown; memoria de rechazo
+(1 no = silencio en la sesión; 3 no = modo manual del proyecto).
+Botones → settings.json atómico → "aplica desde tu PRÓXIMA sesión"
+(honestidad literal). Push ntfy al reset SOLO informa. Textos por t().
+
+**Etapa 5 — Hook A, el guardián (lo más delicado, al final).**
+(a) Bloqueo de escalada: señales estructurales (bloque de código, rutas,
+imperativo largo — nada de keywords), exit 2 con mensaje, prefijo `~` de
+bypass. (b) Contexto inyectado (~60 tok/turno): apagable por separado y
+AUTO-REPORTADO como consumo propio — hooks_noise no le hace lista blanca.
+
+**Etapa 6 — v2 opcionales.**
+Análisis histórico en frío con el modelo local (espera el veredicto de
+análisis local v1) y embeddings ONNX en el bloqueo solo si el beta
+muestra huecos reales.
