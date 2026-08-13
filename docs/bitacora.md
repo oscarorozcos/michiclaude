@@ -4101,3 +4101,36 @@ quedó sellada como "done" — el próximo intento necesita sesión nueva.
 limpio (el VPS no corre la app; la prueba funcional queda para el Windows
 de Oscar tras el pull). Docs en sincronía: CLAUDE.md (regla del compás y
 del candado en §Coach) y el comentario de `rlyPoll` sobre el compás.
+
+## 2026-08-13 (2) — primera corrida REAL del camino por inferencia; la cuenta arranca con el veredicto
+
+**Lo que pasó (prueba en vivo, sesión Haiku en el VPS):** el compás
+adaptativo funcionó a la primera — "coach: compás 10 s (presión 80%)" en
+el flowLog, tarjeta de intención y post-it casi inmediatos. Claude Code
+SE SALTÓ el TodoWrite del guion (leyó y dijo "listo" a secas), así que no
+hubo Boundary… y eso destapó el estreno involuntario del camino DIFÍCIL:
+veredicto `unsure` → análisis local REAL (primera vez fuera del
+simulador: "ai: veredicto clear · tema_nuevo", 13 s) → cuenta de 30 s
+para /clear con red /export y la insignia punteada en la tarjeta. Oscar
+tocó el gatito durante la cuenta (abrió el panel) y "cancelado (el
+usuario)" — la ventana de cancelación TAMBIÉN quedó validada en real.
+Pendiente de ver: la inyección completándose (✓ + copia en
+`~/.michiclaude/handoff/` del VPS). El análisis local v1 ya tiene su
+primer punto de la muestra: acierto razonable (sesión de lecturas sueltas
+juzgada tema nuevo).
+
+**Cronometría del hueco que molestó a Oscar:** aviso 18:21:08, veredicto
+18:21:21 (13 s de modelo local), cuenta 18:21:33 (hasta 10 s extra
+esperando el siguiente sondeo). Ese último tramo era evitable: ahora
+`maybeAiIntent`, al guardar el veredicto, llama `relayAutoCheck(pr)` EN
+EL ACTO — el pr del último sondeo (≤10 s bajo presión) sigue fresco y la
+función re-verifica todas sus compuertas igual (autoRun, sellado, ready,
+widget). El hueco restante es el costo del modelo (~13 s en la máquina de
+Oscar) y no se puede comprimir sin cambiar de peldaño (embeddings, etapa
+2). Por el camino del HECHO (Boundary, sin IA) aviso y cuenta ya nacían
+en el mismo sondeo.
+
+**Verificado:** `node --check` limpio del script completo. Nota de
+mordida conocida: el intento cancelado sella `relayAuto[sid]` con
+timestamp — la MISMA sesión reintenta sola pasados 10 min si vuelve a
+estar activa (un mensajito la despierta); no hace falta sesión nueva.

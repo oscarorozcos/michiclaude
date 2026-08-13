@@ -7691,6 +7691,11 @@ function maybeAiIntent(pr){
         c2.ai={rec:vd.rec||"unsure",reason:vd.reason||"na"};
         saveCoachCards(cs);
         flog("ai: veredicto "+c2.ai.rec+" · "+c2.ai.reason);
+        // El automático no espera al siguiente sondeo (2026-08-13): si la
+        // cuenta estaba aguantando por este veredicto (aiPending), el
+        // momento es AHORA. El pr del último sondeo (≤10 s bajo presión)
+        // sigue fresco y relayAutoCheck re-verifica TODAS sus compuertas.
+        relayAutoCheck(pr);
         if(!$("tab-tips").hidden && !relayBusy) renderTips();
       })
       .catch(e=>{
