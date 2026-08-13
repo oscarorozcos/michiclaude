@@ -498,6 +498,14 @@ presion-y-rendimiento §"Qué queda vivo".
       A LA VISTA, una vez por sesión, cualquier toque para; el AUTOMÁTICO
       espera el veredicto del análisis (`aiPending`); michi.exe viaja en
       el instalador SIN tocar el workflow (invariante #9).
+- [ ] RUTEO INTELIGENTE (etapas 0-6, decidido 2026-08-13): PRÓXIMO
+      GRANDE, pero BLOQUEADO hasta cerrar y confirmar las pruebas en
+      vivo del día a día (auto-/compact y auto-/clear, y de paso
+      análisis local v1 — misma zona de código). Plan completo y
+      auditoría en `docs/ruteo-inteligente.md` §10-11 — LEERLO antes de
+      arrancar. Se empieza por la etapa 0: experimento de 10 min en el
+      Windows de Oscar (PreToolUse reescribiendo `model` de un subagente
+      vía `updatedInput` con el input COMPLETO).
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO: rastrear otras herramientas, BD de historial,
   modo equipo.
