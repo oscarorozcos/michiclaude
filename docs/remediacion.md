@@ -1320,9 +1320,46 @@ falta y ninguno fue culpa del diseño: el primero destapó el Enter pegado
 al texto (autopsia abajo) y el segundo, que el binario ni siquiera se
 había recompilado (empate de mtime, bitácora del mismo día).
 
-PENDIENTE menor: ver el `/export` del chat en vivo (en el banco lo
-escribe el falso claude; si el real no lo escribiera, el fallo sería el
-bueno — ERR_RELAY_EXPORT y nada borrado).
+~~PENDIENTE menor: ver el `/export` del chat en vivo~~ **RESUELTO
+2026-08-13, y el temor era fundado:** el chat real contesta "/export
+isn't available in this environment" — el comando NO existe en la
+extensión, solo en la TUI. El fallo fue el bueno (ERR_RELAY_EXPORT, nada
+borrado, medido en vivo). Arreglo en la sección siguiente.
+
+### La copia SIN /export en el chat (2026-08-13)
+
+El chat no tiene `/export`, pero tiene algo mejor: el `init` regala el
+`session_id` EXACTO, y el JSONL de la sesión
+(`<config>/projects/<carpeta>/<sid>.jsonl`) es el registro FIEL — más
+completo que el markdown de /export. Así que en modo chat la copia la
+hace el RELEVO MISMO:
+
+1. `session_jsonl(sid)` localiza el origen POR NOMBRE en
+   `projects/*/<sid>.jsonl` (el sid es UUID único; no se reproduce la
+   transformación de carpetas de Claude Code — menos frágil ante sus
+   cambios). Respeta `CLAUDE_CONFIG_DIR`. Sin sid o sin archivo →
+   ERR_RELAY_EXPORT, fail-closed como siempre.
+2. Copia con tmp+rename (`.tmp` sobre el nombre ENTERO) a
+   `handoff/handoff-<pid>-<epoch>.jsonl` — extensión honesta: el
+   contenido ES jsonl. La verificación no cambia: el archivo existe con
+   contenido, un hecho del disco.
+3. R4 antes del /clear: si entró un turno mientras se copiaba (`busy`)
+   o el hijo murió, el /clear pierde y la copia queda (el acuse lleva
+   la ruta igual).
+
+Lo que NO cambió: la ruta la genera SOLO el relevo, la lista blanca
+sigue en 2 textos, el modo TERMINAL sigue con /export (ahí funciona y
+está validado en vivo), STATE_V sigue en 2 (el esquema del canal no se
+movió: un panel viejo con relevo nuevo, y al revés, se comportan igual o
+fail-closed). Réplica exacta en `wrap_handoff` (michi-relevo.py) y en la
+rama chat de `handoff()` (main.rs, decide por `sp.sid`).
+
+**Banco (VPS, 2026-08-13, claude falso sin /export como el real):**
+/clear con red → copia IDÉNTICA byte a byte + /clear ecoado al chat, sin
+/export tecleado; /compact → sin copia (regresión limpia); sid sin
+jsonl → ERR_RELAY_EXPORT y CERO /clear. Pendiente: cargo check del crate
+en Windows (el VPS no compila Rust; `npm run dev` lo compila solo) y
+verlo en vivo con el chat real.
 
 ### El Enter NO puede ir pegado al texto (autopsia, 2026-08-09)
 

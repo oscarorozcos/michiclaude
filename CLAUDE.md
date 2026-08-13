@@ -465,9 +465,11 @@ presion-y-rendimiento §"Qué queda vivo".
       fndSeen). Auto-/compact y AUTO-/clear por inferencia: COMPLETOS en
       vivo (2026-08-13, terminal; rampa→IA→red→/clear). LÍMITE: el chat
       de VS Code NO tiene /export — ahí la red no puede nacer y el /clear
-      se niega (ERR_RELAY_EXPORT, fail-closed correcto). Diseño pendiente:
-      relevo chat haciendo la copia él mismo del jsonl (sid conocido) —
-      zona de reglas duras, ver bitácora 2026-08-13 (4).
+      se niega (ERR_RELAY_EXPORT, fail-closed correcto). ARREGLADO
+      2026-08-13: el relevo chat copia ÉL el jsonl de la sesión
+      (`session_jsonl(sid)`, sin /export; remediacion.md §"La copia SIN
+      /export en el chat"); banco 3/3 en el VPS; falta cargo check en
+      Windows y verlo en vivo con el chat real.
 - [ ] ANÁLISIS LOCAL v1: visto en tarjeta e inferencia REALES
       (2026-08-13): 4 de 4 veredictos tema_nuevo acertados, ~13 s por
       análisis (el hueco que los embeddings de la etapa 2 comprimirían a

@@ -4229,3 +4229,37 @@ ENTORNO, no del relevo.
 pasan de "en prueba" a COMPLETOS en vivo; el pendiente nuevo es el diseño
 de la copia propia del relevo en modo chat (jsonl + sid, zona de reglas
 duras) y la muestra del análisis local en uso natural.
+
+## 2026-08-13 (6) — el auto-/clear llega al chat: la copia sin /export
+
+**Qué se construyó:** la red del /clear en modo CHAT ya no depende de
+`/export` (que la extensión no tiene, medido en vivo el mismo día): el
+relevo hace la copia ÉL MISMO. `session_jsonl(sid)` localiza el JSONL de
+la sesión por NOMBRE (`projects/*/<sid>.jsonl` — el sid es UUID único,
+sin reproducir la transformación de carpetas; respeta CLAUDE_CONFIG_DIR),
+copia con tmp+rename a `handoff/…jsonl` y verifica el hecho del disco.
+R4 tras la copia (busy/hijo muerto → el /clear pierde, la copia queda).
+Lista blanca, generación de ruta y fail-closed: SIN CAMBIOS. Terminal:
+SIN CAMBIOS (/export ahí funciona y está validado). STATE_V sigue en 2.
+Detalle en remediacion.md §"La copia SIN /export en el chat"; réplica
+exacta wrap_handoff (.py) ↔ rama chat de handoff() (main.rs, por sp.sid).
+
+**Banco en el VPS (claude falso SIN /export, como el real):** 3/3 —
+(1) /clear con red: acuse ✓ con ruta, copia IDÉNTICA byte a byte (diff),
+banner + eco del /clear pintados en el chat, cero /export tecleado;
+(2) regresión: /compact a secas sin copia nueva; (3) fail-closed: sid
+sin jsonl → ERR_RELAY_EXPORT y CERO /clear. py_compile limpio.
+
+**Pendiente:** `cargo check` del crate en el Windows de Oscar (el VPS no
+compila Rust; `npm run dev` compila el relevo solo con su
+beforeDevCommand) y la prueba en vivo con el chat real — el .py viaja
+embebido: recompilar en Windows y arrancar la app lo re-sube al VPS, y
+la sesión de chat tiene que ser NUEVA (el wrap viejo en marcha no se
+entera).
+
+**Mordida del día (ajena al código):** al apagar el banco se mató por
+patrón `michi-relevo.py wrap` — que también casaba con los relevos
+REALES de las pestañas de chat del VPS: una pestaña de Oscar murió con
+SIGTERM (sin pérdida: el jsonl queda y la pestaña se reabre). Regla para
+el futuro: en máquinas con relevos vivos, matar por PID exacto, jamás
+por patrón.

@@ -121,10 +121,29 @@ def now_epoch():
 # La ruta de la copia la genera el RELEVO — jamás viene del canal, así que
 # el canal sigue sin poder dictar ni un byte fuera de la lista blanca.
 
-def handoff_path():
+def handoff_path(ext="md"):
     d = os.path.expanduser("~/.michiclaude/handoff")
     os.makedirs(d, exist_ok=True)
-    return os.path.join(d, f"handoff-{os.getpid()}-{now_epoch()}.md")
+    return os.path.join(d, f"handoff-{os.getpid()}-{now_epoch()}.{ext}")
+
+
+def session_jsonl(sid):
+    """El JSONL de la sesión `sid`: <config>/projects/<carpeta>/<sid>.jsonl.
+    El nombre del archivo ES el session_id (UUID, único), así que se busca
+    por nombre en vez de reproducir la transformación de carpetas de Claude
+    Code — menos frágil ante sus cambios. Solo lo usa el modo chat (2026-08-13):
+    la extensión NO tiene /export y la copia de la red la hace el relevo."""
+    if not sid:
+        return None
+    base = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    try:
+        for e in os.scandir(os.path.join(base, "projects")):
+            p = os.path.join(e.path, sid + ".jsonl")
+            if os.path.isfile(p):
+                return p
+    except OSError:
+        pass
+    return None
 
 
 def prune_handoffs():
@@ -789,36 +808,51 @@ def run_wrap(args):
             pass
 
     def wrap_handoff(rid, text):
-        """La red del /clear en el chat. Aquí es MÁS certeza que en la
-        terminal: el fin del turno del /export lo dice el protocolo
-        (`result` → busy=False), no un silencio inferido. La verificación
-        sigue siendo el archivo: existe con contenido o no hay /clear."""
-        path = handoff_path()
-        try:
-            send_user(f"/export {path}")
-        except (OSError, ValueError):
-            st["ack"] = ack_row(rid, text, False, "ERR_RELAY_WRITE")
+        """La red del /clear en el chat. El chat NO tiene /export (medido en
+        vivo 2026-08-13: "/export isn't available in this environment" — un
+        año de ERR_RELAY_EXPORT si dependiéramos de él), así que la copia la
+        hace el RELEVO: el init regaló el session_id exacto y el JSONL de la
+        sesión es el registro FIEL — se copia ese archivo (tmp+rename, el
+        estilo de la casa) y la verificación sigue siendo un hecho del
+        disco: la copia existe con contenido o no hay /clear. La ruta
+        origen la resuelve session_jsonl() por nombre; la de destino la
+        genera el relevo. Nada nuevo viaja por el canal."""
+        src = session_jsonl(st["sid"])
+        if not src:
+            st["ack"] = ack_row(rid, text, False, "ERR_RELAY_EXPORT")
             st["hand"] = False
             return
-        t0 = time.monotonic()
-        while True:
-            time.sleep(0.25)
-            if child.poll() is not None:
-                st["ack"] = ack_row(rid, text, False, "ERR_RELAY_GONE")
-                st["hand"] = False
-                return
-            try:
-                there = os.path.getsize(path) > 0
-            except OSError:
-                there = False
-            if there and not st["busy"]:
-                ok = True
-                break
-            if (time.monotonic() - t0) * 1000 >= EXPORT_WAIT_MS:
-                ok = there
-                break
+        path = handoff_path("jsonl")   # honesto: el contenido ES jsonl
+        try:
+            with open(src, "rb") as f:
+                data = f.read()
+            if not data:
+                raise OSError("jsonl vacío")
+            tmp = path + ".tmp"        # .tmp sobre el nombre ENTERO
+            with open(tmp, "wb") as f:
+                f.write(data)
+            os.replace(tmp, path)
+        except OSError:
+            st["ack"] = ack_row(rid, text, False, "ERR_RELAY_EXPORT")
+            st["hand"] = False
+            return
+        # la verificación de siempre: el archivo en su sitio, con contenido
+        try:
+            ok = os.path.getsize(path) > 0
+        except OSError:
+            ok = False
         if not ok:
             st["ack"] = ack_row(rid, text, False, "ERR_RELAY_EXPORT")
+            st["hand"] = False
+            return
+        # R4: ¿entró un turno del usuario mientras copiábamos? Sus manos
+        # ganan — el /clear pierde, la copia queda (y el acuse lo dice).
+        if child.poll() is not None:
+            st["ack"] = ack_row(rid, text, False, "ERR_RELAY_GONE", path)
+            st["hand"] = False
+            return
+        if st["busy"]:
+            st["ack"] = ack_row(rid, text, False, "ERR_RELAY_BUSY", path)
             st["hand"] = False
             return
         try:

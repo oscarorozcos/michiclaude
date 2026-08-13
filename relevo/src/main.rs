@@ -128,6 +128,35 @@ fn handoff_dir() -> PathBuf {
     }
 }
 
+/// El JSONL de la sesión `sid`: `<config>/projects/<carpeta>/<sid>.jsonl`.
+/// El nombre del archivo ES el session_id (UUID, único), así que se busca
+/// por nombre en vez de reproducir la transformación de carpetas de Claude
+/// Code — menos frágil ante sus cambios. Solo lo usa el modo chat
+/// (2026-08-13): la extensión NO tiene /export y la copia de la red la
+/// hace el relevo. Réplica exacta de `session_jsonl` en michi-relevo.py.
+fn session_jsonl(sid: &str) -> Option<PathBuf> {
+    if sid.is_empty() {
+        return None;
+    }
+    let base = match std::env::var("CLAUDE_CONFIG_DIR") {
+        Ok(d) if !d.is_empty() => PathBuf::from(d),
+        _ => {
+            let home = std::env::var("USERPROFILE")
+                .or_else(|_| std::env::var("HOME"))
+                .ok()?;
+            PathBuf::from(home).join(".claude")
+        }
+    };
+    let rd = std::fs::read_dir(base.join("projects")).ok()?;
+    for e in rd.flatten() {
+        let p = e.path().join(format!("{sid}.jsonl"));
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    None
+}
+
 /// Limpieza al arrancar: una copia de hace más de HANDOFF_KEEP_DAYS ya
 /// cumplió su papel de red. Best-effort — un fallo aquí no frena nada.
 fn prune_handoffs() {
@@ -1179,6 +1208,47 @@ fn attend(raw: &str, sh: &Arc<Shared>, sp: &Arc<Speaker>) -> Option<serde_json::
 fn handoff(id: &str, text: &str, sh: &Arc<Shared>, sp: &Arc<Speaker>) -> serde_json::Value {
     let dir = handoff_dir();
     let _ = std::fs::create_dir_all(&dir);
+    // MODO CHAT: la extensión NO tiene /export ("isn't available in this
+    // environment", medido en vivo 2026-08-13) — teclearlo era un
+    // ERR_RELAY_EXPORT garantizado. La copia la hace el RELEVO: el init
+    // regaló el session_id exacto y el JSONL de la sesión es el registro
+    // FIEL — se copia (tmp+rename) y la verificación sigue siendo un hecho
+    // del disco. La ruta origen la resuelve session_jsonl() por nombre; la
+    // de destino la genera el relevo. Nada nuevo viaja por el canal.
+    // Réplica exacta de wrap_handoff en michi-relevo.py.
+    if let Some(sid) = &sp.sid {
+        let sid = sid.lock().unwrap().clone();
+        let Some(src) = session_jsonl(&sid) else {
+            return ack_json(id, text, false, "ERR_RELAY_EXPORT", None);
+        };
+        let path = dir.join(format!("handoff-{}-{}.jsonl", std::process::id(), now_epoch()));
+        let ps = path.to_string_lossy().to_string();
+        let tmp = path.with_extension("jsonl.tmp"); // .tmp sobre el nombre ENTERO
+        let copied = std::fs::copy(&src, &tmp).map(|n| n > 0).unwrap_or(false)
+            && std::fs::rename(&tmp, &path).is_ok();
+        if !copied {
+            let _ = std::fs::remove_file(&tmp);
+            return ack_json(id, text, false, "ERR_RELAY_EXPORT", None);
+        }
+        // la verificación de siempre: el archivo en su sitio, con contenido
+        if !std::fs::metadata(&path).map(|m| m.len() > 0).unwrap_or(false) {
+            return ack_json(id, text, false, "ERR_RELAY_EXPORT", None);
+        }
+        // R4: ¿entró un turno del usuario mientras copiábamos? Sus manos
+        // ganan — el /clear pierde, la copia queda (y el acuse lo dice).
+        if sh.exit.load(Ordering::Relaxed) >= 0 {
+            return ack_json(id, text, false, "ERR_RELAY_GONE", Some(&ps));
+        }
+        if sh.busy.load(Ordering::Relaxed) != 0 {
+            return ack_json(id, text, false, "ERR_RELAY_BUSY", Some(&ps));
+        }
+        if !sp.say(sh, text) {
+            return ack_json(id, text, false, "ERR_RELAY_WRITE", Some(&ps));
+        }
+        sh.inject_at.store(sh.ms(), Ordering::Relaxed);
+        return ack_json(id, text, true, "", Some(&ps));
+    }
+    // MODO TERMINAL: la TUI sí tiene /export — el camino validado no se toca.
     let path = dir.join(format!("handoff-{}-{}.md", std::process::id(), now_epoch()));
     let ps = path.to_string_lossy().to_string();
     if !sp.say(sh, &format!("/export {ps}")) {
