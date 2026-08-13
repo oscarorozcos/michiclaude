@@ -7603,7 +7603,6 @@ async function coachPoll(){
         hits.push(intentHit);
       }
     }
-    relayAutoCheck(pr);            // ¿toca aplicar /compact solo? (3c-2)
     ntfyDone(all.filter(h=>h.rule==="done"));
     ntfyAsk(all.filter(h=>h.rule==="ask"));
     const seen=tipSeenSet();
@@ -7653,6 +7652,13 @@ async function coachPoll(){
     localStorage.setItem("tipDay",JSON.stringify(day));
     if(dirty) saveCoachCards(cards);
     maybeAiIntent(pr);   // análisis local: solo si el veredicto quedó unsure
+    // El automático va DESPUÉS de guardar tarjetas y lanzar el análisis
+    // (2026-08-13): llamado antes, en el primer sondeo caliente la tarjeta
+    // de intención aún no existía, aiPending decía "no hay análisis" y la
+    // cuenta de /compact arrancaba SIN esperar el veredicto — carrera vista
+    // en vivo (18:32: /compact y "ai: analizando" el mismo segundo, el
+    // "clear·tema_nuevo" llegó 10 s tarde a una cuenta ya corriendo).
+    relayAutoCheck(pr);            // ¿toca aplicar /compact solo? (3c-2)
     renderTipsDot();
     if(lastPillArgs) emitPill(...lastPillArgs);   // el widget lo ve al instante
     if(!$("tab-tips").hidden && !relayBusy) renderTips();
@@ -7707,6 +7713,9 @@ function maybeAiIntent(pr){
           if(c2){ c2.aiErr=true; saveCoachCards(cs); }
         }catch(_){}
         flog("ai: "+String(e));
+        // simétrico del veredicto: con el análisis muerto, el automático
+        // decide AHORA con lo determinista en vez de esperar otro sondeo
+        relayAutoCheck(pr);
       });
   }catch(_){/* el análisis jamás tumba el sondeo */}
 }
@@ -9107,7 +9116,10 @@ const AI_WAIT_MIN=10;
 function aiPending(sid){
   try{
     const c=coachCardsStore().find(x=>x.h.rule==="intent"&&x.h.session===sid);
-    if(!c||c.ai||c.aiErr) return false;          // ya contestó, o ya falló
+    // aiTried lo sella maybeAiIntent AL LANZAR: sin él no hay análisis en
+    // camino (IA apagada, sin evidencia del exportador viejo, veredicto no
+    // unsure) y esperar sería un plantón de 10 min — se sigue de largo.
+    if(!c||!c.aiTried||c.ai||c.aiErr) return false; // sin lanzar, contestó o falló
     return (Date.now()-(c.born||0)) < AI_WAIT_MIN*60000;
   }catch(_){ return false; }
 }

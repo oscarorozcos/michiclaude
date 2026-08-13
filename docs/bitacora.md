@@ -4134,3 +4134,39 @@ en el mismo sondeo.
 mordida conocida: el intento cancelado sella `relayAuto[sid]` con
 timestamp — la MISMA sesión reintenta sola pasados 10 min si vuelve a
 estar activa (un mensajito la despierta); no hace falta sesión nueva.
+
+## 2026-08-13 (3) — la carrera del primer sondeo caliente: /compact ganándole al veredicto
+
+**Vista en vivo (18:32, segunda prueba del día):** en el MISMO segundo
+nacieron la cuenta de /compact, la tarjeta de intención y el "ai:
+analizando"; el veredicto "clear · tema_nuevo" llegó 10 s tarde a una
+cuenta ya corriendo y la sesión quedó sellada con /compact — el /clear
+por inferencia no se pudo ver. De paso quedaron validados el compás con
+rampa ("compás 10 s (presión 85%, rampa)") y el segundo acierto seguido
+del análisis local (2 de 2 tema_nuevo en sesiones de lecturas sueltas).
+
+**Autopsia:** `relayAutoCheck(pr)` se llamaba ARRIBA en coachPoll, antes
+de que el bucle de tarjetas guardara la de intención y antes de
+`maybeAiIntent`. En el PRIMER sondeo que ve presión ≥80, `aiPending`
+buscaba la tarjeta en el almacén, no la encontraba (aún no existía),
+contestaba "no hay análisis en camino" y la cuenta de /compact arrancaba
+sin esperar. En los sondeos siguientes la tarjeta ya existía y la espera
+funcionaba — por eso la prueba de las 18:21 no lo destapó (ese primer
+sondeo lo frenó la compuerta `ready`; el orden correcto se dio solo).
+Con el compás de 3 min la carrera era casi imposible de ver; el compás
+de 10 s la volvió reproducible al primer intento.
+
+**Arreglo (tres piezas, solo frontend):**
+1. `relayAutoCheck(pr)` se movió DESPUÉS de `saveCoachCards` y
+   `maybeAiIntent` en coachPoll: cuando decide, la tarjeta existe y el
+   análisis (si toca) ya está lanzado y sellado con `aiTried`.
+2. `aiPending` ahora exige `aiTried`: sin lanzamiento real (IA apagada,
+   exportador viejo sin `msgs`, veredicto no-unsure) no hay espera — se
+   decide con lo determinista al momento, como siempre. Evita el plantón
+   de 10 min (`AI_WAIT_MIN`) esperando un veredicto que jamás saldrá.
+3. Simétrico en el `catch` del análisis: si el modelo falla, se llama
+   `relayAutoCheck(pr)` en el acto (antes solo pasaba en el éxito).
+
+**Verificado:** `node --check` limpio. La sesión 4043897 quedó sellada
+("done" por el /compact aplicado): la próxima prueba del /clear necesita
+sesión nueva.
