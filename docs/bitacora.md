@@ -4392,3 +4392,30 @@ idiomas.
 banco del VPS; espejo round-trip; node --check limpio. Pendiente Windows:
 cargo check (npm run dev) + Probar — esperado "✓ clear · tema nuevo ·
 embeddings 0.36" en segundos.
+
+## Cierre 2026-08-13 — la jornada de los automáticos
+
+Día récord: 14 commits, y el proyecto cruzó su meta fundacional — Michi
+aplicando /compact y /clear SOLO, de punta a punta, en terminal Y en
+chat (tabla 4/4, validada en vivo por Oscar en cuatro corridas).
+
+**Lo construido hoy, en orden:** compás adaptativo del coach con cazador
+de rampas (3 min → 10 s bajo presión) · cuenta pegada al veredicto ·
+compuerta `ready` antes de la cuenta · arreglo de la carrera del primer
+sondeo caliente · la sesión que arde gana el trono de la reina · la
+copia SIN /export para el chat (el límite del /export de la extensión,
+descubierto, diseñado, implementado y validado el mismo día) · visor de
+copias handoff (local/SSH/WSL, transcript legible) · etapa 2 del
+análisis local con EmbeddingGemma (banco de llama.cpp en el VPS, autopsia
+de los e5 rotos, espejo verificado, Probar en Windows clavando el número
+del banco: 0.36).
+
+**Estado al cierre:** todo pusheado (`ba06442`), cargo check implícito
+pasado (la app compiló y corrió todo en el Windows de Oscar). El sistema
+queda EN VALIDACIÓN PASIVA: Oscar lo usa normal y reporta cualquier
+rareza de clear/compact — el rastro para revisarlas es flowLog +
+emb_debug.txt + registro de acciones con su "ver la copia". Los
+pendientes vivos quedan en CLAUDE.md §Estado: primer via:emb en sesión
+real, muestra natural para los umbrales, validación pasiva de alarmas/
+ntfy/hallazgos, y el ruteo inteligente sigue BLOQUEADO hasta confirmar
+estas pruebas del día a día.

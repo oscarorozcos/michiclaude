@@ -472,19 +472,23 @@ presion-y-rendimiento §"Qué queda vivo".
       fndSeen). Auto-/compact y AUTO-/clear por inferencia: COMPLETOS en
       vivo (2026-08-13, terminal; rampa→IA→red→/clear). LÍMITE: el chat
       de VS Code NO tiene /export — ahí la red no puede nacer y el /clear
-      se niega (ERR_RELAY_EXPORT, fail-closed correcto). ARREGLADO
-      2026-08-13: el relevo chat copia ÉL el jsonl de la sesión
-      (`session_jsonl(sid)`, sin /export; remediacion.md §"La copia SIN
-      /export en el chat"); banco 3/3 en el VPS; falta cargo check en
-      Windows y verlo en vivo con el chat real.
+      se niega (ERR_RELAY_EXPORT, fail-closed correcto). ARREGLADO Y
+      VALIDADO EN VIVO 2026-08-13: el relevo chat copia ÉL el jsonl de la
+      sesión (`session_jsonl(sid)`, sin /export; remediacion.md §"La
+      copia SIN /export en el chat"); banco 3/3 en el VPS y dos corridas
+      reales en el chat el mismo día (copia .jsonl + /clear aplicado).
+      La tabla del automático: 4/4 (compact y clear × terminal y chat).
 - [ ] ANÁLISIS LOCAL: v1 validada en vivo (5/5 tema_nuevo) y ETAPA 2
-      CONSTRUIDA (2026-08-13, ver §Coach y analisis-local.md §"Etapa 2 —
-      HECHA"): embeddings antes del 2B, espejo subido y verificado. Falta
-      verla decidir en vivo (primer `via:emb` en el flowLog) y muestra en
-      uso NATURAL antes de afinar umbrales (EMB_NEW/EMB_CROSS constantes
-      a propósito). VISOR DE COPIAS handoff (mismo día): botón "ver la
-      copia" en el registro de acciones — local, SSH y WSL
-      (`read_handoff`, RemAction.origin; transcript legible para .jsonl).
+      OPERATIVA (2026-08-13, ver §Coach y analisis-local.md §"Etapa 2 —
+      HECHA"): EmbeddingGemma descargado y Probar en el Windows de Oscar
+      dio "embeddings 0.36" — el número CLAVADO con el banco del VPS
+      (cargo check implícito: la app compiló y corrió todo lo del día).
+      EN VALIDACIÓN PASIVA con el uso diario (Oscar, desde 2026-08-13):
+      falta el primer `via:emb` en sesión REAL al 80% y la muestra
+      natural antes de afinar umbrales (EMB_NEW/EMB_CROSS constantes a
+      propósito); cualquier rareza de clear/compact que Oscar vea, se
+      revisa con flowLog + emb_debug.txt. VISOR DE COPIAS handoff
+      validado en vivo (copia remota del VPS renderizada legible).
 - [x] Ficha `compact` proporcional (2026-08-13): 60% de `ctx_full` en vez
       de 120k fijos, en la ficha Y en el ⚠ "ctx" de `coach_leaks`; réplica
       en exportador (invariante #1). Seguro respecto a la prueba en vivo:
