@@ -4046,3 +4046,8 @@ constante vieja; `st`/`CoachSess` llevan `model` y `ctx_seen` en los
 cuatro sitios (el hit `press` vecino ya los usaba). Docs en sincronía:
 consejos-coach.md (dos menciones), CLAUDE.md (regla + pendiente cerrado).
 Pendiente de Windows: `cargo check` (el VPS sigue sin toolchain).
+Cerrado el mismo día: `cargo check` limpio en el Windows de Oscar
+(`Checking michiclaude` en 8.68 s tras el pull de 1a3fb8a y el toque de
+mtime — trabajo real, no el empate). El arreglo queda VERIFICADO en los
+dos lados; el VPS recibirá el exportador nuevo cuando Oscar recompile y
+arranque la app (viaja embebido).
