@@ -4202,3 +4202,30 @@ terminal casa por cwd y es fail-closed ante ambigüedad — si en el mismo
 cwd vive otro relevo (p. ej. el chat de trabajo en el proyecto), no casa
 nunca. Truco: lanzar `claude` desde una carpeta neutra (~) y leer con
 rutas ABSOLUTAS.
+
+## 2026-08-13 (5) — FINAL FELIZ: el auto-/clear por inferencia, completo en vivo
+
+**Registro (18:56-18:57, sesión de terminal en el VPS, cwd ~ para el
+casado sin ambigüedad):** tarjeta + "ai: analizando" + "compás 10 s
+(presión 88%, rampa)" en el mismo tick; veredicto "clear · tema_nuevo" a
+los 22 s y cuenta atrás EN EL ACTO; a los 34 s "relevo auto: aplicado
+/clear por IA (tema_nuevo)". El relevo tecleó `/export <handoff>` en la
+TUI (ahí el comando SÍ existe), verificó la copia y aplicó el /clear.
+Primera vez que el camino entero — rampa → compás caliente → análisis
+local → inferencia → red /export → /clear — corre de punta a punta sin
+intervención. El ✓ cerró la cuenta en la cápsula y el registro de
+acciones guarda el "auto · aplicó /clear".
+
+**Detalles que la corrida validó de propina:** la cuenta SOBREVIVIÓ al
+cambio de sesión reina a mitad de camino (18:56:22, un sondeo vio la
+sesión del chat al 20% — autoRun es independiente del sondeo, como debe);
+el análisis local queda 4 de 4 (tema_nuevo, correcto) en sesiones de
+prueba; y el contraste chat/terminal quedó medido el mismo día con la
+misma tubería: chat = ERR_RELAY_EXPORT (fail-closed, /export no existe en
+la extensión), terminal = aplicado. El comportamiento divergente es del
+ENTORNO, no del relevo.
+
+**Cerrado en CLAUDE.md:** auto-/compact y auto-/clear por inferencia
+pasan de "en prueba" a COMPLETOS en vivo; el pendiente nuevo es el diseño
+de la copia propia del relevo en modo chat (jsonl + sid, zona de reglas
+duras) y la muestra del análisis local en uso natural.

@@ -462,12 +462,18 @@ presion-y-rendimiento §"Qué queda vivo".
 - [ ] VALIDACIÓN PASIVA (con el uso): alarmas reales (umbral, 100%,
       ventana nueva), camino ntfy completo (PC apagada) y el aviso de
       hallazgos naciendo natural (fuga nueva, panel cerrado, sin re-armar
-      fndSeen). Auto-/compact y /clear con red ya pasaron; falta el
-      AUTO-/clear disparándose solo.
-- [ ] ANÁLISIS LOCAL v1: cadena validada en simulador (2026-08-12).
-      Falta verla en tarjeta REAL y anotar si acierta — eso decide la
-      etapa 2 (embeddings). Auto-/clear por inferencia y auto-/compact:
-      EN PRUEBA, no tocar umbrales mientras Oscar mide.
+      fndSeen). Auto-/compact y AUTO-/clear por inferencia: COMPLETOS en
+      vivo (2026-08-13, terminal; rampa→IA→red→/clear). LÍMITE: el chat
+      de VS Code NO tiene /export — ahí la red no puede nacer y el /clear
+      se niega (ERR_RELAY_EXPORT, fail-closed correcto). Diseño pendiente:
+      relevo chat haciendo la copia él mismo del jsonl (sid conocido) —
+      zona de reglas duras, ver bitácora 2026-08-13 (4).
+- [ ] ANÁLISIS LOCAL v1: visto en tarjeta e inferencia REALES
+      (2026-08-13): 4 de 4 veredictos tema_nuevo acertados, ~13 s por
+      análisis (el hueco que los embeddings de la etapa 2 comprimirían a
+      ms). Falta muestra en uso NATURAL (sesiones de trabajo, no de
+      prueba) antes de decidir la etapa 2. No tocar umbrales mientras
+      Oscar mide.
 - [x] Ficha `compact` proporcional (2026-08-13): 60% de `ctx_full` en vez
       de 120k fijos, en la ficha Y en el ⚠ "ctx" de `coach_leaks`; réplica
       en exportador (invariante #1). Seguro respecto a la prueba en vivo:
