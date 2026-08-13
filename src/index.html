@@ -7760,9 +7760,13 @@ function maybeAiIntent(pr){
         saveCoachCards(cs);
         // qué peldaño decidió (etapa 2): "embeddings 0.38" o "modelo". Es
         // EL dato de la auditoría — al rastro, no a la tarjeta persistida.
+        // "(modelo · sim 0.52)" = el emb midió banda media y decidió el 2B;
+        // "(modelo)" a secas = el peldaño emb no pudo medir (falta el GGUF
+        // o falló en silencio) — la diferencia ES el diagnóstico.
+        const simTx=(vd.sim||0)>0?" · sim "+Math.round(vd.sim*100)/100:"";
         flog("ai: veredicto "+c2.ai.rec+" · "+c2.ai.reason
-          +(vd.via==="emb"?" (embeddings "+(Math.round((vd.sim||0)*100)/100)+")"
-            :vd.via==="llm"?" (modelo)":""));
+          +(vd.via==="emb"?" (embeddings"+simTx+")"
+            :vd.via==="llm"?" (modelo"+simTx+")":""));
         // El automático no espera al siguiente sondeo (2026-08-13): si la
         // cuenta estaba aguantando por este veredicto (aiPending), el
         // momento es AHORA. El pr del último sondeo (≤10 s bajo presión)

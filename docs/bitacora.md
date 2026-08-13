@@ -4325,3 +4325,30 @@ espejo round-trip con huella idéntica. PENDIENTE Windows: cargo check
 (visor Rust + embeddings Rust comparten commit con el relevo del chat),
 descargar el e5 con el botón nuevo y ver el primer `via:emb` en vivo.
 Los umbrales EMB_NEW/EMB_CROSS no se afinan hasta tener muestra natural.
+
+## 2026-08-13 (9) — la etapa 2 estrenada en vivo (decidió el 2B) y la similitud que viajaba a ciegas
+
+**Cuarta corrida del auto-/clear del día, primera con la escalera
+completa (20:25-20:27):** todo el camino otra vez perfecto — 98% de
+presión, veredicto a los 31 s, /clear con red aplicado, y el VISOR
+estrenado con la copia remota (transcript legible del jsonl traído por
+SSH, botón "ver la copia" en el registro). PERO el veredicto vino
+"(modelo)": el peldaño de embeddings NO decidió, y con el diseño de esa
+mañana era imposible saber por qué — el ai_debug.txt del 2B PISA el
+rastro del emb (se sobrescribe, por diseño de esa familia), así que
+"banda media legítima" y "el peldaño falló en silencio" se veían
+idénticos.
+
+**Arreglo (mismo día):** ai_emb_sim (la medida) se separó de
+ai_emb_verdict (la decisión), y la similitud viaja AHORA con el veredicto
+del 2B: `sim` va en AiVerdict también cuando decide el llm. El flowLog
+distingue: "(modelo · sim 0.52)" = midió banda media y el 2B decidió;
+"(modelo)" a secas = el emb no pudo medir (GGUF ausente o fallo
+silencioso). Esa diferencia ES el diagnóstico de la etapa 2 en campo.
+
+**Pendiente de la próxima corrida:** ver si sale "sim" en el flowLog. Si
+sale a secas "(modelo)", el peldaño está fallando en el Windows de Oscar
+(sospechosos: flag --embeddings del build de llama.cpp, o el GGUF de e5
+con su versión) — ai_debug.txt tras un "Probar" lo dirá, porque el
+Probar con la evidencia de ejemplo debería dar sim baja y decidir por
+embeddings en segundos.

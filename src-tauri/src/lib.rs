@@ -4029,9 +4029,11 @@ fn emb_cos(a: &[f32], b: &[f32]) -> Option<f32> {
     Some(dot / (na * nb))
 }
 
-/// El veredicto por embeddings, o None si este peldaño no decide (falta el
-/// modelo, algo falló, o la similitud cayó en la banda media del diseño).
-fn ai_emb_verdict(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Option<AiVerdict> {
+/// Solo la MEDIDA: arranca el server de embeddings, calcula el coseno y
+/// devuelve la similitud (None = no se pudo medir). La decisión vive en
+/// ai_emb_verdict — separadas para que la similitud pueda viajar con el
+/// veredicto del 2B cuando cae en banda media (auditoría de la etapa 2).
+fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Option<f32> {
     let emb = if cfg.emb.trim().is_empty() {
         ai_emb_file()
     } else {
@@ -4117,22 +4119,46 @@ fn ai_emb_verdict(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) ->
         &format!("[emb] tema: {theme}\n[emb] reciente: {recent}"),
         &format!("sim={sim:.3} (clear<{EMB_NEW} · compact>{EMB_CROSS})"),
     );
+    Some(sim)
+}
+
+/// El veredicto por embeddings. Devuelve además la similitud medida
+/// (-1.0 = no se pudo medir): en banda media el veredicto es None pero la
+/// similitud VIAJA con la respuesta del 2B — sin eso, "(modelo)" en el
+/// flowLog no distingue "el peldaño midió y no decidió" de "el peldaño
+/// falló", y el ai_debug.txt del 2B pisa el rastro del emb (visto en la
+/// primera corrida real: 31 s y ninguna forma de saber por qué).
+fn ai_emb_verdict(
+    cfg: &AiConfig,
+    server: &str,
+    title: &str,
+    msgs: &[String],
+) -> (Option<AiVerdict>, f32) {
+    let Some(sim) = ai_emb_sim(cfg, server, title, msgs) else {
+        return (None, -1.0);
+    };
     if sim < EMB_NEW {
-        Some(AiVerdict {
-            rec: "clear".into(),
-            reason: "tema_nuevo".into(),
-            via: "emb".into(),
+        (
+            Some(AiVerdict {
+                rec: "clear".into(),
+                reason: "tema_nuevo".into(),
+                via: "emb".into(),
+                sim,
+            }),
             sim,
-        })
+        )
     } else if sim > EMB_CROSS {
-        Some(AiVerdict {
-            rec: "compact".into(),
-            reason: "tema_cruzado".into(),
-            via: "emb".into(),
+        (
+            Some(AiVerdict {
+                rec: "compact".into(),
+                reason: "tema_cruzado".into(),
+                via: "emb".into(),
+                sim,
+            }),
             sim,
-        })
+        )
     } else {
-        None // banda media: la zona gris sigue siendo del 2B
+        (None, sim) // banda media: la zona gris sigue siendo del 2B
     }
 }
 
@@ -4155,7 +4181,9 @@ fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdi
     };
     // La escalera de la etapa 2: los embeddings deciden los casos claros en
     // segundos; None (sin modelo, fallo o banda media) = el 2B, como en la v1.
-    if let Some(v) = ai_emb_verdict(&cfg, &server, &title, &msgs) {
+    // La similitud medida (o -1.0) acompaña también al veredicto del 2B.
+    let (embv, emb_sim) = ai_emb_verdict(&cfg, &server, &title, &msgs);
+    if let Some(v) = embv {
         return Ok(v);
     }
     let port = if cfg.port == 0 { AI_PORT } else { cfg.port };
@@ -4265,6 +4293,7 @@ fn ai_intent_impl(title: String, msgs: Vec<String>, cont: u64) -> Result<AiVerdi
     match out.rec.as_str() {
         "clear" | "compact" | "unsure" => Ok(AiVerdict {
             via: "llm".into(), // qué peldaño decidió, para la auditoría
+            sim: emb_sim,      // lo que midió el emb aunque no decidiera
             ..out
         }),
         _ => Err("ERR_AI_BADOUT".into()),
