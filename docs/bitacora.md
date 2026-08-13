@@ -4004,5 +4004,12 @@ SEIS constantes juntas Y subir las copias a un release `modelos-v2` —
 no se reutiliza el viejo, misma regla que el updater: un binario ya
 publicado no se reemplaza.
 
-Pendiente de Windows: `cargo check` de este cambio (el VPS no tiene
-toolchain; los usos están todos grepeados y cuadran).
+**Cerrado el 2026-08-13:** `cargo check` limpio en el Windows de Oscar
+(`Compiling michiclaude` presente — no fue el empate de mtime —, sin
+warnings). Antes se auditó desde el VPS lo que no necesita compilador: las
+seis constantes emparejadas, `ai_fetch` con un único llamador de
+`ai_download` y tipos que cuadran, y ningún uso huérfano de la firma
+vieja. Comprobadas además las cuatro URLs en vivo (espejo y originales,
+200 las cuatro) y que `releases/latest` sigue anunciando la v0.1.1 con su
+`.sig` — el prerelease `modelos-v1` no tapó al updater, que era el riesgo
+real de haber subido un release el mismo día.
