@@ -4170,3 +4170,35 @@ de 10 s la volvió reproducible al primer intento.
 **Verificado:** `node --check` limpio. La sesión 4043897 quedó sellada
 ("done" por el /compact aplicado): la próxima prueba del /clear necesita
 sesión nueva.
+
+## 2026-08-13 (4) — tercera prueba: la tubería entera bien, y un límite nuevo: el chat no tiene /export
+
+**Lo validado (registro 18:45):** la carrera del sondeo caliente quedó
+arreglada (tarjeta + "ai: analizando" SIN cuenta atrás), la cuenta
+arrancó EN EL MISMO SEGUNDO que el veredicto (18:45:25, el ajuste de
+maybeAiIntent), tercer acierto seguido del análisis local (3 de 3
+tema_nuevo) y el fail-closed de la red actuó tal como promete.
+
+**El límite descubierto:** el relevo tecleó
+`/export <ruta handoff>` y el chat de VS Code contestó "/export isn't
+available in this environment". El comando /export existe en la TUI de
+la terminal pero NO en el entorno del chat de la extensión — la copia no
+puede nacer, la verificación no la encuentra y el /clear se niega
+(ERR_RELAY_EXPORT, no se borró nada: el fail-closed es la estrella de la
+prueba). La validación anterior del /clear con red fue por terminal; en
+CHAT el auto-/clear hoy NO puede completarse.
+
+**Camino de fondo (diseño pendiente, zona de reglas duras del relevo):**
+en modo chat el relevo conoce el `session_id` exacto — puede hacer la
+copia ÉL MISMO desde el jsonl de la sesión (~/.claude/projects/…) en vez
+de teclear /export: mismo destino handoff/, misma verificación en disco,
+sin depender de un comando que el entorno no tiene. Tocaría
+michi-relevo.py y michi.exe EN SINCRONÍA (mismas constantes/esquema) —
+leer docs/remediacion.md antes; no se hace en caliente.
+
+**Mientras tanto:** la prueba del final feliz del auto-/clear va por
+TERMINAL (ahí /export sí existe). Ojo con el casado: una sesión de
+terminal casa por cwd y es fail-closed ante ambigüedad — si en el mismo
+cwd vive otro relevo (p. ej. el chat de trabajo en el proyecto), no casa
+nunca. Truco: lanzar `claude` desde una carpeta neutra (~) y leer con
+rutas ABSOLUTAS.
