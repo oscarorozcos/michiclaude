@@ -4051,3 +4051,53 @@ Cerrado el mismo día: `cargo check` limpio en el Windows de Oscar
 mtime — trabajo real, no el empate). El arreglo queda VERIFICADO en los
 dos lados; el VPS recibirá el exportador nuevo cuando Oscar recompile y
 arranque la app (viaja embebido).
+
+## 2026-08-13 — la rampa invisible: compás adaptativo del coach y candado antes de la cuenta
+
+**La prueba en vivo que lo destapó.** Primer intento del auto-/clear por
+HECHO: sesión Haiku en el VPS llenada con lecturas masivas (lib.rs +
+meter-export.py ≈ 197k tok). El manómetro nunca pasó de ~30% en pantalla
+y Claude Code auto-compactó al ~94% ("Compacted chat · auto · 197k tokens
+freed"). El automático de Michi jamás vio el 80%.
+
+**Autopsia (dos causas, las dos de diseño):**
+1. `coachPoll` corría FIJO cada 3 min y el manómetro reporta `last_ctx`
+   (el contexto del ÚLTIMO turno, no el pico). La rampa 60k→197k cupo
+   entera entre dos sondeos: el panel midió 30%, y al siguiente sondeo la
+   compactación ya había puesto `last_ctx=0`. El pico existió pero pasó
+   entre dos fotos. No es solo un caso de laboratorio: skills, subagentes
+   o un prompt de "lee todo" hacen exactamente esa rampa en uso real.
+2. Aunque se hubiera detectado: durante la rampa Claude está GENERANDO,
+   el candado (R2) habría rechazado la inyección al final de la cuenta y
+   `relayAutoCheck` sellaba el reintento a 10 min (`AUTO_RETRY_MIN`) —
+   carrera perdida contra el auto-compact del ~94%.
+
+**Arreglo (solo frontend, cero Rust, invariante #1 intacto):**
+- Compás adaptativo `coachSched()`: el sondeo se auto-agenda según lo
+  visto — 3 min sin sesión activa (el compás de siempre), 60 s con hit
+  `press` vivo, 20 s con presión ≥55 (`COACH_WARM_PCT`), 10 s con ≥70
+  (`COACH_HOT_PCT`) O salto de contexto ≥15k tok entre sondeos
+  (`COACH_RAMP_TOK`, con prev>0: estrenar sesión no es rampa). El costo
+  es acotado: `get_coach` es incremental por offset y el SSH de las
+  remotas solo se paga mientras dura la banda alta, que se autolimita
+  (o dispara o la sesión se calma). Las transiciones van al `flowLog`
+  ("coach: compás 10 s (presión 72%, rampa)"). La cadencia de CUOTA no
+  se tocó (3 min, regla del 429 — el coach no habla con la API).
+- `relayAutoCheck` ahora exige `rly.ready` ANTES de `autoStamp`: ocupado
+  es transitorio, no se sella nada y el siguiente sondeo (rápido bajo
+  presión) reintenta gratis. El flujo en rampa queda: sondeo caliente ve
+  ≥80% a mitad del turno gigante → espera en silencio → el turno termina
+  → relevo `listo` → cuenta atrás → inyección con el candado en verde.
+- Sellado del intento y resto de compuertas: SIN CAMBIOS (una vez por
+  sesión, widget a la vista, desbloqueo manual, veredictos).
+
+**Además quedó validado de la prueba fallida:** el fallback a `/compact`
+con lista abierta funcionó de punta a punta EN REAL (tarjeta de intención
+con "3 de 5 sin terminar", ⚠ en la opción /clear, auto-/compact aplicado
+y registrado). Y la mordida conocida de siempre: la sesión de la prueba
+quedó sellada como "done" — el próximo intento necesita sesión nueva.
+
+**Verificado:** sintaxis del bloque `<script>` completo con `node --check`
+limpio (el VPS no corre la app; la prueba funcional queda para el Windows
+de Oscar tras el pull). Docs en sincronía: CLAUDE.md (regla del compás y
+del candado en §Coach) y el comentario de `rlyPoll` sobre el compás.

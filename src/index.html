@@ -7521,9 +7521,46 @@ function ntfyAsk(list){
   }
   localStorage.setItem("ntfyAsked", JSON.stringify(sent.slice(-100)));
 }
+// ---------- compás adaptativo del coach (2026-08-13) ----------
+// El sondeo fijo de 3 min perdía las rampas: una lectura masiva (skill,
+// subagente, prompt de "lee todo") sube el contexto de 30% a 94% ENTRE dos
+// sondeos, Claude Code auto-compacta al ~94% y el automático de Michi nunca
+// ve el 80% (pasó en la prueba real del 13/08: pico de 197k invisible).
+// El compás ahora se elige en cada sondeo según lo que se vio: el reposo
+// conserva los 3 min de siempre; una sesión trabajando acerca la lupa; y en
+// zona caliente o con el contexto saltando, el sondeo es casi en vivo. El
+// costo de los rápidos es acotado: get_coach es incremental por offset y el
+// SSH de las remotas solo se paga mientras dura la banda alta (autolimitada:
+// o se dispara el automático o la sesión se calma y el compás se abre solo).
+// OJO: esto NO toca la cadencia de cuota (3 min por el 429) — el coach no
+// habla con api.anthropic.com.
+const COACH_POLL_IDLE=180000;   // sin sesión activa: el compás de siempre
+const COACH_POLL_ACTIVE=60000;  // hay sesión trabajando (existe hit press)
+const COACH_POLL_WARM=20000;    // presión ≥ COACH_WARM_PCT
+const COACH_POLL_HOT=10000;     // presión ≥ COACH_HOT_PCT o rampa detectada
+const COACH_WARM_PCT=55, COACH_HOT_PCT=70;
+const COACH_RAMP_TOK=15000;     // salto de ctx entre sondeos que huele a rampa
+let coachTimer=null, coachPrevCtx={}, coachJump=false, coachLastMs=0;
+function coachSched(){
+  let ms=COACH_POLL_IDLE;
+  if(lastPress){
+    const pct=Math.min(100,Math.round((lastPress.ctx||0)/(lastPress.full||1)*100));
+    ms = (pct>=COACH_HOT_PCT||coachJump) ? COACH_POLL_HOT
+       : pct>=COACH_WARM_PCT             ? COACH_POLL_WARM
+       :                                   COACH_POLL_ACTIVE;
+  }
+  if(ms!==coachLastMs){                    // solo las transiciones al rastro
+    flog("coach: compás "+(ms/1000)+" s"+(lastPress
+      ?" (presión "+Math.min(100,Math.round((lastPress.ctx||0)/(lastPress.full||1)*100))+"%"
+        +(coachJump?", rampa":"")+")":""));
+    coachLastMs=ms;
+  }
+  clearTimeout(coachTimer);
+  coachTimer=setTimeout(coachPoll,ms);
+}
 async function coachPoll(){
   if(!invoke) return;
-  if(simFnd) return;               // simulación en curso: no la pises
+  if(simFnd){ coachSched(); return; }   // simulación en curso: no la pises
   try{
     // las sesiones con relevo, al mismo compás: la tarjeta de intención dice
     // si ESTA sesión tiene relevo, y para eso la lista tiene que estar puesta
@@ -7543,6 +7580,12 @@ async function coachPoll(){
       .slice().sort((a,b)=>(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
     lastPress=pr?{ctx:pr.value||0,project:pr.project||"",origin:pr.origin||"",
       full:pressFull(pr), relay:!!relayFor(pr)}:null;
+    // rampa: ¿el contexto de la sesión reina saltó ≥15k tok desde el sondeo
+    // anterior? (prev>0: estrenar sesión no es rampa). El mapa se rehace con
+    // las press vivas de este sondeo para no crecer sin límite.
+    const prevCtx=pr?(coachPrevCtx[pr.session]||0):0;
+    coachJump=!!pr&&prevCtx>0&&((pr.value||0)-prevCtx)>=COACH_RAMP_TOK;
+    coachPrevCtx={}; for(const h of pressAll) coachPrevCtx[h.session]=h.value||0;
     const hits=all.filter(h=>h.rule!=="done"&&h.rule!=="ask"&&h.rule!=="press");
     // Tarjeta de intención (docs/remediacion.md etapa 1c): con la presión en
     // zona alta nace UNA tarjeta por sesión con las señales medidas del
@@ -7618,9 +7661,9 @@ async function coachPoll(){
     // 2026-08-04; el freno de 15 min vive dentro de fndEventScan)
     if(sumBorn) fndEventScan();
   }catch(_){/* sin backend o sin logs: el siguiente ciclo reintenta */}
+  coachSched();                      // el compás siguiente sale de lo visto
 }
-setTimeout(coachPoll,60*1000);       // el primer sondeo, tras la carga inicial
-setInterval(coachPoll,3*60*1000);    // mismo compás que el ciclo del panel
+coachTimer=setTimeout(coachPoll,60*1000);  // el primer sondeo, tras la carga
 
 // ---------- análisis local (IA) en la tarjeta de intención ----------
 // docs/analisis-local.md — LEERLO antes de tocar. SOLO llena el hueco
@@ -8869,8 +8912,9 @@ function rlyRows(){
 // de esa pestaña basta el ritmo del coach, que es quien necesita saber si la
 // sesión bajo presión tiene relevo.
 // `remote` cuesta una conexión SSH por servidor (y una lectura de
-// \\wsl.localhost por distro), así que solo se pide en el compás lento del
-// coach (3 min). El sondeo de 5 s de la pestaña mira solo lo local y conserva
+// \\wsl.localhost por distro), así que solo se pide en el compás del coach
+// (adaptativo: 3 min en reposo, hasta 10 s bajo presión — coachSched). El
+// sondeo de 5 s de la pestaña mira solo lo local y conserva
 // lo de fuera que ya había —SSH y WSL llevan `origin`, lo local no—: mejor un
 // dato de hace un par de minutos que una pestaña que congela cada 5 segundos.
 async function rlyPoll(remote){
@@ -9087,6 +9131,12 @@ async function relayAutoCheck(pr){
   if(!sid||autoBlocked(sid)) return;         // aplicado, o intento reciente
   const rly=relayFor(pr);
   if(!rly) return;                           // sin pareja inequívoca, nada
+  // El candado en verde ANTES de arrancar (2026-08-13): con Claude generando
+  // o texto sin enviar, la inyección nacía muerta al final de la cuenta — y
+  // el rechazo costaba el reintento de 10 min, que en una rampa es perder la
+  // carrera contra el auto-compact del ~94%. Ocupado es TRANSITORIO: no se
+  // sella nada y el próximo sondeo (rápido bajo presión) vuelve a mirar.
+  if(!rly.ready) return;
   if(!pillOn) return;                        // sin widget no hay cuenta atrás
   // ¿/clear con red o /compact? /clear SOLO con: su interruptor propio, sus
   // 3 manuales, un relevo v2 que sepa exportar antes, y una razón que lo

@@ -385,7 +385,14 @@ tool_use de subagentes no lo tocan. El nombre del proyecto va RESUELTO desde Rus
 en widget: post-it turquesa / foco ámbar, campo `coach` en quota:update,
 mismo interruptor. El recibo NO manda push (su push fue el "terminó"). Depurar "no llegó X": PRIMERO `coach_debug.json` y la bitácora `flowLog`
 (📜 en dev). coachHits queda SOLO
-para el simulador.
+para el simulador. COMPÁS ADAPTATIVO (2026-08-13): `coachPoll` se
+auto-agenda (`coachSched`) — 3 min en reposo, 60 s con sesión activa,
+20 s ≥55%, 10 s ≥70% o salto ≥15k tok entre sondeos (rampa) — porque el
+fijo de 3 min perdía las rampas (pico de 197k invisible, autopsia en
+bitácora). NO tocar la cadencia de CUOTA (3 min, 429): el coach no habla
+con la API. Y `relayAutoCheck` exige `rly.ready` ANTES de arrancar la
+cuenta: con Claude generando, el rechazo quemaba el reintento de 10 min
+y el auto-compact del ~94% ganaba la carrera.
 
 ## Avisos al celular (ntfy)
 
