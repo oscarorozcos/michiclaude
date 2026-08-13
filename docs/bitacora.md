@@ -4263,3 +4263,29 @@ REALES de las pestañas de chat del VPS: una pestaña de Oscar murió con
 SIGTERM (sin pérdida: el jsonl queda y la pestaña se reabre). Regla para
 el futuro: en máquinas con relevos vivos, matar por PID exacto, jamás
 por patrón.
+
+## 2026-08-13 (7) — el auto-/clear del CHAT validado en vivo, y la sesión que arde gana el trono
+
+**FINAL FELIZ EN EL CHAT (19:43-19:44):** primera corrida real de la
+copia sin /export — tarjeta a las 19:43:11 (presión 89%), veredicto
+tema_nuevo a los 26 s, cuenta de 30 s, y "aplicado /clear por IA" a las
+19:44:10 con la pestaña del chat renacida y la copia .jsonl en
+handoff/. La tabla queda 4 de 4: /compact y /clear automáticos, en
+terminal y en chat. El análisis local: 5 de 5 aciertos.
+
+**El culpable de los "minutos muertos" que preguntó Oscar:** la sesión
+REINA se elegía SOLO por frescura. Registro en vivo: 19:39:53 la pesada
+al 77% (compás 10 s) → 19:41:06 la reina era OTRA sesión al 29% (un
+mensaje en el chat de trabajo la volvió más fresca) y el compás se abrió
+a 60 s → 19:43:11 la pesada (ya al 89%) recuperó el trono. Dos minutos
+de sombra que en uso real (varios chats vivos) serían constantes.
+Arreglo: `arde()` — una sesión ≥ INTENT_PCT gana el trono SIEMPRE; la
+frescura solo desempata (entre dos que arden o dos que no). Con eso el
+compás caliente se queda con la sesión peligrosa y el automático no
+pierde de vista al incendio por un mensaje en otra ventana.
+
+**Lo que queda de latencia y su porqué (medido en esta corrida):**
+detección ≤10-20 s (compás caliente), veredicto 13-26 s (llama en CPU —
+LA cifra que los embeddings de la etapa 2 bajarían a ms), cuenta 30 s
+(DELIBERADA: es la ventana de cancelación, no se recorta). Piso real
+actual ≈ 1 min desde que la sesión cruza el 80% estando quieta.

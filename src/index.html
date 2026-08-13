@@ -7576,8 +7576,15 @@ async function coachPoll(){
     // sin hit en este sondeo el manómetro se apaga (la sesión se durmió).
     pressAll=all.filter(h=>h.rule==="press");   // TODAS: la lista de relevos
                                                 // casa cada relevo con la suya
+    // La sesión reina: la que ARDE gana SIEMPRE (2026-08-13) — con la regla
+    // vieja (solo frescura) un mensaje en otra sesión escondía a la que iba
+    // al 89% detrás de una al 29%, y el automático quedó ciego 2 minutos
+    // (visto en vivo, 19:41). Entre dos que arden, o dos que no, la más
+    // fresca; a igual frescura, la de más contexto.
+    const arde=h=>pressPct(h)>=INTENT_PCT?1:0;
     const pr=pressAll
-      .slice().sort((a,b)=>(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
+      .slice().sort((a,b)=>arde(b)-arde(a)
+        ||(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
     lastPress=pr?{ctx:pr.value||0,project:pr.project||"",origin:pr.origin||"",
       full:pressFull(pr), relay:!!relayFor(pr)}:null;
     // rampa: ¿el contexto de la sesión reina saltó ≥15k tok desde el sondeo
