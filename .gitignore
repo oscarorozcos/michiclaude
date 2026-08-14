@@ -26,3 +26,8 @@ remotes.json
 *.key
 __pycache__/
 *.pyc
+
+# respaldos que dejan los scripts de scripts/ruteo-etapa0/ al tocar los
+# ajustes locales de Claude Code (el settings.local.json ya lo ignora git
+# por config global, pero sus copias con fecha no)
+.claude/settings.local.json.bak-*
