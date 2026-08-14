@@ -92,9 +92,10 @@
   /* color-scheme: los controles nativos (desplegables, spinners, scrollbars)
      se pintan a juego con el tema — sin esto, la lista del idioma se ve mal
      en oscuro */
-  /* 1px: segunda apretada de Oscar (2026-08-06) — solo queda un pelo para
-     que el anillo del borde no se corte contra la ventana */
-  body{font-family:var(--font);color:var(--txt);padding:1px;overflow:hidden;color-scheme:dark}
+  /* padding 0 (Oscar 2026-08-14): el 1px que quedaba se veía como rendija
+     transparente en el borde. El anillo del borde ahora va INSET en el
+     box-shadow de .panel — dibujado hacia adentro no necesita hueco. */
+  body{font-family:var(--font);color:var(--txt);padding:0;overflow:hidden;color-scheme:dark}
   body.light{color-scheme:light}
   /* si el contenido crece (ajustes abiertos), el panel hace scroll interno */
   /* overflow-x HIDDEN a propósito: con solo overflow-y:auto el navegador
@@ -107,7 +108,7 @@
      "marco fantasma" que cambiaba con cada pestaña. Con height, el panel
      llena siempre la ventana con su fondo sólido y el hueco desaparece;
      el contenido largo sigue con scroll interno. */
-  .panel{height:calc(100vh - 2px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+  .panel{height:100vh;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
   /* Scrollbar FINA y redondeada, estilo overlay (Oscar 2026-08-06, con
      captura de referencia): riel invisible y pastilla delgada. El truco
      del borde transparente + background-clip deja la pastilla de ~4px
@@ -126,7 +127,11 @@
 
   .panel{
     background:var(--mica);border-radius:var(--r-lg);
-    box-shadow:0 32px 80px -24px rgba(0,0,0,.8),0 0 0 1px var(--stroke);
+    box-shadow:0 32px 80px -24px rgba(0,0,0,.8);
+    /* el borde va como outline HACIA ADENTRO: un box-shadow inset lo
+       taparía el fondo del encabezado sticky, y un ring hacia afuera
+       necesitaba el padding de 1px que dejaba la rendija transparente */
+    outline:1px solid var(--stroke);outline-offset:-1px;
     padding:0 15px 13px;   /* el relleno de arriba vive en .p-top (sticky) */
   }
   /* Encabezado + pestañas SIEMPRE a la vista: al hacer scroll dentro del panel
@@ -136,7 +141,7 @@
      dejaría una rendija transparente por donde se vería pasar el texto). */
   .p-top{position:sticky;top:0;z-index:5;background:var(--mica);
     margin:0 -15px;padding:15px 15px 12px}
-  body.light .panel{box-shadow:0 32px 80px -26px rgba(30,40,60,.4),0 0 0 1px var(--stroke)}
+  body.light .panel{box-shadow:0 32px 80px -26px rgba(30,40,60,.4)}
   #pHead{cursor:grab;user-select:none;-webkit-user-select:none;margin-bottom:12px}
   #pHead:active{cursor:grabbing}
   .p-head{display:flex;align-items:center;gap:11px}
@@ -7094,8 +7099,10 @@ $("pHead").addEventListener("mousedown",(e)=>{
   setTimeout(()=>{ dragging=false; },500); // el arrastre nativo se traga el mouseup
 });
 
-// flyout: el panel se oculta al perder el foco, EXCEPTO mientras se arrastra.
-// Además, abrir/enfocar el panel confirma los avisos de restablecimiento
+// El panel NO se oculta al perder el foco (decisión de Oscar 2026-08-14:
+// fue flyout hasta entonces y estorbaba — se cerraba al consultarlo mientras
+// se trabajaba). Solo lo cierran el ✕ y el menú del tray.
+// Abrir/enfocar el panel confirma los avisos de restablecimiento
 // pendientes (deja de repetirse la notificación de Windows).
 window.addEventListener("focus",()=>{
   dragging=false;
@@ -7114,7 +7121,6 @@ window.addEventListener("focus",()=>{
     EVENT?.emit("quota:update", lastPill);
   }
 });
-window.addEventListener("blur",()=>{ if(!dragging) APPWIN?.hide(); });
 
 // ocultar a bandeja
 $("hideBtn").addEventListener("click",()=>{ APPWIN?.hide(); });

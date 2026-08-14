@@ -92,9 +92,13 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 
 ## Ventanas
 
-- **Panel** (`main`, 446x660): flyout sin decoraciones, transparente,
-  alwaysOnTop, skipTaskbar. Clic en tray abre; se oculta al perder foco
-  (salvo drag); ✕ oculta a bandeja; se arrastra del encabezado. Pestañas
+- **Panel** (`main`, 446x660): sin decoraciones, transparente,
+  alwaysOnTop, skipTaskbar. Clic en tray abre/enfoca; SOLO el ✕ (y el
+  menú del tray) ocultan — NO se cierra al perder foco (Oscar 2026-08-14;
+  antes era flyout y estorbaba). Se arrastra del encabezado. Sin rendija:
+  body con padding 0 y el borde como `outline` hacia adentro en `.panel`
+  (un ring por box-shadow pedía 1px de hueco = la rendija; un inset lo
+  tapa el sticky). Pestañas
   (Principal · Fuentes de datos · Hallazgos · Consejos · Reporte ·
   Ajustes), con encabezado sticky en `.p-top` (el padding superior vive
   AHÍ, no en `.panel`: si no, rendija al scroll).
