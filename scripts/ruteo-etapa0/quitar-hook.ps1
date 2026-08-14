@@ -1,6 +1,6 @@
-# ETAPA 0 — quitar el hook de prueba y dejar todo como estaba.
+# ETAPA 0 - quitar el hook de prueba y dejar todo como estaba.
 #
-# Qué toca: SOLO <repo>\.claude\settings.local.json. Quita UNICAMENTE la
+# Que toca: SOLO <repo>\.claude\settings.local.json. Quita UNICAMENTE la
 # entrada del experimento (la que apunta a hook-model-test.ps1); si
 # tenias otros hooks, se quedan. Deja respaldo antes de escribir.
 #
@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $ruta = Join-Path $repo '.claude\settings.local.json'
 
-if (-not (Test-Path $ruta)) { Write-Host "No existe $ruta — nada que quitar."; exit 0 }
+if (-not (Test-Path $ruta)) { Write-Host "No existe $ruta - nada que quitar."; exit 0 }
 
 $respaldo = "$ruta.bak-" + (Get-Date -Format 'yyyyMMdd-HHmmss')
 Copy-Item $ruta $respaldo

@@ -1,10 +1,10 @@
-# ETAPA 0 — el veredicto: ¿con qué modelo CORRIÓ de verdad el subagente?
+# ETAPA 0 - el veredicto: con que modelo CORRIO de verdad el subagente?
 # Solo LEE archivos. No cambia nada.
 #
-# Mira el transcript más reciente de subagente
-# (~\.claude\projects\<proyecto>\<sesión>\subagents\agent-*.jsonl) y saca
+# Mira el transcript mas reciente de subagente
+# (~\.claude\projects\<proyecto>\<sesion>\subagents\agent-*.jsonl) y saca
 # el campo `model` de cada respuesta del asistente. Ese es el hecho: lo
-# que el hook pidió está en el log; lo que pasó, aquí.
+# que el hook pidio esta en el log; lo que paso, aqui.
 
 $ErrorActionPreference = 'Stop'
 
@@ -14,7 +14,7 @@ if (-not (Test-Path $raiz)) { Write-Host "No encuentro $raiz"; exit 1 }
 $transcripts = Get-ChildItem -Path $raiz -Recurse -Filter 'agent-*.jsonl' -ErrorAction SilentlyContinue |
                Sort-Object LastWriteTime -Descending
 
-if (-not $transcripts) { Write-Host 'No hay transcripts de subagente todavía.'; exit 0 }
+if (-not $transcripts) { Write-Host 'No hay transcripts de subagente todavia.'; exit 0 }
 
 foreach ($t in ($transcripts | Select-Object -First 3)) {
     Write-Host ''
@@ -38,4 +38,4 @@ foreach ($t in ($transcripts | Select-Object -First 3)) {
 Write-Host ''
 Write-Host 'Log del hook:' -ForegroundColor Yellow
 $log = Join-Path $env:USERPROFILE '.michiclaude\ruteo-etapa0.log'
-if (Test-Path $log) { Get-Content $log -Tail 20 } else { Write-Host "  (no existe $log — el hook nunca corrió)" }
+if (Test-Path $log) { Get-Content $log -Tail 20 } else { Write-Host "  (no existe $log - el hook nunca corrio)" }

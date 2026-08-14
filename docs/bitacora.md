@@ -4476,3 +4476,33 @@ con esa única corrida pendiente.
 **Lo que NO cambia:** la compuerta sigue puesta. Etapa 1 en adelante
 espera a cerrar las pruebas en vivo del auto-/clear y del análisis
 local — comparten zona de código y contaminarían la medición.
+
+### Apéndice del 2026-08-14 — tres trampas de Windows en la etapa 0
+
+Anotadas mientras Oscar corría el experimento en su Windows (Claude
+Code v2.1.232); ninguna es del mecanismo, las tres son del entorno:
+
+1. **PowerShell 5.1 lee los `.ps1` sin BOM como ANSI.** Mis cuatro
+   scripts iban con tildes y rayas largas en los comentarios: el `—` se
+   convierte en `â€"` y ese `"` CIERRA la cadena a media línea →
+   `MissingEndCurlyBrace` y el script no compila. Arreglado pasando los
+   cuatro a ASCII puro. REGLA para el Hook B de verdad (irá embebido con
+   `include_str!`, donde nadie avisa en compilación): grep de no-ASCII.
+   El fallo, eso sí, se comportó como debía — `hook error ... non-blocking`
+   y el subagente corrió igual.
+2. **El menú `/hooks` es de SOLO LECTURA** en esta versión ("To add or
+   modify hooks, edit settings.json directly"). El README lo daba como
+   camino recomendado para INSTALAR; corregido: sirve para verificar.
+   Instalar es `instalar-hook.ps1`, que fusiona con los hooks que ya
+   haya en vez de pisarlos.
+3. **El modelo puede estar CLAVADO** en `.claude\settings.json`
+   ("pins Haiku 4.5 — that applies on restart"). `/model` cambia la
+   sesión de ya, pero reiniciar la devuelve al clavado. Orden correcto:
+   hook → reiniciar → `/model` → prueba. Y si la sesión ya está en
+   Haiku, el experimento no demuestra nada: el subagente nacería en
+   Haiku con hook o sin él.
+
+Cuarto dato, este a favor: en Windows la herramienta TAMBIÉN llega como
+`Agent` (lo dijo el error: `PreToolUse:Agent hook error`). Dos builds
+distintos, mismo nombre no-documentado — el matcher `Task|Agent` se
+queda.

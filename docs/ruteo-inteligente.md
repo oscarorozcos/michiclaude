@@ -454,6 +454,12 @@ grueso: bucket redondeado, horas al reset, modo del proyecto, cooldown.
 Los hooks solo LEEN; >10 min de viejo = no hacer nada (fail-quiet).
 
 **Etapa 2 — Hook B, el ahorrador silencioso (subagentes).**
+REGLA DURA que salió de la etapa 0 (2026-08-14): el `.ps1` va en ASCII
+PURO. Windows PowerShell 5.1 lee los archivos sin BOM como ANSI, y un
+guion largo se vuelve `â€"` cuyo `"` cierra la cadena a media línea —
+el script no compila y el hook muere (sin bloquear, eso sí). Como el
+script viaja embebido con `include_str!`, esto NO lo avisa nadie en
+tiempo de compilación: se comprueba con un grep de no-ASCII.
 Script embebido (patrón `include_str!` de meter-export.py), botón
 opt-in "Activar ruteo" + botón "Quitar hooks" que deja todo como
 estaba; escritura atómica en settings del usuario. Log de decisiones en

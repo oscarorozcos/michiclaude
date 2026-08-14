@@ -1,8 +1,8 @@
-# ETAPA 0 — instalar el hook de prueba en los ajustes LOCALES del proyecto.
+# ETAPA 0 - instalar el hook de prueba en los ajustes LOCALES del proyecto.
 #
-# Qué toca: SOLO <repo>\.claude\settings.local.json (archivo local, que
+# Que toca: SOLO <repo>\.claude\settings.local.json (archivo local, que
 # git ignora). Hace copia de respaldo antes de escribir y SE SUMA a los
-# hooks que ya tengas — no pisa nada.
+# hooks que ya tengas - no pisa nada.
 #
 # Uso:  powershell -ExecutionPolicy Bypass -File .\scripts\ruteo-etapa0\instalar-hook.ps1
 
@@ -38,7 +38,7 @@ if (($hooks.PSObject.Properties.Name -contains 'PreToolUse') -and ($null -ne $ho
     $pre = @($hooks.PreToolUse)
 }
 
-# 4) informar de lo que ya había (transparencia: que se vea qué se respeta)
+# 4) informar de lo que ya habia (transparencia: que se vea que se respeta)
 if ($pre.Count -gt 0) {
     Write-Host "Ya tenias $($pre.Count) entrada(s) de PreToolUse. Se respetan:" -ForegroundColor DarkGray
     foreach ($e in $pre) {
@@ -48,7 +48,7 @@ if ($pre.Count -gt 0) {
     }
 }
 
-# 5) ¿ya está el nuestro? entonces no duplicar
+# 5) ya esta el nuestro? entonces no duplicar
 foreach ($e in $pre) {
     foreach ($h in @($e.hooks)) {
         if ($h.command -like '*hook-model-test.ps1*') {

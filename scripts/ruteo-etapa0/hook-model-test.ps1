@@ -1,19 +1,19 @@
-# ETAPA 0 DEL RUTEO INTELIGENTE — hook de juguete (Windows nativo).
-# Ver scripts/ruteo-etapa0/README.md y docs/ruteo-inteligente.md §11.
+# ETAPA 0 DEL RUTEO INTELIGENTE - hook de juguete (Windows nativo).
+# Ver scripts/ruteo-etapa0/README.md y docs/ruteo-inteligente.md sec.11.
 #
-# Qué hace: se engancha a PreToolUse sobre la herramienta de subagentes
+# Que hace: se engancha a PreToolUse sobre la herramienta de subagentes
 # (Task/Agent) y REESCRIBE su input para imponer el modelo `haiku`.
-# Solo actúa si el input trae la marca RUTEO-TEST, así que jamás estorba
+# Solo actua si el input trae la marca RUTEO-TEST, asi que jamas estorba
 # trabajo real. Todo lo que ve y lo que responde queda en el log.
 #
-# Reglas que respeta (docs/ruteo-inteligente.md §10.1 y §5 "Principios"):
+# Reglas que respeta (docs/ruteo-inteligente.md sec.10.1 y sec.5 "Principios"):
 # - Devuelve el objeto de input COMPLETO, no el campo suelto.
 # - Fallo silencioso: ante cualquier error sale con 0 y sin salida.
 
 $ErrorActionPreference = 'Stop'
 
 $MARCA       = 'RUTEO-TEST'        # sin ella, el hook no toca nada
-$MARCA_ALLOW = 'RUTEO-TEST-ALLOW'  # variante B: añade permissionDecision
+$MARCA_ALLOW = 'RUTEO-TEST-ALLOW'  # variante B: anade permissionDecision
 $MODELO      = 'haiku'
 
 $log = Join-Path $env:USERPROFILE '.michiclaude\ruteo-etapa0.log'
@@ -32,19 +32,19 @@ try {
     Apunta 'ENTRA' $crudo
 
     try { $evento = $crudo | ConvertFrom-Json }
-    catch { Apunta 'SALE' 'no es JSON — no hago nada'; exit 0 }
+    catch { Apunta 'SALE' 'no es JSON - no hago nada'; exit 0 }
 
     $entrada = $evento.tool_input
-    if ($null -eq $entrada) { Apunta 'SALE' 'sin tool_input — no hago nada'; exit 0 }
+    if ($null -eq $entrada) { Apunta 'SALE' 'sin tool_input - no hago nada'; exit 0 }
 
     $texto = $entrada | ConvertTo-Json -Depth 20 -Compress
     if ($texto -notmatch [regex]::Escape($MARCA)) {
-        Apunta 'SALE' "sin la marca $MARCA — no hago nada"; exit 0
+        Apunta 'SALE' "sin la marca $MARCA - no hago nada"; exit 0
     }
 
     # copia profunda del objeto COMPLETO, con el modelo impuesto encima
     $nuevo = $texto | ConvertFrom-Json
-    $antes = '(no venía)'
+    $antes = '(no venia)'
     if ($nuevo.PSObject.Properties.Name -contains 'model') {
         $antes = $nuevo.model
         $nuevo.model = $MODELO

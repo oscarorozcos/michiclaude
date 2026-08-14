@@ -25,7 +25,14 @@ Claude Code, no el modelo. Por eso el veredicto lo da `verificar.ps1`.
 |---|---|
 | `hook-model-test.ps1` | El hook (Windows nativo, PowerShell) |
 | `hook-model-test.py` | El mismo hook (Linux / WSL / macOS) |
+| `instalar-hook.ps1` / `quitar-hook.ps1` | Ponerlo y quitarlo sin editar JSON a mano |
 | `verificar.ps1` / `verificar.py` | El veredicto: con qué modelo corrió de verdad |
+
+**Los `.ps1` van en ASCII PURO, sin tildes ni rayas largas.** Windows
+PowerShell 5.1 lee los archivos sin BOM como ANSI: un `—` se convierte
+en `â€"` y ese `"` de la basura CIERRA la cadena a media línea, así que
+el script no compila. Mordió el 2026-08-14 con los cuatro scripts a la
+vez. Vale igual para el Hook B de verdad cuando se embeba en el exe.
 
 El hook **solo actúa si ve la marca `RUTEO-TEST`** en el input del
 subagente. Sin la marca sale sin decir nada, así que puedes dejarlo
@@ -47,20 +54,17 @@ git pull
 
 ### 2. Registrar el hook
 
-Dentro de Claude Code, el camino sin editar JSON a mano:
-
-```
-/hooks
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\ruteo-etapa0\instalar-hook.ps1
 ```
 
-→ `PreToolUse` → añadir matcher `Task|Agent` → comando:
+Escribe en `.claude\settings.local.json` (local, git lo ignora): hace
+respaldo antes de tocar, imprime los hooks que ya tenías y respeta, no
+duplica si ya estaba, y añade el suyo al final.
 
-```
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\oscar\Claude\MichiClaude\scripts\ruteo-etapa0\hook-model-test.ps1"
-```
-
-Guardar en **project settings (local)** — así vive solo en este
-proyecto y no se sube al repo.
+**El menú `/hooks` de Claude Code es de SOLO LECTURA** (verificado en
+v2.1.232: *"To add or modify hooks, edit settings.json directly"*).
+Sirve para comprobar que quedó registrado, no para instalarlo.
 
 <details>
 <summary>Alternativa: a mano en <code>.claude\settings.local.json</code></summary>
@@ -93,10 +97,25 @@ hook añadido a media sesión no corre. Salir y volver a entrar.
 
 Para confirmar que quedó registrado: `/hooks` debe listarlo.
 
-### 4. Lanzar el subagente de prueba
+### 4. Ponerse en un modelo que NO sea Haiku
 
-En una sesión con **Opus** (para que el contraste se vea), pedir
-literalmente:
+```
+/model sonnet
+```
+
+Si la sesión ya está en Haiku, el experimento no demuestra nada: el
+subagente nacería en Haiku con hook o sin él. Con Sonnet, "haiku en el
+transcript" solo puede venir del hook.
+
+TRAMPA: `.claude\settings.json` puede tener el modelo CLAVADO
+(*"pins Haiku 4.5 — that applies on restart"*). `/model` cambia la
+sesión de YA, pero al reiniciar vuelve el clavado. Por eso el orden es:
+hook instalado → reiniciar → `/model` → prueba. Reiniciar DESPUÉS del
+`/model` deshace el cambio.
+
+### 5. Lanzar el subagente de prueba
+
+En esa misma sesión, pedir literalmente:
 
 ```
 RUTEO-TEST: lanza un subagente con la herramienta Task, subagent_type
@@ -108,7 +127,7 @@ ninguna otra herramienta.
 Si Claude reformula el prompt y se pierde la marca, el hook no actúa
 (lo dirá el log). Insistir en que la marca vaya literal.
 
-### 5. El veredicto
+### 6. El veredicto
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\ruteo-etapa0\verificar.ps1
@@ -135,11 +154,13 @@ Ver §10.1 del diseño.
 
 ## Cómo quitarlo todo
 
-1. `/hooks` → borrar la entrada (o quitar la clave `hooks` del
-   `settings.local.json` si se hizo a mano).
-2. Reiniciar Claude Code.
-3. Borrar el log si molesta:
-   `Remove-Item $env:USERPROFILE\.michiclaude\ruteo-etapa0.log`
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\ruteo-etapa0\quitar-hook.ps1
+```
+
+Quita SOLO la entrada del experimento; si tenías otros hooks, se
+quedan. Después, reiniciar Claude Code. El log se borra aparte si
+molesta: `Remove-Item $env:USERPROFILE\.michiclaude\ruteo-etapa0.log`
 
 No queda nada más: el hook no escribe en ningún otro sitio.
 
