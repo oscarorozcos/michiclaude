@@ -1023,6 +1023,36 @@
   .rp-act .t small.meta{font-size:9.5px;color:var(--txt-dim)}
   .rp-empty{font-size:11px;color:var(--txt-dim);line-height:1.55;padding:4px 2px}
   #repChart svg{display:block;width:100%;height:auto}
+  /* desperdicio estructural (pestaña Reporte). El "al menos" pequeño y el
+     % grande; la barra de proporción con el resto en gris NEUTRO (no es
+     "trabajo demostrado", solo lo no señalado). */
+  .wst-big{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+  .wst-big .al{font-size:11px;color:var(--txt-mut);font-weight:600}
+  .wst-big b{font-family:var(--disp);font-size:26px;letter-spacing:-.8px}
+  .wst-cmp{font-size:10.5px;font-family:var(--mono);margin-left:auto}
+  .wst-cmp.good{color:var(--teal)}
+  .wst-cmp.bad{color:var(--warn)}
+  .wst-cmp.flat{color:var(--txt-dim)}
+  .wst-sub{font-size:11px;color:var(--txt-mut);line-height:1.5;margin-top:3px}
+  .wst-bar{display:flex;height:10px;border-radius:999px;overflow:hidden;gap:2px;margin-top:9px}
+  .wst-bar i{height:100%}
+  .wst-bar .rest{flex:1;background:var(--track)}
+  .wst-money{font-family:var(--mono);font-size:10.5px;color:var(--txt-dim);margin-top:6px}
+  .wst-rows{margin-top:9px}
+  .wst-row{display:flex;align-items:center;gap:8px;padding:7px 9px;margin-bottom:6px;
+    background:var(--surface);border:1px solid var(--stroke-soft);border-radius:var(--r-sm);
+    cursor:pointer;font-size:11px}
+  .wst-row:hover{border-color:var(--accent-line)}
+  .wst-row .dotc{width:8px;height:8px;border-radius:3px;flex:0 0 auto}
+  .wst-row .wl{flex:1 1 auto;min-width:0;line-height:1.4}
+  .wst-row b{font-family:var(--mono);font-size:11px;flex:0 0 auto}
+  .wst-note{font-size:10px;color:var(--txt-dim);line-height:1.5;margin-top:8px;
+    border-top:1px dashed var(--stroke-soft);padding-top:8px}
+  .wst-none{font-size:11px;line-height:1.55}
+  .wst-none b{font-weight:700}
+  .wst-none div{color:var(--txt-mut);margin-top:3px}
+  .wst-see7{margin-left:6px;font-size:10.5px;color:var(--accent);background:var(--accent-weak);
+    border:1px solid var(--accent-line);border-radius:8px;padding:3px 8px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -1298,6 +1328,13 @@
     <div class="sect hero-sect">
       <div class="eyebrow"><span data-i18n="rep_perf"></span> <span class="q" id="repRangeLbl"></span></div>
       <div id="repHero"></div>
+    </div>
+    <!-- % de desperdicio estructural (presion-y-rendimiento.md §fórmula):
+         SEGUNDA tarjeta a propósito — el héroe del Reporte ya existe y dos
+         héroes se matan entre sí (decisión al integrar la maqueta). -->
+    <div class="sect">
+      <div class="eyebrow"><span data-i18n="wst_title"></span> <span class="q" data-i18n="wst_q"></span></div>
+      <div id="repWaste"></div>
     </div>
     <div class="sect">
       <div class="eyebrow"><span data-i18n="rep_last_t"></span> <span class="q" data-i18n="rep_last_q"></span></div>
@@ -1926,6 +1963,21 @@ en:{
   rep_det_tap:"Tap any point or bar to see its detail.",
   rep_next_intro:"Not an alarm — your savings to-do list: the most expensive leaks of this period, with what to do about each. Fix #1 first.",
   rep_week:"Week", rep_month:"Month", rep_custom:"Custom",
+  wst_title:"Structural waste", wst_q:"a floor — some waste can't be measured",
+  wst_atleast:"at least",
+  wst_sub:"Spent on how your setup is wired — not on the work itself.",
+  wst_money:(a,b)=>`${a} of ${b} this period · estimated, API equiv.`,
+  wst_before:q=>`before: ${q}%`,
+  wst_pts_down:n=>`↓ ${n} pts`, wst_pts_up:n=>`↑ ${n} pts`, wst_pts_flat:"unchanged",
+  wst_k_claudemd:n=>`CLAUDE.md rules with no recent trace — ${n} lines`,
+  wst_k_hooks_noise:n=>`Hook output injected into context — ${n} fires`,
+  wst_k_cachebreak:n=>`Context rewritten after cache loss — ${n} times`,
+  wst_note:"We don't count what the logs can't measure — idle MCP servers and unused skills weigh too. That's why it says “at least”.",
+  wst_gather:n=>`Gathering data — ${n} of 10 sessions this period. Too few for the percentage to mean anything.`,
+  wst_short:"This number only makes sense over 7 days or more.",
+  wst_see7:"See 7 days", wst_none_t:"Nothing to flag",
+  wst_none_b:"No structural waste detected this period. That doesn't mean zero: nothing reached the thresholds.",
+  wst_lt1:"under 1%",
   rep_perf:"Your efficiency", rep_perf_unit:"tokens per message you send",
   rep_before:"before", rep_better:"improved", rep_worse:"worse", rep_flat:"steady",
   rep_verd_first:"Your first measurement. Once there's a previous period to compare against, you'll see here whether you're improving.",
@@ -2401,6 +2453,21 @@ es:{
   rep_det_tap:"Toca cualquier punto o barra para ver su detalle.",
   rep_next_intro:"No es una alarma — es tu lista de tareas de ahorro: las fugas más caras del periodo, con qué hacer en cada una. Empieza por la 1.",
   rep_week:"Semana", rep_month:"Mes", rep_custom:"Personalizado",
+  wst_title:"Desperdicio estructural", wst_q:"es un piso — hay más que no se puede medir",
+  wst_atleast:"al menos",
+  wst_sub:"Se fue en cómo está montado el entorno — no en el trabajo.",
+  wst_money:(a,b)=>`${a} de ${b} del periodo · estimado, equiv. API`,
+  wst_before:q=>`antes: ${q}%`,
+  wst_pts_down:n=>`↓ ${n} puntos`, wst_pts_up:n=>`↑ ${n} puntos`, wst_pts_flat:"igual",
+  wst_k_claudemd:n=>`Reglas del CLAUDE.md sin rastro reciente — ${n} líneas`,
+  wst_k_hooks_noise:n=>`Salida de hooks metida al contexto — ${n} disparos`,
+  wst_k_cachebreak:n=>`Contexto reescrito al perderse el caché — ${n} veces`,
+  wst_note:"No contamos lo que los logs no pueden medir — los MCP inactivos y las skills sin usar también pesan. Por eso dice «al menos».",
+  wst_gather:n=>`Juntando datos — ${n} de 10 sesiones en el periodo. Con tan pocas, el porcentaje aún no dice nada.`,
+  wst_short:"Este número solo tiene sentido con 7 días o más.",
+  wst_see7:"Ver 7 días", wst_none_t:"Nada que señalar",
+  wst_none_b:"Sin desperdicio estructural detectado en este periodo. No significa que sea cero: nada llegó a los umbrales.",
+  wst_lt1:"menos del 1%",
   rep_perf:"Tu rendimiento", rep_perf_unit:"tokens por mensaje tuyo",
   rep_before:"antes", rep_better:"mejoró", rep_worse:"empeoró", rep_flat:"igual",
   rep_verd_first:"Tu primera medición. Cuando haya un periodo anterior con qué comparar, aquí sabrás si vas mejorando.",
@@ -2876,6 +2943,21 @@ pt:{
   rep_det_tap:"Toque em qualquer ponto ou barra para ver o detalhe.",
   rep_next_intro:"Não é um alarme — é sua lista de tarefas de economia: os vazamentos mais caros do período, com o que fazer em cada um. Comece pelo 1.",
   rep_week:"Semana", rep_month:"Mês", rep_custom:"Personalizado",
+  wst_title:"Desperdício estrutural", wst_q:"é um piso — há mais que não dá para medir",
+  wst_atleast:"pelo menos",
+  wst_sub:"Foi em como o ambiente está montado — não no trabalho.",
+  wst_money:(a,b)=>`${a} de ${b} do período · estimado, equiv. API`,
+  wst_before:q=>`antes: ${q}%`,
+  wst_pts_down:n=>`↓ ${n} pontos`, wst_pts_up:n=>`↑ ${n} pontos`, wst_pts_flat:"igual",
+  wst_k_claudemd:n=>`Regras do CLAUDE.md sem rastro recente — ${n} linhas`,
+  wst_k_hooks_noise:n=>`Saída de hooks no contexto — ${n} disparos`,
+  wst_k_cachebreak:n=>`Contexto reescrito ao perder o cache — ${n} vezes`,
+  wst_note:"Não contamos o que os logs não conseguem medir — MCPs inativos e skills sem uso também pesam. Por isso diz «pelo menos».",
+  wst_gather:n=>`Juntando dados — ${n} de 10 sessões no período. Com tão poucas, a porcentagem ainda não diz nada.`,
+  wst_short:"Este número só faz sentido com 7 dias ou mais.",
+  wst_see7:"Ver 7 dias", wst_none_t:"Nada a apontar",
+  wst_none_b:"Nenhum desperdício estrutural detectado neste período. Não significa que seja zero: nada chegou aos limiares.",
+  wst_lt1:"menos de 1%",
   rep_perf:"Seu rendimento", rep_perf_unit:"tokens por mensagem sua",
   rep_before:"antes", rep_better:"melhorou", rep_worse:"piorou", rep_flat:"igual",
   rep_verd_first:"Sua primeira medição. Quando houver um período anterior para comparar, aqui você saberá se está melhorando.",
@@ -3351,6 +3433,21 @@ fr:{
   rep_det_tap:"Touchez un point ou une barre pour voir son détail.",
   rep_next_intro:"Pas une alarme — votre liste de tâches d'économie : les fuites les plus chères de la période, avec quoi faire pour chacune. Commencez par la 1.",
   rep_week:"Semaine", rep_month:"Mois", rep_custom:"Personnalisé",
+  wst_title:"Gaspillage structurel", wst_q:"un plancher — une partie n'est pas mesurable",
+  wst_atleast:"au moins",
+  wst_sub:"Parti dans le montage de l'environnement — pas dans le travail.",
+  wst_money:(a,b)=>`${a} sur ${b} de la période · estimé, équiv. API`,
+  wst_before:q=>`avant : ${q}%`,
+  wst_pts_down:n=>`↓ ${n} points`, wst_pts_up:n=>`↑ ${n} points`, wst_pts_flat:"stable",
+  wst_k_claudemd:n=>`Règles du CLAUDE.md sans trace récente — ${n} lignes`,
+  wst_k_hooks_noise:n=>`Sortie de hooks injectée au contexte — ${n} déclenchements`,
+  wst_k_cachebreak:n=>`Contexte réécrit après perte du cache — ${n} fois`,
+  wst_note:"On ne compte pas ce que les logs ne peuvent pas mesurer — MCP inactifs et skills inutilisées pèsent aussi. D'où le « au moins ».",
+  wst_gather:n=>`Collecte en cours — ${n} sessions sur 10 dans la période. Trop peu pour que le pourcentage veuille dire quelque chose.`,
+  wst_short:"Ce chiffre n'a de sens qu'à partir de 7 jours.",
+  wst_see7:"Voir 7 jours", wst_none_t:"Rien à signaler",
+  wst_none_b:"Aucun gaspillage structurel détecté sur la période. Pas forcément zéro : rien n'a atteint les seuils.",
+  wst_lt1:"moins de 1 %",
   rep_perf:"Votre rendement", rep_perf_unit:"tokens par message envoyé",
   rep_before:"avant", rep_better:"amélioré", rep_worse:"dégradé", rep_flat:"stable",
   rep_verd_first:"Votre première mesure. Dès qu'il y aura une période précédente à comparer, vous saurez ici si vous vous améliorez.",
@@ -3826,6 +3923,21 @@ de:{
   rep_det_tap:"Tippe auf einen Punkt oder Balken für Details.",
   rep_next_intro:"Kein Alarm — deine Spar-Aufgabenliste: die teuersten Lecks des Zeitraums, mit dem, was jeweils zu tun ist. Fang mit Nr. 1 an.",
   rep_week:"Woche", rep_month:"Monat", rep_custom:"Benutzerdefiniert",
+  wst_title:"Strukturelle Verschwendung", wst_q:"eine Untergrenze — manches ist nicht messbar",
+  wst_atleast:"mindestens",
+  wst_sub:"Ging in den Aufbau der Umgebung — nicht in die Arbeit.",
+  wst_money:(a,b)=>`${a} von ${b} im Zeitraum · geschätzt, API-Äquiv.`,
+  wst_before:q=>`vorher: ${q}%`,
+  wst_pts_down:n=>`↓ ${n} Punkte`, wst_pts_up:n=>`↑ ${n} Punkte`, wst_pts_flat:"gleich",
+  wst_k_claudemd:n=>`CLAUDE.md-Regeln ohne aktuelle Spur — ${n} Zeilen`,
+  wst_k_hooks_noise:n=>`Hook-Ausgabe im Kontext — ${n} Auslösungen`,
+  wst_k_cachebreak:n=>`Kontext nach Cache-Verlust neu geschrieben — ${n}-mal`,
+  wst_note:"Nicht mitgezählt, was die Logs nicht messen können — inaktive MCPs und ungenutzte Skills wiegen auch. Darum „mindestens“.",
+  wst_gather:n=>`Sammle Daten — ${n} von 10 Sitzungen im Zeitraum. Zu wenige, als dass der Prozentsatz etwas aussagt.`,
+  wst_short:"Diese Zahl ergibt erst ab 7 Tagen Sinn.",
+  wst_see7:"7 Tage ansehen", wst_none_t:"Nichts zu melden",
+  wst_none_b:"Keine strukturelle Verschwendung im Zeitraum erkannt. Heißt nicht null: nichts erreichte die Schwellen.",
+  wst_lt1:"unter 1 %",
   rep_perf:"Deine Effizienz", rep_perf_unit:"Tokens pro Nachricht von dir",
   rep_before:"vorher", rep_better:"besser", rep_worse:"schlechter", rep_flat:"stabil",
   rep_verd_first:"Deine erste Messung. Sobald es einen Vorzeitraum zum Vergleichen gibt, siehst du hier, ob du dich verbesserst.",
@@ -4301,6 +4413,21 @@ ja:{
   rep_det_tap:"点やバーをタップすると詳細が見られます。",
   rep_next_intro:"警報ではありません — 節約のためのやることリストです。この期間で最も高くついたリークと、その対処法。まずは1番から。",
   rep_week:"週", rep_month:"月", rep_custom:"カスタム",
+  wst_title:"構造的なムダ", wst_q:"下限値 — 測れないぶんは含まず",
+  wst_atleast:"少なくとも",
+  wst_sub:"作業ではなく、環境の組み方に消えた分。",
+  wst_money:(a,b)=>`期間中 ${b} のうち ${a} · 推定・API換算`,
+  wst_before:q=>`前回: ${q}%`,
+  wst_pts_down:n=>`↓ ${n}ポイント`, wst_pts_up:n=>`↑ ${n}ポイント`, wst_pts_flat:"横ばい",
+  wst_k_claudemd:n=>`最近使われていないCLAUDE.mdのルール — ${n}行`,
+  wst_k_hooks_noise:n=>`フックの出力がコンテキストに混入 — ${n}回`,
+  wst_k_cachebreak:n=>`キャッシュ喪失でコンテキストを書き直し — ${n}回`,
+  wst_note:"ログから測れないもの（未使用のMCPやスキル）は数えていません。だから「少なくとも」です。",
+  wst_gather:n=>`データ収集中 — 期間内のセッションは ${n}/10。少なすぎて割合はまだ意味を持ちません。`,
+  wst_short:"この数字は7日以上でないと意味がありません。",
+  wst_see7:"7日間を見る", wst_none_t:"指摘なし",
+  wst_none_b:"この期間に構造的なムダは検出されませんでした。ゼロという意味ではなく、しきい値に達しなかっただけです。",
+  wst_lt1:"1%未満",
   rep_perf:"あなたの効率", rep_perf_unit:"あなたの1メッセージあたりのトークン",
   rep_before:"以前", rep_better:"改善", rep_worse:"悪化", rep_flat:"横ばい",
   rep_verd_first:"初めての計測です。比較できる前の期間ができると、改善しているかどうかがここに表示されます。",
@@ -4776,6 +4903,21 @@ ko:{
   rep_det_tap:"점이나 막대를 누르면 상세를 볼 수 있습니다.",
   rep_next_intro:"경보가 아닙니다 — 절약 할 일 목록입니다. 이 기간 가장 비쌌던 누수와 각각의 대처법. 1번부터 시작하세요.",
   rep_week:"주간", rep_month:"월간", rep_custom:"사용자 지정",
+  wst_title:"구조적 낭비", wst_q:"하한선 — 측정 불가한 몫은 제외",
+  wst_atleast:"최소",
+  wst_sub:"작업이 아니라 환경 구성에 쓰인 몫입니다.",
+  wst_money:(a,b)=>`기간 ${b} 중 ${a} · 추정, API 환산`,
+  wst_before:q=>`이전: ${q}%`,
+  wst_pts_down:n=>`↓ ${n}포인트`, wst_pts_up:n=>`↑ ${n}포인트`, wst_pts_flat:"동일",
+  wst_k_claudemd:n=>`최근 흔적 없는 CLAUDE.md 규칙 — ${n}줄`,
+  wst_k_hooks_noise:n=>`훅 출력이 컨텍스트에 주입 — ${n}회`,
+  wst_k_cachebreak:n=>`캐시 손실로 컨텍스트 재작성 — ${n}회`,
+  wst_note:"로그로 측정할 수 없는 것(미사용 MCP·스킬)은 세지 않습니다. 그래서 «최소»입니다.",
+  wst_gather:n=>`데이터 수집 중 — 기간 내 세션 ${n}/10. 너무 적어 비율이 아직 의미가 없습니다.`,
+  wst_short:"이 숫자는 7일 이상이어야 의미가 있습니다.",
+  wst_see7:"7일 보기", wst_none_t:"지적할 것 없음",
+  wst_none_b:"이 기간에 구조적 낭비가 감지되지 않았습니다. 0이라는 뜻은 아니고, 임계값에 도달한 것이 없다는 뜻입니다.",
+  wst_lt1:"1% 미만",
   rep_perf:"나의 효율", rep_perf_unit:"내 메시지당 토큰",
   rep_before:"이전", rep_better:"개선", rep_worse:"악화", rep_flat:"비슷",
   rep_verd_first:"첫 측정입니다. 비교할 이전 기간이 생기면 개선 여부를 여기서 확인할 수 있습니다.",
@@ -5251,6 +5393,21 @@ zh:{
   rep_det_tap:"点按任意点或柱子查看详情。",
   rep_next_intro:"这不是警报 — 是你的省钱待办清单：本时段最贵的泄漏及各自的处理办法。先从第 1 条开始。",
   rep_week:"周", rep_month:"月", rep_custom:"自定义",
+  wst_title:"结构性浪费", wst_q:"这是下限 — 测不到的没算进来",
+  wst_atleast:"至少",
+  wst_sub:"花在环境的搭建方式上，而不是工作本身。",
+  wst_money:(a,b)=>`本期 ${b} 中的 ${a} · 估算，按 API 折算`,
+  wst_before:q=>`此前: ${q}%`,
+  wst_pts_down:n=>`↓ ${n} 个百分点`, wst_pts_up:n=>`↑ ${n} 个百分点`, wst_pts_flat:"持平",
+  wst_k_claudemd:n=>`近期无踪迹的 CLAUDE.md 规则 — ${n} 行`,
+  wst_k_hooks_noise:n=>`钩子输出注入上下文 — ${n} 次`,
+  wst_k_cachebreak:n=>`缓存丢失后重写上下文 — ${n} 次`,
+  wst_note:"日志测不到的没有计入 — 闲置的 MCP 和未用的技能同样有分量，所以说“至少”。",
+  wst_gather:n=>`正在积累数据 — 本期 ${n}/10 个会话。太少了，百分比还说明不了什么。`,
+  wst_short:"这个数字只有在 7 天以上才有意义。",
+  wst_see7:"看 7 天", wst_none_t:"没有可指出的",
+  wst_none_b:"本期未检测到结构性浪费。这不代表为零：只是没有达到阈值。",
+  wst_lt1:"不到 1%",
   rep_perf:"你的效率", rep_perf_unit:"你每条消息消耗的 token",
   rep_before:"之前", rep_better:"进步", rep_worse:"退步", rep_flat:"持平",
   rep_verd_first:"这是首次测量。等有了可对比的上一时段，这里就能看出你是否在进步。",
@@ -8009,10 +8166,17 @@ async function loadReport(force){
   const stamp=++repStamp;
   markRepChips();
   const wait=`<div class="rp-empty">${t("fnd_scanning")}</div>`;
-  for(const id of ["repHero","repLast","repProj","repFix","repNext"]) $(id).innerHTML=wait;
+  for(const id of ["repHero","repWaste","repLast","repProj","repFix","repNext"]) $(id).innerHTML=wait;
   const W=repWidth(), endE=repEnd();
-  // los hallazgos arrancan YA, en paralelo, pero no se les espera aún
-  const pFnd=invoke("get_findings",repArgs()).catch(()=>[]);
+  // los hallazgos arrancan YA, en paralelo, pero no se les espera aún.
+  // get_findings devuelve {findings, waste} desde 2026-08-14: la misma
+  // pasada trae las tarjetas y el % de desperdicio estructural. El del
+  // periodo ANTERIOR (misma anchura terminando donde empieza este) es solo
+  // para la línea "antes: X%" — si falla, la tarjeta sale sin comparación.
+  const pFnd=invoke("get_findings",repArgs()).catch(()=>null);
+  const pWstPrev=(W>=7)
+    ? invoke("get_findings",{days:W,end:endE-W*86400}).catch(()=>null)
+    : Promise.resolve(null);
   // el periodo ANTERIOR es la misma anchura terminando donde empieza este:
   // así "¿mejoré?" compara peras con peras aunque el periodo sea un rango
   const [cur,prev,hist]=await Promise.allSettled([
@@ -8026,16 +8190,23 @@ async function loadReport(force){
     prev:prev.status==="fulfilled"?prev.value:null,
     hist:hist.status==="fulfilled"?hist.value:[],
     fnd: null,   // null = "analizando"; [] = "sin fugas" — no es lo mismo
+    waste:null, wastePrev:null,   // ídem: null = aún analizando
     W, endE, at:Date.now(),
   };
   renderReport();
-  const fndList=await pFnd;
+  const pack=await pFnd;
   if(stamp!==repStamp) return;
-  repData.fnd=fndList||[];
+  repData.fnd=pack?pack.findings||[]:[];
+  repData.waste=pack?pack.waste:{err:1};   // err: la tarjeta dice "falló"
   repData.at=Date.now();
   repCache[key]=repData;
   renderRepProj(repData);
   renderRepNext(repData);
+  renderRepWaste(repData);
+  const prevPack=await pWstPrev;
+  if(stamp!==repStamp) return;
+  repData.wastePrev=prevPack?prevPack.waste:null;
+  renderRepWaste(repData);
 }
 function repPerfOf(s){ return s && s.uturns_week>0 ? s.tokens_week/s.uturns_week : null; }
 function repFmtN(n){ return Math.round(n).toLocaleString(lang); }
@@ -8043,7 +8214,7 @@ function repFmtN(n){ return Math.round(n).toLocaleString(lang); }
 function renderReport(){
   const d=repData; if(!d) return;
   markRepChips();
-  renderRepHero(d); renderRepLast(d); renderRepChart(d);
+  renderRepHero(d); renderRepWaste(d); renderRepLast(d); renderRepChart(d);
   renderRepProj(d); renderRepFix(d); renderRepNext(d);
 }
 
@@ -8137,6 +8308,92 @@ function repHistStats(hist,from,to){
   const wkHit=snaps.find(x=>(x.w??0)>=100);
   return {n:snaps.length, hits:wins.filter(w=>w.max>=100).length,
           wkHit:wkHit?wkHit.t:null};
+}
+// 1bis · desperdicio estructural: de cada $100 gastados, cuántos se fueron
+// en cómo está MONTADO el entorno (CLAUDE.md sin uso + hooks + caché
+// reescrita) y no en el trabajo. REGLAS (presion-y-rendimiento.md
+// §fórmula): numerador y denominador nacen de la MISMA pasada y viajan
+// juntos en waste; Ignorar descuenta con el conjunto de HOY en los dos
+// periodos; es un PISO y el copy dice "al menos" (invariante #8); las
+// compuertas van antes que el número; y el resto de la barra NO se llama
+// "trabajo real" — no está demostrado, solo "sin señalar".
+function wstNum(w,ign){
+  const items=(w.items||[]).filter(f=>!ign.has(fndKey(f)));
+  return {items, num:items.reduce((a,f)=>a+f.cost,0)};
+}
+function wstMoney(v){ return v>=10?"$"+Math.round(v):"$"+v.toFixed(2); }
+function renderRepWaste(d){
+  const el=$("repWaste"); if(!el) return;
+  if(d.W<7){
+    // ventana corta: los detectores de configuración ni corren (<7d)
+    el.innerHTML=`<div class="rp-empty">${escapeHtml(t("wst_short"))}
+      <button class="wst-see7" id="wstSee7">${escapeHtml(t("wst_see7"))}</button></div>`;
+    $("wstSee7")?.addEventListener("click",()=>{
+      document.querySelector('.rchip[data-rep="7"]')?.click(); });
+    return;
+  }
+  const w=d.waste;
+  if(!w){ el.innerHTML=`<div class="rp-empty">${t("fnd_scanning")}</div>`; return; }
+  if(w.err){ el.innerHTML=`<div class="rp-empty">${t("fnd_err")}</div>`; return; }
+  const ign=fndIgnored();
+  const {items,num}=wstNum(w,ign);
+  const den=w.total_cost||0;
+  if(den<1||(w.sessions||0)<10){
+    el.innerHTML=`<div class="rp-empty">${escapeHtml(t("wst_gather",w.sessions||0))}</div>`;
+    return;
+  }
+  // los de costo 0 (mcp/skills) no suman: van a la nota de "no contamos"
+  const agg={};
+  for(const f of items){
+    if(f.cost>0){
+      const a=agg[f.kind]=agg[f.kind]||{c:0,n:0,e:false};
+      a.c+=f.cost; a.n+=f.count||1; a.e=a.e||!!f.estimated;
+    }
+  }
+  const mcpN=items.filter(f=>f.kind==="mcp_unused").length;
+  const skN=items.filter(f=>f.kind==="skills_unused").reduce((a,f)=>a+(f.count||0),0);
+  const noteTail=(mcpN||skN)?" ("+[mcpN?mcpN+" MCP":"",skN?skN+" skills":""]
+    .filter(Boolean).join(" · ")+")":"";
+  const note=`<div class="wst-note">${escapeHtml(t("wst_note"))}${escapeHtml(noteTail)}</div>`;
+  if(num<=0){
+    // sin desperdicio DETECTADO: tono seco, sin celebrar (nada llegó a
+    // los umbrales ≠ cero)
+    el.innerHTML=`<div class="wst-none"><b>${escapeHtml(t("wst_none_t"))}</b>
+      <div>${escapeHtml(t("wst_none_b"))}</div></div>${note}`;
+    return;
+  }
+  const est=items.some(f=>f.estimated&&f.cost>0), tld=est?"~":"";
+  const pctI=Math.round(num/den*100);
+  const pctTxt=pctI<1?t("wst_lt1"):tld+pctI+"%";
+  // comparación con el periodo anterior: mismas compuertas, mismo Ignorar
+  let cmp="";
+  const p=d.wastePrev;
+  if(p&&!p.err&&(p.total_cost||0)>=1&&(p.sessions||0)>=10){
+    const q=Math.round(wstNum(p,ign).num/p.total_cost*100);
+    const diff=pctI-q;
+    const cls=diff<=-1?"good":diff>=1?"bad":"flat";
+    const lbl=diff<=-1?t("wst_pts_down",Math.abs(diff))
+             :diff>=1?t("wst_pts_up",diff):t("wst_pts_flat");
+    cmp=`<div class="wst-cmp ${cls}">${escapeHtml(t("wst_before",q))} · ${escapeHtml(lbl)}</div>`;
+  }
+  const COLORS={claudemd:"var(--accent)",hooks_noise:"var(--teal)",cachebreak:"var(--warn)"};
+  const kinds=["claudemd","hooks_noise","cachebreak"].filter(k=>agg[k])
+    .sort((a,b)=>agg[b].c-agg[a].c);
+  const segs=kinds.map(k=>
+    `<i style="width:${Math.max(1,agg[k].c/den*100)}%;background:${COLORS[k]}"></i>`).join("");
+  const rows=kinds.map(k=>
+    `<div class="wst-row"><span class="dotc" style="background:${COLORS[k]}"></span>
+      <span class="wl">${escapeHtml(t("wst_k_"+k,agg[k].n))}</span>
+      <b>${agg[k].e?"~":""}${wstMoney(agg[k].c)}</b></div>`).join("");
+  el.innerHTML=`
+    <div class="wst-big"><span class="al">${escapeHtml(t("wst_atleast"))}</span> <b>${escapeHtml(pctTxt)}</b>${cmp}</div>
+    <div class="wst-sub">${escapeHtml(t("wst_sub"))}</div>
+    <div class="wst-bar">${segs}<i class="rest"></i></div>
+    <div class="wst-money">${escapeHtml(t("wst_money",tld+wstMoney(num),wstMoney(den)))}</div>
+    <div class="wst-rows">${rows}</div>${note}`;
+  // cada punto del porcentaje tiene tarjeta: las filas llevan a Hallazgos
+  el.querySelectorAll(".wst-row").forEach(r=>
+    r.addEventListener("click",()=>showTab("findings")));
 }
 function renderRepLast(d){
   const from=d.endE-d.W*86400;
@@ -8587,8 +8844,8 @@ async function fndPass(tag){
   if(!invoke) return;
   if(simFnd) return;               // simulación en curso: no la pises
   try{
-    const list=await invoke("get_findings",{days:1});
-    flog("fnd: pasada "+tag+" ok, "+(list||[]).length+" tarjetas (1d)");
+    const list=(await invoke("get_findings",{days:1})).findings||[];
+    flog("fnd: pasada "+tag+" ok, "+list.length+" tarjetas (1d)");
     localStorage.setItem("fndAutoLast",String(Date.now()));
     // se guarda lo justo para el badge entre reinicios
     localStorage.setItem("fndAuto",JSON.stringify(
@@ -9696,7 +9953,7 @@ async function loadFindings(force){
     $("fndFoot").textContent="";
   }
   try{
-    fndCache=await invoke("get_findings",fndArgs());
+    fndCache=(await invoke("get_findings",fndArgs())).findings||[];
     fndCacheAt=Date.now();
     fndTrackHist(fndCache);   // marcas de arreglo: solo con resultado FRESCO
     flog("fnd: escaneo ok, "+fndCache.length+" tarjetas ("+fndDays+"d)");

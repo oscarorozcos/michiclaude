@@ -502,7 +502,9 @@ presion-y-rendimiento §"Qué queda vivo".
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
       LEERLO antes de tocar). CERRADO HASTA DONDE ESTÁ (Oscar,
-      2026-08-07): fases 1 y 2 hechas. Qué existe: (a) TURNOS ÚTILES `uturns`
+      2026-08-07): fases 1 y 2 hechas. FILA 18 (% de desperdicio
+      estructural) HECHA 2026-08-14: `waste` en las 3 piezas (§fórmula
+      del doc), tarjeta en Reporte; pendiente cargo check en Windows. Qué existe: (a) TURNOS ÚTILES `uturns`
       en LocalStats/proyectos/daily (mensajes HUMANOS: fuera meta,
       sidechain, tool_result, comandos locales e inyecciones `<ide_…`;
       `is_user_turn` réplica exacta Rust/Python, invariante #1); 0 turnos

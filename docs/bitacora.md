@@ -4535,3 +4535,52 @@ La apuesta técnica del Hook B se sostiene y el plan B queda de respaldo.
 La compuerta NO se mueve: etapa 1 sigue esperando a que cierren las
 pruebas en vivo del auto-/clear y del análisis local. Comparten zona de
 código (coach/gatito) y arrancar ahora contaminaría esa medición.
+
+## 2026-08-14 (2) — % de desperdicio estructural: fórmula, obra y dos arreglos del panel
+
+Jornada en el VPS (chat de VS Code). Tres frentes, los tres cerrados aquí
+y pendientes solo de `cargo check` + vistazo visual en Windows.
+
+**1. La fórmula (fila 18 de presion-y-rendimiento.md).** Era el diseño
+previo obligatorio y quedó escrito en su § propia. Lo esencial: sumar
+todos los hallazgos y dividir está MAL por tres razones verificadas en el
+código — los detectores se pisan (inflate contiene a reread vía
+cache_read; mech cobra el turno entero sin excluir subagentes), los más
+estructurales valen $0 (mcp/skills, resta de conjuntos), y el tope de 12
+por costo decapita justo a los baratos. La salida: UNA LÍNEA DE FACTURA
+POR DETECTOR (input: claudemd+hooks_noise; cache_write: cachebreak;
+cache_read/turno entero: excluidos) → numerador disjunto por
+construcción, sin restas a mano. Como deja fuera más de lo que arriesga,
+el número es un PISO y el copy dice "al menos" — invariante #8 con
+dirección segura. Fusión multi-origen: suma de numeradores ÷ suma de
+denominadores, JAMÁS promedio de porcentajes.
+
+**2. La obra (tres piezas, invariante #1).** `scan_findings` (Python) y
+`scan_local_findings` (Rust) calculan `waste` ANTES del tope de 12:
+{struct_cost, struct_tokens, total_cost, sessions, days, end, estimated,
+items[]} con `items` = tarjetas estructurales sin recortar (tope 100)
+para que el panel descuente las ignoradas con `fndKey`. `get_findings`
+ahora devuelve `FindingsPack{findings, waste}` — los 3 usos del frontend
+desempaquetan `.findings`. Tarjeta en Reporte bajo el héroe con los 3
+estados degradados diseñados (ventana corta / juntando datos / nada que
+señalar), comparación "antes: Y%" (segunda pasada con --end corrido) y
+nota "no contamos" con MCP/skills. i18n `wst_*` ×8.
+
+VALIDACIÓN en el VPS: regresión `--end` congelado 7d y 30d → findings y
+campos viejos byte-idénticos; y `waste.total_cost` == `cost_week` de la
+agregación normal AL CÉNTIMO en ambas ventanas — dos caminos
+independientes que cuadran exactos. Dato real del VPS: 11.2% de
+desperdicio en 30d ($230 de $2,057), TODO cachebreak — la fuga más cara
+del catálogo también manda aquí. La maqueta de la otra IA (prompt del
+doc) sirvió de referencia con 4 correcciones anotadas en el chat: su
+tarjeta de "subagentes sin rastro" era falsa, el "trabajo real 86%"
+afirmaba lo no demostrado, el cachebreak no lleva "~" (es MEDIDO) y
+mezclaba ventanas de 7 y 30 días.
+
+**3. Panel, dos peticiones de Oscar del día:** (a) adiós a la rendija
+transparente — era el padding de 1px del body que el anillo del borde
+necesitaba; ahora el borde es `outline` con offset -1px (hacia adentro,
+por encima del contenido: un inset lo tapaba el sticky) y padding 0;
+(b) el panel ya NO se cierra al perder el foco — era flyout y estorbaba
+al consultarlo trabajando; solo cierran el ✕ y el menú del tray. CLAUDE.md
+actualizado en ambos.

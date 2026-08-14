@@ -351,6 +351,14 @@ CLAUDEMD_MAX_TOKENS = 400   # tope de identificadores a buscar por archivo
 CLAUDEMD_LOAD_LIMIT = 40_000  # chars que Claude Code CARGA de un CLAUDE.md;
 #                               lo que sobre no se lee nunca (detector 10)
 MAX_FINDINGS = 12       # las tarjetas no son un log: lo más caro primero
+# % de desperdicio estructural (presion-y-rendimiento.md §fórmula): la CLASE
+# de detectores que entra al numerador — una línea de factura por detector,
+# para que la suma sea disjunta por construcción. claudemdsize NUNCA (fuga
+# de instrucciones, no de dinero); los de costo 0 (mcp/skills) entran solos
+# el día que se midan. Lo conductual (inflate/reread/mech/subagents) fuera.
+WASTE_KINDS = {"claudemd", "hooks_noise", "cachebreak",
+               "mcp_unused", "skills_unused"}
+WASTE_MAX_ITEMS = 100   # tarjetas SIN recortar que viajan en waste.items
 
 
 def skills_installed():
@@ -515,6 +523,10 @@ def scan_findings(projects_dir, window_ago, days, end):
     pend_reads = {}  # tool_use_id -> (sid, ruta)  para casar con su resultado
     mech = [0, 0, 0.0, 0]        # [peticiones, tokens, costo, última actividad]
     sub = [0, 0, 0.0, 0]         # subagentes: [turnos, tokens, costo, última actividad]
+    total_cost = 0.0             # denominador del waste: TODO lo gastado en
+    #                              la ventana, de esta MISMA pasada (mismo
+    #                              escaneo = numerador y denominador nunca
+    #                              se desfasan). Subagentes incluidos.
     mcp_used = set()
     skills_used = set()          # invocadas en la ventana (logs)
     seen = set()                 # misma dedup que la agregación
@@ -662,6 +674,8 @@ def scan_findings(projects_dir, window_ago, days, end):
                     cw = usage.get("cache_creation_input_tokens") or 0
                     cr = usage.get("cache_read_input_tokens") or 0
                     pi, po, pcw, pcr = price_for(model)
+                    total_cost += (inp * pi + out_t * po
+                                   + cw * pcw + cr * pcr) / 1e6
                     # los subagentes llevan SU contexto y SU sessionId es el
                     # de la sesión MADRE (verificado 2026-08-04 con un
                     # transcript real): si tocaran el estado de la sesión,
@@ -855,7 +869,25 @@ def scan_findings(projects_dir, window_ago, days, end):
                          "tokens": (sz - CLAUDEMD_LOAD_LIMIT) // 4,
                          "cost": 0.0, "estimated": True})
     findings.sort(key=lambda x: -x["cost"])
-    return findings[:MAX_FINDINGS]
+    # % de desperdicio estructural: el numerador se arma ANTES del tope de
+    # 12 (el tope ordena por costo y decapita justo a los estructurales, que
+    # son los baratos). items lleva las tarjetas SIN recortar para que el
+    # panel descuente las ignoradas (fndIgnore) con su misma clave; es un
+    # PISO y el copy lo dice ("al menos") — invariante #8.
+    struct_items = [f for f in findings
+                    if f["kind"] in WASTE_KINDS][:WASTE_MAX_ITEMS]
+    waste = {
+        "struct_cost": sum(f["cost"] for f in struct_items),
+        "struct_tokens": sum(f.get("tokens", 0) for f in struct_items),
+        "total_cost": total_cost,
+        "sessions": sum(1 for S in sessions.values() if S["models"]),
+        "days": days,
+        "end": int(end.timestamp()),
+        "estimated": any(f["estimated"] and f["cost"] > 0
+                         for f in struct_items),
+        "items": struct_items,
+    }
+    return findings[:MAX_FINDINGS], waste
 
 
 
@@ -1415,6 +1447,12 @@ def main():
     ]
     projects.sort(key=lambda p: -p["cost"])
 
+    # Analizador de fugas + % de desperdicio: UNA pasada para las dos cosas
+    # (numerador y denominador del waste nacen del mismo escaneo). Sin
+    # --findings, waste vacío = "sin datos" para quien lee (nunca 0%).
+    fnd, waste = (scan_findings(projects_dir, window_ago, days, end)
+                  if want_findings else ([], {}))
+
     print(json.dumps({
         "projects": projects,
         "models": models,
@@ -1439,8 +1477,8 @@ def main():
         ],
         # Analizador de fugas: solo bajo --findings, para que ni el ciclo del
         # panel ni las fotos del hub paguen la pasada extra.
-        "findings": scan_findings(projects_dir, window_ago, days, end)
-        if want_findings else [],
+        "findings": fnd,
+        "waste": waste,
     }))
 
 

@@ -267,6 +267,11 @@ struct LocalStats {
     /// misma mordida que ExportRow.origin el 2026-07-29).
     #[serde(default)]
     findings: Vec<Finding>,
+    /// % de desperdicio estructural del exportador: viaja junto a findings
+    /// porque nace de la MISMA pasada. Exportador viejo = sin clave =
+    /// ceros = ese origen queda fuera del numerador Y del denominador.
+    #[serde(default)]
+    waste: Waste,
     /// true cuando había resúmenes de OTRAS máquinas del hub y se dejaron
     /// fuera por haber pedido un rango de fechas: sus fotos son de ventanas
     /// que terminan hoy y no se pueden recortar a un periodo pasado. El
@@ -310,6 +315,40 @@ struct Finding {
     /// y se van abajo. serde(default): un exportador viejo manda 0.
     #[serde(default)]
     ts: i64,
+}
+
+/// % de desperdicio estructural (docs/presion-y-rendimiento.md §fórmula):
+/// numerador = hallazgos de la CLASE estructural ANTES del tope de 12;
+/// denominador = costo total de la MISMA pasada (mismo escaneo, misma
+/// ventana — nunca se cruzan corridas). `items` lleva esas tarjetas SIN
+/// recortar para que el panel descuente las ignoradas (fndIgnore) con su
+/// misma clave. TODO con default: un exportador viejo no manda la clave
+/// (o manda {}) y eso es "sin datos" (sessions=0), jamás un 0%.
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct Waste {
+    #[serde(default)]
+    struct_cost: f64,
+    #[serde(default)]
+    struct_tokens: u64,
+    #[serde(default)]
+    total_cost: f64,
+    #[serde(default)]
+    sessions: u64,
+    #[serde(default)]
+    days: u32,
+    #[serde(default)]
+    end: i64,
+    #[serde(default)]
+    estimated: bool,
+    #[serde(default)]
+    items: Vec<Finding>,
+}
+
+/// Respuesta de get_findings: las tarjetas más el waste de la misma pasada.
+#[derive(Serialize, Clone, Default)]
+struct FindingsPack {
+    findings: Vec<Finding>,
+    waste: Waste,
 }
 
 /// Una máquina ajena vista a través del servidor.
@@ -1970,6 +2009,7 @@ fn collect_own_stats(
             .collect(),
         hosts: Vec::new(),   // se rellena al leer los servidores, más abajo
         findings: Vec::new(), // solo los llena get_findings, bajo demanda
+        waste: Waste::default(), // ídem: nace en la pasada de findings
         hub_skipped: false,   // lo enciende collect_local_stats si toca
     };
     (stats, daily_map)
@@ -2209,6 +2249,15 @@ const CLAUDEMD_MAX_TOKENS: usize = 400;
 // nunca (detector 10)
 const CLAUDEMD_LOAD_LIMIT: usize = 40_000;
 const MAX_FINDINGS: usize = 12;
+// % de desperdicio estructural: la CLASE que entra al numerador — una línea
+// de factura por detector (input: claudemd/hooks_noise; cache_write:
+// cachebreak), suma disjunta por construcción. claudemdsize NUNCA; los de
+// costo 0 (mcp/skills) entran solos el día que se midan; lo conductual
+// (inflate/reread/mech/subagents) fuera. Réplica en meter-export.py
+// (WASTE_KINDS, invariante #1).
+const WASTE_KINDS: [&str; 5] =
+    ["claudemd", "hooks_noise", "cachebreak", "mcp_unused", "skills_unused"];
+const WASTE_MAX_ITEMS: usize = 100;
 
 /// Comandos deterministas: turnos donde Claude no piensa, solo ejecuta.
 /// Pareja del MECH_RE del exportador — sin crate regex (invariante #4), así
@@ -2471,7 +2520,7 @@ struct SessFindings {
 /// `end_ts` = final del periodo (epoch). None = ahora. Igual que en
 /// collect_own_stats: con él la ventana se desplaza al pasado y cubre
 /// [end - window_days, end], que es como se sirve un rango de fechas.
-fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> Vec<Finding> {
+fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, Waste) {
     let now = Utc::now();
     let end = end_ts
         .and_then(|t| DateTime::from_timestamp(t, 0))
@@ -2486,6 +2535,10 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> Vec<Finding> {
     let mut seen: HashSet<String> = HashSet::new();
     let (mut mech_count, mut mech_tokens, mut mech_cost) = (0u64, 0u64, 0f64);
     let (mut sub_count, mut sub_tokens, mut sub_cost) = (0u64, 0u64, 0f64);
+    // denominador del waste: TODO lo gastado en la ventana, de esta MISMA
+    // pasada (mismo escaneo = numerador y denominador nunca se desfasan).
+    // Subagentes incluidos.
+    let mut total_cost = 0f64;
     // última actividad de cada detector agregado — sin ella la tarjeta cae
     // al fondo del reporte aunque sea la más fresca (ordenamiento por ts)
     let (mut mech_ts, mut sub_ts): (i64, i64) = (0, 0);
@@ -2691,6 +2744,7 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> Vec<Finding> {
                     let out_t = usage["output_tokens"].as_u64().unwrap_or(0);
                     let cw = usage["cache_creation_input_tokens"].as_u64().unwrap_or(0);
                     let cr = usage["cache_read_input_tokens"].as_u64().unwrap_or(0);
+                    total_cost += cost_of(&model, inp, out_t, cw, cr);
                     {
                         let st = sessions.entry(sid.clone()).or_default();
                         if st.proj.is_empty() {
@@ -3037,28 +3091,65 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> Vec<Finding> {
         });
     }
     findings.sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
+    // % de desperdicio estructural: el numerador se arma ANTES del tope de
+    // 12 (el tope ordena por costo y decapita justo a los estructurales,
+    // que son los baratos). Es un PISO y el copy lo dice ("al menos") —
+    // invariante #8. Réplica exacta del bloque waste de meter-export.py.
+    let struct_items: Vec<Finding> = findings
+        .iter()
+        .filter(|f| WASTE_KINDS.contains(&f.kind.as_str()))
+        .take(WASTE_MAX_ITEMS)
+        .cloned()
+        .collect();
+    let waste = Waste {
+        struct_cost: struct_items.iter().map(|f| f.cost).sum(),
+        struct_tokens: struct_items.iter().map(|f| f.tokens).sum(),
+        total_cost,
+        sessions: sessions.values().filter(|s| !s.models.is_empty()).count() as u64,
+        days: window_days,
+        end: end.timestamp(),
+        estimated: struct_items.iter().any(|f| f.estimated && f.cost > 0.0),
+        items: struct_items,
+    };
     findings.truncate(MAX_FINDINGS);
-    findings
+    (findings, waste)
 }
 
 /// Analizador de fugas: detectores locales (este PC + WSL) más los de cada
 /// servidor vía --findings, con el origen etiquetado por quien lee. Async +
 /// spawn_blocking obligatorio (invariante 10ter: SSH y escaneo de disco).
 #[tauri::command]
-async fn get_findings(days: Option<u32>, end: Option<i64>) -> Result<Vec<Finding>, String> {
+async fn get_findings(days: Option<u32>, end: Option<i64>) -> Result<FindingsPack, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let window_days = days.unwrap_or(7).clamp(1, 90);
-        let mut out = scan_local_findings(window_days, end);
+        let (mut out, mut waste) = scan_local_findings(window_days, end);
         for r in load_remotes() {
             let Some(rem) = fetch_remote(&r, window_days, false, true, end) else { continue };
             for mut f in rem.findings {
                 f.origin = r.name.clone();
                 out.push(f);
             }
+            // Fusión de razones: SUMA de numeradores y de denominadores por
+            // separado — jamás promedio de porcentajes (media de razones ≠
+            // razón de sumas). Si el SSH falló, el `continue` de arriba ya
+            // sacó a ese origen de los DOS lados a la vez; un exportador
+            // viejo manda waste en ceros = mismo efecto.
+            waste.struct_cost += rem.waste.struct_cost;
+            waste.struct_tokens += rem.waste.struct_tokens;
+            waste.total_cost += rem.waste.total_cost;
+            waste.sessions += rem.waste.sessions;
+            waste.estimated |= rem.waste.estimated;
+            for mut it in rem.waste.items {
+                if waste.items.len() >= WASTE_MAX_ITEMS {
+                    break;
+                }
+                it.origin = r.name.clone();
+                waste.items.push(it);
+            }
         }
         out.sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
         out.truncate(MAX_FINDINGS);
-        Ok(out)
+        Ok(FindingsPack { findings: out, waste })
     })
     .await
     .map_err(|e| e.to_string())?

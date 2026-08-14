@@ -49,7 +49,7 @@ Leyenda: ✅ ya lo hacemos · 🟡 parcial · ❌ no lo tenemos
 | 15 | Auditoría CLAUDE.md línea a línea | 🟡 | `claudemd` señala identificadores jamás mencionados | La parte semántica (líneas redundantes) pide modelo → posponer |
 | 16 | **Tokens por turno útil** | ❌ | — | **Sí, y barato**: los JSONL ya distinguen turnos de usuario; es una división más en la agregación existente |
 | 17 | **Antes/después anclado a arreglos** | ❌ | — | **Sí, y es la joya del doc**: los hallazgos ya tienen ciclo de vida — detectar que uno desapareció, marcar la fecha, comparar rendimiento |
-| 18 | % de desperdicio estructural | ❌ | — | FÓRMULA DEFINIDA el 2026-08-14 (§ propia al final); falta la obra |
+| 18 | % de desperdicio estructural | ✅ | Fórmula + obra completas 2026-08-14 (§ propia al final); tarjeta en Reporte | Hecho (pendiente cargo check en Windows) |
 | 19 | Score de salud único (42/100) | ❌ | — | Dudoso: un número único esconde más de lo que enseña; contradice "nunca inventar cifras". Ya ordenamos por costo real |
 | 20 | Sesión contaminada (corrección tras corrección) | ❌ | — | El doc mismo la marca como la de mayor riesgo técnico (falsos positivos). ESPERAR — un falso "tu sesión está envenenada" quema la confianza |
 | 21 | Modelo local opcional | ❌ | — | De acuerdo con el doc en NO hacerlo ahora; pelea con invariante #4 (app ligera) |
@@ -376,20 +376,35 @@ tarjeta, no entra al número.**
 - Con simulador: nunca.
 - Algún costo del numerador con `estimated: true` → el número lleva "~".
 
-### Qué obra pide (TRES piezas en sincronía, invariante #1)
+### La obra (TRES piezas en sincronía, invariante #1) — HECHA 2026-08-14
 
 1. **`meter-export.py`** — `scan_findings()` devuelve además
    `waste = {struct_cost, struct_tokens, total_cost, sessions, days, end,
-   estimated, by_kind{}, items[]}` calculado ANTES de `findings[:MAX_FINDINGS]`.
-   `items[]` = clave + costo de los estructurales sin recortar (para que el
-   panel pueda descontar los ignorados), tope 100.
-2. **Rust** — `struct Waste` con `#[serde(default)]` en todos sus campos
-   (exportador viejo = ceros = "sin datos", nunca 0%), réplica exacta en
-   `scan_local_findings`, y `get_findings` fusionando sumas por separado. Ojo:
-   cambia el tipo de retorno de `get_findings` → grep de TODOS sus usos antes
-   de subir (en el VPS no hay compilador).
-3. **Panel** — pestaña Reporte: el número, su desglose por kind y la
-   comparación con el periodo anterior.
+   estimated, items[]}` calculado ANTES de `findings[:MAX_FINDINGS]`.
+   `items[]` = las tarjetas estructurales SIN recortar (tope
+   `WASTE_MAX_ITEMS=100`): el panel descuenta las ignoradas por `fndKey` y
+   agrega por kind él mismo (no hay `by_kind` precalculado — items ya lo
+   contiene todo). Clase en `WASTE_KINDS`. Sin `--findings`: `waste: {}`.
+2. **Rust** — `struct Waste` todo `#[serde(default)]` (exportador viejo =
+   ceros = "sin datos", nunca 0%), réplica exacta en `scan_local_findings`
+   (ahora devuelve `(Vec<Finding>, Waste)`), y `get_findings` devuelve
+   `FindingsPack{findings, waste}` fusionando sumas por separado. Los 3
+   usos del frontend desempaquetan `.findings`.
+3. **Panel** — tarjeta en Reporte bajo el héroe (segunda a propósito: dos
+   héroes se matan): "al menos ~X%", barra de proporción (el resto en gris
+   NEUTRO, jamás etiquetado "trabajo real"), "antes: Y%" contra el periodo
+   anterior (otra llamada `get_findings` con `end` corrido; mismas
+   compuertas), desglose por kind clicable → Hallazgos, nota "no contamos"
+   con el conteo de MCP/skills, y los 3 estados degradados (ventana corta →
+   botón a 7d; <10 sesiones o <$1 → "juntando datos"; numerador 0 → "nada
+   que señalar" sin celebrar). i18n `wst_*` en los 8 idiomas.
+
+**Validado en el VPS (2026-08-14):** regresión con `--end` congelado 7d y
+30d → `findings` y todos los campos viejos byte-idénticos; y
+`waste.total_cost` == `cost_week` de la agregación normal AL CÉNTIMO en
+ambas ventanas — dos caminos independientes, mismo número. Dato real: 11%
+de desperdicio estructural en los 30d del VPS, todo cachebreak.
+`cargo check` pendiente en el Windows de Oscar.
 
 ### Lo que este número NO es
 
@@ -419,9 +434,10 @@ Pendiente real, por orden de valor:
 
 1. **Fase 3 — export HTML del mockup A** (reporte imprimible y
    compartible; sinergia con la tarjeta del gatito).
-2. **Fila 18 — % de desperdicio estructural**: la FÓRMULA ya está
-   definida (§"La fórmula del % de desperdicio estructural", 2026-08-14).
-   Falta la obra: las tres piezas en sincronía que lista esa sección.
+2. **Fila 18 — % de desperdicio estructural**: HECHA (2026-08-14) —
+   fórmula Y obra (las tres piezas). Ver §"La fórmula del % de
+   desperdicio estructural". Pendiente: `cargo check` en Windows y verla
+   con datos reales en el panel.
 3. **Fila 14 — botón "copiar resumen de traspaso"** (handoff por
    plantilla desde el recibo). Parcial: la tarjeta de intención del
    relevo ya cubre el caso "sesión al límite"; falta el traspaso a
