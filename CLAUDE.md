@@ -275,7 +275,8 @@ cachebreak (≥300k reescritos; fuera isSidechain y compactaciones ±120 s),
 mech (≥5; git/pytest/cargo/npm), subagents (≥50k de sidechain),
 acompact (≥3 auto-compacts POR PROYECTO; trigger≠manual, dedup uuid;
 costo PISO preTokens×input "~" — sin usage no se factura; NO entra al
-waste),
+waste), paste (≥3 mensajes humanos ≥5k chars y ≥10k tok por proyecto;
+piso chars/4; base user_turn_text; NO waste),
 hooks_noise (≥15 disparos, ≥10k tok; attachments hook_success),
 mcp_unused (resta de conjuntos), skills_unused, claudemd (solo 7d+;
 identificadores por línea contra texto crudo, rojo solo si NINGUNA
@@ -509,7 +510,8 @@ presion-y-rendimiento §"Qué queda vivo".
       estructural) HECHA 2026-08-14: `waste` en las 3 piezas (§fórmula
       del doc), tarjeta en Reporte; pendiente cargo check en Windows. Qué existe: (a) TURNOS ÚTILES `uturns`
       en LocalStats/proyectos/daily (mensajes HUMANOS: fuera meta,
-      sidechain, tool_result, comandos locales e inyecciones `<ide_…`;
+      sidechain, tool_result, comandos locales, inyecciones `<ide_…` y
+      resúmenes de compactación isCompactSummary — 2026-08-14, caché v3;
       `is_user_turn` réplica exacta Rust/Python, invariante #1); 0 turnos
       = "sin datos", NUNCA dividir (invariante #8). (b) HISTÓRICO DE
       CUOTA `quota_history.json` (90 días, una foto por ciclo; solo

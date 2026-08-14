@@ -4609,3 +4609,32 @@ manual y la fuera-de-ventana excluidas, y callando con solo 2. De paso se
 explicó el `cost_today` "inestable" de la regresión: es relativo a AHORA
 (no al --end) y le pasa igual al exportador viejo — ruido del reloj, no
 de los cambios.
+
+## 2026-08-14 (4) — Detector 12: pegado masivo — y el bug de uturns que cazó el diseño
+
+El pendiente decía "diseñarlo y validarlo antes de prometerlo", y el
+diseño pagó: la exploración de los 1,025 mensajes humanos reales del VPS
+(mediana tecleada 290 chars, p90 1.7k) enseñó que los 10 "mensajes" más
+grandes NO eran pegotes — eran los resúmenes de continuación de la
+compactación ("This session is being continued…"), que viajan con rol
+user y PASABAN el filtro user_turn_text. Doble consecuencia: el detector
+habría acusado pegotes del sistema, y —el bug de regalo— uturns llevaba
+contándolos como turnos útiles desde la fase 1, diluyendo el rendimiento.
+
+Arreglo en la raíz: isCompactSummary fuera de user_turn_text (AMBOS
+lados) + caché de escaneo v2→v3 (el patrón documentado: un caché viejo
+devolvería los uturns de antes en silencio). Delta verificado EXACTO:
+842→824 uturns en 30d = los 18 resúmenes únicos de la ventana, ni uno
+más.
+
+El detector: kind `paste`, umbral POR MENSAJE 5k chars (~17× la mediana
+real), tarjeta por PROYECTO con ≥3 pegotes y ≥10k tokens, costo PISO
+chars/4 × input dominante ("~"), dedup uuid, fuera del waste
+(conductual), fix que no regaña (un error de consola no tiene ruta que
+mencionar). Réplica Rust con chars().count() — bytes divergiría con
+tildes. Fixture con cuadre exacto (50k chars = 12.5k tok = $0.0125
+haiku; resumen/meta/corto/fuera-de-ventana excluidos; el volumen calla 3
+pegotes chicos). En los datos reales del VPS la tarjeta VIVE (7d: 6
+pegotes, 11.4k tok en michiclaude) pero cae al puesto 16 — el tope de 12
+la deja fuera porque aquí dominan los inflates; en la máquina de un
+usuario típico saldría. cargo check pendiente en Windows.

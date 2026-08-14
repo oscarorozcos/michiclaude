@@ -597,6 +597,32 @@ cuota — pero eso no sale de los logs.
       → bajo umbral, calla — silencio honesto verificado con
       instrumentación línea a línea. Réplica Rust/Python en sincronía
       (invariante #1); marcas de arreglo lo incluyen (FND_MARK_KINDS).
+- [x] Detector 12: pegado masivo (2026-08-14, kind `paste`) — el que la
+      auditoría del mockup A exigía diseñar y validar antes de prometer.
+      Un mensaje HUMANO anormalmente grande casi siempre lleva un bloque
+      pegado, y lo pegado viaja en cada turno posterior. Umbral POR
+      MENSAJE calibrado con datos reales (1,025 mensajes: mediana
+      tecleada 290 chars, p90 1.7k → PASTE_MIN_CHARS=5000, ~17× la
+      mediana); tarjeta por PROYECTO con ≥3 pegotes (PASTE_MIN_COUNT) y
+      ≥10k tokens (PASTE_MIN_TOKENS). Base: `user_turn_text` (el filtro
+      humano ya validado) — y el diseño CAZÓ que los resúmenes de
+      continuación de compactación ("This session is being continued…")
+      pasaban ese filtro: los 10 "mensajes" más grandes eran del sistema,
+      no pegotes. Se arregló en la raíz (isCompactSummary fuera de
+      user_turn_text, AMBOS lados, caché v3) — de paso uturns dejó de
+      contarlos (delta verificado EXACTO: 18 resúmenes = 18 turnos menos
+      en 30d). Dedup por uuid. Costo PISO chars/4 × input del modelo
+      dominante ("~"). NO entra al waste (conductual). El fix NO regaña
+      (a veces pegar ES lo correcto — un error de consola no tiene ruta):
+      "si es un archivo del proyecto, menciona la ruta". VALIDADO:
+      fixture con cuadre exacto (3 pegotes = 50k chars = 12.5k tok =
+      $0.0125 haiku; dedup, resumen, meta, corto y fuera-de-ventana
+      excluidos; 3 pegotes chicos callan por volumen) y datos reales del
+      VPS (7d: 6 pegotes/11.4k tok en michiclaude — tarjeta viva, puesto
+      16: el tope de 12 la deja fuera aquí porque los inflates dominan,
+      correcto). Réplica Rust con `chars().count()`, no bytes (len() de
+      Python cuenta chars; con tildes divergirían). Marcas de arreglo lo
+      incluyen.
 - [ ] Fix personalizado por entrypoint (VS Code vs. terminal, respaldo
       genérico — mismo patrón que prettyModel/price_for).
 - [ ] El antes/después (necesita semanas de historial).

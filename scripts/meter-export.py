@@ -161,7 +161,7 @@ def parse_ts(s):
 # borra o no se entiende, se recalcula desde los logs.
 # v2 (2026-08-06): el caché guarda también los turnos de usuario (uturns);
 # un caché v1 devolvería 0 en silencio para archivos sin cambios.
-CACHE_VERSION = 2
+CACHE_VERSION = 3   # v3: user_turn_text excluye isCompactSummary (2026-08-14)
 # Margen sobre la ventana más amplia que pida esta ejecución (la tendencia son
 # 30 días, pero --days admite hasta 90): 2 días de colchón por relojes
 # desajustados y zonas horarias.
@@ -214,6 +214,13 @@ def user_turn_text(v, msg):
     if v.get("type") != "user":
         return None
     if v.get("isSidechain") or v.get("isMeta"):
+        return None
+    # los resúmenes de continuación de una compactación viajan con rol user
+    # pero los escribe la máquina ("This session is being continued…"):
+    # contaban como turno útil e inflaban el denominador del rendimiento
+    # (cazado 2026-08-14 diseñando el detector de pegado masivo). Cambio de
+    # semántica => CACHE_VERSION 3 en los dos lados.
+    if v.get("isCompactSummary"):
         return None
     if v.get("toolUseResult") is not None:
         return None
@@ -342,6 +349,14 @@ INFLATE_MIN_GROWTH = 50_000   # tokens de contexto acumulados
 INFLATE_MIN_TURNS = 10
 MECH_MIN = 5            # peticiones mecánicas en la ventana para avisar
 ACOMPACT_MIN = 3        # auto-compacts por proyecto en la ventana para avisar
+# Pegado masivo: umbral por MENSAJE calibrado con logs reales (2026-08-14:
+# mediana tecleada 290 chars, p90 1.7k — 5k es ~17× la mediana, un mensaje
+# así casi seguro lleva un bloque pegado). PISO honesto: a veces pegar ES
+# lo correcto (un error de consola no tiene ruta) — por eso además del
+# conteo se exige volumen, y el fix no regaña.
+PASTE_MIN_CHARS = 5000    # chars en UN mensaje humano para contarlo
+PASTE_MIN_COUNT = 3       # pegotes por proyecto en la ventana para avisar
+PASTE_MIN_TOKENS = 10_000  # ~tokens pegados (chars/4) para avisar
 CACHEBREAK_MIN_PREV = 20_000    # prefijo cacheado mínimo para evaluar un turno
 CACHEBREAK_MIN_TOKENS = 300_000  # reescritos por sesión para avisar (~$2-4)
 SUB_MIN_TOKENS = 50_000  # tokens de trabajo de subagentes para avisar
@@ -602,7 +617,8 @@ def scan_findings(projects_dir, window_ago, days, end):
                         # se parten los nombres compuestos.
                         "models": {}, "proj": proj.name, "disp": "", "ts": 0,
                         "cb": [], "compacts": [], "hooks": {},
-                        "ac": [0, 0, 0]})  # auto-compacts: [n, preTokens, ts]
+                        "ac": [0, 0, 0],   # auto-compacts: [n, preTokens, ts]
+                        "pb": [0, 0, 0]})  # pegotes: [n, chars, ts]
                     # una compactación reescribe el contexto A PROPÓSITO:
                     # se marca para no contarla como ruptura de caché
                     if not S["disp"]:
@@ -632,6 +648,21 @@ def scan_findings(projects_dir, window_ago, days, end):
                                 S["ac"][0] += 1
                                 S["ac"][1] += cm.get("preTokens") or 0
                                 S["ac"][2] = max(S["ac"][2], int(cts.timestamp()))
+                    # detector 12 — pegado masivo: un mensaje HUMANO
+                    # anormalmente grande casi siempre lleva un bloque pegado.
+                    # user_turn_text ya filtra lo maquinal (tool results,
+                    # resúmenes de compactación, <ide_…, comandos). Dedup por
+                    # uuid: las reanudaciones copian la línea al archivo nuevo.
+                    ptxt = user_turn_text(v, msg)
+                    if ptxt is not None and len(ptxt) >= PASTE_MIN_CHARS:
+                        pcts = parse_ts(v.get("timestamp"))
+                        u = v.get("uuid") or ""
+                        if (pcts and window_ago <= pcts <= end
+                                and u and u not in seen):
+                            seen.add(u)
+                            S["pb"][0] += 1
+                            S["pb"][1] += len(ptxt)
+                            S["pb"][2] = max(S["pb"][2], int(pcts.timestamp()))
                     # /comandos del usuario: quedan como <command-name> en el
                     # mensaje (estas líneas no traen usage, va antes del filtro)
                     if "<command-name>" in line:
@@ -747,6 +778,7 @@ def scan_findings(projects_dir, window_ago, days, end):
     findings = []
     hooks_g = {}   # hookName -> [disparos, chars, costo] sumado entre sesiones
     acomp_g = {}   # proyecto -> [n, preTokens, costo, ts] entre sesiones
+    paste_g = {}   # proyecto -> [n, chars, costo, ts] entre sesiones
     for sid, S in sessions.items():
         if not S["models"]:
             continue
@@ -762,6 +794,15 @@ def scan_findings(projects_dir, window_ago, days, end):
             g[1] += S["ac"][1]
             g[2] += S["ac"][1] * pi / 1e6
             g[3] = max(g[3], S["ac"][2])
+        # pegotes por PROYECTO. Costo PISO: una ingesta de lo pegado
+        # (chars/4, "~") al input del modelo dominante — la realidad es
+        # mayor porque viaja en cada turno posterior.
+        if S["pb"][0]:
+            g = paste_g.setdefault(S["disp"] or S["proj"], [0, 0, 0.0, 0])
+            g[0] += S["pb"][0]
+            g[1] += S["pb"][1]
+            g[2] += S["pb"][1] / 4 * pi / 1e6
+            g[3] = max(g[3], S["pb"][2])
         # los disparos se acumulan por hook GLOBAL, pero el costo se valora
         # con el modelo dominante de la sesión donde ocurrieron
         for hname, hk in S["hooks"].items():
@@ -850,6 +891,17 @@ def scan_findings(projects_dir, window_ago, days, end):
             continue
         findings.append({"kind": "acompact", "project": pj, "ts": ats,
                          "count": n, "tokens": pre, "cost": acost,
+                         "estimated": True})
+    # detector 12 — pegado masivo: el fix no regaña (a veces pegar ES lo
+    # correcto): si es un archivo del proyecto, mencionar la ruta sale
+    # más barato que pegarlo.
+    for pj in sorted(paste_g):
+        n, nch, pcost, pts = paste_g[pj]
+        tok = nch // 4
+        if n < PASTE_MIN_COUNT or tok < PASTE_MIN_TOKENS:
+            continue
+        findings.append({"kind": "paste", "project": pj, "ts": pts,
+                         "count": n, "tokens": tok, "cost": pcost,
                          "estimated": True})
     for server in sorted(mcp_servers_configured() - mcp_used):
         findings.append({"kind": "mcp_unused", "server": server,

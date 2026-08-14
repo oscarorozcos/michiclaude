@@ -187,12 +187,13 @@ existen:
 - Necesitan el histórico de cuota (obra nueva ya anotada): "veces que
   topaste el límite de 5 h", "cuándo se acabó el semanal", "mensajes por
   sesión de 5 h".
-- NO existe el detector: "pegaste archivos completos 9 veces" (pegar texto
-  masivo en el prompt). Detector NUEVO posible — input tokens de usuario
-  anormalmente altos por turno — pero hasta no diseñarlo y validarlo, esa
-  fila no puede aparecer. El reporte solo enseña "qué lo encareció" con
-  frases que salgan de detectores REALES (reread, inflate, mcp_unused,
-  claudemd, cachebreak, mech, subagents, hooks_noise, claudemdsize).
+- ~~NO existe el detector "pegaste archivos completos"~~ HECHO
+  (2026-08-14): detector `paste`, diseñado y validado contra logs reales
+  (umbral 5k chars por mensaje = ~17× la mediana tecleada; detalle en
+  analizador-fugas.md §Estado). El reporte enseña "qué lo encareció" con
+  frases de detectores REALES (reread, inflate, mcp_unused, claudemd,
+  cachebreak, mech, subagents, hooks_noise, claudemdsize, acompact,
+  paste).
 - La columna "qué lo encareció" con proyecto sano dice "nada que señalar" —
   eso sí, nunca inventar una causa cuando no hay hallazgo.
 
@@ -446,9 +447,10 @@ Pendiente real, por orden de valor:
    `acompact` en Hallazgos — ≥3 auto-compacts por proyecto en la
    ventana, costo PISO de preTokens ("~", la compactación no trae
    usage). Detalle y validación en analizador-fugas.md §Estado.
-5. **Detector de pegado masivo** (input de usuario anormalmente alto):
-   diseñarlo y validarlo antes de que el Reporte pueda mencionar esa
-   causa.
+5. ~~Detector de pegado masivo~~ HECHO (2026-08-14): kind `paste`,
+   calibrado y validado con logs reales — y de paso cazó y arregló que
+   los resúmenes de compactación contaban como turnos útiles (uturns,
+   caché v3). Detalle en analizador-fugas.md §Estado.
 6. **Formato (c) del reporte**: push ntfy "tu reporte está listo" sin
    números (privacidad). Los formatos (a) pestaña y parte del dato ya
    existen; el push no.

@@ -1499,7 +1499,8 @@ struct LocalAgg {
 /// Un caché v1 no los trae y devolvería 0 EN SILENCIO para archivos sin
 /// cambios — el bump fuerza una reconstrucción completa única, que es
 /// exactamente para lo que el caché es reconstruible por diseño.
-const SCAN_CACHE_VERSION: u32 = 2;
+// v3: user_turn_text excluye isCompactSummary (2026-08-14)
+const SCAN_CACHE_VERSION: u32 = 3;
 const SCAN_SKIP_MARGIN_DAYS: i64 = 2;
 
 /// Entrada ya parseada. Nombres cortos: se serializan miles.
@@ -1598,9 +1599,14 @@ fn is_user_turn(v: &serde_json::Value) -> bool {
 /// implementación, cero divergencia (réplica exacta en meter-export.py,
 /// invariante #1).
 fn user_turn_text(v: &serde_json::Value) -> Option<String> {
+    // isCompactSummary: los resúmenes de continuación de una compactación
+    // viajan con rol user pero los escribe la máquina — contaban como turno
+    // útil e inflaban el denominador del rendimiento (cazado 2026-08-14).
+    // Cambio de semántica => SCAN_CACHE_VERSION 3 en los dos lados.
     if v["type"].as_str() != Some("user")
         || v["isSidechain"].as_bool().unwrap_or(false)
         || v["isMeta"].as_bool().unwrap_or(false)
+        || v["isCompactSummary"].as_bool().unwrap_or(false)
         || v.get("toolUseResult").map_or(false, |x| !x.is_null())
     {
         return None;
@@ -2249,6 +2255,11 @@ const CLAUDEMD_MAX_TOKENS: usize = 400;
 // nunca (detector 10)
 const CLAUDEMD_LOAD_LIMIT: usize = 40_000;
 const ACOMPACT_MIN: u64 = 3; // auto-compacts por proyecto en la ventana
+// Pegado masivo: umbral por MENSAJE calibrado con logs reales (2026-08-14:
+// mediana tecleada 290 chars — 5k es ~17× eso). Réplica de meter-export.py.
+const PASTE_MIN_CHARS: usize = 5000;
+const PASTE_MIN_COUNT: u64 = 3;
+const PASTE_MIN_TOKENS: u64 = 10_000;
 const MAX_FINDINGS: usize = 12;
 // % de desperdicio estructural: la CLASE que entra al numerador — una línea
 // de factura por detector (input: claudemd/hooks_noise; cache_write:
@@ -2516,6 +2527,8 @@ struct SessFindings {
     /// auto-compacts de la ventana: (n, preTokens sumados, último epoch) —
     /// detector 11; solo trigger != manual
     ac: (u64, u64, i64),
+    /// pegotes de la ventana: (n, chars sumados, último epoch) — detector 12
+    pb: (u64, u64, i64),
 }
 
 /// Corre los detectores sobre las fuentes locales (este PC + WSL) en la
@@ -2668,6 +2681,33 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
                                     st.ac.0 += 1;
                                     st.ac.1 += cm["preTokens"].as_u64().unwrap_or(0);
                                     st.ac.2 = st.ac.2.max(cts.timestamp());
+                                }
+                            }
+                        }
+                    }
+                    // detector 12 — pegado masivo: un mensaje HUMANO
+                    // anormalmente grande casi siempre lleva un bloque
+                    // pegado. user_turn_text ya filtra lo maquinal (tool
+                    // results, resúmenes de compactación, <ide_…, comandos).
+                    // chars(), no bytes: réplica exacta del len() de Python.
+                    // Dedup por uuid: las reanudaciones copian la línea.
+                    if let Some(ptxt) = user_turn_text(&v) {
+                        if ptxt.chars().count() >= PASTE_MIN_CHARS {
+                            let uuid = v["uuid"].as_str().unwrap_or("");
+                            let pcts = v["timestamp"]
+                                .as_str()
+                                .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                                .map(|d| d.with_timezone(&Utc));
+                            if let Some(cx) = pcts {
+                                if cx >= window_ago
+                                    && cx <= end
+                                    && !uuid.is_empty()
+                                    && seen.insert(uuid.to_string())
+                                {
+                                    let st = sessions.entry(sid.clone()).or_default();
+                                    st.pb.0 += 1;
+                                    st.pb.1 += ptxt.chars().count() as u64;
+                                    st.pb.2 = st.pb.2.max(cx.timestamp());
                                 }
                             }
                         }
@@ -2871,6 +2911,8 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
     let mut hooks_g: HashMap<String, (u64, u64, f64, i64)> = HashMap::new();
     // proyecto -> (n, preTokens, costo, último epoch) — detector 11
     let mut acomp_g: HashMap<String, (u64, u64, f64, i64)> = HashMap::new();
+    // proyecto -> (n, chars, costo, último epoch) — detector 12
+    let mut paste_g: HashMap<String, (u64, u64, f64, i64)> = HashMap::new();
     // (proyecto, precio de input del modelo dominante) por sesión de la
     // ventana, para el costo piso del detector de CLAUDE.md
     let mut sess_pi: Vec<(String, f64)> = Vec::new();
@@ -2896,6 +2938,16 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
             g.1 += s.ac.1;
             g.2 += s.ac.1 as f64 * pi / 1_000_000.0;
             g.3 = g.3.max(s.ac.2);
+        }
+        // pegotes por PROYECTO. Costo PISO: una ingesta de lo pegado
+        // (chars/4, "~") al input del modelo dominante — la realidad es
+        // mayor porque viaja en cada turno posterior.
+        if s.pb.0 > 0 {
+            let g = paste_g.entry(sdisp(s)).or_insert((0, 0, 0.0, 0));
+            g.0 += s.pb.0;
+            g.1 += s.pb.1;
+            g.2 += s.pb.1 as f64 / 4.0 * pi / 1_000_000.0;
+            g.3 = g.3.max(s.pb.2);
         }
         // los disparos se acumulan por hook GLOBAL, pero el costo se valora
         // con el modelo dominante de la sesión donde ocurrieron
@@ -3046,6 +3098,28 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
             count: n,
             tokens: pre,
             cost: acost,
+            estimated: true,
+            ..Default::default()
+        });
+    }
+    // detector 12 — pegado masivo: el fix no regaña (a veces pegar ES lo
+    // correcto): si es un archivo del proyecto, mencionar la ruta sale
+    // más barato que pegarlo.
+    let mut ppjs: Vec<&String> = paste_g.keys().collect();
+    ppjs.sort();
+    for pj in ppjs {
+        let (n, nch, pcost, pts) = paste_g[pj];
+        let tok = nch / 4;
+        if n < PASTE_MIN_COUNT || tok < PASTE_MIN_TOKENS {
+            continue;
+        }
+        findings.push(Finding {
+            kind: "paste".into(),
+            project: pj.clone(),
+            ts: pts,
+            count: n,
+            tokens: tok,
+            cost: pcost,
             estimated: true,
             ..Default::default()
         });
