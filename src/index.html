@@ -128,10 +128,9 @@
   .panel{
     background:var(--mica);border-radius:var(--r-lg);
     box-shadow:0 32px 80px -24px rgba(0,0,0,.8);
-    /* el borde va como outline HACIA ADENTRO: un box-shadow inset lo
-       taparía el fondo del encabezado sticky, y un ring hacia afuera
-       necesitaba el padding de 1px que dejaba la rendija transparente */
-    outline:1px solid var(--stroke);outline-offset:-1px;
+    /* SIN borde perimetral (Oscar 2026-08-14): primero cayó la rendija
+       (padding 1px) y luego el anillo entero — la "línea translúcida de
+       la orilla" era el propio borde --stroke. El panel es solo fondo. */
     padding:0 15px 13px;   /* el relleno de arriba vive en .p-top (sticky) */
   }
   /* Encabezado + pestañas SIEMPRE a la vista: al hacer scroll dentro del panel
