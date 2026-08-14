@@ -1,8 +1,8 @@
 # ETAPA 0 — quitar el hook de prueba y dejar todo como estaba.
 #
-# Qué toca: SOLO <repo>\.claude\settings.local.json. Borra la clave
-# "hooks" (la que puso instalar-hook.ps1) y respeta el resto del archivo.
-# Deja tambien un respaldo por si acaso.
+# Qué toca: SOLO <repo>\.claude\settings.local.json. Quita UNICAMENTE la
+# entrada del experimento (la que apunta a hook-model-test.ps1); si
+# tenias otros hooks, se quedan. Deja respaldo antes de escribir.
 #
 # Uso:  powershell -ExecutionPolicy Bypass -File .\scripts\ruteo-etapa0\quitar-hook.ps1
 
@@ -18,16 +18,43 @@ Copy-Item $ruta $respaldo
 Write-Host "Respaldo: $respaldo" -ForegroundColor DarkGray
 
 $ajustes = Get-Content $ruta -Raw | ConvertFrom-Json
-if ($ajustes.PSObject.Properties.Name -notcontains 'hooks') {
+if (($ajustes.PSObject.Properties.Name -notcontains 'hooks') -or ($null -eq $ajustes.hooks)) {
     Write-Host 'No habia clave "hooks". Todo igual.'; exit 0
 }
+$hooks = $ajustes.hooks
 
-$ajustes.PSObject.Properties.Remove('hooks')
+$pre = @()
+if (($hooks.PSObject.Properties.Name -contains 'PreToolUse') -and ($null -ne $hooks.PreToolUse)) {
+    $pre = @($hooks.PreToolUse)
+}
+
+# quedarse con todo lo que NO sea el experimento
+$quedan = @()
+$quitadas = 0
+foreach ($e in $pre) {
+    $esNuestro = $false
+    foreach ($h in @($e.hooks)) {
+        if ($h.command -like '*hook-model-test.ps1*') { $esNuestro = $true }
+    }
+    if ($esNuestro) { $quitadas++ } else { $quedan += $e }
+}
+
+if ($quitadas -eq 0) { Write-Host 'El hook de la etapa 0 no estaba puesto. Todo igual.'; exit 0 }
+
+if ($quedan.Count -gt 0) {
+    $hooks | Add-Member -NotePropertyName 'PreToolUse' -NotePropertyValue @($quedan) -Force
+} else {
+    $hooks.PSObject.Properties.Remove('PreToolUse')
+}
+if ($hooks.PSObject.Properties.Name.Count -eq 0) {
+    $ajustes.PSObject.Properties.Remove('hooks')
+}
+
 $texto = $ajustes | ConvertTo-Json -Depth 32
 [System.IO.File]::WriteAllText($ruta, $texto, (New-Object System.Text.UTF8Encoding($false)))
 
 Write-Host ''
-Write-Host 'Hook quitado.' -ForegroundColor Green
+Write-Host "Quitada(s) $quitadas entrada(s) del experimento. El resto de tus hooks sigue ahi." -ForegroundColor Green
 Write-Host 'Reinicia Claude Code para que deje de cargarlo.' -ForegroundColor Yellow
 Write-Host ''
 Write-Host 'Si quieres borrar tambien el rastro:'
