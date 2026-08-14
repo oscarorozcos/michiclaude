@@ -445,8 +445,12 @@ Tres reglas duras que salieron de ahí, para el Hook B:
 - Regalo: el payload trae `cwd`, `session_id`, `permission_mode` y
   `effort:{level}`. El `cwd` resuelve el proyecto sin adivinar.
 
-Pendiente de esta etapa: la corrida en Windows nativo (el `.ps1` no se
-pudo ejecutar en el VPS). WSL y VPS son el mismo caso mecánico.
+CERRADA la misma tarde con la corrida en Windows nativo (v2.1.232,
+Sonnet 5): hook roto → `claude-sonnet-5`, hook arreglado →
+`claude-haiku-4-5-20251001`, 5 min de diferencia en la misma sesión.
+Los dos mundos cubiertos: Linux (VPS por SSH; WSL es el mismo caso —
+mismo script, mismo `~/.claude`) y Windows nativo. Los tres hechos de
+arriba se repitieron IDÉNTICOS en ambos.
 
 **Etapa 1 — La nota del refri (`router_state.json`).**
 El ciclo del panel (único llamador del endpoint) escribe el estado

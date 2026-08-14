@@ -4506,3 +4506,32 @@ Cuarto dato, este a favor: en Windows la herramienta TAMBIÉN llega como
 `Agent` (lo dijo el error: `PreToolUse:Agent hook error`). Dos builds
 distintos, mismo nombre no-documentado — el matcher `Task|Agent` se
 queda.
+
+### Cierre de la etapa 0 (2026-08-14, tarde) — validada también en Windows nativo
+
+El experimento corrió en el Windows de Oscar (Claude Code v2.1.232,
+sesión en Sonnet 5) y el A/B salió solo, gracias al fallo de
+codificación de la primera corrida:
+
+| Hora | Estado del hook | Modelo real del subagente |
+|---|---|---|
+| 12:34:23 | roto (`hook error`, no bloqueante) | `claude-sonnet-5` (hereda del padre) |
+| 12:39:54 | ya en ASCII, funcionando | `claude-haiku-4-5-20251001` |
+
+Misma máquina, misma sesión, mismo `general-purpose`, 5 min de
+diferencia: la única variable fue que el `.ps1` compilara. El error de
+codificación regaló el grupo de control.
+
+El log de Windows confirma los tres hechos del VPS, ahora en el otro
+mundo: la herramienta llega como `tool_name: "Agent"`; el input NO trae
+`model` (`antes=(no venia)`) y `updatedInput` lo AÑADE; y basta la
+forma mínima, sin `permissionDecision`.
+
+**ETAPA 0 CERRADA.** Los dos mundos donde corre Claude Code están
+cubiertos: Linux (VPS por SSH; WSL es el mismo caso mecánico — mismo
+`hook-model-test.py`, mismo `~/.claude`) y Windows nativo (PowerShell).
+La apuesta técnica del Hook B se sostiene y el plan B queda de respaldo.
+
+La compuerta NO se mueve: etapa 1 sigue esperando a que cierren las
+pruebas en vivo del auto-/clear y del análisis local. Comparten zona de
+código (coach/gatito) y arrancar ahora contaminaría esa medición.

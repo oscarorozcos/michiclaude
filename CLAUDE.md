@@ -538,8 +538,9 @@ presion-y-rendimiento §"Qué queda vivo".
       `Task|Agent` OBLIGATORIO (el nombre de la herramienta no es estable
       entre builds), el input NO trae `model` y `updatedInput` lo AÑADE
       (por eso se devuelve el objeto COMPLETO), y basta `updatedInput`
-      sin `permissionDecision`. Falta solo la corrida en Windows nativo
-      (el `.ps1`); WSL y VPS son el mismo caso mecánico.
+      sin `permissionDecision`. CERRADA en los DOS mundos (Linux/VPS y
+      Windows nativo; WSL = mismo caso). Los `.ps1` van en ASCII PURO:
+      PowerShell 5.1 lee sin BOM como ANSI y una tilde no compila.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO: rastrear otras herramientas, BD de historial,
   modo equipo.
