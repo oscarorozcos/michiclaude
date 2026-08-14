@@ -4584,3 +4584,28 @@ por encima del contenido: un inset lo tapaba el sticky) y padding 0;
 (b) el panel ya NO se cierra al perder el foco — era flyout y estorbaba
 al consultarlo trabajando; solo cierran el ✕ y el menú del tray. CLAUDE.md
 actualizado en ambos.
+
+## 2026-08-14 (3) — Detector 11: frecuencia de auto-compacts (kind acompact)
+
+La mitad que faltaba de la fila 11: la regla `acomp` del coach avisa del
+EVENTO; ahora Hallazgos mide el HÁBITO. Tarjeta por PROYECTO con ≥3
+auto-compacts en la ventana (por sesión sería confeti), costo PISO
+obligatorio: la compactación NO trae usage, lo único medible es
+`preTokens` (mismo campo que la regla acomp) cobrado UNA vez al input del
+modelo dominante, con "~". Solo `trigger != manual` — las del relevo
+entran como manual y quedan fuera solas. Dedup por uuid (reanudaciones).
+NO entra al numerador del % de desperdicio. Tres piezas en sincronía;
+marcas de arreglo lo incluyen.
+
+Validación con moraleja: la regresión congelada (7d/30d) dio el resto de
+tarjetas y el waste byte-idénticos, pero NO salió la tarjeta acompact en
+30d pese a haber 3 autos reales en los logs — la instrumentación línea a
+línea enseñó que los 3 se CUENTAN bien y caen 2+1 en dos proyectos
+distintos (las sesiones de julio llevan el disp viejo claude-code-meter):
+bajo umbral, silencio honesto — el detector funcionando exactamente como
+se diseñó. El cuadre exacto quedó en un fixture sintético: 3 autos =
+175k pre = $0.175 a precio haiku, con el uuid duplicado deduplicado, la
+manual y la fuera-de-ventana excluidas, y callando con solo 2. De paso se
+explicó el `cost_today` "inestable" de la regresión: es relativo a AHORA
+(no al --end) y le pasa igual al exportador viejo — ruido del reloj, no
+de los cambios.

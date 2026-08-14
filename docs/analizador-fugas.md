@@ -573,6 +573,30 @@ cuota — pero eso no sale de los logs.
       cerrar sesión local). Todo el aparato del globo (fndNudge,
       fndNudgeUsd, fndNudged, fndNudgeSev, el campo de Preferencias, las
       claves fnd_nudge_* y el kind "findings" de notif.html) se retiró.
+- [x] Detector 11: frecuencia de auto-compacts (2026-08-14, kind
+      `acompact`). La regla `acomp` del coach avisa del EVENTO; esta
+      tarjeta mide el HÁBITO: cuántas veces Claude Code se auto-compactó
+      (~94% de la ventana) en la ventana y su piso. Solo `trigger !=
+      "manual"` en `compactMetadata` (una manual la hiciste tú; las
+      INYECTADAS por el relevo entran como manual y quedan fuera solas);
+      dedup por uuid (las reanudaciones copian la línea); agregado por
+      PROYECTO ("7 veces esta semana en X" — por sesión sería confeti);
+      umbral ACOMPACT_MIN=3. COSTO PISO obligatorio: la compactación NO
+      trae usage (no se puede facturar de verdad) — lo que hay es
+      `preTokens` (contexto en el momento justo de compactar, el mismo
+      campo que lee la regla acomp en los dos lados), y la tarjeta cobra
+      UNA ingesta de eso al input del modelo dominante de la sesión, con
+      "~" (estimated). NO entra al numerador del % de desperdicio (no es
+      clase estructural y su costo no es facturable). El fix de la
+      tarjeta: entrar tú antes — /compact al 80%, donde ya avisa el
+      gatito; la auto-compactación NUNCA se sugiere apagar (es la red).
+      VALIDADO: fixture sintético con cuadre exacto (3 autos = 175k pre
+      = $0.175 a haiku; el uuid duplicado deduplicado, la manual y la
+      fuera-de-ventana excluidas, con 2 autos calla) y contra los logs
+      reales del VPS: 3 autos en 30d repartidos 2+1 entre dos proyectos
+      → bajo umbral, calla — silencio honesto verificado con
+      instrumentación línea a línea. Réplica Rust/Python en sincronía
+      (invariante #1); marcas de arreglo lo incluyen (FND_MARK_KINDS).
 - [ ] Fix personalizado por entrypoint (VS Code vs. terminal, respaldo
       genérico — mismo patrón que prettyModel/price_for).
 - [ ] El antes/después (necesita semanas de historial).

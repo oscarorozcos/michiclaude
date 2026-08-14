@@ -273,6 +273,9 @@ MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
 lecturas, ~2k tok — MIDE chars devueltos), inflate (+50k, 10+ turnos),
 cachebreak (≥300k reescritos; fuera isSidechain y compactaciones ±120 s),
 mech (≥5; git/pytest/cargo/npm), subagents (≥50k de sidechain),
+acompact (≥3 auto-compacts POR PROYECTO; trigger≠manual, dedup uuid;
+costo PISO preTokens×input "~" — sin usage no se factura; NO entra al
+waste),
 hooks_noise (≥15 disparos, ≥10k tok; attachments hook_success),
 mcp_unused (resta de conjuntos), skills_unused, claudemd (solo 7d+;
 identificadores por línea contra texto crudo, rojo solo si NINGUNA

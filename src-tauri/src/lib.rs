@@ -2248,6 +2248,7 @@ const CLAUDEMD_MAX_TOKENS: usize = 400;
 // chars que Claude Code CARGA de un CLAUDE.md; lo que sobre no se lee
 // nunca (detector 10)
 const CLAUDEMD_LOAD_LIMIT: usize = 40_000;
+const ACOMPACT_MIN: u64 = 3; // auto-compacts por proyecto en la ventana
 const MAX_FINDINGS: usize = 12;
 // % de desperdicio estructural: la CLASE que entra al numerador — una línea
 // de factura por detector (input: claudemd/hooks_noise; cache_write:
@@ -2512,6 +2513,9 @@ struct SessFindings {
     /// hookName -> (disparos, chars de `content`) para el detector de
     /// hooks ruidosos
     hooks: HashMap<String, (u64, u64)>,
+    /// auto-compacts de la ventana: (n, preTokens sumados, último epoch) —
+    /// detector 11; solo trigger != manual
+    ac: (u64, u64, i64),
 }
 
 /// Corre los detectores sobre las fuentes locales (este PC + WSL) en la
@@ -2641,6 +2645,31 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
                                 .or_default()
                                 .compacts
                                 .push(cts.timestamp());
+                            // detector 11 — frecuencia de auto-compacts: solo
+                            // las AUTOMÁTICAS (una manual la hiciste tú; las
+                            // del relevo entran como manual y quedan fuera
+                            // solas). Dedup por uuid: las reanudaciones
+                            // copian la línea al archivo nuevo. preTokens =
+                            // contexto al compactar — la compactación NO trae
+                            // usage, así que es PISO ("~").
+                            if v["type"].as_str() == Some("system")
+                                && v["subtype"].as_str() == Some("compact_boundary")
+                            {
+                                let cm = &v["compactMetadata"];
+                                let cx = cts.with_timezone(&Utc);
+                                let uuid = v["uuid"].as_str().unwrap_or("");
+                                if cm["trigger"].as_str() != Some("manual")
+                                    && cx >= window_ago
+                                    && cx <= end
+                                    && !uuid.is_empty()
+                                    && seen.insert(uuid.to_string())
+                                {
+                                    let st = sessions.entry(sid.clone()).or_default();
+                                    st.ac.0 += 1;
+                                    st.ac.1 += cm["preTokens"].as_u64().unwrap_or(0);
+                                    st.ac.2 = st.ac.2.max(cts.timestamp());
+                                }
+                            }
                         }
                     }
                     // /comandos del usuario: quedan como <command-name> en el
@@ -2840,6 +2869,8 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
     let mut findings: Vec<Finding> = Vec::new();
     // hookName -> (disparos, chars, costo, última actividad) sumado entre sesiones
     let mut hooks_g: HashMap<String, (u64, u64, f64, i64)> = HashMap::new();
+    // proyecto -> (n, preTokens, costo, último epoch) — detector 11
+    let mut acomp_g: HashMap<String, (u64, u64, f64, i64)> = HashMap::new();
     // (proyecto, precio de input del modelo dominante) por sesión de la
     // ventana, para el costo piso del detector de CLAUDE.md
     let mut sess_pi: Vec<(String, f64)> = Vec::new();
@@ -2855,6 +2886,17 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
             .unwrap_or_default();
         let pi = price_for(&top_model).0;
         sess_pi.push((s.proj.clone(), pi));
+        // auto-compacts por PROYECTO ("7 veces esta semana en X" es el
+        // hábito; por sesión sería confeti). Costo PISO: releer el contexto
+        // que había (preTokens) una vez a precio de input del modelo
+        // dominante — el costo real no es medible (sin usage).
+        if s.ac.0 > 0 {
+            let g = acomp_g.entry(sdisp(s)).or_insert((0, 0, 0.0, 0));
+            g.0 += s.ac.0;
+            g.1 += s.ac.1;
+            g.2 += s.ac.1 as f64 * pi / 1_000_000.0;
+            g.3 = g.3.max(s.ac.2);
+        }
         // los disparos se acumulan por hook GLOBAL, pero el costo se valora
         // con el modelo dominante de la sesión donde ocurrieron
         for (hname, (nf, nch)) in &s.hooks {
@@ -2983,6 +3025,27 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
             count: nf,
             tokens: tok,
             cost: hcost,
+            estimated: true,
+            ..Default::default()
+        });
+    }
+    // detector 11 — auto-compacts frecuentes: el salvavidas del ~94% no se
+    // toca ni se sugiere apagar; la tarjeta señala el HÁBITO (llegar ahí
+    // seguido) y su piso. El fix es entrar antes: /compact al 80%.
+    let mut apjs: Vec<&String> = acomp_g.keys().collect();
+    apjs.sort();
+    for pj in apjs {
+        let (n, pre, acost, ats) = acomp_g[pj];
+        if n < ACOMPACT_MIN {
+            continue;
+        }
+        findings.push(Finding {
+            kind: "acompact".into(),
+            project: pj.clone(),
+            ts: ats,
+            count: n,
+            tokens: pre,
+            cost: acost,
             estimated: true,
             ..Default::default()
         });

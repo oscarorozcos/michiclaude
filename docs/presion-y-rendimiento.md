@@ -42,7 +42,7 @@ Leyenda: ✅ ya lo hacemos · 🟡 parcial · ❌ no lo tenemos
 | 8 | Honestidad: "estimado", nunca afirmar ahorros | ✅ | Invariante #8, el "~" en costos, `spend_only_cc` | Ya es cultura del proyecto |
 | 9 | Aviso "compacta ahora que aún sale bueno" | 🟡 | Coach: ctx ≥120k → ficha `compact` (multi-fuente) | Falta lo VISUAL: manómetro permanente, no solo la ficha |
 | 10 | Gauge de presión de contexto en la pastilla | 🟡 | El dato ya existe (el coach calcula ctx de la sesión activa); la pastilla solo muestra cuota | Muy viable y barato: viajaría en `quota:update` como ya viaja el campo `coach` |
-| 11 | Detección de auto-compacts frecuentes | 🟡 | `cachebreak` ya identifica compactaciones (para excluirlas); no contamos su frecuencia | Viable y barato: la señal ya está parseada |
+| 11 | Detección de auto-compacts frecuentes | ✅ | Regla `acomp` (evento, 2026-08-08) + detector `acompact` en Hallazgos (hábito, 2026-08-14: ≥3 por proyecto, piso preTokens con "~") | Hecho completo |
 | 12 | Sesiones sin `/clear` | 🟡 | `inflate` detecta el síntoma, no el hábito | Viable; medio pelo — se solapa con lo ya avisado |
 | 13 | Turnos antes de topar el límite | 🟡 | Proyectamos hacia adelante (burn rate); no guardamos histórico "turnos por ventana de 5 h" | Viable; es la métrica "que la gente siente" |
 | 14 | Generador de handoff (resumen de traspaso) | 🟡 | El recibo del coach ya junta min/comandos/archivos | Parcial: botón "copiar resumen de traspaso" en plantilla sí; "decisiones y enfoques fallidos" pediría IA que no tenemos ni queremos embeber |
@@ -442,9 +442,10 @@ Pendiente real, por orden de valor:
    plantilla desde el recibo). Parcial: la tarjeta de intención del
    relevo ya cubre el caso "sesión al límite"; falta el traspaso a
    voluntad.
-4. **Fila 11, la mitad que falta**: la ficha `acomp` avisa del EVENTO;
-   no existe el detector de FRECUENCIA en Hallazgos ("N auto-compacts
-   esta semana, ~X tokens en resúmenes") con su costo agregado.
+4. ~~Fila 11, la mitad que falta~~ HECHA (2026-08-14): detector
+   `acompact` en Hallazgos — ≥3 auto-compacts por proyecto en la
+   ventana, costo PISO de preTokens ("~", la compactación no trae
+   usage). Detalle y validación en analizador-fugas.md §Estado.
 5. **Detector de pegado masivo** (input de usuario anormalmente alto):
    diseñarlo y validarlo antes de que el Reporte pueda mencionar esa
    causa.

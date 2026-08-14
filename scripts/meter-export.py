@@ -341,6 +341,7 @@ REREAD_MIN_TOKENS = 2000  # por debajo es ruido: una tarjeta de $0.00 devalúa
 INFLATE_MIN_GROWTH = 50_000   # tokens de contexto acumulados
 INFLATE_MIN_TURNS = 10
 MECH_MIN = 5            # peticiones mecánicas en la ventana para avisar
+ACOMPACT_MIN = 3        # auto-compacts por proyecto en la ventana para avisar
 CACHEBREAK_MIN_PREV = 20_000    # prefijo cacheado mínimo para evaluar un turno
 CACHEBREAK_MIN_TOKENS = 300_000  # reescritos por sesión para avisar (~$2-4)
 SUB_MIN_TOKENS = 50_000  # tokens de trabajo de subagentes para avisar
@@ -600,7 +601,8 @@ def scan_findings(projects_dir, window_ago, days, end):
                         # codifica la ruta entera con guiones y al recortarla
                         # se parten los nombres compuestos.
                         "models": {}, "proj": proj.name, "disp": "", "ts": 0,
-                        "cb": [], "compacts": [], "hooks": {}})
+                        "cb": [], "compacts": [], "hooks": {},
+                        "ac": [0, 0, 0]})  # auto-compacts: [n, preTokens, ts]
                     # una compactación reescribe el contexto A PROPÓSITO:
                     # se marca para no contarla como ruptura de caché
                     if not S["disp"]:
@@ -613,6 +615,23 @@ def scan_findings(projects_dir, window_ago, days, end):
                         cts = parse_ts(v.get("timestamp"))
                         if cts:
                             S["compacts"].append(cts)
+                        # detector 11 — frecuencia de auto-compacts: solo las
+                        # AUTOMÁTICAS (una manual la hiciste tú; las del relevo
+                        # entran como manual y quedan fuera solas). Dedup por
+                        # uuid: las reanudaciones copian la línea al archivo
+                        # nuevo. preTokens = contexto al compactar — la
+                        # compactación NO trae usage, así que es PISO ("~").
+                        if (v.get("type") == "system"
+                                and v.get("subtype") == "compact_boundary"):
+                            cm = v.get("compactMetadata") or {}
+                            u = v.get("uuid") or ""
+                            if (cm.get("trigger") != "manual" and cts
+                                    and window_ago <= cts <= end
+                                    and u and u not in seen):
+                                seen.add(u)
+                                S["ac"][0] += 1
+                                S["ac"][1] += cm.get("preTokens") or 0
+                                S["ac"][2] = max(S["ac"][2], int(cts.timestamp()))
                     # /comandos del usuario: quedan como <command-name> en el
                     # mensaje (estas líneas no traen usage, va antes del filtro)
                     if "<command-name>" in line:
@@ -727,11 +746,22 @@ def scan_findings(projects_dir, window_ago, days, end):
 
     findings = []
     hooks_g = {}   # hookName -> [disparos, chars, costo] sumado entre sesiones
+    acomp_g = {}   # proyecto -> [n, preTokens, costo, ts] entre sesiones
     for sid, S in sessions.items():
         if not S["models"]:
             continue
         top_model = max(S["models"], key=S["models"].get)
         pi = price_for(top_model)[0]
+        # auto-compacts por PROYECTO ("7 veces esta semana en X" es el
+        # hábito; por sesión sería confeti). Costo PISO: releer el contexto
+        # que había (preTokens) una vez a precio de input del modelo
+        # dominante — el costo real no es medible (sin usage).
+        if S["ac"][0]:
+            g = acomp_g.setdefault(S["disp"] or S["proj"], [0, 0, 0.0, 0])
+            g[0] += S["ac"][0]
+            g[1] += S["ac"][1]
+            g[2] += S["ac"][1] * pi / 1e6
+            g[3] = max(g[3], S["ac"][2])
         # los disparos se acumulan por hook GLOBAL, pero el costo se valora
         # con el modelo dominante de la sesión donde ocurrieron
         for hname, hk in S["hooks"].items():
@@ -810,6 +840,16 @@ def scan_findings(projects_dir, window_ago, days, end):
             continue
         findings.append({"kind": "hooks_noise", "file": hname, "ts": hts,
                          "count": nf, "tokens": tok, "cost": hcost,
+                         "estimated": True})
+    # detector 11 — auto-compacts frecuentes: el salvavidas del ~94% no se
+    # toca ni se sugiere apagar; la tarjeta señala el HÁBITO (llegar ahí
+    # seguido) y su piso. El fix es entrar antes: /compact al 80%.
+    for pj in sorted(acomp_g):
+        n, pre, acost, ats = acomp_g[pj]
+        if n < ACOMPACT_MIN:
+            continue
+        findings.append({"kind": "acompact", "project": pj, "ts": ats,
+                         "count": n, "tokens": pre, "cost": acost,
                          "estimated": True})
     for server in sorted(mcp_servers_configured() - mcp_used):
         findings.append({"kind": "mcp_unused", "server": server,
