@@ -49,7 +49,7 @@ Leyenda: ✅ ya lo hacemos · 🟡 parcial · ❌ no lo tenemos
 | 15 | Auditoría CLAUDE.md línea a línea | 🟡 | `claudemd` señala identificadores jamás mencionados | La parte semántica (líneas redundantes) pide modelo → posponer |
 | 16 | **Tokens por turno útil** | ❌ | — | **Sí, y barato**: los JSONL ya distinguen turnos de usuario; es una división más en la agregación existente |
 | 17 | **Antes/después anclado a arreglos** | ❌ | — | **Sí, y es la joya del doc**: los hallazgos ya tienen ciclo de vida — detectar que uno desapareció, marcar la fecha, comparar rendimiento |
-| 18 | % de desperdicio estructural | ❌ | — | Viable DESPUÉS de definir la fórmula (el propio doc lo deja pendiente) |
+| 18 | % de desperdicio estructural | ❌ | — | FÓRMULA DEFINIDA el 2026-08-14 (§ propia al final); falta la obra |
 | 19 | Score de salud único (42/100) | ❌ | — | Dudoso: un número único esconde más de lo que enseña; contradice "nunca inventar cifras". Ya ordenamos por costo real |
 | 20 | Sesión contaminada (corrección tras corrección) | ❌ | — | El doc mismo la marca como la de mayor riesgo técnico (falsos positivos). ESPERAR — un falso "tu sesión está envenenada" quema la confianza |
 | 21 | Modelo local opcional | ❌ | — | De acuerdo con el doc en NO hacerlo ahora; pelea con invariante #4 (app ligera) |
@@ -248,7 +248,167 @@ por proyecto y "qué lo encareció". Reglas vigentes en CLAUDE.md.
 Cerrada por Oscar el 2026-08-07: "queda como pendiente por si al usarlo
 falta algo". La fase 3 (export HTML del mockup A) sigue sin arrancar.
 
-## Qué queda vivo de este doc (actualizado 2026-08-09)
+## La fórmula del % de desperdicio estructural (DISEÑO, 2026-08-14)
+
+> Fila 18 de la tabla y punto 2 de los pendientes. Esto es el diseño previo
+> obligatorio: sin él la métrica no se promete. **Todavía sin implementar.**
+
+### La pregunta que responde (y la que NO)
+
+> **De cada $100 que gastaste, ¿cuántos se fueron en cómo está MONTADO el
+> entorno, y no en el trabajo?**
+
+No responde "¿cuánto desperdiciaste?" (eso incluiría hábitos, y juzgar hábitos
+es "báñate más rápido" — `analizador-fugas.md` §1). Responde por los sellos
+rotos: lo que se paga por estar ahí, se haya trabajado o no.
+
+### Por qué "sumar todos los hallazgos ÷ total" está MAL
+
+Tres razones, y las tres invalidan el atajo:
+
+1. **Los detectores se pisan.** `inflate` mide lo que cuesta RELEER el
+   contexto (cache_read de la sesión entera): dentro de ese contexto ya viajan
+   las líneas del CLAUDE.md, la salida de los hooks y los archivos releídos.
+   `mech` cobra el TURNO COMPLETO (input+output+cache_write+cache_read) y no
+   excluye subagentes, así que se solapa con `subagents`. Sumarlos cuenta los
+   mismos tokens dos y tres veces: es exactamente el error del "210 líneas ×
+   40 turnos" que `analizador-fugas.md` §4 marca como el que quema la
+   credibilidad de golpe.
+2. **Los más estructurales valen $0 hoy.** `mcp_unused`, `skills_unused` y
+   `claudemdsize` se emiten con `cost: 0.0` — no están medidos, son resta de
+   conjuntos. El hallazgo insignia del pitch (MCPs zombis) aportaría CERO al
+   porcentaje.
+3. **El tope de 12 los decapita.** `MAX_FINDINGS = 12` ordenado por costo
+   descendente: los estructurales son los baratos (pisos de chars/4), o sea
+   justo los que el tope corta. El numerador tiene que calcularse **antes**
+   del recorte.
+
+### La regla que la hace defendible: una línea de factura, un detector
+
+Cada sumando declara **qué línea de la factura toca**. Dentro de la misma
+línea y la misma sesión no puede haber dos detectores:
+
+| Línea | Quién la mide |
+|---|---|
+| `input` | `claudemd`, `hooks_noise` (y `mcp_unused` el día que se mida) |
+| `cache_write` | `cachebreak` |
+| `cache_read` | `inflate` — **excluido del numerador** |
+| turno entero | `mech`, `subagents` — **excluidos** (mezclan las cuatro) |
+
+Con eso el numerador queda **disjunto por construcción**, sin restar nada a
+mano.
+
+### Clasificación de los 10 detectores
+
+| kind | Clase | Costo hoy | ¿Numerador? |
+|---|---|---|---|
+| `claudemd` | estructural (carga fija por sesión) | piso, chars/4 × sesiones × input | **SÍ** |
+| `hooks_noise` | estructural (carga fija por disparo) | piso, chars/4 × input | **SÍ** |
+| `cachebreak` | arrastre (contexto reescrito sin trabajo nuevo) | MEDIDO, cache_write | **SÍ** |
+| `mcp_unused` | estructural | 0 — sin medir | no, hasta que se mida |
+| `skills_unused` | estructural | 0 — sin medir | no, hasta que se mida |
+| `claudemdsize` | estructural informativo | 0 por diseño | **NUNCA** (fuga de instrucciones, no de dinero) |
+| `inflate` | conductual | MEDIDO, cache_read | no (y se pisa con todo) |
+| `reread` | conductual | piso, input | no (vive dentro de `inflate`) |
+| `mech` | conductual | MEDIDO, turno entero | no |
+| `subagents` | visibilidad | MEDIDO, turno entero | no (no es fuga: es gasto legítimo hecho visible) |
+
+Propiedad de diseño: el numerador es una suma sobre una **CLASE**, no sobre una
+lista fija. El día que `mcp_unused` tenga costo medido entra solo, sin tocar la
+fórmula.
+
+### La fórmula
+
+```
+DE%  =  100 ×  Σ(orígenes) Σ(hallazgos de clase estructural) costo
+               ─────────────────────────────────────────────────
+               Σ(orígenes) costo total de la MISMA ventana
+```
+
+Reglas de cálculo, todas obligatorias:
+
+- **Mismo escaneo.** Numerador y denominador salen de la misma corrida, misma
+  ventana (`days`+`end`) y mismos orígenes. Cruzar un `get_findings` de 7 días
+  con un `cost_week` de 30 es fabricar un número.
+- **Antes del tope de 12.**
+- **Fusión multi-origen = suma de numeradores ÷ suma de denominadores.**
+  JAMÁS el promedio de los porcentajes de cada máquina (media de razones ≠
+  razón de sumas: el portátil que se usó una tarde pesaría igual que el VPS).
+  Si un SSH falla, ese origen desaparece de LOS DOS lados — nunca de uno solo.
+- **Respeta Ignorar** (`fndIgnore`), y se aplica a los DOS periodos que se
+  comparan: como todo se recalcula desde los logs, ambos usan el conjunto de
+  ignorados de HOY y la comparación sigue siendo coherente.
+
+### Es un PISO, y se dice "al menos"
+
+Esto resuelve de un golpe la ansiedad del doble conteo. El número **subestima
+a propósito**:
+
+- dos detectores estructurales valen 0 (`mcp_unused`, `skills_unused`);
+- `claudemd` y `hooks_noise` son pisos declarados (una ingesta, aunque se
+  relea en cada turno posterior);
+- cada detector tiene umbral (5 líneas, 15 disparos, 300k reescritos): lo que
+  no llega al umbral no se cuenta;
+- todo lo conductual queda fuera.
+
+El único riesgo de sobreconteo es el prefijo estructural que se REESCRIBE
+cuando el caché se rompe (queda dentro de `cachebreak` y también en el piso de
+`claudemd`), acotado por `tok_est × rupturas × 1.25 × input` — órdenes de
+magnitud menor que lo que se está dejando fuera.
+
+Por eso el copy es **"al menos el X%"**, nunca "el X%". Es la invariante #8
+aplicada: un piso solo puede quedarse corto, que es la dirección creíble.
+
+### Trazabilidad: cada punto del porcentaje tiene tarjeta
+
+El numerador usa **los mismos umbrales que las tarjetas**, no las mediciones
+crudas. Es menos preciso y es a propósito: cualquier punto del porcentaje se
+puede abrir y ver de dónde salió. Regla dura: **si un hallazgo no tiene
+tarjeta, no entra al número.**
+
+### Compuertas (cuándo NO se pinta)
+
+- Ventana **< 7 días**: `claudemd` y `skills_unused` ni corren; el porcentaje
+  saldría deformado. Chip de 7/30 días únicamente.
+- Denominador **< $1** o **< 10 sesiones** en la ventana: "juntando datos"
+  (mismo patrón que el mínimo de 20 fotos de cuota del Reporte).
+- Denominador 0 → no existe el número. Nunca dividir (invariante #8).
+- Con simulador: nunca.
+- Algún costo del numerador con `estimated: true` → el número lleva "~".
+
+### Qué obra pide (TRES piezas en sincronía, invariante #1)
+
+1. **`meter-export.py`** — `scan_findings()` devuelve además
+   `waste = {struct_cost, struct_tokens, total_cost, sessions, days, end,
+   estimated, by_kind{}, items[]}` calculado ANTES de `findings[:MAX_FINDINGS]`.
+   `items[]` = clave + costo de los estructurales sin recortar (para que el
+   panel pueda descontar los ignorados), tope 100.
+2. **Rust** — `struct Waste` con `#[serde(default)]` en todos sus campos
+   (exportador viejo = ceros = "sin datos", nunca 0%), réplica exacta en
+   `scan_local_findings`, y `get_findings` fusionando sumas por separado. Ojo:
+   cambia el tipo de retorno de `get_findings` → grep de TODOS sus usos antes
+   de subir (en el VPS no hay compilador).
+3. **Panel** — pestaña Reporte: el número, su desglose por kind y la
+   comparación con el periodo anterior.
+
+### Lo que este número NO es
+
+- No es un score de salud (fila 19 sigue descartada): es una razón entre dos
+  cantidades medidas, y se puede auditar tarjeta por tarjeta.
+- No promete ahorro. "Al menos el 14% se fue en el montaje" es historia;
+  "vas a ahorrar 14%" es un pronóstico y está prohibido.
+- No sustituye a tokens/turno útil: esa mide rendimiento (baja al mejorar
+  cómo trabajas), esta mide montaje (baja al arreglar la instalación). Son las
+  dos caras y por eso el Reporte enseña ambas.
+
+### Por qué esta sí se puede comparar entre periodos
+
+Es una razón, no un total: sube y baja con la calidad del montaje, casi no con
+el volumen de trabajo. Es la métrica natural del antes/después por arreglo
+("quitaste esas 47 líneas el 12 de agosto: ibas en 14%, vas en 6%") y el
+número que pide la tarjeta compartible de APUESTA #2.
+
+## Qué queda vivo de este doc (actualizado 2026-08-14)
 
 Hecho desde la tabla del 2026-08-05: filas 9-10 (manómetro `press` +
 gauge en widget, 2026-08-07), fila 11 en parte (regla `acomp` del coach
@@ -259,9 +419,9 @@ Pendiente real, por orden de valor:
 
 1. **Fase 3 — export HTML del mockup A** (reporte imprimible y
    compartible; sinergia con la tarjeta del gatito).
-2. **Fila 18 — fórmula del % de desperdicio estructural**: es DISEÑO,
-   no código, y es requisito previo de esa métrica. Sin fórmula no se
-   promete.
+2. **Fila 18 — % de desperdicio estructural**: la FÓRMULA ya está
+   definida (§"La fórmula del % de desperdicio estructural", 2026-08-14).
+   Falta la obra: las tres piezas en sincronía que lista esa sección.
 3. **Fila 14 — botón "copiar resumen de traspaso"** (handoff por
    plantilla desde el recibo). Parcial: la tarjeta de intención del
    relevo ya cubre el caso "sesión al límite"; falta el traspaso a
