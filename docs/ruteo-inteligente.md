@@ -330,7 +330,8 @@ CLAUDE.md y con lo que MichiClaude ya tiene.
   (`hookSpecificOutput.updatedInput`, desde Claude Code v2.0.10). CAVEAT
   operativo: hay que devolver el objeto de input COMPLETO, no solo el
   campo `model` — reescribir campos sueltos da problemas. El Hook B es
-  viable tal como está diseñado.
+  viable tal como está diseñado. **COMPROBADO EN VIVO el 2026-08-14**
+  (etapa 0, ver §11): deja de ser lectura de documentación.
 - **UserPromptSubmit SÍ bloquea** (exit 2 / `decision` con `reason`,
   cero tokens gastados) **y SÍ inyecta** `additionalContext`. Timeout
   por defecto 30 s, como dice el §2.1.
@@ -426,12 +427,26 @@ Compuerta de arranque: cerrar las pruebas vivas (auto-/clear y análisis
 local v1). Cada etapa se termina, se mide y se valida antes de la
 siguiente; las etapas 1-3 son el MVP publicable.
 
-**Etapa 0 — Experimento de 10 minutos (Windows de Oscar).**
-Hook `PreToolUse` de juguete que reescriba el `model` de un subagente
-vía `updatedInput` (objeto COMPLETO) y verificación en el JSONL de que
-el subagente corrió con el modelo impuesto. Si falla, el plan B es la
-config estática soportada (frontmatter `model:` /
-`CLAUDE_CODE_SUBAGENT_MODEL`) sugerida desde el gatito.
+**Etapa 0 — HECHA Y VALIDADA (2026-08-14, VPS por SSH).** Autopsia
+completa en la bitácora; el experimento vive en `scripts/ruteo-etapa0/`.
+A/B con Claude Code 2.1.231, padre en Sonnet, subagente
+`general-purpose`: con el hook, el `agent-*.jsonl` dice
+`claude-haiku-4-5-20251001`; sin él (control, 27 s después),
+`claude-sonnet-5`. El plan B (frontmatter `model:` /
+`CLAUDE_CODE_SUBAGENT_MODEL`) NO hizo falta y queda de respaldo.
+Tres reglas duras que salieron de ahí, para el Hook B:
+
+- El matcher DEBE ser `Task|Agent`: el nombre de la herramienta no es
+  estable entre builds (aquí llegó como `Agent`). Si no dispara,
+  sospechar del nombre antes que del script.
+- El input NO trae `model`; `updatedInput` lo AÑADE. Y traía
+  `run_in_background`: por eso se devuelve el objeto COMPLETO.
+- `updatedInput` a secas basta — sin `permissionDecision: allow`.
+- Regalo: el payload trae `cwd`, `session_id`, `permission_mode` y
+  `effort:{level}`. El `cwd` resuelve el proyecto sin adivinar.
+
+Pendiente de esta etapa: la corrida en Windows nativo (el `.ps1` no se
+pudo ejecutar en el VPS). WSL y VPS son el mismo caso mecánico.
 
 **Etapa 1 — La nota del refri (`router_state.json`).**
 El ciclo del panel (único llamador del endpoint) escribe el estado

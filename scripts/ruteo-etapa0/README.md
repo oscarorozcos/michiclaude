@@ -143,6 +143,29 @@ Ver §10.1 del diseño.
 
 No queda nada más: el hook no escribe en ningún otro sitio.
 
+## Resultado en el VPS (2026-08-14) — ÉXITO
+
+Corrido por SSH en el VPS (Claude Code 2.1.231), sesión padre en Sonnet,
+subagente `general-purpose`, A/B con 27 s de diferencia:
+
+| Corrida | Modelo real en el `agent-*.jsonl` |
+|---|---|
+| Con marca (el hook actúa) | **`claude-haiku-4-5-20251001`** |
+| Control sin marca (el hook calla) | `claude-sonnet-5` (hereda del padre) |
+
+Tres cosas que el log enseñó, y que valen para el Hook B de verdad:
+
+1. **El nombre de la herramienta no es estable**: aquí llegó como
+   `Agent`, no `Task`. El matcher doble `Task|Agent` es obligatorio.
+2. **El input NO trae `model`** (`antes=(no venía)`): `updatedInput`
+   también AÑADE campos, no solo los reescribe. Y traía
+   `run_in_background` — por eso se devuelve el objeto completo.
+3. **La variante A basta**: sin `permissionDecision: allow`. El plan B
+   no hizo falta.
+
+Falta la corrida en **Windows nativo** (el `.ps1`). WSL es el mismo caso
+que el VPS: Linux, mismo `hook-model-test.py`, misma mecánica.
+
 ## Estado de verificación de estos scripts
 
 - `hook-model-test.py`: probado en el VPS con las 4 entradas que

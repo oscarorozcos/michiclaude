@@ -4419,3 +4419,60 @@ pendientes vivos quedan en CLAUDE.md §Estado: primer via:emb en sesión
 real, muestra natural para los umbrales, validación pasiva de alarmas/
 ntfy/hallazgos, y el ruteo inteligente sigue BLOQUEADO hasta confirmar
 estas pruebas del día a día.
+
+---
+
+## 2026-08-14 — Etapa 0 del ruteo: el hook SÍ impone el modelo del subagente (A/B en el VPS)
+
+Primera pieza del ruteo inteligente, y la única que el plan permitía
+tocar con las pruebas del día a día abiertas: es un experimento aparte,
+no comparte código con el coach ni con el gatito.
+
+**La pregunta:** ¿un `PreToolUse` puede reescribir el modelo con el que
+NACE un subagente, devolviendo `hookSpecificOutput.updatedInput`? De
+ella cuelga el Hook B entero (el ahorrador silencioso).
+
+**Cómo se probó** (`scripts/ruteo-etapa0/`, commit del experimento):
+hook de juguete que solo actúa con la marca `RUTEO-TEST` y falla
+callado; sesión headless de Claude Code 2.1.231 con el hook en settings
+de proyecto, padre en Sonnet, subagente `general-purpose`; el veredicto
+NO se le pregunta al subagente (los modelos se equivocan sobre sí
+mismos) sino al `agent-*.jsonl` que escribe Claude Code.
+
+**Resultado — A/B con 27 s de diferencia, todo lo demás igual:**
+
+| Corrida | Modelo real en el transcript |
+|---|---|
+| Con marca (hook actúa) | `claude-haiku-4-5-20251001` |
+| Control sin marca (hook calla) | `claude-sonnet-5` (hereda del padre) |
+
+ÉXITO. La apuesta técnica del Hook B se sostiene y no hizo falta el
+plan B (frontmatter `model:` / `CLAUDE_CODE_SUBAGENT_MODEL`).
+
+**Lo que el log enseñó y el diseño no sabía:**
+
+1. **El nombre de la herramienta no es estable**: en este build llega
+   como `Agent`, no `Task`. El matcher `Task|Agent` la agarró por los
+   pelos — el matcher doble es OBLIGATORIO, no adorno. Si un día no
+   dispara, sospechar del nombre ANTES que del script.
+2. **El input NO trae `model`**: llegó `antes=(no venía)` y el hook lo
+   AÑADIÓ. `updatedInput` no solo reescribe campos, también agrega los
+   que no existen. Y el input traía `run_in_background`, que es
+   justamente por qué hay que devolver el objeto COMPLETO (§10.1).
+3. **La variante A basta**: `updatedInput` a secas, sin
+   `permissionDecision: allow`. La variante B queda documentada por si
+   una versión futura la exige.
+4. **Contexto gratis para el Hook B real**: el payload del hook trae
+   `cwd`, `session_id`, `transcript_path`, `permission_mode` y
+   `effort:{level}`. El `cwd` da el proyecto sin adivinar — el
+   `modo_proyecto` de `router_state.json` se puede resolver ahí mismo.
+
+**Lo que queda de esta etapa:** la corrida en Windows nativo (el
+`hook-model-test.ps1` es traducción literal del Python y NO se pudo
+ejecutar en el VPS — no hay PowerShell). Mecánicamente WSL y VPS son el
+mismo caso (Linux, mismo script), así que la matriz de Oscar se cierra
+con esa única corrida pendiente.
+
+**Lo que NO cambia:** la compuerta sigue puesta. Etapa 1 en adelante
+espera a cerrar las pruebas en vivo del auto-/clear y del análisis
+local — comparten zona de código y contaminarían la medición.

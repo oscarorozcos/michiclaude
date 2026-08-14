@@ -527,13 +527,19 @@ presion-y-rendimiento §"Qué queda vivo".
       espera el veredicto del análisis (`aiPending`); michi.exe viaja en
       el instalador SIN tocar el workflow (invariante #9).
 - [ ] RUTEO INTELIGENTE (etapas 0-6, decidido 2026-08-13): PRÓXIMO
-      GRANDE, pero BLOQUEADO hasta cerrar y confirmar las pruebas en
-      vivo del día a día (auto-/compact y auto-/clear, y de paso
-      análisis local v1 — misma zona de código). Plan completo y
-      auditoría en `docs/ruteo-inteligente.md` §10-11 — LEERLO antes de
-      arrancar. Se empieza por la etapa 0: experimento de 10 min en el
-      Windows de Oscar (PreToolUse reescribiendo `model` de un subagente
-      vía `updatedInput` con el input COMPLETO).
+      GRANDE, pero de la 1 en adelante BLOQUEADO hasta cerrar las
+      pruebas en vivo del día a día (auto-/compact y auto-/clear, y de
+      paso análisis local v1 — misma zona de código). Plan y auditoría
+      en `docs/ruteo-inteligente.md` §10-11 — LEERLO antes de arrancar.
+      ETAPA 0 HECHA Y VALIDADA (2026-08-14, VPS; experimento en
+      `scripts/ruteo-etapa0/`, autopsia en bitácora): un `PreToolUse`
+      SÍ impone el modelo del subagente vía `updatedInput` — A/B real
+      haiku vs sonnet en el `agent-*.jsonl`. Reglas que salieron: matcher
+      `Task|Agent` OBLIGATORIO (el nombre de la herramienta no es estable
+      entre builds), el input NO trae `model` y `updatedInput` lo AÑADE
+      (por eso se devuelve el objeto COMPLETO), y basta `updatedInput`
+      sin `permissionDecision`. Falta solo la corrida en Windows nativo
+      (el `.ps1`); WSL y VPS son el mismo caso mecánico.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO: rastrear otras herramientas, BD de historial,
   modo equipo.
