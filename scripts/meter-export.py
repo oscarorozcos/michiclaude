@@ -1442,6 +1442,15 @@ def main():
     skip_before = keep_after.timestamp()
     cache_in = load_cache(keep_after.timestamp())
     cache_out = {}
+    # INTEGRIDAD DE LAS FUENTES (pieza 1, réplica exacta de lib.rs —
+    # invariante #1): un limpiador de disco o el propio usuario pueden
+    # recortar o borrar estos .jsonl, y sin darse cuenta el panel diría
+    # "bajó el consumo". El caché ya guarda tamaño+mtime, así que un archivo
+    # que ENCOGIÓ se ve solo. Va en la salida; quien lee le pone el origen.
+    # Solo se juzga si la raíz se pudo LEER (root_ok): un disco desmontado
+    # no es un borrado.
+    shrunk_n = shrunk_b = 0
+    root_ok = projects_dir.is_dir()
 
     if projects_dir.is_dir():
         for proj in sorted(projects_dir.iterdir()):
@@ -1459,6 +1468,11 @@ def main():
                 files_scanned += 1
                 fk = str(f)
                 hit = cache_in.get(fk)
+                # el archivo ENCOGIÓ = recorte externo. Solo se observa (el
+                # parseo relee el archivo entero: no hay offset que corregir).
+                if isinstance(hit, dict) and (hit.get("len") or 0) > st.st_size:
+                    shrunk_n += 1
+                    shrunk_b += (hit.get("len") or 0) - st.st_size
                 if (isinstance(hit, dict) and hit.get("len") == st.st_size
                         and hit.get("mtime") == int(st.st_mtime)):
                     disp = hit.get("display")
@@ -1529,6 +1543,27 @@ def main():
                     if ts >= month_ago:
                         daily.setdefault(ts.strftime("%Y-%m-%d"), [0.0, 0, 0])[2] += 1
 
+    # INTEGRIDAD, la mitad de los DESAPARECIDOS: estaba en el caché y ya no
+    # está en disco. Un archivo que solo envejeció fuera de la ventana SIGUE
+    # existiendo y no cuenta (misma regla que en Rust).
+    gone_n = gone_b = 0
+    if root_ok:
+        for fk, hit in cache_in.items():
+            if fk in cache_out or not isinstance(hit, dict):
+                continue
+            if os.path.exists(fk):
+                continue
+            gone_n += 1
+            gone_b += hit.get("len") or 0
+    integrity = []
+    nowts = int(now.timestamp())
+    if shrunk_n:
+        integrity.append({"t": nowts, "kind": "truncated",
+                          "n": shrunk_n, "b": shrunk_b, "o": ""})
+    if gone_n:
+        integrity.append({"t": nowts, "kind": "vanished",
+                          "n": gone_n, "b": gone_b, "o": ""})
+
     save_cache(cache_out, keep_after.timestamp())  # solo lo visto: se autopurga
 
     projects = [
@@ -1571,6 +1606,10 @@ def main():
         # panel ni las fotos del hub paguen la pasada extra.
         "findings": fnd,
         "waste": waste,
+        # Integridad de ESTE servidor (pieza 1). Va siempre (no depende de
+        # --findings): es barata y quien lee la necesita para no cantar una
+        # mejora que fue un borrado.
+        "integrity": integrity,
     }))
 
 

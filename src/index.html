@@ -1052,6 +1052,16 @@
   .wst-none div{color:var(--txt-mut);margin-top:3px}
   .wst-see7{margin-left:6px;font-size:10.5px;color:var(--accent);background:var(--accent-weak);
     border:1px solid var(--accent-line);border-radius:8px;padding:3px 8px;cursor:pointer}
+  /* aviso de cobertura (pieza 2): alguien tocó los logs y la comparación
+     deja de ser concluyente. Ámbar, discreto y descartable con la vista —
+     nunca un modal (regla del ADR). */
+  .rp-cov{display:flex;gap:9px;align-items:flex-start;background:rgba(242,180,67,.12);
+    border:1px solid rgba(242,180,67,.3);border-radius:var(--r-md);padding:9px 11px;
+    margin-bottom:10px;font-size:11px;line-height:1.5}
+  .rp-cov .i{flex:0 0 auto;width:16px;height:16px;border-radius:50%;display:grid;
+    place-items:center;background:var(--warn);color:#1a1305;font-weight:800;font-size:11px}
+  .rp-cov b{color:var(--txt)}
+  .rp-cov .s{color:var(--txt-dim);font-size:10px;margin-top:3px}
 </style>
 </head>
 <body>
@@ -1983,6 +1993,13 @@ en:{
   fnd_paste_f:"What you paste becomes part of your message and travels with every turn after — usually far more than was needed. If it's a project file, mention the path instead: Claude reads it itself, and only the part it needs. (Console output or text that isn't on disk? Pasting is fine.)",
   rep_perf:"Your efficiency", rep_perf_unit:"tokens per message you send",
   rep_before:"before", rep_better:"improved", rep_worse:"worse", rep_flat:"steady",
+  rep_verd_unsure:"Your logs were trimmed or deleted, so the comparison isn't conclusive: what looks like a change could just be missing data.",
+  cov_title:"Comparison not conclusive",
+  cov_cut:d=>`Something trimmed your logs on ${d}.`,
+  cov_gone:(n,d)=>`${n} log file(s) disappeared on ${d}.`,
+  cov_missing:n=>`${n} day(s) with work no longer show up in the logs.`,
+  cov_note:"Your history is safe here, but the missing part can't be attributed to a date — so the periods aren't measured the same way.",
+  cov_nocomp:"not comparable",
   rep_verd_first:"Your first measurement. Once there's a previous period to compare against, you'll see here whether you're improving.",
   rep_verd_good:"Your tokens are going further: you did the same work spending less per message.",
   rep_verd_bad:"Each message is costing you more tokens than before. Below you'll see where it goes and what to do.",
@@ -2477,6 +2494,13 @@ es:{
   fnd_paste_f:"Lo que pegas se vuelve parte de tu mensaje y viaja en cada turno posterior — y suele ser mucho más de lo que hacía falta. Si es un archivo del proyecto, mejor menciona la ruta: Claude lo lee solo, y solo el trozo que necesita. (¿Un error de consola o algo que no está en disco? Pegarlo está bien.)",
   rep_perf:"Tu rendimiento", rep_perf_unit:"tokens por mensaje tuyo",
   rep_before:"antes", rep_better:"mejoró", rep_worse:"empeoró", rep_flat:"igual",
+  rep_verd_unsure:"Te recortaron o borraron logs, así que la comparación no es concluyente: lo que parece un cambio podría ser solo lo que falta.",
+  cov_title:"Comparación no concluyente",
+  cov_cut:d=>`Algo recortó tus logs el ${d}.`,
+  cov_gone:(n,d)=>`Desaparecieron ${n} archivo(s) de log el ${d}.`,
+  cov_missing:n=>`${n} día(s) con trabajo ya no aparecen en los logs.`,
+  cov_note:"Tu historial aquí está a salvo, pero lo que falta no se puede atribuir a una fecha — así que los periodos no están medidos igual.",
+  cov_nocomp:"no comparable",
   rep_verd_first:"Tu primera medición. Cuando haya un periodo anterior con qué comparar, aquí sabrás si vas mejorando.",
   rep_verd_good:"Tus tokens te están rindiendo más: hiciste lo mismo gastando menos por mensaje.",
   rep_verd_bad:"Cada mensaje te está costando más tokens que antes. Abajo está dónde se va y qué hacer.",
@@ -2971,6 +2995,13 @@ pt:{
   fnd_paste_f:"O que você cola vira parte da sua mensagem e viaja em cada turno seguinte — e costuma ser bem mais do que era preciso. Se for um arquivo do projeto, mencione o caminho: o Claude lê sozinho, e só o trecho que precisa. (Erro de console ou algo que não está em disco? Colar está bem.)",
   rep_perf:"Seu rendimento", rep_perf_unit:"tokens por mensagem sua",
   rep_before:"antes", rep_better:"melhorou", rep_worse:"piorou", rep_flat:"igual",
+  rep_verd_unsure:"Seus logs foram cortados ou apagados, então a comparação não é conclusiva: o que parece uma mudança pode ser só o que falta.",
+  cov_title:"Comparação não conclusiva",
+  cov_cut:d=>`Algo cortou seus logs em ${d}.`,
+  cov_gone:(n,d)=>`${n} arquivo(s) de log sumiram em ${d}.`,
+  cov_missing:n=>`${n} dia(s) com trabalho já não aparecem nos logs.`,
+  cov_note:"Seu histórico aqui está a salvo, mas o que falta não pode ser atribuído a uma data — então os períodos não estão medidos igual.",
+  cov_nocomp:"não comparável",
   rep_verd_first:"Sua primeira medição. Quando houver um período anterior para comparar, aqui você saberá se está melhorando.",
   rep_verd_good:"Seus tokens estão rendendo mais: você fez o mesmo gastando menos por mensagem.",
   rep_verd_bad:"Cada mensagem está custando mais tokens do que antes. Abaixo está para onde vai e o que fazer.",
@@ -3465,6 +3496,13 @@ fr:{
   fnd_paste_f:"Ce que vous collez devient partie de votre message et voyage à chaque tour suivant — souvent bien plus que nécessaire. Si c'est un fichier du projet, mentionnez le chemin : Claude le lit lui-même, et seulement la partie utile. (Une sortie de console ou un texte hors disque ? Coller convient.)",
   rep_perf:"Votre rendement", rep_perf_unit:"tokens par message envoyé",
   rep_before:"avant", rep_better:"amélioré", rep_worse:"dégradé", rep_flat:"stable",
+  rep_verd_unsure:"Vos journaux ont été rognés ou supprimés : la comparaison n'est pas concluante — ce qui ressemble à un changement peut n'être que ce qui manque.",
+  cov_title:"Comparaison non concluante",
+  cov_cut:d=>`Quelque chose a rogné vos journaux le ${d}.`,
+  cov_gone:(n,d)=>`${n} fichier(s) de journal ont disparu le ${d}.`,
+  cov_missing:n=>`${n} jour(s) de travail n'apparaissent plus dans les journaux.`,
+  cov_note:"Votre historique est à l'abri ici, mais ce qui manque ne peut pas être daté — les périodes ne sont donc pas mesurées pareil.",
+  cov_nocomp:"non comparable",
   rep_verd_first:"Votre première mesure. Dès qu'il y aura une période précédente à comparer, vous saurez ici si vous vous améliorez.",
   rep_verd_good:"Vos tokens rendent davantage : même travail, moins de dépense par message.",
   rep_verd_bad:"Chaque message vous coûte plus de tokens qu'avant. Ci-dessous : où ça part et quoi faire.",
@@ -3959,6 +3997,13 @@ de:{
   fnd_paste_f:"Eingefügtes wird Teil deiner Nachricht und reist mit jedem weiteren Zug mit — meist weit mehr als nötig war. Ist es eine Projektdatei, nenne lieber den Pfad: Claude liest sie selbst, und nur den nötigen Teil. (Konsolenausgabe oder Text, der nicht auf der Platte liegt? Einfügen ist okay.)",
   rep_perf:"Deine Effizienz", rep_perf_unit:"Tokens pro Nachricht von dir",
   rep_before:"vorher", rep_better:"besser", rep_worse:"schlechter", rep_flat:"stabil",
+  rep_verd_unsure:"Deine Logs wurden gekürzt oder gelöscht, daher ist der Vergleich nicht aussagekräftig: Was wie eine Veränderung aussieht, kann auch nur das Fehlende sein.",
+  cov_title:"Vergleich nicht aussagekräftig",
+  cov_cut:d=>`Etwas hat deine Logs am ${d} gekürzt.`,
+  cov_gone:(n,d)=>`${n} Log-Datei(en) sind am ${d} verschwunden.`,
+  cov_missing:n=>`${n} Tag(e) mit Arbeit tauchen in den Logs nicht mehr auf.`,
+  cov_note:"Dein Verlauf hier ist sicher, aber das Fehlende lässt sich keinem Datum zuordnen — die Zeiträume sind also nicht gleich gemessen.",
+  cov_nocomp:"nicht vergleichbar",
   rep_verd_first:"Deine erste Messung. Sobald es einen Vorzeitraum zum Vergleichen gibt, siehst du hier, ob du dich verbesserst.",
   rep_verd_good:"Deine Tokens reichen weiter: gleiche Arbeit, weniger Verbrauch pro Nachricht.",
   rep_verd_bad:"Jede Nachricht kostet dich mehr Tokens als vorher. Unten steht, wohin es geht und was zu tun ist.",
@@ -4453,6 +4498,13 @@ ja:{
   fnd_paste_f:"貼り付けた内容はあなたのメッセージの一部になり、以降の全ターンで一緒に運ばれます — たいてい必要以上の量です。プロジェクトのファイルならパスを伝えましょう：Claudeが自分で、必要な部分だけ読みます。（コンソール出力やディスクにない文章なら、貼り付けで構いません。）",
   rep_perf:"あなたの効率", rep_perf_unit:"あなたの1メッセージあたりのトークン",
   rep_before:"以前", rep_better:"改善", rep_worse:"悪化", rep_flat:"横ばい",
+  rep_verd_unsure:"ログが切り詰められたか削除されたため、この比較は結論になりません。変化に見えるものが、欠けているだけの可能性があります。",
+  cov_title:"比較は結論になりません",
+  cov_cut:d=>`${d}に何かがログを切り詰めました。`,
+  cov_gone:(n,d)=>`${d}にログファイルが${n}件消えました。`,
+  cov_missing:n=>`作業のあった${n}日分がログに見当たりません。`,
+  cov_note:"ここに残した履歴は無事ですが、失われた分は日付に割り当てられません — つまり両期間の測り方が揃っていません。",
+  cov_nocomp:"比較不可",
   rep_verd_first:"初めての計測です。比較できる前の期間ができると、改善しているかどうかがここに表示されます。",
   rep_verd_good:"トークンの持ちが良くなりました。同じ作業を、1メッセージあたりより少ない消費でこなしています。",
   rep_verd_bad:"1メッセージあたりのトークン消費が以前より増えています。下にどこで消えているか、どうすべきかが出ています。",
@@ -4947,6 +4999,13 @@ ko:{
   fnd_paste_f:"붙여넣은 내용은 메시지의 일부가 되어 이후 모든 턴에 함께 실려 갑니다 — 대개 필요 이상으로 많습니다. 프로젝트 파일이라면 경로를 알려주세요: Claude가 스스로, 필요한 부분만 읽습니다. (콘솔 출력이나 디스크에 없는 텍스트라면 붙여넣어도 괜찮습니다.)",
   rep_perf:"나의 효율", rep_perf_unit:"내 메시지당 토큰",
   rep_before:"이전", rep_better:"개선", rep_worse:"악화", rep_flat:"비슷",
+  rep_verd_unsure:"로그가 잘리거나 삭제되어 이 비교는 결론이 될 수 없습니다. 변화처럼 보이는 것이 사라진 데이터일 수 있습니다.",
+  cov_title:"비교 결론 불가",
+  cov_cut:d=>`${d}에 무언가가 로그를 잘랐습니다.`,
+  cov_gone:(n,d)=>`${d}에 로그 파일 ${n}개가 사라졌습니다.`,
+  cov_missing:n=>`작업이 있던 ${n}일이 로그에 더 이상 없습니다.`,
+  cov_note:"여기 보관한 기록은 안전하지만, 사라진 부분은 날짜에 귀속시킬 수 없어 두 기간을 같은 기준으로 잰 것이 아닙니다.",
+  cov_nocomp:"비교 불가",
   rep_verd_first:"첫 측정입니다. 비교할 이전 기간이 생기면 개선 여부를 여기서 확인할 수 있습니다.",
   rep_verd_good:"토큰 효율이 좋아졌습니다. 같은 작업을 메시지당 더 적게 쓰며 해냈습니다.",
   rep_verd_bad:"메시지당 토큰 소비가 이전보다 늘었습니다. 어디서 새는지, 무엇을 해야 하는지 아래에 있습니다.",
@@ -5441,6 +5500,13 @@ zh:{
   fnd_paste_f:"粘贴的内容会成为你消息的一部分，随之后的每一轮一起运送 — 通常远多于实际需要。若是项目里的文件，直接提路径更好：Claude 会自己读，而且只读需要的部分。（控制台输出或不在磁盘上的文字？粘贴没问题。）",
   rep_perf:"你的效率", rep_perf_unit:"你每条消息消耗的 token",
   rep_before:"之前", rep_better:"进步", rep_worse:"退步", rep_flat:"持平",
+  rep_verd_unsure:"你的日志被裁剪或删除了，所以这次比较不足以下结论：看起来的变化可能只是缺失的部分。",
+  cov_title:"比较不足以下结论",
+  cov_cut:d=>`${d} 有东西裁剪了你的日志。`,
+  cov_gone:(n,d)=>`${d} 有 ${n} 个日志文件消失了。`,
+  cov_missing:n=>`有 ${n} 天的工作在日志里已经找不到。`,
+  cov_note:"这里保存的历史是安全的，但缺失的部分无法归到某一天 — 所以两个时段的测量口径不一致。",
+  cov_nocomp:"无法比较",
   rep_verd_first:"这是首次测量。等有了可对比的上一时段，这里就能看出你是否在进步。",
   rep_verd_good:"token 更耐用了：同样的工作，每条消息花得更少。",
   rep_verd_bad:"每条消息消耗的 token 比以前多了。下面列出了钱花在哪、该怎么做。",
@@ -8210,16 +8276,22 @@ async function loadReport(force){
     : Promise.resolve(null);
   // el periodo ANTERIOR es la misma anchura terminando donde empieza este:
   // así "¿mejoré?" compara peras con peras aunque el periodo sea un rango
-  const [cur,prev,hist]=await Promise.allSettled([
+  const [cur,prev,hist,intg,dhist]=await Promise.allSettled([
     invoke("get_local_stats",repArgs()),
     invoke("get_local_stats",{days:W, end:endE-W*86400}),
     invoke("get_quota_history",{days:90}),
+    // PIEZA 2: hechos de integridad (¿alguien recortó los logs?) y
+    // PIEZA 3: el cuadernito diario, para saber qué días DEJARON de verse
+    invoke("get_integrity",{days:400}),
+    invoke("get_daily_history",{days:60}),
   ]);
   if(stamp!==repStamp) return;
   repData={
     cur: cur.status==="fulfilled"?cur.value:null,
     prev:prev.status==="fulfilled"?prev.value:null,
     hist:hist.status==="fulfilled"?hist.value:[],
+    intg:intg.status==="fulfilled"?(intg.value||[]):[],
+    dhist:dhist.status==="fulfilled"?(dhist.value||[]):[],
     fnd: null,   // null = "analizando"; [] = "sin fugas" — no es lo mismo
     waste:null, wastePrev:null,   // ídem: null = aún analizando
     W, endE, at:Date.now(),
@@ -8242,6 +8314,55 @@ async function loadReport(force){
 function repPerfOf(s){ return s && s.uturns_week>0 ? s.tokens_week/s.uturns_week : null; }
 function repFmtN(n){ return Math.round(n).toLocaleString(lang); }
 
+// ---------- PIEZA 2 · cobertura honesta (adr-multiharness-y-persistencia.md)
+// Los .jsonl no son nuestros: un limpiador o el usuario pueden recortarlos.
+// Si eso pasó, "mejoraste 40%" puede ser solo un borrado — y decirlo sería
+// justo la mentira que prohíbe el invariante #8. Dos señales, ninguna
+// inventada: (a) los hechos que anotó el detector de integridad; (b) días
+// que el cuadernito vio con trabajo y que el escaneo YA NO ve.
+// Regla: si cualquiera de los dos periodos comparados está tocado, el
+// resultado sale NO CONCLUYENTE — nunca como mejora.
+function repDaysMissing(d,fromTs,toTs){
+  const live={}; for(const x of ((d.cur&&d.cur.daily)||[])) live[x.date]=x;
+  let n=0;
+  for(const h of (d.dhist||[])){
+    if(!(h.tokens>0)) continue;
+    const ts=Math.floor(fromYmd(h.date).getTime()/1000);
+    if(ts<fromTs||ts>=toTs) continue;
+    const l=live[h.date];
+    if(!l||!(l.tokens>0)) n++;   // lo vimos con trabajo y hoy no está
+  }
+  return n;
+}
+// Un recorte se DETECTA en una fecha, pero los bytes perdidos pueden ser de
+// cualquier día: no se puede atribuir a un periodo. Por eso cualquier hecho
+// desde el arranque del periodo MÁS VIEJO ensucia la comparación entera.
+function repIntgSince(d,fromTs){
+  return (d.intg||[]).filter(e=>e.t>=fromTs);
+}
+function repCoverage(d){
+  const curFrom=d.endE-d.W*86400, prevFrom=curFrom-d.W*86400;
+  const ev=repIntgSince(d,prevFrom);
+  const miss=repDaysMissing(d,prevFrom,d.endE);
+  return {ok:!ev.length&&!miss, ev, miss,
+          last:ev.length?ev[ev.length-1]:null};
+}
+function repCovBanner(d){
+  const c=repCoverage(d);
+  if(c.ok) return "";
+  let det="";
+  if(c.last){
+    const when=new Date(c.last.t*1000).toLocaleDateString(lang,{day:"2-digit",month:"short"});
+    const org=c.last.o?` · ${escapeHtml(c.last.o)}`:"";
+    det=escapeHtml(c.last.kind==="vanished"
+      ? t("cov_gone",c.last.n,when) : t("cov_cut",when))+org;
+  }else{
+    det=escapeHtml(t("cov_missing",c.miss));
+  }
+  return `<div class="rp-cov"><span class="i">!</span><div><b>${escapeHtml(t("cov_title"))}</b>
+    <div>${det}</div><div class="s">${escapeHtml(t("cov_note"))}</div></div></div>`;
+}
+
 function renderReport(){
   const d=repData; if(!d) return;
   markRepChips();
@@ -8255,8 +8376,14 @@ function renderRepHero(d){
   const p=repPerfOf(d.cur);
   if(p==null){ $("repHero").innerHTML=`<div class="rp-empty">${t("rep_nodata")}</div>`; return; }
   const q=repPerfOf(d.prev);
+  // PIEZA 2: con los logs tocados, el "antes" no es comparable — se dice, no
+  // se disfraza de mejora (invariante #8).
+  const cov=repCoverage(d);
   let delta="", plain=t("rep_verd_first");
-  if(q!=null){
+  if(q!=null&&!cov.ok){
+    plain=t("rep_verd_unsure");
+    delta=`<span class="rp-delta flat">${escapeHtml(t("cov_nocomp"))}</span>`;
+  }else if(q!=null){
     const ch=(p-q)/q*100;      // + = más tokens por mensaje = peor
     if(ch<=-3){ plain=t("rep_verd_good");
       delta=`<span class="rp-delta good">↓ ${t("rep_better")} ${Math.abs(Math.round(ch))}%</span>`; }
@@ -8274,7 +8401,7 @@ function renderRepHero(d){
   const qm=(d.prev&&d.prev.uturns_week>0)?d.prev.cost_week/d.prev.uturns_week:null;
   let unitLine=escapeHtml(t("rep_perf_unit"));
   if(pm!=null) unitLine+=` <span class="as-money">${escapeHtml(t("rep_money_msg","$"+pm.toFixed(2)))}</span>`;
-  if(q!=null){
+  if(q!=null&&cov.ok){
     unitLine+=` · ${escapeHtml(t("rep_before"))} <s>${repFmtN(q)}</s>`;
     if(qm!=null) unitLine+=` <span class="rp-dim">(≈ $${qm.toFixed(2)})</span>`;
   }
@@ -8282,7 +8409,7 @@ function renderRepHero(d){
   let vol="";
   if(tk>0){
     let pill="";
-    if(qtk>0){
+    if(qtk>0&&cov.ok){
       const ch=Math.round((tk-qtk)/qtk*100);
       pill = ch<=-3?`<span class="vpill ok">${escapeHtml(t("rep_vol_less",Math.abs(ch)))}</span>`
            : ch>=3?`<span class="vpill">${escapeHtml(t("rep_vol_more",ch))}</span>`
@@ -8301,7 +8428,7 @@ function renderRepHero(d){
     // "no es contradicción": SOLO cuando volumen y costo/mensaje van en
     // direcciones opuestas — es justo el caso que confunde
     let contra="";
-    if(q!=null&&qtk>0){
+    if(q!=null&&qtk>0&&cov.ok){
       const chV=(tk-qtk)/qtk, chP=(p-q)/q;
       if(chV<-0.03&&chP>0.03) contra=`<div class="rp-contra">${withCmds(t("rep_contra_a"))}</div>`;
       else if(chV>0.03&&chP<-0.03) contra=`<div class="rp-contra">${withCmds(t("rep_contra_b"))}</div>`;
@@ -8316,6 +8443,7 @@ function renderRepHero(d){
       ${top}${contra}${rule}</div>`;
   }
   $("repHero").innerHTML=`
+    ${repCovBanner(d)}
     <div class="rp-big">${repFmtN(p)} ${delta}</div>
     <div class="rp-nums">${unitLine}</div>
     <div class="rp-plain">${withCmds(plain)}</div>
@@ -8397,9 +8525,12 @@ function renderRepWaste(d){
   const pctI=Math.round(num/den*100);
   const pctTxt=pctI<1?t("wst_lt1"):tld+pctI+"%";
   // comparación con el periodo anterior: mismas compuertas, mismo Ignorar
+  // y la misma cobertura (pieza 2) — con los logs tocados no se compara.
   let cmp="";
-  const p=d.wastePrev;
-  if(p&&!p.err&&(p.total_cost||0)>=1&&(p.sessions||0)>=10){
+  const p=d.wastePrev, cov=repCoverage(d);
+  if(!cov.ok){
+    cmp=`<div class="wst-cmp flat">${escapeHtml(t("cov_nocomp"))}</div>`;
+  }else if(p&&!p.err&&(p.total_cost||0)>=1&&(p.sessions||0)>=10){
     const q=Math.round(wstNum(p,ign).num/p.total_cost*100);
     const diff=pctI-q;
     const cls=diff<=-1?"good":diff>=1?"bad":"flat";
@@ -8632,7 +8763,10 @@ function renderRepFix(d){
   };
   const MIN_AFTER=5; // días de datos antes de afirmar nada (regla del doc)
   $("repFix").innerHTML=marks.slice(-4).reverse().map(m=>{
-    const before=perfBetween(m.date-14*864e5, m.date);
+    // PIEZA 4: manda la foto CONGELADA al clavar la marca (m.b); solo si no
+    // la hay (marcas nacidas antes de esta pieza) se recalcula desde los
+    // logs vivos, que es lo que puede haber desaparecido.
+    const before=m.b&&m.b.p>0 ? m.b : perfBetween(m.date-14*864e5, m.date);
     const after=perfBetween(m.date, Date.now());
     const when=new Date(m.date).toLocaleDateString(lang,{day:"2-digit",month:"short"});
     let body;
@@ -9931,7 +10065,26 @@ const FND_MARK_KINDS=new Set(["mcp_unused","skills_unused","claudemd",
   "claudemdsize","hooks_noise","mech","subagents","acompact","paste"]);
 const FND_MARK_MIN_SEEN=3*864e5;  // visto al menos 3 días…
 const FND_MARK_GONE=2*864e5;      // …y desaparecido hace 2+ = arreglado
-function fndTrackHist(list){
+// PIEZA 4 · la FOTO DEL ANTES. Para decir "antes 8,400 → ahora 6,100" hoy
+// habría que releer los logs de antes del arreglo… que pueden no existir
+// mañana (un limpiador, el usuario, una máquina nueva). Así que en el
+// momento EXACTO de clavar la marca se congela el rendimiento de los 14
+// días previos, sacado del cuadernito (pieza 3, que sí sobrevive).
+// La comparación futura es congelado-vs-hoy y ya no depende de nada.
+async function fndFreezeBefore(until){
+  try{
+    const h=await invoke("get_daily_history",{days:60})||[];
+    let tok=0,ut=0,days=0;
+    for(const x of h){
+      const ts=fromYmd(x.date).getTime();
+      if(ts>=until-14*864e5&&ts<until&&(x.uturns||0)>0){
+        tok+=x.tokens||0; ut+=x.uturns||0; days++;
+      }
+    }
+    return ut>0?{p:tok/ut,days}:null;
+  }catch(_){ return null; }
+}
+async function fndTrackHist(list){
   if(simFnd || fndRange || fndDays<7) return;
   let hist,marks;
   try{ hist=JSON.parse(localStorage.getItem("fndHist")||"{}"); }catch(_){ hist={}; }
@@ -9943,11 +10096,13 @@ function fndTrackHist(list){
     const h=hist[k]||(hist[k]={f:now,kind:f.kind});
     h.l=now; h.t=fndTitle(f);   // el título (ya traducido) es solo para ENSEÑAR la marca
   }
+  const nuevas=[];
   for(const [k,h] of Object.entries(hist)){
     if(cur.has(k)) continue;
     if((h.l-h.f)>=FND_MARK_MIN_SEEN && (now-h.l)>=FND_MARK_GONE){
       if(!marks.some(m=>m.k===k)){
-        marks.push({k, kind:h.kind||k.split("|")[0], t:h.t||"", date:h.l});
+        const m={k, kind:h.kind||k.split("|")[0], t:h.t||"", date:h.l};
+        marks.push(m); nuevas.push(m);
         flog("marca: hallazgo arreglado — "+(h.t||k));
       }
       delete hist[k];
@@ -9956,6 +10111,17 @@ function fndTrackHist(list){
   while(marks.length>20) marks.shift();
   try{ localStorage.setItem("fndHist",JSON.stringify(hist));
        localStorage.setItem("fndMarks",JSON.stringify(marks)); }catch(_){}
+  // la foto del antes se congela DESPUÉS de guardar (si el cuadernito falla,
+  // la marca ya existe: se degrada a la vieja cuenta desde los logs)
+  for(const m of nuevas){
+    const b=await fndFreezeBefore(m.date);
+    if(!b) continue;
+    try{
+      const ms=JSON.parse(localStorage.getItem("fndMarks")||"[]");
+      const hit=ms.find(x=>x.k===m.k);
+      if(hit&&!hit.b){ hit.b=b; localStorage.setItem("fndMarks",JSON.stringify(ms)); }
+    }catch(_){}
+  }
 }
 
 async function loadFindings(force){

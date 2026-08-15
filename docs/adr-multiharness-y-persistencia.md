@@ -122,13 +122,65 @@ detalle crudo** — si algún día se quiere "consolidar antes de limpiar"
 - `event_uid` por hash de contenido, coverage por bucket, baselines
   genéricas: sobreingeniería para el tamaño real del problema aquí.
 
-### Si Oscar da luz verde a la versión ligera
+### LAS 4 PIEZAS: IMPLEMENTADAS Y VALIDADAS (2026-08-15)
 
-Orden sugerido: (1) detección de recorte + aviso + "no concluyente" —
-es la defensa de la confianza y la más barata; (2) `daily_history.json`;
-(3) snapshot congelado en las marcas. Cada una es un incremento chico,
-con su regresión, sin tocar el resto. La Parte 1 se queda como documento
-de referencia por si el NO estratégico algún día cambia.
+Oscar dio luz verde a la versión ligera. Lo hecho, con su verificación:
+
+**Pieza 1 — detección de recorte externo.** Sobre el caché de escaneo, que
+ya guardaba tamaño+mtime por archivo: si un `.jsonl` ENCOGIÓ (recorte) o
+DESAPARECIÓ, se anota en `integrity.json` (appdata, local, NO viaja al hub
+ni a ntfy). Réplica exacta en `meter-export.py` (invariante #1): el
+servidor detecta con SU caché y lo manda en la clave `integrity`; Rust le
+pone el origen (nombre del servidor), como a las filas del export. WSL sale
+gratis: es otra raíz del mismo `scan_projects_dir`, con origen
+`wsl-<distro>`. DOS GUARDAS contra el falso positivo, los dos probados:
+(a) solo se juzgan las RAÍCES QUE SE PUDIERON LEER — WSL apagado o disco
+desmontado no es un borrado; (b) un archivo que solo envejeció fuera de la
+ventana sigue existiendo y no cuenta. Y el archivador propio no puede
+disparar la alarma: mueve archivos ≥365d y el caché solo guarda los de ~32
+días — cero solape. NO detecta una reescritura del MISMO tamaño exacto
+(sin hashes, invariante #4): un recorte real siempre encoge.
+
+**Pieza 2 — comparaciones no concluyentes.** El Reporte marca "no
+comparable" (y el héroe cambia su frase) cuando hay un hecho de integridad
+dentro del tramo comparado O un día que el cuadernito vio con trabajo y el
+escaneo ya no ve. Afecta al delta del héroe, a la píldora de volumen, al
+"antes" del rendimiento, a la nota de contradicción y a la comparación del
+% de desperdicio. Un recorte se DETECTA en una fecha pero sus bytes pueden
+ser de cualquier día: por eso cualquier hecho desde el arranque del periodo
+más viejo ensucia la comparación entera, en vez de fingir precisión.
+
+**Pieza 3 — `daily_history.json`.** La serie diaria ya FUSIONADA (local +
+WSL + servidores + hub), 400 días, unos KB, mismo patrón que
+`quota_history.json`. REGLA: es RESPALDO, NO JEFE — lo vivo manda siempre.
+Si fuera al revés, un arreglo retroactivo como el de `uturns` (2026-08-14,
+que corrigió 30 días hacia atrás) habría quedado FOSILIZADO. No se escribe
+con rango al pasado: ahí lo remoto llega de otra ventana y grabaría un día
+incompleto encima de uno bueno.
+
+**Pieza 4 — la foto del antes.** Al clavar una marca de arreglo se congela
+en ella (`m.b`) el rendimiento de los 14 días previos, sacado del
+cuadernito. `renderRepFix` prefiere esa foto y solo recalcula desde los
+logs vivos si no la hay (marcas nacidas antes de esta pieza). Así el
+antes/después deja de depender de que los logs viejos sobrevivan.
+
+**Validación (VPS, 2026-08-15).** Fixture del limpiador de extremo a
+extremo: 504,000 → 30,200 tokens (una "mejora" del 94% que era un borrado)
+con los dos hechos detectados y cuadrando AL BYTE (56,379−5,659=50,720);
+silencio en la primera corrida sin caché, silencio sin cambios y silencio
+tras avisar (no repite); las dos guardas de falso positivo verificadas
+(raíz inaccesible y archivo envejecido). Regresión con logs reales 7d y
+30d: findings, waste, totales y serie diaria byte-idénticos al exportador
+anterior. Lógica de cobertura del panel: 9 casos en node, incluidos los
+negativos (recorte viejo, hueco fuera del tramo, día vacío). i18n ×8
+completo. Forma del JSON del exportador verificada contra el struct de
+Rust. `cargo check` pendiente en el Windows de Oscar (el VPS no tiene
+toolchain) y WSL verificado POR CONSTRUCCIÓN, no ejecutado.
+
+Lo NO tomado del ADR sigue igual: SQLite/WAL/backups, store de eventos,
+detección específica de conversation-reclaim y baselines genéricas. La
+Parte 1 (multi-harness) se queda como documento de referencia por si el NO
+estratégico algún día cambia.
 
 ---
 ---

@@ -563,6 +563,21 @@ Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**
 procesos WebView2 (piso ~57 MB por ventana): de ahí que los pares de
 widget se creen y destruyan.
 
+## Integridad de las fuentes (los .jsonl no son nuestros)
+
+Un limpiador o el usuario los recortan y el panel diría "bajó el
+consumo". 4 piezas; diseño y validación en
+`docs/adr-multiharness-y-persistencia.md` §"LAS 4 PIEZAS" — LEERLO:
+(1) DETECTOR sobre el caché de escaneo (archivo que ENCOGIÓ o
+DESAPARECIÓ) → `integrity.json` local, no viaja; réplica en el
+exportador (inv. #1), Rust pone el origen; guardas: solo raíces LEÍBLES
+(WSL apagado ≠ borrado) y solo si no existe (envejecer ≠ borrarse).
+(2) NO CONCLUYENTE: hecho en el tramo comparado o día del cuadernito que
+ya no se ve → "no comparable", nunca una mejora. (3)
+`daily_history.json` (serie FUSIONADA, 400 d): RESPALDO, NO JEFE — manda
+lo vivo, si no un arreglo retroactivo quedaría fosilizado. (4) Las
+marcas congelan su "antes" (`m.b`) al nacer. NADA de SQLite (inv. #4).
+
 ## Retención de logs
 
 Claude Code borra a los 30 días y el analizador necesita historial:

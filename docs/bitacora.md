@@ -4638,3 +4638,59 @@ pegotes chicos). En los datos reales del VPS la tarjeta VIVE (7d: 6
 pegotes, 11.4k tok en michiclaude) pero cae al puesto 16 — el tope de 12
 la deja fuera porque aquí dominan los inflates; en la máquina de un
 usuario típico saldría. cargo check pendiente en Windows.
+
+## 2026-08-15 — Las 4 piezas de integridad: que un borrado no se disfrace de mejora
+
+Oscar trajo un ADR externo (multi-harness + persistencia con SQLite).
+Veredicto y análisis completo en `docs/adr-multiharness-y-persistencia.md`:
+la Parte 1 se rechaza (choca con el NO vigente y con el foso
+Claude-específico; la capa "medidor" está saturada y gratis), la Parte 2
+diagnostica un riesgo REAL pero con una solución sobredimensionada. Oscar
+aprobó la versión ligera: 4 piezas, cero SQLite.
+
+**El riesgo, en una frase:** los `.jsonl` no son nuestros. Si un limpiador
+tipo conversation-reclaim los recorta, MichiClaude leería menos y cantaría
+"mejoraste" — la mentira exacta que prohíbe el invariante #8. El fixture lo
+enseña sin piedad: 504,000 → 30,200 tokens, una "mejora" del 94% que era un
+borrado.
+
+**Lo construido.** (1) Detector pasivo montado sobre el caché de escaneo,
+que YA guardaba tamaño+mtime: archivo que encogió o desapareció →
+`integrity.json` (local, no viaja), con réplica en el exportador y el
+origen puesto por Rust. (2) Comparaciones NO CONCLUYENTES en el Reporte
+(héroe, volumen, contradicción, desperdicio) cuando el tramo está tocado.
+(3) `daily_history.json`, la serie diaria fusionada de 400 días — RESPALDO,
+no jefe. (4) Las marcas de arreglo congelan su "antes" al nacer, sacado del
+cuadernito.
+
+**Las dos decisiones de diseño que más costaron pensar.** La primera: el
+cuadernito NO manda. Ayer mismo el fix de `uturns` corrigió 30 días hacia
+atrás porque los logs crudos seguían ahí; con rollups congelados al mando
+—como pedía el ADR— ese bug habría quedado fosilizado en la historia. Un
+store protege contra borrados Y congela errores: por eso lo vivo manda
+siempre y el cuadernito solo rellena lo que ya no se puede ver. La segunda:
+un recorte se DETECTA en una fecha, pero sus bytes pueden ser de cualquier
+día. No se puede atribuir a un periodo, así que cualquier hecho desde el
+arranque del periodo más viejo ensucia la comparación entera — fingir
+precisión ahí habría sido peor que el hueco.
+
+**Falsos positivos, cazados antes de nacer.** Dos guardas, ambas probadas:
+solo se juzgan las raíces que se pudieron LEER (con WSL apagado sus
+archivos "faltan" sin haberse borrado — habría sido una alarma falsa
+diaria en el Windows de Oscar) y solo cuenta si el archivo de verdad no
+existe (envejecer fuera de la ventana ≠ borrarse). Y el archivador propio
+no puede dispararla: mueve archivos ≥365d y el caché solo guarda los de
+~32 días. Cero solape.
+
+**Validación.** Fixture de extremo a extremo con cuadre AL BYTE
+(56,379−5,659=50,720); silencio en la primera corrida sin caché, sin
+cambios y tras avisar (no repite); regresión con logs reales 7d/30d
+byte-idéntica en findings, waste, totales y serie diaria; 9 casos de la
+lógica de cobertura en node, incluidos los negativos; forma del JSON
+verificada contra el struct de Rust; i18n ×8. Pendiente: `cargo check` en
+Windows y WSL, que queda verificado POR CONSTRUCCIÓN (misma función, otra
+raíz) pero no ejecutado.
+
+**Aviso de mantenimiento:** CLAUDE.md quedó en ~39.7k de los 40k. La
+próxima entrada que se le añada debería venir con una poda: lo que ya está
+en los docs de diseño no necesita repetirse ahí.

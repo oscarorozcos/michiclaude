@@ -272,6 +272,11 @@ struct LocalStats {
     /// ceros = ese origen queda fuera del numerador Y del denominador.
     #[serde(default)]
     waste: Waste,
+    /// Integridad detectada EN EL SERVIDOR durante esta pasada (pieza 1).
+    /// Quien lee les pone el origen, como a las filas del export. Vacío con
+    /// un exportador viejo.
+    #[serde(default)]
+    integrity: Vec<IntegrityEvent>,
     /// true cuando había resúmenes de OTRAS máquinas del hub y se dejaron
     /// fuera por haber pedido un rango de fechas: sus fotos son de ventanas
     /// que terminan hoy y no se pueden recortar a un periodo pasado. El
@@ -1563,6 +1568,197 @@ fn scan_cache_path() -> PathBuf {
     app_data_dir().join("scan_cache.json")
 }
 
+// ---------------------------------------------------------------------------
+// INTEGRIDAD DE LAS FUENTES (docs/adr-multiharness-y-persistencia.md, pieza 1)
+// Los .jsonl NO son nuestros: un limpiador de disco (conversation-reclaim y
+// parientes) o el propio usuario pueden recortarlos o borrarlos. Sin darse
+// cuenta, MichiClaude leería menos y diría "bajó el consumo" — la mentira que
+// prohíbe el invariante #8. El detector es PASIVO y casi gratis: el caché de
+// escaneo ya guarda tamaño+mtime por archivo, así que un archivo que ENCOGIÓ
+// (o que desapareció de una raíz que sí pudimos leer) se ve solo.
+//
+// Lo que NO detecta, y es a propósito (invariante #4, sin hashes ni offsets):
+// una reescritura del mismo tamaño exacto. Un recorte real siempre encoge.
+// Falsos positivos evitados por diseño:
+//   - El ARCHIVADOR propio mueve archivos ≥365d, y el caché solo guarda los
+//     de los últimos ~32 días: cero solape, nunca se acusa a la app misma.
+//   - WSL apagado (o un servidor caído) deja su raíz ILEGIBLE: solo se
+//     comparan las raíces que se pudieron leer en ESTA pasada.
+//   - Caché nuevo o invalidado (bump de versión) = sin línea base = silencio.
+// Local y privado: no viaja al hub ni a ntfy.
+// ---------------------------------------------------------------------------
+
+/// Un hecho de integridad ya agregado por (tipo, origen) de una pasada.
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct IntegrityEvent {
+    // TODOS con default: estos hechos llegan también del exportador remoto y
+    // un campo ausente invalidaría la respuesta ENTERA (la mordida de
+    // ExportRow.origin y Finding.ts, invariante #1).
+    /// cuándo se DETECTÓ (epoch); el recorte pudo ser antes
+    #[serde(default)]
+    t: i64,
+    /// "truncated" (encogió) | "vanished" (desapareció)
+    #[serde(default)]
+    kind: String,
+    /// archivos afectados
+    #[serde(default)]
+    n: u64,
+    /// bytes perdidos
+    #[serde(default)]
+    b: u64,
+    /// "" = este PC · "wsl-<distro>" · nombre del servidor
+    #[serde(default)]
+    o: String,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct IntegrityLog {
+    #[serde(default)]
+    version: u32,
+    #[serde(default)]
+    events: Vec<IntegrityEvent>,
+}
+
+const INTEGRITY_KEEP_DAYS: i64 = 400;
+const INTEGRITY_MAX: usize = 200;
+/// Dos detecciones idénticas tan seguidas son la MISMA (el ciclo llama al
+/// escaneo varias veces por las ventanas del hub): se funden en una.
+const INTEGRITY_MERGE_SECS: i64 = 120;
+
+fn integrity_path() -> PathBuf {
+    app_data_dir().join("integrity.json")
+}
+
+/// Anota hechos nuevos. Idempotente en la práctica: el caché se guarda con el
+/// tamaño nuevo tras la pasada, así que un mismo recorte se ve UNA vez.
+fn log_integrity(evs: Vec<IntegrityEvent>) {
+    if evs.is_empty() {
+        return;
+    }
+    let mut h: IntegrityLog = fs::read_to_string(integrity_path())
+        .ok()
+        .and_then(|x| serde_json::from_str(&x).ok())
+        .unwrap_or_default();
+    h.version = 1;
+    for e in evs {
+        // cinturón y tirantes contra el doble conteo entre ventanas del hub
+        if let Some(last) = h
+            .events
+            .iter_mut()
+            .rev()
+            .find(|x| x.kind == e.kind && x.o == e.o)
+        {
+            if e.t - last.t < INTEGRITY_MERGE_SECS {
+                last.n = last.n.max(e.n);
+                last.b = last.b.max(e.b);
+                continue;
+            }
+        }
+        h.events.push(e);
+    }
+    let cutoff = Utc::now().timestamp() - INTEGRITY_KEEP_DAYS * 86_400;
+    h.events.retain(|x| x.t >= cutoff);
+    let n = h.events.len();
+    if n > INTEGRITY_MAX {
+        h.events.drain(0..n - INTEGRITY_MAX);
+    }
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(s) = serde_json::to_string(&h) {
+        let _ = fs::write(integrity_path(), s);
+    }
+}
+
+/// Hechos de integridad de los últimos `days` días. Los usa el Reporte para
+/// marcar una comparación como NO CONCLUYENTE (pieza 2) en vez de cantar una
+/// mejora que igual solo fue un borrado.
+#[tauri::command]
+async fn get_integrity(days: Option<u32>) -> Result<Vec<IntegrityEvent>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let d = i64::from(days.unwrap_or(90).clamp(1, 400));
+        let cutoff = Utc::now().timestamp() - d * 86_400;
+        let h: IntegrityLog = fs::read_to_string(integrity_path())
+            .ok()
+            .and_then(|x| serde_json::from_str(&x).ok())
+            .unwrap_or_default();
+        Ok(h.events.into_iter().filter(|x| x.t >= cutoff).collect())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+// ---------------------------------------------------------------------------
+// CUADERNITO DIARIO (pieza 3). La serie diaria se recalcula desde los .jsonl
+// en cada ciclo; si mañana los recortan, los días viejos DESAPARECEN de la
+// gráfica. Aquí se apunta cada día ya FUSIONADO (local + WSL + servidores +
+// hub), en unos KB, con el mismo patrón que quota_history.json.
+// REGLA: es RESPALDO, no jefe. Lo vivo manda siempre; el cuadernito solo
+// rellena los días que el escaneo ya no puede ver — y cuando lo hace, se
+// dice. Así un arreglo retroactivo (como el de uturns del 2026-08-14) sigue
+// corrigiendo la historia en vez de quedar fosilizado.
+// Local y privado: no viaja al hub ni a ntfy.
+// ---------------------------------------------------------------------------
+
+const DAILY_HIST_KEEP_DAYS: i64 = 400;
+
+#[derive(Serialize, Deserialize, Default)]
+struct DailyHist {
+    #[serde(default)]
+    version: u32,
+    /// "YYYY-MM-DD" -> (coste, tokens, turnos útiles)
+    #[serde(default)]
+    days: HashMap<String, DailyAgg>,
+}
+
+fn daily_hist_path() -> PathBuf {
+    app_data_dir().join("daily_history.json")
+}
+
+fn log_daily_history(daily: &[DailyAgg]) {
+    if daily.is_empty() {
+        return;
+    }
+    let mut h: DailyHist = fs::read_to_string(daily_hist_path())
+        .ok()
+        .and_then(|x| serde_json::from_str(&x).ok())
+        .unwrap_or_default();
+    h.version = 1;
+    for d in daily {
+        h.days.insert(d.date.clone(), d.clone());
+    }
+    let cutoff = (Utc::now() - Duration::days(DAILY_HIST_KEEP_DAYS))
+        .format("%Y-%m-%d")
+        .to_string();
+    h.days.retain(|k, _| k.as_str() >= cutoff.as_str());
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(s) = serde_json::to_string(&h) {
+        let _ = fs::write(daily_hist_path(), s);
+    }
+}
+
+/// El cuadernito, ordenado por fecha. El panel lo usa para rellenar los días
+/// que el escaneo ya no ve (y decirlo) y para congelar el "antes" de una
+/// marca de arreglo (pieza 4).
+#[tauri::command]
+async fn get_daily_history(days: Option<u32>) -> Result<Vec<DailyAgg>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let d = i64::from(days.unwrap_or(90).clamp(1, 400));
+        let cutoff = (Utc::now() - Duration::days(d)).format("%Y-%m-%d").to_string();
+        let h: DailyHist = fs::read_to_string(daily_hist_path())
+            .ok()
+            .and_then(|x| serde_json::from_str(&x).ok())
+            .unwrap_or_default();
+        let mut out: Vec<DailyAgg> = h
+            .days
+            .into_values()
+            .filter(|x| x.date.as_str() >= cutoff.as_str())
+            .collect();
+        out.sort_by(|a, b| a.date.cmp(&b.date));
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 fn load_scan_cache(need_from: i64) -> HashMap<String, CachedFile> {
     fs::read_to_string(scan_cache_path())
         .ok()
@@ -1760,6 +1956,9 @@ fn project_jsonls(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     out
 }
 
+/// Devuelve `true` si la raíz se pudo LEER. Importa para la integridad: con
+/// WSL apagado (o un disco desconectado) la raíz es ilegible y sus archivos
+/// "faltan" sin haberse borrado — solo se juzgan las raíces leídas.
 fn scan_projects_dir(
     projects_dir: &std::path::Path,
     suffix: Option<&str>,
@@ -1769,7 +1968,8 @@ fn scan_projects_dir(
     agg: &mut LocalAgg,
     cache_in: &HashMap<String, CachedFile>,
     cache_out: &mut HashMap<String, CachedFile>,
-) {
+    intg: &mut Vec<IntegrityEvent>,
+) -> bool {
     // "hoy" y la tendencia van con AHORA; la ventana, con el final elegido
     let day_ago = now - Duration::hours(24);
     let window_ago = end - Duration::days(window_days as i64);
@@ -1781,7 +1981,9 @@ fn scan_projects_dir(
         (now - Duration::days(30 + SCAN_SKIP_MARGIN_DAYS)).timestamp(),
         (end - Duration::days(window_days as i64 + SCAN_SKIP_MARGIN_DAYS)).timestamp(),
     );
-    let Ok(entries) = fs::read_dir(projects_dir) else { return };
+    let Ok(entries) = fs::read_dir(projects_dir) else { return false };
+    // recorte detectado en ESTA raíz: (archivos, bytes perdidos)
+    let mut shrunk: (u64, u64) = (0, 0);
 
     for proj in entries.flatten() {
         if !proj.path().is_dir() {
@@ -1817,8 +2019,17 @@ fn scan_projects_dir(
 
             // (2) ¿sigue igual que la última vez? entonces se reutiliza el parseo
             let fkey = path.to_string_lossy().to_string();
-            let cached = cache_in
-                .get(&fkey)
+            let prev = cache_in.get(&fkey);
+            // INTEGRIDAD: el archivo ENCOGIÓ = alguien lo recortó por fuera.
+            // Solo se observa (el parseo relee el archivo entero, así que no
+            // hay offset que corregir): se anota para poder decirlo.
+            if let Some(p) = prev {
+                if meta.len() < p.len {
+                    shrunk.0 += 1;
+                    shrunk.1 += p.len - meta.len();
+                }
+            }
+            let cached = prev
                 .filter(|c| c.len == meta.len() && c.mtime == mtime)
                 .cloned();
             let entry = match cached {
@@ -1915,6 +2126,16 @@ fn scan_projects_dir(
             cache_out.insert(fkey, entry);
         }
     }
+    if shrunk.0 > 0 {
+        intg.push(IntegrityEvent {
+            t: Utc::now().timestamp(),
+            kind: "truncated".into(),
+            n: shrunk.0,
+            b: shrunk.1,
+            o: suffix.unwrap_or("").to_string(),
+        });
+    }
+    true
 }
 
 /// Agrega todas las fuentes (este PC + WSL + remotos) para una ventana dada.
@@ -1951,12 +2172,18 @@ fn collect_own_stats(
     );
     let cache_in = load_scan_cache(keep_after);
     let mut cache_out: HashMap<String, CachedFile> = HashMap::new();
+    // integridad: hechos de esta pasada y raíces que SÍ se pudieron leer
+    let mut intg: Vec<IntegrityEvent> = Vec::new();
+    let mut roots_ok: Vec<(String, String)> = Vec::new(); // (ruta, origen)
 
     // 1) Este PC
-    scan_projects_dir(
-        &claude_dir().join("projects"), None, now, end, window_days, &mut agg,
-        &cache_in, &mut cache_out,
-    );
+    let own_root = claude_dir().join("projects");
+    if scan_projects_dir(
+        &own_root, None, now, end, window_days, &mut agg,
+        &cache_in, &mut cache_out, &mut intg,
+    ) {
+        roots_ok.push((own_root.to_string_lossy().into_owned(), String::new()));
+    }
     // 2) Distros WSL (si existen): misma máquina, cero configuración
     // Sufijo "wsl-<distro>" (p. ej. "wsl-Ubuntu"). Dos cosas en una: sin el
     // nombre, Ubuntu y Debian caían bajo la misma etiqueta y no había forma
@@ -1965,11 +2192,47 @@ fn collect_own_stats(
     // (2026-07-29, idea de Oscar).
     for (distro, d) in wsl_claude_dirs() {
         let tag = format!("wsl-{distro}");
-        scan_projects_dir(
-            &d.join("projects"), Some(&tag), now, end, window_days, &mut agg,
-            &cache_in, &mut cache_out,
-        );
+        let root = d.join("projects");
+        if scan_projects_dir(
+            &root, Some(&tag), now, end, window_days, &mut agg,
+            &cache_in, &mut cache_out, &mut intg,
+        ) {
+            roots_ok.push((root.to_string_lossy().into_owned(), tag));
+        }
     }
+    // INTEGRIDAD (pieza 1, la mitad de los DESAPARECIDOS): lo que estaba en
+    // el caché y ya no está en disco. Solo cuenta si su raíz se pudo LEER en
+    // esta pasada (con WSL apagado sus archivos "faltan" sin haberse borrado)
+    // y solo si de verdad no existe (un archivo que simplemente envejeció
+    // fuera de la ventana sigue en su sitio y no se toca).
+    {
+        let mut gone: HashMap<String, (u64, u64)> = HashMap::new();
+        for (fkey, c) in &cache_in {
+            if cache_out.contains_key(fkey) {
+                continue;
+            }
+            let Some((_, origin)) = roots_ok.iter().find(|(r, _)| fkey.starts_with(r.as_str()))
+            else {
+                continue; // raíz ilegible o no escaneada: no se juzga
+            };
+            if std::path::Path::new(fkey).exists() {
+                continue; // sigue ahí; solo salió de la ventana
+            }
+            let e = gone.entry(origin.clone()).or_insert((0, 0));
+            e.0 += 1;
+            e.1 += c.len;
+        }
+        for (origin, (n, b)) in gone {
+            intg.push(IntegrityEvent {
+                t: Utc::now().timestamp(),
+                kind: "vanished".into(),
+                n,
+                b,
+                o: origin,
+            });
+        }
+    }
+    log_integrity(intg);
     // solo lo visto en esta pasada: los archivos borrados o ya fuera de
     // ventana desaparecen del caché por sí solos
     save_scan_cache(cache_out, keep_after);
@@ -2016,6 +2279,7 @@ fn collect_own_stats(
         hosts: Vec::new(),   // se rellena al leer los servidores, más abajo
         findings: Vec::new(), // solo los llena get_findings, bajo demanda
         waste: Waste::default(), // ídem: nace en la pasada de findings
+        integrity: Vec::new(),   // lo llena el exportador; aquí, nunca
         hub_skipped: false,   // lo enciende collect_local_stats si toca
     };
     (stats, daily_map)
@@ -2092,6 +2356,17 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
     // proyectos etiquetados con su origen, modelos y serie diaria agregados.
     for r in remotes {
         let Some(remote) = fetch_remote(&r, window_days, false, false, end_ts) else { continue };
+        // INTEGRIDAD del servidor (pieza 1): el exportador la detecta con SU
+        // propio caché y la manda; aquí solo se etiqueta con el nombre que el
+        // usuario le dio y se guarda en el registro local.
+        if !remote.integrity.is_empty() {
+            let evs = remote
+                .integrity
+                .iter()
+                .map(|e| IntegrityEvent { o: r.name.clone(), ..e.clone() })
+                .collect();
+            log_integrity(evs);
+        }
         stats.cost_today += remote.cost_today;
         stats.cost_week += remote.cost_week;
         stats.tokens_week += remote.tokens_week;
@@ -2182,6 +2457,13 @@ fn collect_local_stats(window_days: u32, end_ts: Option<i64>) -> LocalStats {
         .map(|(date, c)| DailyAgg { date, cost: c.0, tokens: c.1, uturns: c.2 })
         .collect();
     daily.sort_by(|a, b| a.date.cmp(&b.date));
+    // CUADERNITO (pieza 3): la serie ya FUSIONADA se apunta en disco propio.
+    // Solo en el camino normal: con un rango al pasado las fotos del hub se
+    // descartan (hub_skipped) y lo remoto llega de otra ventana — apuntar eso
+    // grabaría un día incompleto encima de uno bueno.
+    if end_ts.is_none() {
+        log_daily_history(&daily);
+    }
     stats.daily = daily;
 
     stats
@@ -7278,6 +7560,8 @@ pub fn run() {
             get_findings,
             log_quota,
             get_quota_history,
+            get_integrity,
+            get_daily_history,
             pill_moved,
             get_ntfy,
             save_ntfy,
