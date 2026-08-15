@@ -1003,6 +1003,19 @@ COACH_CTX_PCT = 60
 COACH_GAP_MIN = 6
 COACH_GAP_CTX = 30_000
 COACH_REREAD = 3
+# Capturas de pantalla miradas en la sesión (Read sobre una IMAGEN): NO son
+# relecturas — el archivo se regenera entre una y otra (revision.png ×19 en
+# sparky-site, 2026-08-15, disparó "attach" y el consejo no aplicaba) — pero
+# cada una entra al contexto y viaja en todos los turnos siguientes. Regla
+# aparte "shots" con su propio consejo. Réplica del Rust.
+COACH_SHOTS = 10
+IMG_EXT = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg")
+
+
+def is_image_path(p):
+    return str(p).lower().endswith(IMG_EXT)
+
+
 COACH_SUM_QUIET = 10
 COACH_SUM_MIN_TURNS = 5
 COACH_DONE_QUIET = 5
@@ -1019,6 +1032,8 @@ def coach_state_path():
 def _coach_default():
     return {"offset": 0, "last_ctx": 0, "first_turn": 0, "last_turn": 0,
             "turns": 0, "cmds": 0, "reads": {}, "edits": [], "tool_ids": [],
+            # capturas (imágenes leídas) por ruta — aparte de reads
+            "shots": {},
             "title": "", "proj": "", "cost": 0.0, "gaps": 0, "done": False,
             "notified": False, "asked": False, "pending_tool": False,
             # señales del clasificador de tarea viva (réplica del Rust,
@@ -1049,6 +1064,9 @@ def coach_leaks(st):
         f, n = max(reread, key=lambda x: x[1])
         base = f.replace("\\", "/").rsplit("/", 1)[-1]
         out.append({"kind": "reread", "file": base, "n": n})
+    shots = sum(st.get("shots", {}).values())
+    if shots >= COACH_SHOTS:
+        out.append({"kind": "shots", "file": "", "n": shots})
     if st["last_ctx"] >= (ctx_full(st.get("model", ""), st.get("ctx_seen", 0))
                           * COACH_CTX_PCT // 100):
         out.append({"kind": "ctx", "file": "", "n": st["last_ctx"] // 1000})
@@ -1089,6 +1107,10 @@ def coach_scan(projects_dir):
                 # completar campos si el estado viene de una versión vieja
                 for k, v in _coach_default().items():
                     st.setdefault(k, v)
+                # estado de antes de 2026-08-15: las imágenes contaban como
+                # relecturas — se mudan a shots una sola vez
+                for k in [k for k in st["reads"] if is_image_path(k)]:
+                    st["shots"][k] = st["shots"].get(k, 0) + st["reads"].pop(k)
                 size = st_f.st_size
                 if size < st["offset"]:
                     st = _coach_default()   # truncado: de cero
@@ -1196,7 +1218,10 @@ def coach_scan(projects_dir):
                                 inp = b.get("input") or {}
                                 if name == "Read" and inp.get("file_path"):
                                     fpx = inp["file_path"]
-                                    st["reads"][fpx] = st["reads"].get(fpx, 0) + 1
+                                    if is_image_path(fpx):
+                                        st["shots"][fpx] = st["shots"].get(fpx, 0) + 1
+                                    else:
+                                        st["reads"][fpx] = st["reads"].get(fpx, 0) + 1
                                     st["trail"].append(fpx)
                                 elif name == "Bash":
                                     st["cmds"] += 1
@@ -1240,9 +1265,20 @@ def coach_scan(projects_dir):
                 if (st["last_turn"] > 0 and gap_min >= COACH_GAP_MIN
                         and st["last_ctx"] >= COACH_GAP_CTX):
                     hit("cache", max(gap_min, 0))
-                reread = [n for n in st["reads"].values() if n >= COACH_REREAD]
+                reread = [(f, n) for f, n in st["reads"].items()
+                          if n >= COACH_REREAD]
                 if reread:
-                    hit("attach", max(reread))
+                    # el nombre del archivo viaja (aditivo): la ficha dice
+                    # QUÉ releyó Claude — sin él el usuario creía que la
+                    # regla hablaba de lo que ÉL pegaba (Oscar 2026-08-15)
+                    f, n = max(reread, key=lambda x: x[1])
+                    hit("attach", n,
+                        file=f.replace("\\", "/").rsplit("/", 1)[-1])
+                shots = st.get("shots", {})
+                if sum(shots.values()) >= COACH_SHOTS:
+                    f = max(shots, key=shots.get)
+                    hit("shots", sum(shots.values()),
+                        file=f.replace("\\", "/").rsplit("/", 1)[-1])
                 quiet_min = max(0, now - mtime) // 60
                 # manómetro (docs/remediacion.md etapa 1): presión de contexto
                 # de la sesión activa — dato puro, sin compuertas (como en Rust)

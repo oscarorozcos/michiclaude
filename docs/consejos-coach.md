@@ -242,7 +242,20 @@ como las de Hallazgos:
    200k y el umbral queda en los 120k de antes) → ficha `compact`;
    pausa ≥6 min con contexto ≥30k (COACH_GAP_MIN/_CTX) → ficha `cache`;
    mismo archivo leído ≥3 veces (COACH_REREAD, dedup por id de tool_use)
-   → ficha `attach`. El backend solo reporta HECHOS ({rule, session,
+   → ficha `attach`; SOLO archivos de texto: desde 2026-08-15 un `Read`
+   sobre una IMAGEN (`IMG_EXT`: png/jpg/jpeg/webp/gif/bmp/svg,
+   `is_image_path` en los dos motores) va a `shots`, no a `reads`. Caso
+   real: sparky-site, `revision.png` leído 19 veces — Claude iteraba un
+   diseño mirando la captura tras cada retoque, el archivo se REGENERABA
+   entre lecturas y "attach" (pegar el mismo código) no aplicaba; peor,
+   Oscar entendió que hablaba de lo que ÉL pegaba. Regla nueva `shots`:
+   ≥`COACH_SHOTS` (10) imágenes miradas en la sesión → ficha `shots`
+   ("muchas capturas": pide captura al final de cada tanda, o recortada)
+   y ⚠ `shots` en el recibo. Los dos hits llevan `file` (nombre sin
+   ruta, aditivo) para que la línea "Ahora:" diga QUÉ leyó Claude —
+   sujeto explícito, "Claude leyó X n veces". El detector `reread` de
+   Hallazgos no necesitó cambio: mide chars devueltos y una imagen da 0.
+   El backend solo reporta HECHOS ({rule, session,
    value}); el anti-spam vive en el frontend: una vez por sesión por
    regla (tipSeen, tope 300) + tope diario global de 5 (tipDay). La ficha
    disparada sale PRIMERA, abierta y con la línea "Ahora: <dato medido>"

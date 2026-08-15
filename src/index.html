@@ -2145,8 +2145,11 @@ en:{
   tip_now_cache:n=>`Now: ${n} min pause with a big context — the cache has expired`,
   tip_acomp_t:"Claude Code compacted on its own",
   tip_acomp_b:"When a session hits its context ceiling, Claude Code compresses the conversation by itself so it can keep going — that is why the pressure gauge just dropped. It works, but the machine picks the moment, right in the middle of whatever you were doing. If you run /compact yourself at a natural pause (a task just finished), you pick the moment and the summary comes out better.",
+  tip_shots_t:"Many screenshots in one session",
+  tip_shots_b:"Every screenshot Claude looks at goes into the context and travels with every turn after that — a look-tweak-look loop can pile up dozens. When iterating on a design, ask for a screenshot only at the end of each batch of changes (or cropped to the area that changed), not after every tweak.",
   tip_now_acomp:v=>`Now: it self-compacted carrying ~${v}k tokens`,
-  tip_now_attach:n=>`Now: one file was read ${n} times in this session`,
+  tip_now_attach:(n,f)=>`Now: Claude read ${f?f+" ":""}${n} times in this session`,
+  tip_now_shots:(n,f)=>`Now: Claude looked at ${n} screenshots${f?" ("+f+")":""} in this session`,
   tip_sum_t:"Session recap",
   tip_sum_line:(m,c,e)=>`${m} min · ${c} commands · ${e} files edited`,
   fnd_ignore:"Ignore",
@@ -2361,6 +2364,7 @@ en:{
   tip_leak_ctx:k=>`context ended at ${k}k tokens without /clear`,
   tip_leak_cache:k=>`closed with ${k}k tokens in context — the cache expired during the pause`,
   tip_leak_gap:n=>n===1?"1 long pause re-wrote the cache":`${n} long pauses re-wrote the cache`,
+  tip_leak_shots:n=>`${n} screenshots went into the context`,
   ntfy_promise:"You can turn the PC off \u2014 I\u2019ll ping you when it\u2019s back \ud83d\udc31",
   ntfy_regen:"New channel",
   ntfy_regen_sure:"Replace it?",
@@ -2675,8 +2679,11 @@ es:{
   tip_now_cache:n=>`Ahora: ${n} min de pausa con contexto grande — el caché ya venció`,
   tip_acomp_t:"Claude Code compactó por su cuenta",
   tip_acomp_b:"Cuando una sesión llega a su techo de contexto, Claude Code comprime la conversación él solo para poder seguir — por eso el manómetro bajó de golpe. Funciona, pero el momento lo elige la máquina, en mitad de lo que estuvieras haciendo. Si aplicas /compact tú en una pausa natural (una tarea recién terminada), el momento lo eliges tú y el resumen sale mejor.",
+  tip_shots_t:"Muchas capturas en una sesión",
+  tip_shots_b:"Cada captura que Claude mira entra al contexto y viaja en todos los turnos siguientes — un bucle de mirar-retocar-mirar acumula decenas. Cuando itere un diseño, pídele que verifique con captura solo al final de cada tanda de cambios (o recortada a la zona que cambió), no en cada retoque.",
   tip_now_acomp:v=>`Ahora: se compactó solo llevando ~${v}k tokens`,
-  tip_now_attach:n=>`Ahora: un mismo archivo se leyó ${n} veces en esta sesión`,
+  tip_now_attach:(n,f)=>`Ahora: Claude leyó ${f?f+" ":"el mismo archivo "}${n} veces en esta sesión`,
+  tip_now_shots:(n,f)=>`Ahora: Claude miró ${n} capturas de pantalla${f?" ("+f+")":""} en esta sesión`,
   tip_sum_t:"Resumen de la sesión",
   tip_sum_line:(m,c,e)=>`${m} min · ${c} comandos · ${e} archivos editados`,
   fnd_ignore:"Ignorar",
@@ -2891,6 +2898,7 @@ es:{
   tip_leak_ctx:k=>`el contexto terminó en ${k}k tokens sin /clear`,
   tip_leak_cache:k=>`cerró con ${k}k tokens de contexto — el caché venció en la pausa`,
   tip_leak_gap:n=>n===1?"1 pausa larga reescribió el caché":`${n} pausas largas reescribieron el caché`,
+  tip_leak_shots:n=>`${n} capturas entraron al contexto`,
   ntfy_promise:"Puedes apagar la compu: yo te aviso cuando vuelva 🐱",
   ntfy_regen:"Canal nuevo",
   ntfy_regen_sure:"¿Reemplazarlo?",
@@ -3205,8 +3213,11 @@ pt:{
   tip_now_cache:n=>`Agora: ${n} min de pausa com contexto grande — o cache já venceu`,
   tip_acomp_t:"O Claude Code compactou sozinho",
   tip_acomp_b:"Quando uma sessão chega ao teto de contexto, o Claude Code comprime a conversa sozinho para poder continuar — por isso o manômetro caiu de repente. Funciona, mas o momento é escolhido pela máquina, no meio do que você estava fazendo. Se você aplicar /compact numa pausa natural (uma tarefa recém-terminada), o momento é seu e o resumo sai melhor.",
+  tip_shots_t:"Muitas capturas em uma sessão",
+  tip_shots_b:"Cada captura que o Claude olha entra no contexto e viaja em todos os turnos seguintes — um ciclo de olhar-ajustar-olhar acumula dezenas. Ao iterar um design, peça captura só no fim de cada leva de mudanças (ou recortada à área que mudou), não a cada ajuste.",
   tip_now_acomp:v=>`Agora: compactou sozinho carregando ~${v}k tokens`,
-  tip_now_attach:n=>`Agora: um mesmo arquivo foi lido ${n} vezes nesta sessão`,
+  tip_now_attach:(n,f)=>`Agora: o Claude leu ${f?f+" ":"o mesmo arquivo "}${n} vezes nesta sessão`,
+  tip_now_shots:(n,f)=>`Agora: o Claude olhou ${n} capturas de tela${f?" ("+f+")":""} nesta sessão`,
   tip_sum_t:"Resumo da sessão",
   tip_sum_line:(m,c,e)=>`${m} min · ${c} comandos · ${e} arquivos editados`,
   fnd_ignore:"Ignorar",
@@ -3421,6 +3432,7 @@ pt:{
   tip_leak_ctx:k=>`o contexto terminou em ${k}k tokens sem /clear`,
   tip_leak_cache:k=>`fechou com ${k}k tokens de contexto — o cache venceu na pausa`,
   tip_leak_gap:n=>n===1?"1 pausa longa reescreveu o cache":`${n} pausas longas reescreveram o cache`,
+  tip_leak_shots:n=>`${n} capturas entraram no contexto`,
   ntfy_promise:"Pode desligar o PC: eu te aviso quando voltar 🐱",
   ntfy_regen:"Canal novo",
   ntfy_regen_sure:"Substituir?",
@@ -3735,8 +3747,11 @@ fr:{
   tip_now_cache:n=>`Maintenant : ${n} min de pause avec un gros contexte — le cache a expiré`,
   tip_acomp_t:"Claude Code a compacté tout seul",
   tip_acomp_b:"Quand une session atteint son plafond de contexte, Claude Code compresse la conversation lui-même pour continuer — c’est pour ça que la jauge vient de chuter. Ça marche, mais c’est la machine qui choisit le moment, en plein milieu de ce que tu faisais. Si tu lances /compact toi-même à une pause naturelle (une tâche qui vient de se terminer), tu choisis le moment et le résumé est meilleur.",
+  tip_shots_t:"Beaucoup de captures dans une session",
+  tip_shots_b:"Chaque capture que Claude regarde entre dans le contexte et voyage à chaque tour suivant — une boucle regarder-retoucher-regarder en accumule des dizaines. Quand tu itères sur un design, demande une capture seulement à la fin de chaque série de changements (ou recadrée sur la zone modifiée), pas à chaque retouche.",
   tip_now_acomp:v=>`Maintenant : auto-compacté avec ~${v}k tokens`,
-  tip_now_attach:n=>`Maintenant : un même fichier a été lu ${n} fois dans cette session`,
+  tip_now_attach:(n,f)=>`Maintenant : Claude a lu ${f?f+" ":"le même fichier "}${n} fois dans cette session`,
+  tip_now_shots:(n,f)=>`Maintenant : Claude a regardé ${n} captures d’écran${f?" ("+f+")":""} dans cette session`,
   tip_sum_t:"Résumé de la session",
   tip_sum_line:(m,c,e)=>`${m} min · ${c} commandes · ${e} fichiers modifiés`,
   fnd_ignore:"Ignorer",
@@ -3951,6 +3966,7 @@ fr:{
   tip_leak_ctx:k=>`le contexte a fini à ${k}k tokens sans /clear`,
   tip_leak_cache:k=>`fermée avec ${k}k tokens de contexte — le cache a expiré pendant la pause`,
   tip_leak_gap:n=>n===1?"1 longue pause a réécrit le cache":`${n} longues pauses ont réécrit le cache`,
+  tip_leak_shots:n=>`${n} captures sont entrées dans le contexte`,
   ntfy_promise:"Vous pouvez éteindre le PC : je vous préviens au retour 🐱",
   ntfy_regen:"Nouveau canal",
   ntfy_regen_sure:"Le remplacer ?",
@@ -4265,8 +4281,11 @@ de:{
   tip_now_cache:n=>`Jetzt: ${n} Min. Pause mit großem Kontext — der Cache ist abgelaufen`,
   tip_acomp_t:"Claude Code hat von selbst kompaktiert",
   tip_acomp_b:"Erreicht eine Sitzung ihre Kontextgrenze, komprimiert Claude Code die Unterhaltung selbst, um weitermachen zu können — deshalb ist die Druckanzeige gerade eingebrochen. Es funktioniert, aber den Moment wählt die Maschine, mitten in dem, was du gerade tatest. Wendest du /compact selbst in einer natürlichen Pause an (eine gerade abgeschlossene Aufgabe), wählst du den Moment und die Zusammenfassung wird besser.",
+  tip_shots_t:"Viele Screenshots in einer Sitzung",
+  tip_shots_b:"Jeder Screenshot, den Claude ansieht, landet im Kontext und reist in jedem weiteren Zug mit — eine Schleife aus Ansehen-Nachbessern-Ansehen häuft Dutzende an. Beim Iterieren an einem Design nur am Ende jeder Änderungsrunde einen Screenshot verlangen (oder auf den geänderten Bereich zugeschnitten), nicht nach jedem Handgriff.",
   tip_now_acomp:v=>`Jetzt: selbst kompaktiert mit ~${v}k Tokens`,
-  tip_now_attach:n=>`Jetzt: dieselbe Datei wurde in dieser Sitzung ${n}-mal gelesen`,
+  tip_now_attach:(n,f)=>`Jetzt: Claude hat ${f?f:"dieselbe Datei"} in dieser Sitzung ${n}-mal gelesen`,
+  tip_now_shots:(n,f)=>`Jetzt: Claude hat in dieser Sitzung ${n} Screenshots${f?" ("+f+")":""} angesehen`,
   tip_sum_t:"Sitzungsüberblick",
   tip_sum_line:(m,c,e)=>`${m} Min. · ${c} Befehle · ${e} Dateien bearbeitet`,
   fnd_ignore:"Ignorieren",
@@ -4481,6 +4500,7 @@ de:{
   tip_leak_ctx:k=>`Kontext endete bei ${k}k Tokens ohne /clear`,
   tip_leak_cache:k=>`endete mit ${k}k Tokens Kontext — der Cache ist in der Pause abgelaufen`,
   tip_leak_gap:n=>n===1?"1 lange Pause hat den Cache neu geschrieben":`${n} lange Pausen haben den Cache neu geschrieben`,
+  tip_leak_shots:n=>`${n} Screenshots landeten im Kontext`,
   ntfy_promise:"Du kannst den PC ausschalten: ich melde mich, wenn es weitergeht 🐱",
   ntfy_regen:"Neuer Kanal",
   ntfy_regen_sure:"Ersetzen?",
@@ -4795,8 +4815,11 @@ ja:{
   tip_now_cache:n=>`いま: 大きなコンテキストのまま${n}分の休止 — キャッシュは切れています`,
   tip_acomp_t:"Claude Code が自動でコンパクトしました",
   tip_acomp_b:"セッションがコンテキストの上限に達すると、Claude Code は続行のために会話を自分で圧縮します — プレッシャー計が急に下がったのはそのためです。機能はしますが、タイミングは作業の途中でマシンが決めます。区切りのよい所（タスクを終えた直後）で自分で /compact をかければ、タイミングを選べて要約の質も上がります。",
+  tip_shots_t:"1セッションでスクリーンショットが多すぎます",
+  tip_shots_b:"Claude が見るスクリーンショットはすべてコンテキストに入り、以降のすべてのターンで運ばれます — 見る・直す・見るの繰り返しで数十枚たまります。デザインを詰めるときは、変更のひと区切りごとの最後だけ（または変更箇所だけを切り抜いて）撮るよう頼み、毎回の微調整では撮らせないでください。",
   tip_now_acomp:v=>`いま: 約${v}kトークンで自動コンパクトされました`,
-  tip_now_attach:n=>`いま: 同じファイルがこのセッションで${n}回読まれました`,
+  tip_now_attach:(n,f)=>`いま: Claude が${f?f:"同じファイル"}をこのセッションで${n}回読みました`,
+  tip_now_shots:(n,f)=>`いま: Claude がこのセッションでスクリーンショットを${n}枚${f?"（"+f+"）":""}見ました`,
   tip_sum_t:"セッションのまとめ",
   tip_sum_line:(m,c,e)=>`${m}分 · コマンド${c}回 · 編集ファイル${e}件`,
   fnd_ignore:"無視",
@@ -5011,6 +5034,7 @@ ja:{
   tip_leak_ctx:k=>`/clear なしでコンテキストが${k}kトークンに`,
   tip_leak_cache:k=>`${k}kトークンのコンテキストのまま終了 — 休止中にキャッシュが失効`,
   tip_leak_gap:n=>`長い休止${n}回でキャッシュを書き直し`,
+  tip_leak_shots:n=>`スクリーンショット${n}枚がコンテキストに入った`,
   ntfy_promise:"PCを消して大丈夫。回復したらお知らせします 🐱",
   ntfy_regen:"チャンネル再生成",
   ntfy_regen_sure:"置き換えますか？",
@@ -5325,8 +5349,11 @@ ko:{
   tip_now_cache:n=>`지금: 큰 컨텍스트로 ${n}분 휴지 — 캐시가 만료되었습니다`,
   tip_acomp_t:"Claude Code가 스스로 컴팩트했습니다",
   tip_acomp_b:"세션이 컨텍스트 상한에 도달하면 Claude Code는 계속하기 위해 대화를 스스로 압축합니다 — 압력 게이지가 갑자기 내려간 이유입니다. 동작은 하지만 시점은 작업 도중에 기계가 정합니다. 자연스러운 멈춤(작업을 막 끝낸 때)에 직접 /compact 를 실행하면 시점을 당신이 고르고 요약도 더 좋아집니다.",
+  tip_shots_t:"한 세션에 스크린샷이 너무 많습니다",
+  tip_shots_b:"Claude가 보는 스크린샷은 모두 컨텍스트에 들어가 이후 모든 턴에 함께 실립니다 — 보고-고치고-보는 반복이면 수십 장이 쌓입니다. 디자인을 다듬을 때는 변경 묶음이 끝날 때만(또는 바뀐 부분만 잘라서) 스크린샷을 찍게 하고, 매번 손볼 때마다 찍지 않게 하세요.",
   tip_now_acomp:v=>`지금: 약 ${v}k 토큰에서 자동 컴팩트됨`,
-  tip_now_attach:n=>`지금: 같은 파일을 이 세션에서 ${n}번 읽었습니다`,
+  tip_now_attach:(n,f)=>`지금: Claude가 ${f?f:"같은 파일"}을(를) 이 세션에서 ${n}번 읽었습니다`,
+  tip_now_shots:(n,f)=>`지금: Claude가 이 세션에서 스크린샷 ${n}장${f?" ("+f+")":""}을 봤습니다`,
   tip_sum_t:"세션 요약",
   tip_sum_line:(m,c,e)=>`${m}분 · 명령 ${c}회 · 편집한 파일 ${e}개`,
   fnd_ignore:"무시",
@@ -5541,6 +5568,7 @@ ko:{
   tip_leak_ctx:k=>`/clear 없이 컨텍스트가 ${k}k 토큰까지 커짐`,
   tip_leak_cache:k=>`${k}k 토큰의 컨텍스트로 종료 — 휴식 중 캐시가 만료됨`,
   tip_leak_gap:n=>`긴 휴식 ${n}번으로 캐시를 다시 씀`,
+  tip_leak_shots:n=>`스크린샷 ${n}장이 컨텍스트에 들어감`,
   ntfy_promise:"PC를 꺼도 돼요. 복구되면 알려드릴게요 🐱",
   ntfy_regen:"새 채널",
   ntfy_regen_sure:"교체할까요?",
@@ -5855,8 +5883,11 @@ zh:{
   tip_now_cache:n=>`现在: 带着大上下文暂停了 ${n} 分钟——缓存已过期`,
   tip_acomp_t:"Claude Code 自行进行了压缩",
   tip_acomp_b:"会话到达上下文上限时，Claude Code 会自己压缩对话以便继续——这就是压力表突然下降的原因。它有效，但时机由机器决定，往往在你正做到一半的时候。如果你在自然的停顿点（刚完成一个任务）自己执行 /compact，时机由你选，摘要质量也更好。",
+  tip_shots_t:"一个会话里截图太多",
+  tip_shots_b:"Claude 看的每张截图都会进入上下文，并在之后的每一轮里被带着走——看一眼、改一点、再看一眼的循环会攒下几十张。打磨设计时，让它只在每一批修改结束时截图（或只截改动的区域），不要每次微调都截。",
   tip_now_acomp:v=>`现在: 携带约 ${v}k tokens 时自行压缩`,
-  tip_now_attach:n=>`现在: 同一个文件在这个会话里被读了 ${n} 次`,
+  tip_now_attach:(n,f)=>`现在: Claude 在这个会话里读了${f?" "+f+" ":"同一个文件 "}${n} 次`,
+  tip_now_shots:(n,f)=>`现在: Claude 在这个会话里看了 ${n} 张截图${f?"（"+f+"）":""}`,
   tip_sum_t:"会话小结",
   tip_sum_line:(m,c,e)=>`${m} 分钟 · ${c} 条命令 · 编辑了 ${e} 个文件`,
   fnd_ignore:"忽略",
@@ -6071,6 +6102,7 @@ zh:{
   tip_leak_ctx:k=>`上下文在没有 /clear 的情况下达到 ${k}k tokens`,
   tip_leak_cache:k=>`以 ${k}k tokens 的上下文结束 — 缓存已在暂停中过期`,
   tip_leak_gap:n=>`${n} 次长暂停导致缓存重写`,
+  tip_leak_shots:n=>`${n} 张截图进入了上下文`,
   ntfy_promise:"可以关电脑了：恢复时我会通知你 🐱",
   ntfy_regen:"新频道",
   ntfy_regen_sure:"确定更换？",
@@ -7767,7 +7799,7 @@ function renderRemotes(){
 // Catálogo de fichas curadas (docs/consejos-coach.md). El contenido vive en
 // I18N como todo texto visible; aquí solo van los ids, en el orden en que
 // se muestran. Acordeón + filtro del lado del cliente — cero red, cero IA.
-const TIPS=["clear","compact","cache","attach","ask","model","acomp"];
+const TIPS=["clear","compact","cache","attach","shots","ask","model","acomp"];
 function renderTips(){
   const q=($("tipFilter").value||"").toLowerCase();
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -7888,7 +7920,7 @@ function renderTips(){
         h?` data-ck="${esc(h.rule+"|"+h.session)}"`:""}>
       ${h?`<button class="tip-x" aria-label="✕">✕</button>`:""}
       <div class="fnd-t">${t("tip_"+id+"_t")}</div>
-      ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value)} — ${donde}</div>`:""}
+      ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value,esc(h.file||""))} — ${donde}</div>`:""}
       <div class="fnd-f">${withCmds(t("tip_"+id+"_b"))}</div>
     </div>`;};
   for(const id of ids){ if(id in hot) live.push({born:hot[id].born||0, html:tipHtml(id)}); }
@@ -8104,6 +8136,7 @@ function tipLeak(l){
   if(l.kind==="ctx")    return t("tip_leak_ctx", l.n);
   if(l.kind==="cache")  return t("tip_leak_cache", l.n);
   if(l.kind==="gap")    return t("tip_leak_gap", l.n);
+  if(l.kind==="shots")  return t("tip_leak_shots", l.n);
   return "";
 }
 function ntfyDone(list){

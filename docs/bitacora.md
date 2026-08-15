@@ -4727,3 +4727,24 @@ Nota de mantenimiento: CLAUDE.md pasó por su primera PODA (el bloque de
 validación pasiva narraba historia que ya vive en remediacion.md y la
 bitácora); quedó en 39.7k. La regla desde hoy: cada entrada nueva ahí
 viene con una poda equivalente.
+
+## 2026-08-15 (noche) — falso positivo del coach: capturas ≠ relecturas
+
+Oscar monitoreó con MichiClaude una sesión de otro proyecto (sparky-site,
+VPS) y llegó la ficha "Menciona el archivo, no lo pegues" con "un mismo
+archivo se leyó 19 veces". Él no había pegado nada dos veces. Autopsia
+en `coach_state.json`: `reads` tenía `scratchpad/revision.png` ×19 —
+Claude iteraba el diseño mirando la captura tras cada retoque. Dos
+errores en uno: la regla `attach` mezclaba "releer el mismo texto" con
+"mirar una captura regenerada", y la ficha hablaba sin sujeto ("se
+leyó"), así que el usuario se creía el culpable.
+
+Arreglo en las tres piezas (invariante #1): `Read` sobre imagen
+(`IMG_EXT`) → `shots`, aparte de `reads`; regla nueva `shots` (≥10, ficha
+"Muchas capturas en una sesión" ×8 idiomas, ⚠ en el recibo); hits
+`attach`/`shots` llevan `file` (nombre sin ruta, aditivo) y la línea
+"Ahora:" dice "Claude leyó revision.png 19 veces". `trail` (continuidad)
+sigue contando las imágenes: son archivos con los que se trabaja. El
+`reread` de Hallazgos no cambia (mide chars; una imagen da 0). La ficha
+`cache` de esa misma sesión (6 min de pausa con 235k) era legítima.
+`cargo check` pendiente en Windows (el VPS no tiene toolchain).

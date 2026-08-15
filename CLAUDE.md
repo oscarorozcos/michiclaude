@@ -385,7 +385,9 @@ NO lleva `usage`: no se puede facturar, solo se ve en cuota.
 Reglas: ctx ≥60% del techo (`COACH_CTX_PCT`×`ctx_full`, antes 120k
 fijos; el ⚠ "ctx" de `coach_leaks` usa el MISMO umbral) → compact;
 pausa≥6 min con ctx≥30k → cache; mismo
-archivo leído ≥3 → attach; `ask` (tool_use sin tool_result ≥3 min) y
+archivo leído ≥3 → attach (SOLO texto; imágenes → `shots` ≥10, ficha
+propia; ambos hits llevan `file`, la línea "Ahora:" dice QUÉ leyó Claude —
+2026-08-15); `ask` (tool_use sin tool_result ≥3 min) y
 `done` (quieta 5 min, 5+ turnos) son SOLO push, no fichas; `sum` (quieta 10 min) = recibo con
 título AI, min/comandos/archivos, `· ~$X` y ⚠ de `coach_leaks()` (kinds
 attach/compact/cache; ctx y cache EXCLUYENTES; cerrar con ctx≥30k es fuga

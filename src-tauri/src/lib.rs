@@ -3656,6 +3656,18 @@ const COACH_CTX_PCT: u64 = 60;
 const COACH_GAP_MIN: i64 = 6; // minutos de pausa para avisar del caché vencido
 const COACH_GAP_CTX: u64 = 30_000; // ...solo si hay contexto que valga la pena
 const COACH_REREAD: u32 = 3; // lecturas del mismo archivo en la sesión
+// Capturas de pantalla miradas en la sesión (Read sobre una IMAGEN): NO son
+// relecturas — el archivo se regenera entre una y otra (revision.png ×19 en
+// sparky-site, 2026-08-15, disparó "attach" y el consejo no aplicaba) — pero
+// cada una entra al contexto y viaja en todos los turnos siguientes. Regla
+// aparte "shots" con su propio consejo. Réplica en el exportador.
+const COACH_SHOTS: u32 = 10;
+const IMG_EXT: [&str; 7] = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"];
+
+fn is_image_path(p: &str) -> bool {
+    let l = p.to_ascii_lowercase();
+    IMG_EXT.iter().any(|e| l.ends_with(e))
+}
 const COACH_SUM_QUIET: i64 = 10; // minutos quieta = sesión terminada: resumen
 const COACH_SUM_MIN_TURNS: u64 = 5; // por debajo no hay nada que resumir
 // Aviso al celular de "tu agente terminó": antes que el resumen (que es una
@@ -3686,6 +3698,7 @@ struct CoachSess {
     turns: u64,
     cmds: u64,          // tool_use Bash (comandos ejecutados)
     reads: HashMap<String, u32>,
+    shots: HashMap<String, u32>, // capturas (imágenes leídas) por ruta — aparte
     edits: HashSet<String>, // archivos tocados con Edit/Write/NotebookEdit
     tool_ids: HashSet<String>, // dedup de tool_use (reanudaciones copian líneas)
     title: String,      // ai-title del log — SOLO display, campo interno
@@ -3753,6 +3766,10 @@ fn coach_leaks(st: &CoachSess) -> Vec<CoachLeak> {
         let base = base.rsplit('/').next().unwrap_or(f).to_string();
         out.push(CoachLeak { kind: "reread".into(), file: base, n: *n as u64 });
     }
+    let shots: u32 = st.shots.values().sum();
+    if shots >= COACH_SHOTS {
+        out.push(CoachLeak { kind: "shots".into(), file: String::new(), n: shots as u64 });
+    }
     if st.last_ctx >= ctx_full(&st.model, st.ctx_seen) * COACH_CTX_PCT / 100 {
         out.push(CoachLeak { kind: "ctx".into(), file: String::new(), n: st.last_ctx / 1000 });
     } else if st.last_ctx >= COACH_GAP_CTX {
@@ -3817,6 +3834,16 @@ struct CoachHit {
     /// get_coach al fusionar, nunca el exportador (el mismo patrón que el
     /// origen de las filas del export: lo etiqueta quien lee).
     origin: String,
+    /// "attach"/"shots": nombre (sin ruta) del archivo más releído / más
+    /// capturado — para que la ficha diga QUÉ leyó Claude. Aditivo: un
+    /// exportador viejo no lo manda y la ficha lo omite.
+    file: String,
+}
+
+/// Nombre sin ruta (barras de Windows normalizadas).
+fn basename(p: &str) -> String {
+    let n = p.replace('\\', "/");
+    n.rsplit('/').next().unwrap_or(p).to_string()
 }
 
 static COACH_STATE: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, CoachSess>>> =
@@ -4081,7 +4108,11 @@ fn coach_scan() -> Vec<CoachHit> {
                             match b["name"].as_str().unwrap_or("") {
                                 "Read" => {
                                     if let Some(p) = b["input"]["file_path"].as_str() {
-                                        *st.reads.entry(p.to_string()).or_insert(0) += 1;
+                                        if is_image_path(p) {
+                                            *st.shots.entry(p.to_string()).or_insert(0) += 1;
+                                        } else {
+                                            *st.reads.entry(p.to_string()).or_insert(0) += 1;
+                                        }
                                         st.trail.push(p.to_string());
                                     }
                                 }
@@ -4158,17 +4189,33 @@ fn coach_scan() -> Vec<CoachHit> {
                     ..Default::default()
                 });
             }
-            if let Some((_, n)) = st
+            if let Some((f, n)) = st
                 .reads
                 .iter()
                 .filter(|(_, n)| **n >= COACH_REREAD)
                 .max_by_key(|(_, n)| **n)
             {
+                // el nombre del archivo viaja (aditivo): la ficha dice QUÉ
+                // releyó Claude — sin él el usuario creía que la regla
+                // hablaba de lo que ÉL pegaba (Oscar 2026-08-15)
                 hits.push(CoachHit {
                     rule: "attach".into(),
                     session: sid.clone(),
                     value: *n as u64,
                     project: pname(st, &proj_name),
+                    file: basename(f),
+                    ..Default::default()
+                });
+            }
+            let shots: u32 = st.shots.values().sum();
+            if shots >= COACH_SHOTS {
+                let top = st.shots.iter().max_by_key(|(_, n)| **n).map(|(f, _)| basename(f));
+                hits.push(CoachHit {
+                    rule: "shots".into(),
+                    session: sid.clone(),
+                    value: shots as u64,
+                    project: pname(st, &proj_name),
+                    file: top.unwrap_or_default(),
                     ..Default::default()
                 });
             }
