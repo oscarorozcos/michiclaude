@@ -117,6 +117,89 @@ Los prompts para generar las maquetas con otra IA están guardados en
       DEV manda el michi.exe que compila el crate, no la copia que
       `tauri dev` rehace; el interruptor reconoce sus rutas viejas o se encalla en OTHER.
 
+## Purga del archivo — el último escalón del ciclo de vida (2026-08-15)
+
+Contexto: la pregunta de Oscar sobre el caso de los 60 GB (creíble: tool
+results completos en el log + enjambres de agentes + reanudaciones que
+COPIAN el archivo entero) destapó que MichiClaude, con
+`cleanupPeriodDays: 365`, hace crecer el disco 12× más que el ajuste de
+fábrica de Claude Code — decisión consciente (sin historial no hay
+antes/después) pero que exige un ciclo de vida completo. El archivador
+de la etapa 2 solo MOVÍA (a `%APPDATA%\<app>\archive`); el disco nunca
+bajaba. Esto es lo que faltaba.
+
+**El ciclo de vida en 3 tramos.** VIVO (0–90 d, lo lee el analizador, el
+Reporte y el coach — JAMÁS se toca) → ARCHIVADO (>365 d, no lo lee NADIE:
+la ventana máxima analizable son 90 días y el cuadernito
+`daily_history.json` ya tiene esos días — es disco puro) → PURGADO
+(borrado de verdad, solo desde el archivo).
+
+**Las reglas de seguridad (acordadas con Oscar, todas en `lib.rs`
+bloque PURGA, el panel NO puede saltárselas):**
+
+1. ORDEN SAGRADO consolidar → verificar → borrar: solo se purga lo que
+   nadie lee. Antes de la pieza 3 (cuadernito) esta regla no se podía
+   cumplir; ahora sí.
+2. SUELO ABSOLUTO no configurable: `PURGE_FLOOR_DAYS = 180` en el
+   archivo. Aunque el JSON diga "1 día", `purge_effective_days` no baja
+   de ahí. "Si el usuario la riega."
+3. DOBLE RELOJ: edad del contenido (mtime) ≥ lo elegido Y llevar
+   ≥ `PURGE_MIN_ARCHIVED_DAYS = 30` archivado. Como `rename` conserva el
+   mtime, la fecha de archivado va en un sidecar `x.jsonl.arch` (epoch)
+   que el archivador escribe al mover; sin sidecar (archivado antes de
+   esta pieza) vale el mtime de la carpeta y, si ni eso, se considera
+   recién archivado — dirección segura: NO purgar. Un archivo de 3 años
+   recién movido NO se purga.
+4. ALLOWLIST FÍSICA: solo debajo de `app_data_dir()/archive`
+   CANONICALIZADO; cada candidato se canonicaliza y debe seguir debajo
+   (un symlink hacia `~/.claude` cae aquí). Se comprueba al listar Y otra
+   vez justo antes del `remove_file`. Estructuralmente no puede tocar un
+   log vivo.
+5. SIMULACRO SIEMPRE: `scan_purgeable` devuelve qué/cuánto/de qué fechas
+   (+ el total del archivo, purgable o no) antes de que exista el botón.
+   La confirmación es proporcional al daño: un clic más si es chico;
+   ESCRIBIR una palabra (`prg_word`, traducida) si ≥1 GB o ≥100 archivos.
+6. TOPE POR PASADA: 500 archivos / 2 GB (`PURGE_MAX_*`); si se toca,
+   `capped=true`, el panel lo dice y el automático sigue mañana.
+7. SOLO `.jsonl`; nunca otro archivo, nunca carpetas.
++ Automático OPT-IN, nace apagado, una pasada al día, con el MISMO
+  candado de "primera manual" del archivador (`remFirst.purge`). Nace en
+  "nunca" (`after_days = 0`); opciones cerradas 6 m / 1 a / 2 a con la
+  advertencia visible ("lo borrado no se recupera; tus gráficas
+  sobreviven por el cuadernito, las conversaciones crudas no").
++ Toda purga se anota en el registro de acciones (`kind: "purge"`). No
+  cruza con el detector de integridad: ese mira ≤32 días, esto ≥365.
+
+**Los tres modos.** LOCAL: purga completa. WSL: desde hoy el ARCHIVADOR
+también cubre las distros (`archive_roots()`, cada una a su subcarpeta
+`archive/wsl-<distro>/…` para que dos distros con el mismo nombre de
+proyecto no se pisen) — antes WSL nunca se archivaba y acumulaba sin
+freno; la purga hereda esos archivos porque ya viven en el archivo local.
+VPS: SOLO INFORMAR — el exportador contesta `--du` (ruta, archivos,
+bytes, cuántos >365 d, el más viejo; `get_remote_du` lo pide por SSH y
+descarta a un exportador viejo que no entiende el flag) y el panel enseña
+ruta, peso y un comando ACOTADO POR EDAD (`find <ruta> -name '*.jsonl'
+-mtime +365 -print`, con la instrucción de revisar la lista y cambiar
+`-print` por `-delete` solo entonces; "nunca borres la carpeta entera").
+Desde la app NUNCA se borra por SSH: es la operación más peligrosa y la
+única sin simulacro visual decente (Oscar 2026-08-15).
+
+**Validación (VPS, 2026-08-15).** El VPS no tiene Rust: réplica LÍNEA A
+LÍNEA del algoritmo en Python contra fixtures, 18/18: suelo (1→180,
+0→apagado, 730→730); doble reloj (viejo+asentado entra; 3 años recién
+archivado NO; asentado pero joven NO); solo .jsonl; ALLOWLIST con un
+symlink dentro del archivo apuntando a un log VIVO de `~/.claude` → no
+entra y la purga real deja el vivo intacto; apagado con candidatos → 0
+borrados; tope 3 → borra 3 + capped, la siguiente sigue, la última
+descapa; sin sidecar → mtime de carpeta (60 d entra, 2 d no). `--du`
+contra los logs reales (51 archivos, 217 MB, 0 viejos), fixture (2
+archivos, 1 viejo de 8 bytes) y raíz inexistente (ceros). `cargo check`
+pendiente en Windows.
+
+Calibración honesta: para Oscar HOY no urge (204 MB, 3 semanas, nada
+archivable aún; ~3.6 GB/año a su ritmo). Es prevención y es para el
+usuario del enjambre de agentes.
+
 ## La idea en una frase
 
 MichiClaude ya diagnostica (Hallazgos) y aconseja (Consejos). La

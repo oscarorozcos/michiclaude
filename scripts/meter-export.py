@@ -1357,9 +1357,43 @@ def read_hosts(exclude_id, days):
     return out
 
 
+def disk_usage_report():
+    """`--du`: cuánto pesan los logs de ESTE servidor y cuánto es viejo.
+    SOLO LECTURA — desde MichiClaude no se borra nada por SSH (decisión de
+    Oscar 2026-08-15: la operación más peligrosa y la única sin simulacro
+    decente); el panel enseña la ruta, el peso y un comando ACOTADO POR
+    EDAD para que el usuario decida allá y no se lleve todo."""
+    root = Path.home() / ".claude" / "projects"
+    now = datetime.now(timezone.utc).timestamp()
+    tot_n = tot_b = old_n = old_b = 0
+    oldest = None
+    if root.is_dir():
+        for proj in root.iterdir():
+            if not proj.is_dir():
+                continue
+            for f in project_jsonls(proj):
+                try:
+                    st = f.stat()
+                except OSError:
+                    continue
+                tot_n += 1
+                tot_b += st.st_size
+                if now - st.st_mtime >= 365 * 86400:
+                    old_n += 1
+                    old_b += st.st_size
+                if oldest is None or st.st_mtime < oldest:
+                    oldest = st.st_mtime
+    print(json.dumps({"path": str(root), "files": tot_n, "bytes": tot_b,
+                      "old_files": old_n, "old_bytes": old_b,
+                      "oldest": int(oldest) if oldest else 0}))
+
+
 def main():
     days = 7
     args = sys.argv[1:]
+    if "--du" in args:
+        disk_usage_report()
+        return
     if "--days" in args:
         try:
             days = max(1, min(90, int(args[args.index("--days") + 1])))

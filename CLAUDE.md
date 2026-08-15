@@ -476,16 +476,15 @@ presion-y-rendimiento §"Qué queda vivo".
       estética propia (armonizarlo sería otra ronda).
 - [ ] VALIDACIÓN PASIVA (con el uso): alarmas reales (umbral, 100%,
       ventana nueva), camino ntfy completo (PC apagada) y el aviso de
-      hallazgos naciendo natural (fuga nueva, panel cerrado, sin re-armar
-      fndSeen). Auto-/compact y AUTO-/clear por inferencia: COMPLETOS en
-      vivo (2026-08-13, terminal; rampa→IA→red→/clear). LÍMITE: el chat
-      de VS Code NO tiene /export — ahí la red no puede nacer y el /clear
-      se niega (ERR_RELAY_EXPORT, fail-closed correcto). ARREGLADO Y
-      VALIDADO EN VIVO 2026-08-13: el relevo chat copia ÉL el jsonl de la
-      sesión (`session_jsonl(sid)`, sin /export; remediacion.md §"La
-      copia SIN /export en el chat"); banco 3/3 en el VPS y dos corridas
-      reales en el chat el mismo día (copia .jsonl + /clear aplicado).
-      La tabla del automático: 4/4 (compact y clear × terminal y chat).
+      hallazgos naciendo natural. Auto-/compact y auto-/clear: 4/4 en
+      vivo (terminal y chat; el chat copia ÉL el jsonl sin /export —
+      remediacion.md §"La copia SIN /export en el chat").
+- [x] PURGA DEL ARCHIVO (2026-08-15; reglas COMPLETAS en remediacion.md
+      §"Purga del archivo" — LEERLO): el archivador MUEVE (≥365d, ahora
+      también WSL) y la purga BORRA lo archivado. Nace en "nunca"; suelo
+      180 d; doble reloj (sidecar `.arch`); allowlist canónica (jamás
+      `~/.claude`); simulacro antes del botón; tope por pasada. VPS: SOLO
+      INFORMA (`--du`) — NUNCA se borra por SSH. cargo check pendiente.
 - [ ] ANÁLISIS LOCAL: v1 validada en vivo (5/5 tema_nuevo) y ETAPA 2
       OPERATIVA (2026-08-13, ver §Coach y analisis-local.md §"Etapa 2 —
       HECHA"): EmbeddingGemma descargado y Probar en el Windows de Oscar

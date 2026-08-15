@@ -1118,6 +1118,62 @@ fn test_remote_impl(host: String) -> Result<String, String> {
     }
 }
 
+/// Uso de disco de los logs de UN servidor (exportador `--du`). SOLO
+/// LECTURA: desde MichiClaude no se borra nada por SSH (Oscar 2026-08-15) —
+/// el panel enseña ruta, peso y edad, y un comando ACOTADO POR EDAD para
+/// que el usuario decida allá. Exportador viejo (sin --du) devuelve el JSON
+/// normal → no parsea como RemoteDu → None, y el panel dice "actualiza".
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct RemoteDu {
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    path: String,
+    #[serde(default)]
+    files: u64,
+    #[serde(default)]
+    bytes: u64,
+    #[serde(default)]
+    old_files: u64,
+    #[serde(default)]
+    old_bytes: u64,
+    #[serde(default)]
+    oldest: i64,
+}
+
+#[tauri::command]
+async fn get_remote_du() -> Result<Vec<RemoteDu>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut out = Vec::new();
+        for r in load_remotes() {
+            let mut cmd = std::process::Command::new("ssh");
+            cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+                .arg(&r.host)
+                .arg(format!("{} --du", r.command));
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x0800_0000);
+            }
+            let Ok(o) = cmd.output() else { continue };
+            if !o.status.success() {
+                continue;
+            }
+            // un exportador viejo ignora --du y devuelve el resumen normal:
+            // sin la clave "path" no es un informe de disco y se descarta
+            let Ok(mut du) = serde_json::from_slice::<RemoteDu>(&o.stdout) else { continue };
+            if du.path.is_empty() {
+                continue;
+            }
+            du.name = r.name.clone();
+            out.push(du);
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Ruta canónica del exportador en el servidor. Solo se reinstala en los
 /// remotos que apunten aquí: si el usuario puso su propia ruta, no se le
 /// escribe nada en su máquina.
@@ -7388,30 +7444,44 @@ async fn kill_zombie(
     .map_err(|e| e.to_string())?
 }
 
-/// Archivos .jsonl locales con más de 365 días (mtime). SOLO el ~/.claude
-/// de ESTA máquina: las fuentes WSL quedan fuera (mover archivos a través
-/// de \\wsl.localhost es lento y falible — etapa 4) y las SSH ni se
-/// consideran. 365 y no menos: el analizador, el Reporte y las marcas de
-/// arreglo viven de ese historial (cleanupPeriodDays=365).
+/// Archivos .jsonl con más de 365 días (mtime) de ESTA máquina: el ~/.claude
+/// propio Y las distros WSL (2026-08-15: hasta entonces WSL quedaba fuera y
+/// una distro acumulaba sin freno; mover a través de \\wsl.localhost es
+/// lento pero funciona, y si un archivo falla no detiene a los demás). Las
+/// fuentes SSH ni se consideran: en el VPS solo se INFORMA (ver du). 365 y
+/// no menos: el analizador, el Reporte y las marcas de arreglo viven de ese
+/// historial (cleanupPeriodDays=365).
 const ARCHIVE_MIN_DAYS: i64 = 365;
 
-fn archivable_files() -> Vec<(PathBuf, u64)> {
-    let root = claude_dir().join("projects");
+/// Raíces archivables: (raíz de projects, subcarpeta de destino en el
+/// archivo). "" = este PC; "wsl-<distro>" = esa distro. Cada raíz va a SU
+/// subcarpeta para que dos distros con el mismo nombre de proyecto no se
+/// pisen.
+fn archive_roots() -> Vec<(PathBuf, String)> {
+    let mut out = vec![(claude_dir().join("projects"), String::new())];
+    for (distro, d) in wsl_claude_dirs() {
+        out.push((d.join("projects"), format!("wsl-{distro}")));
+    }
+    out
+}
+
+/// (archivo, bytes, raíz, subcarpeta de destino)
+fn archivable_files() -> Vec<(PathBuf, u64, PathBuf, String)> {
     let cutoff = std::time::SystemTime::now()
         - std::time::Duration::from_secs(ARCHIVE_MIN_DAYS as u64 * 86_400);
     let mut out = Vec::new();
-    let Ok(pdirs) = fs::read_dir(&root) else {
-        return out;
-    };
-    for pd in pdirs.flatten() {
-        if !pd.path().is_dir() {
-            continue;
-        }
-        for f in project_jsonls(&pd.path()) {
-            let Ok(md) = fs::metadata(&f) else { continue };
-            let Ok(mt) = md.modified() else { continue };
-            if mt < cutoff {
-                out.push((f, md.len()));
+    for (root, sub) in archive_roots() {
+        let Ok(pdirs) = fs::read_dir(&root) else { continue };
+        for pd in pdirs.flatten() {
+            if !pd.path().is_dir() {
+                continue;
+            }
+            for f in project_jsonls(&pd.path()) {
+                let Ok(md) = fs::metadata(&f) else { continue };
+                let Ok(mt) = md.modified() else { continue };
+                if mt < cutoff {
+                    out.push((f, md.len(), root.clone(), sub.clone()));
+                }
             }
         }
     }
@@ -7430,7 +7500,7 @@ async fn scan_archivable() -> Result<ArchScan, String> {
         let list = archivable_files();
         Ok(ArchScan {
             files: list.len() as u64,
-            bytes: list.iter().map(|(_, b)| b).sum(),
+            bytes: list.iter().map(|(_, b, _, _)| b).sum(),
         })
     })
     .await
@@ -7453,18 +7523,17 @@ struct ArchResult {
 #[tauri::command]
 async fn archive_old(auto: bool) -> Result<ArchResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let root = claude_dir().join("projects");
         let dest_root = app_data_dir().join("archive");
         let mut r = ArchResult {
             dest: dest_root.to_string_lossy().into_owned(),
             ..Default::default()
         };
-        for (f, bytes) in archivable_files() {
+        for (f, bytes, root, sub) in archivable_files() {
             let Ok(rel) = f.strip_prefix(&root) else {
                 r.failed += 1;
                 continue;
             };
-            let dest = dest_root.join(rel);
+            let dest = if sub.is_empty() { dest_root.join(rel) } else { dest_root.join(&sub).join(rel) };
             let ok = dest
                 .parent()
                 .map(|p| fs::create_dir_all(p).is_ok())
@@ -7472,6 +7541,12 @@ async fn archive_old(auto: bool) -> Result<ArchResult, String> {
                 && (fs::rename(&f, &dest).is_ok()
                     || (fs::copy(&f, &dest).is_ok() && fs::remove_file(&f).is_ok()));
             if ok {
+                // fecha de ARCHIVADO para el doble reloj de la purga: el
+                // rename conserva el mtime del contenido, así que va aparte
+                let _ = fs::write(
+                    dest.with_extension("jsonl.arch"),
+                    Utc::now().timestamp().to_string(),
+                );
                 r.files += 1;
                 r.bytes += bytes;
             } else {
@@ -7481,6 +7556,267 @@ async fn archive_old(auto: bool) -> Result<ArchResult, String> {
         if r.files > 0 || r.failed > 0 {
             log_action(
                 "archive",
+                auto,
+                r.failed == 0,
+                r.files.to_string(),
+                format!("{:.1}", r.bytes as f64 / 1_048_576.0),
+            );
+        }
+        Ok(r)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+// ---------------------------------------------------------------------------
+// PURGA DEL ARCHIVO (2026-08-15). El archivador MUEVE los .jsonl ≥365d a
+// %APPDATA%\<app>\archive — los saca del camino, pero el disco no baja
+// nunca. Esto es el último escalón: borrar de verdad lo que ya está en el
+// archivo, con las reglas de seguridad acordadas con Oscar:
+//   1. ORDEN SAGRADO consolidar → verificar → borrar: solo se purga lo que
+//      NADIE lee — la ventana máxima analizable son 90 días y el cuadernito
+//      (daily_history.json) ya tiene los días de esa época. Un archivo del
+//      archivo no aporta a ninguna métrica.
+//   2. SUELO ABSOLUTO no configurable: PURGE_FLOOR_DAYS en el archivo. Aunque
+//      el JSON de config diga "1 día", no baja de ahí ("si el usuario la
+//      riega").
+//   3. DOBLE RELOJ: edad total (mtime del contenido) ≥ lo elegido Y llevar
+//      ≥ PURGE_MIN_ARCHIVED_DAYS ya archivado (mtime de la copia — el
+//      rename lo conserva, así que la fecha de archivado se guarda aparte
+//      al mover; para archivos anteriores a esta pieza se toma la del
+//      directorio de destino). Un archivo recién movido no se purga aunque
+//      tenga 3 años.
+//   4. ALLOWLIST FÍSICA: el purgador SOLO puede tocar dentro de
+//      app_data_dir()/archive, canonicalizado. Estructuralmente no puede
+//      entrar a ~/.claude/projects: un bug aquí jamás alcanza un log vivo.
+//   5. SIMULACRO SIEMPRE: scan_purgeable devuelve qué/cuánto/de qué fechas
+//      antes de que exista un botón de borrar. La confirmación fuerte
+//      (escribir una palabra) vive en el panel.
+//   6. TOPE POR PASADA: PURGE_MAX_FILES / PURGE_MAX_BYTES; si se toca, se
+//      dice (capped) y sigue mañana.
+//   7. Solo .jsonl: nunca otro archivo, nunca carpetas ajenas.
+// Toda purga se anota en el registro de acciones. No cruza con el detector
+// de integridad (ese solo mira los últimos ~32 días; esto, ≥365).
+// ---------------------------------------------------------------------------
+
+/// Suelo del doble reloj y de la edad. 180 días = "6 meses en el archivo".
+const PURGE_FLOOR_DAYS: i64 = 180;
+const PURGE_MIN_ARCHIVED_DAYS: i64 = 30;
+const PURGE_MAX_FILES: usize = 500;
+const PURGE_MAX_BYTES: u64 = 2 * 1024 * 1024 * 1024; // 2 GB por pasada
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct PurgeCfg {
+    /// días en el ARCHIVO antes de poder borrarse. 0 = nunca (por defecto).
+    #[serde(default)]
+    after_days: i64,
+    /// automático (una pasada al día). Nace apagado.
+    #[serde(default)]
+    auto: bool,
+}
+
+fn purge_cfg_path() -> PathBuf {
+    app_data_dir().join("purge_config.json")
+}
+fn load_purge_cfg() -> PurgeCfg {
+    fs::read_to_string(purge_cfg_path())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+fn get_purge_config() -> PurgeCfg {
+    load_purge_cfg()
+}
+
+#[tauri::command]
+fn save_purge_config(cfg: PurgeCfg) -> Result<(), String> {
+    let _ = fs::create_dir_all(app_data_dir());
+    let s = serde_json::to_string(&cfg).map_err(|e| e.to_string())?;
+    fs::write(purge_cfg_path(), s).map_err(|e| e.to_string())
+}
+
+/// Días efectivos: lo elegido, pero NUNCA por debajo del suelo (regla 2).
+/// 0 = purga apagada.
+fn purge_effective_days(cfg: &PurgeCfg) -> i64 {
+    if cfg.after_days <= 0 {
+        0
+    } else {
+        cfg.after_days.max(PURGE_FLOOR_DAYS)
+    }
+}
+
+/// Fecha en que un archivo entró al ARCHIVO. `rename` conserva el mtime del
+/// contenido, así que se apunta aparte en un sidecar `.arch` al lado (una
+/// línea: epoch). Sin sidecar (archivado antes de esta pieza) vale el mtime
+/// de la carpeta que lo contiene, que sí cambió al crearse/moverse — y si ni
+/// eso, se considera recién archivado (dirección segura: NO purgar).
+fn archived_at(f: &std::path::Path) -> Option<i64> {
+    let side = f.with_extension("jsonl.arch");
+    if let Ok(s) = fs::read_to_string(&side) {
+        if let Ok(t) = s.trim().parse::<i64>() {
+            return Some(t);
+        }
+    }
+    f.parent()
+        .and_then(|p| fs::metadata(p).ok())
+        .and_then(|m| m.modified().ok())
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs() as i64)
+}
+
+/// Raíz canónica del archivo. Todo lo que se purgue DEBE vivir debajo.
+fn archive_root_canon() -> Option<PathBuf> {
+    fs::canonicalize(app_data_dir().join("archive")).ok()
+}
+
+/// (archivo, bytes, mtime del contenido, archivado_en)
+fn purgeable_files(days: i64) -> Vec<(PathBuf, u64, i64, i64)> {
+    let mut out = Vec::new();
+    if days <= 0 {
+        return out;
+    }
+    let Some(root) = archive_root_canon() else { return out };
+    let now = Utc::now().timestamp();
+    let mut stack = vec![root.clone()];
+    while let Some(dir) = stack.pop() {
+        let Ok(rd) = fs::read_dir(&dir) else { continue };
+        for e in rd.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                stack.push(p);
+                continue;
+            }
+            if p.extension().and_then(|x| x.to_str()) != Some("jsonl") {
+                continue; // regla 7
+            }
+            // regla 4: canonicalizado y debajo de la raíz, o no existe para
+            // nosotros (un symlink que apunte fuera cae aquí)
+            let Ok(canon) = fs::canonicalize(&p) else { continue };
+            if !canon.starts_with(&root) {
+                continue;
+            }
+            let Ok(md) = fs::metadata(&canon) else { continue };
+            let mtime = md
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(now);
+            let Some(arch) = archived_at(&canon) else { continue };
+            // regla 3, doble reloj
+            let old_enough = now - mtime >= days * 86_400;
+            let settled = now - arch >= PURGE_MIN_ARCHIVED_DAYS * 86_400;
+            if old_enough && settled {
+                out.push((canon, md.len(), mtime, arch));
+            }
+        }
+    }
+    out.sort_by_key(|x| x.2); // lo más viejo primero
+    out
+}
+
+#[derive(Serialize, Default)]
+struct PurgeScan {
+    files: u64,
+    bytes: u64,
+    /// mtime más viejo y más nuevo entre los candidatos (epoch)
+    oldest: i64,
+    newest: i64,
+    /// días efectivos (con el suelo aplicado); 0 = apagado
+    days: i64,
+    floor: i64,
+    dest: String,
+    /// total del ARCHIVO, purgable o no — para que el usuario sepa cuánto
+    /// pesa lo que guarda MichiClaude
+    total_files: u64,
+    total_bytes: u64,
+}
+
+/// El SIMULACRO (regla 5): qué se borraría, cuánto y de qué fechas. Nunca
+/// toca nada.
+#[tauri::command]
+async fn scan_purgeable() -> Result<PurgeScan, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let cfg = load_purge_cfg();
+        let days = purge_effective_days(&cfg);
+        let list = purgeable_files(days);
+        // total del archivo (todo .jsonl debajo de la raíz)
+        let (mut tf, mut tb) = (0u64, 0u64);
+        if let Some(root) = archive_root_canon() {
+            let mut stack = vec![root];
+            while let Some(dir) = stack.pop() {
+                let Ok(rd) = fs::read_dir(&dir) else { continue };
+                for e in rd.flatten() {
+                    let p = e.path();
+                    if p.is_dir() {
+                        stack.push(p);
+                    } else if p.extension().and_then(|x| x.to_str()) == Some("jsonl") {
+                        tf += 1;
+                        tb += fs::metadata(&p).map(|m| m.len()).unwrap_or(0);
+                    }
+                }
+            }
+        }
+        Ok(PurgeScan {
+            files: list.len() as u64,
+            bytes: list.iter().map(|x| x.1).sum(),
+            oldest: list.first().map(|x| x.2).unwrap_or(0),
+            newest: list.last().map(|x| x.2).unwrap_or(0),
+            days,
+            floor: PURGE_FLOOR_DAYS,
+            dest: app_data_dir().join("archive").to_string_lossy().into_owned(),
+            total_files: tf,
+            total_bytes: tb,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[derive(Serialize, Default)]
+struct PurgeResult {
+    files: u64,
+    bytes: u64,
+    failed: u64,
+    /// true si se tocó el tope por pasada (regla 6): quedan más para mañana
+    capped: bool,
+}
+
+/// BORRA de verdad. Solo lo que purgeable_files devuelve (todas las reglas
+/// ya aplicadas), con tope por pasada. Anota en el registro de acciones.
+#[tauri::command]
+async fn purge_archive(auto: bool) -> Result<PurgeResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let cfg = load_purge_cfg();
+        let days = purge_effective_days(&cfg);
+        let mut r = PurgeResult::default();
+        if days <= 0 {
+            return Ok(r); // apagada: no hay nada que hacer, jamás
+        }
+        let Some(root) = archive_root_canon() else { return Ok(r) };
+        for (f, bytes, _, _) in purgeable_files(days) {
+            if r.files as usize >= PURGE_MAX_FILES || r.bytes + bytes > PURGE_MAX_BYTES {
+                r.capped = true;
+                break;
+            }
+            // regla 4, otra vez, justo antes de borrar
+            if !f.starts_with(&root) || f.extension().and_then(|x| x.to_str()) != Some("jsonl") {
+                r.failed += 1;
+                continue;
+            }
+            if fs::remove_file(&f).is_ok() {
+                let _ = fs::remove_file(f.with_extension("jsonl.arch"));
+                r.files += 1;
+                r.bytes += bytes;
+            } else {
+                r.failed += 1;
+            }
+        }
+        if r.files > 0 || r.failed > 0 {
+            log_action(
+                "purge",
                 auto,
                 r.failed == 0,
                 r.files.to_string(),
@@ -7572,6 +7908,11 @@ pub fn run() {
             kill_zombie,
             scan_archivable,
             archive_old,
+            get_purge_config,
+            save_purge_config,
+            scan_purgeable,
+            purge_archive,
+            get_remote_du,
             get_action_log,
             get_relays,
             relay_inject,

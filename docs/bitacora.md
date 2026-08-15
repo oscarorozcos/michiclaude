@@ -4694,3 +4694,36 @@ raíz) pero no ejecutado.
 **Aviso de mantenimiento:** CLAUDE.md quedó en ~39.7k de los 40k. La
 próxima entrada que se le añada debería venir con una poda: lo que ya está
 en los docs de diseño no necesita repetirse ahí.
+
+## 2026-08-15 (2) — Purga del archivo: el ciclo de vida completo, y WSL entra al archivador
+
+Nació de la pregunta de Oscar sobre el caso viral de los 60 GB de logs.
+Es creíble (tool results enteros en el log, enjambres de agentes, y las
+reanudaciones que COPIAN el archivo entero — la razón de nuestra dedup
+por uuid), y destapó una verdad incómoda: con `cleanupPeriodDays: 365`
+hacemos crecer el disco 12× más que la fábrica, y el archivador de la
+etapa 2 solo MOVÍA. El disco nunca bajaba. Faltaba el último escalón.
+
+Diseño completo en remediacion.md §"Purga del archivo": ciclo VIVO →
+ARCHIVADO → PURGADO; siete reglas de seguridad en Rust que el panel no
+puede saltarse (suelo 180 d, doble reloj con sidecar `.arch`, allowlist
+canónica, simulacro, palabra de confirmación proporcional, tope por
+pasada, solo .jsonl); nace en "nunca" y el automático es opt-in con el
+candado de primera manual. Decisiones de Oscar: purga apagada de
+nacimiento (rotundo), el usuario elige el plazo con advertencia, y el
+VPS SOLO INFORMA (`--du` + un `find -mtime +365` acotado) — desde la app
+nunca se borra por SSH.
+
+Hallazgo de paso: WSL NUNCA se archivaba (`archivable_files` solo miraba
+`~/.claude` local). Arreglado: `archive_roots()` cubre las distros, cada
+una a su subcarpeta.
+
+Validación sin toolchain: réplica línea a línea del algoritmo en Python,
+18/18 — incluida la trampa de un symlink dentro del archivo apuntando a
+un log VIVO (no entra; el vivo queda intacto). `--du` contra logs reales
+y fixture. `cargo check` pendiente en Windows.
+
+Nota de mantenimiento: CLAUDE.md pasó por su primera PODA (el bloque de
+validación pasiva narraba historia que ya vive en remediacion.md y la
+bitácora); quedó en 39.7k. La regla desde hoy: cada entrada nueva ahí
+viene con una poda equivalente.

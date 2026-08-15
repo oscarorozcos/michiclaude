@@ -1573,6 +1573,44 @@
         <button id="remArchGo" hidden data-i18n="rem_arch_go"></button>
         <span id="remArchMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
       </div>
+      <!-- PURGA DEL ARCHIVO (2026-08-15): el último escalón. El archivador
+           mueve pero el disco no baja; aquí se borra de verdad lo archivado,
+           con simulacro, suelo de 6 meses, doble reloj y tope por pasada
+           (reglas en lib.rs, bloque PURGA). Nace en "nunca". -->
+      <div class="cfg-lbl" data-i18n="prg_label"></div>
+      <div class="cfg-note" data-i18n="prg_hint"></div>
+      <div class="cfg-row">
+        <span data-i18n="prg_after"></span>
+        <select id="prgAfter">
+          <option value="0" data-i18n="prg_never"></option>
+          <option value="180" data-i18n="prg_6m"></option>
+          <option value="365" data-i18n="prg_1y"></option>
+          <option value="730" data-i18n="prg_2y"></option>
+        </select>
+      </div>
+      <div class="cfg-note" id="prgWarn" style="color:var(--warn)" hidden data-i18n="prg_warn"></div>
+      <label class="cfg-row" style="cursor:pointer" id="prgAutoRow" hidden>
+        <span data-i18n="prg_auto"></span><input type="checkbox" id="prgAutoChk">
+      </label>
+      <div class="cfg-note" id="prgLock" hidden style="color:var(--warn)" data-i18n="rem_lock"></div>
+      <div class="btnrow">
+        <button id="prgScan" class="sec" data-i18n="prg_scan"></button>
+        <button id="prgGo" hidden data-i18n="prg_go"></button>
+        <span id="prgMsg" style="font-size:10.5px;color:var(--txt-dim)"></span>
+      </div>
+      <div id="prgConfirm" hidden style="margin-top:6px">
+        <div class="cfg-note" id="prgConfirmTxt" style="color:var(--warn)"></div>
+        <div class="btnrow">
+          <input id="prgWord" type="text" style="width:120px" autocomplete="off">
+          <button id="prgYes" disabled data-i18n="prg_yes"></button>
+          <button id="prgNo" class="sec" data-i18n="prg_no"></button>
+        </div>
+      </div>
+      <div class="cfg-note" id="prgTotal" style="margin-top:4px"></div>
+      <!-- SERVIDORES: solo INFORMAR (ruta, peso, edad) y un comando ACOTADO
+           por edad. Desde aquí no se borra nada por SSH. -->
+      <div class="cfg-lbl" id="prgDuLbl" data-i18n="prg_du_label" hidden></div>
+      <div id="prgDu"></div>
       <!-- RELEVO (etapa 3b): solo DESCUBRIMIENTO. Enseña qué sesiones de
            Claude Code están abiertas con `michi claude` y si aceptarían un
            comando ahora mismo. Aplicar desde aquí es la etapa 3c. -->
@@ -2162,6 +2200,28 @@ en:{
   rem_label:"Automatic remediation",
   rem_hint:"Michi can fix what it controls directly, outside the Claude Code terminal. The first time of each action is always applied by you, with a click.",
   rem_zombie_on:"Close orphaned MCP processes automatically",
+  prg_label:"Delete from the archive",
+  prg_hint:"Archiving moves old logs aside but never frees disk. Here you can really delete what's already archived — nobody reads those files anymore. Off by default.",
+  prg_after:"Delete after being archived for", prg_never:"Never (recommended to start)",
+  prg_6m:"6 months", prg_1y:"1 year", prg_2y:"2 years",
+  prg_warn:"Deleted files can't be recovered. Michi keeps its own daily summary, so your charts survive — but the raw conversations won't. Never below 6 months, whatever you choose.",
+  prg_auto:"Delete automatically (one pass a day)",
+  prg_scan:"Preview what would be deleted", prg_go:"Delete…",
+  prg_off:"Deletion is off — pick a period above.",
+  prg_msg:(n,mb,a,b)=>`${n===1?"1 file":n+" files"} · ${mb} MB · from ${a} to ${b}`,
+  prg_none:d=>`Nothing eligible yet (needs ${d}+ days in the archive).`,
+  prg_confirm:(n,mb)=>`Delete ${n} file(s) (${mb} MB) for good?`,
+  prg_confirm_big:(n,mb,w)=>`This deletes ${n} files (${mb} MB) for good. Type “${w}” to confirm.`,
+  prg_word:"delete", prg_yes:"Yes, delete", prg_no:"Cancel",
+  prg_done:(n,mb)=>`Deleted ${n===1?"1 file":n+" files"} · ${mb} MB freed ✓`,
+  prg_capped:"limit per pass reached — the rest tomorrow",
+  prg_total:(n,mb)=>`Archive: ${n} file(s) · ${mb} MB`,
+  prg_du_label:"Logs on your servers (info only)",
+  prg_du_row:(n,mb)=>`${n} files · ${mb} MB`,
+  prg_du_old:(n,mb)=>`${n} older than a year · ${mb} MB`,
+  prg_du_howto:"Michi never deletes over SSH. If you want to clean up there, this lists ONLY files older than a year — check the list before deleting anything:",
+  prg_du_howto2:"To delete just those, replace -print with -delete. Never remove the whole folder.",
+  rem_log_purge:(n,mb)=>`deleted ${n} archived file(s) · ${mb} MB freed`,
   rem_arch_on:"Archive logs older than a year automatically",
   rem_lock:"Michi doesn't automate what you haven't seen: apply it yourself once and the automatic mode unlocks.",
   rem_scan_now:"Check now",
@@ -2663,6 +2723,28 @@ es:{
   rem_label:"Remediación automática",
   rem_hint:"Michi puede arreglar lo que controla directo, fuera de la terminal de Claude Code. La primera vez de cada acción siempre la aplicas tú, con un clic.",
   rem_zombie_on:"Cerrar procesos MCP huérfanos en automático",
+  prg_label:"Borrar del archivo",
+  prg_hint:"Archivar aparta los logs viejos pero nunca libera disco. Aquí puedes borrar de verdad lo ya archivado — esos archivos ya no los lee nadie. Nace apagado.",
+  prg_after:"Borrar tras llevar archivado", prg_never:"Nunca (recomendado para empezar)",
+  prg_6m:"6 meses", prg_1y:"1 año", prg_2y:"2 años",
+  prg_warn:"Lo borrado no se recupera. Michi guarda su propio resumen diario, así que tus gráficas sobreviven — las conversaciones crudas no. Nunca por debajo de 6 meses, elijas lo que elijas.",
+  prg_auto:"Borrar en automático (una pasada al día)",
+  prg_scan:"Ver qué se borraría", prg_go:"Borrar…",
+  prg_off:"El borrado está apagado — elige un plazo arriba.",
+  prg_msg:(n,mb,a,b)=>`${n===1?"1 archivo":n+" archivos"} · ${mb} MB · del ${a} al ${b}`,
+  prg_none:d=>`Nada que borrar todavía (necesita ${d}+ días en el archivo).`,
+  prg_confirm:(n,mb)=>`¿Borrar ${n} archivo(s) (${mb} MB) para siempre?`,
+  prg_confirm_big:(n,mb,w)=>`Esto borra ${n} archivos (${mb} MB) para siempre. Escribe «${w}» para confirmar.`,
+  prg_word:"borrar", prg_yes:"Sí, borrar", prg_no:"Cancelar",
+  prg_done:(n,mb)=>`${n===1?"1 archivo borrado":n+" archivos borrados"} · ${mb} MB liberados ✓`,
+  prg_capped:"tope por pasada alcanzado — el resto mañana",
+  prg_total:(n,mb)=>`Archivo: ${n} archivo(s) · ${mb} MB`,
+  prg_du_label:"Logs en tus servidores (solo información)",
+  prg_du_row:(n,mb)=>`${n} archivos · ${mb} MB`,
+  prg_du_old:(n,mb)=>`${n} con más de un año · ${mb} MB`,
+  prg_du_howto:"Michi nunca borra por SSH. Si quieres limpiar allá, esto lista SOLO los archivos con más de un año — revisa la lista antes de borrar nada:",
+  prg_du_howto2:"Para borrar solo esos, cambia -print por -delete. Nunca borres la carpeta entera.",
+  rem_log_purge:(n,mb)=>`borrados ${n} archivo(s) del archivo · ${mb} MB liberados`,
   rem_arch_on:"Archivar logs con más de un año en automático",
   rem_lock:"Michi no automatiza lo que no has visto: aplícalo tú una vez y el automático se desbloquea.",
   rem_scan_now:"Revisar ahora",
@@ -3164,6 +3246,28 @@ pt:{
   rem_label:"Remediação automática",
   rem_hint:"O Michi pode consertar o que controla diretamente, fora do terminal do Claude Code. A primeira vez de cada ação é sempre aplicada por você, com um clique.",
   rem_zombie_on:"Fechar processos MCP órfãos automaticamente",
+  prg_label:"Apagar do arquivo",
+  prg_hint:"Arquivar afasta os logs antigos mas nunca libera disco. Aqui você apaga de verdade o que já está arquivado — ninguém mais lê esses arquivos. Nasce desligado.",
+  prg_after:"Apagar após ficar arquivado por", prg_never:"Nunca (recomendado para começar)",
+  prg_6m:"6 meses", prg_1y:"1 ano", prg_2y:"2 anos",
+  prg_warn:"O apagado não se recupera. O Michi guarda seu próprio resumo diário, então seus gráficos sobrevivem — as conversas brutas não. Nunca abaixo de 6 meses, escolha o que escolher.",
+  prg_auto:"Apagar automaticamente (uma passada por dia)",
+  prg_scan:"Ver o que seria apagado", prg_go:"Apagar…",
+  prg_off:"O apagamento está desligado — escolha um prazo acima.",
+  prg_msg:(n,mb,a,b)=>`${n===1?"1 arquivo":n+" arquivos"} · ${mb} MB · de ${a} a ${b}`,
+  prg_none:d=>`Nada a apagar ainda (precisa de ${d}+ dias no arquivo).`,
+  prg_confirm:(n,mb)=>`Apagar ${n} arquivo(s) (${mb} MB) para sempre?`,
+  prg_confirm_big:(n,mb,w)=>`Isto apaga ${n} arquivos (${mb} MB) para sempre. Digite «${w}» para confirmar.`,
+  prg_word:"apagar", prg_yes:"Sim, apagar", prg_no:"Cancelar",
+  prg_done:(n,mb)=>`${n===1?"1 arquivo apagado":n+" arquivos apagados"} · ${mb} MB liberados ✓`,
+  prg_capped:"limite por passada atingido — o resto amanhã",
+  prg_total:(n,mb)=>`Arquivo: ${n} arquivo(s) · ${mb} MB`,
+  prg_du_label:"Logs nos seus servidores (só informação)",
+  prg_du_row:(n,mb)=>`${n} arquivos · ${mb} MB`,
+  prg_du_old:(n,mb)=>`${n} com mais de um ano · ${mb} MB`,
+  prg_du_howto:"O Michi nunca apaga por SSH. Se quiser limpar lá, isto lista SÓ os arquivos com mais de um ano — revise a lista antes de apagar:",
+  prg_du_howto2:"Para apagar só esses, troque -print por -delete. Nunca apague a pasta inteira.",
+  rem_log_purge:(n,mb)=>`apagados ${n} arquivo(s) do arquivo · ${mb} MB liberados`,
   rem_arch_on:"Arquivar logs com mais de um ano automaticamente",
   rem_lock:"O Michi não automatiza o que você não viu: aplique você mesmo uma vez e o automático se desbloqueia.",
   rem_scan_now:"Verificar agora",
@@ -3665,6 +3769,28 @@ fr:{
   rem_label:"Remédiation automatique",
   rem_hint:"Michi peut réparer ce qu'il contrôle directement, hors du terminal Claude Code. La première fois de chaque action, c'est toujours vous qui l'appliquez, d'un clic.",
   rem_zombie_on:"Fermer automatiquement les processus MCP orphelins",
+  prg_label:"Supprimer de l'archive",
+  prg_hint:"Archiver met les vieux journaux de côté mais ne libère jamais de disque. Ici vous supprimez vraiment ce qui est déjà archivé — plus personne ne lit ces fichiers. Désactivé au départ.",
+  prg_after:"Supprimer après avoir été archivé", prg_never:"Jamais (recommandé pour commencer)",
+  prg_6m:"6 mois", prg_1y:"1 an", prg_2y:"2 ans",
+  prg_warn:"Ce qui est supprimé ne se récupère pas. Michi garde son propre résumé quotidien, vos graphiques survivent — pas les conversations brutes. Jamais en dessous de 6 mois, quel que soit votre choix.",
+  prg_auto:"Supprimer automatiquement (une passe par jour)",
+  prg_scan:"Voir ce qui serait supprimé", prg_go:"Supprimer…",
+  prg_off:"La suppression est désactivée — choisissez un délai ci-dessus.",
+  prg_msg:(n,mb,a,b)=>`${n===1?"1 fichier":n+" fichiers"} · ${mb} Mo · du ${a} au ${b}`,
+  prg_none:d=>`Rien à supprimer pour l'instant (il faut ${d}+ jours dans l'archive).`,
+  prg_confirm:(n,mb)=>`Supprimer ${n} fichier(s) (${mb} Mo) définitivement ?`,
+  prg_confirm_big:(n,mb,w)=>`Ceci supprime ${n} fichiers (${mb} Mo) définitivement. Tapez « ${w} » pour confirmer.`,
+  prg_word:"supprimer", prg_yes:"Oui, supprimer", prg_no:"Annuler",
+  prg_done:(n,mb)=>`${n===1?"1 fichier supprimé":n+" fichiers supprimés"} · ${mb} Mo libérés ✓`,
+  prg_capped:"limite par passe atteinte — le reste demain",
+  prg_total:(n,mb)=>`Archive : ${n} fichier(s) · ${mb} Mo`,
+  prg_du_label:"Journaux sur vos serveurs (information seulement)",
+  prg_du_row:(n,mb)=>`${n} fichiers · ${mb} Mo`,
+  prg_du_old:(n,mb)=>`${n} de plus d'un an · ${mb} Mo`,
+  prg_du_howto:"Michi ne supprime jamais via SSH. Pour nettoyer là-bas, ceci liste SEULEMENT les fichiers de plus d'un an — vérifiez la liste avant de supprimer :",
+  prg_du_howto2:"Pour ne supprimer que ceux-là, remplacez -print par -delete. Ne supprimez jamais le dossier entier.",
+  rem_log_purge:(n,mb)=>`${n} fichier(s) supprimé(s) de l'archive · ${mb} Mo libérés`,
   rem_arch_on:"Archiver automatiquement les journaux de plus d'un an",
   rem_lock:"Michi n'automatise pas ce que vous n'avez pas vu : appliquez-le vous-même une fois et l'automatique se débloque.",
   rem_scan_now:"Vérifier maintenant",
@@ -4166,6 +4292,28 @@ de:{
   rem_label:"Automatische Aufräumaktionen",
   rem_hint:"Michi kann reparieren, was er direkt kontrolliert — außerhalb des Claude-Code-Terminals. Das erste Mal jeder Aktion führst immer du aus, per Klick.",
   rem_zombie_on:"Verwaiste MCP-Prozesse automatisch beenden",
+  prg_label:"Aus dem Archiv löschen",
+  prg_hint:"Archivieren schafft alte Logs beiseite, gibt aber nie Speicher frei. Hier löschst du wirklich, was schon archiviert ist — diese Dateien liest niemand mehr. Anfangs aus.",
+  prg_after:"Löschen, wenn archiviert seit", prg_never:"Nie (zum Start empfohlen)",
+  prg_6m:"6 Monaten", prg_1y:"1 Jahr", prg_2y:"2 Jahren",
+  prg_warn:"Gelöschtes ist nicht wiederherstellbar. Michi behält seine eigene Tageszusammenfassung — deine Diagramme überleben, die rohen Gespräche nicht. Nie unter 6 Monaten, egal was du wählst.",
+  prg_auto:"Automatisch löschen (ein Durchlauf pro Tag)",
+  prg_scan:"Zeigen, was gelöscht würde", prg_go:"Löschen…",
+  prg_off:"Löschen ist aus — wähle oben eine Frist.",
+  prg_msg:(n,mb,a,b)=>`${n===1?"1 Datei":n+" Dateien"} · ${mb} MB · vom ${a} bis ${b}`,
+  prg_none:d=>`Noch nichts zu löschen (braucht ${d}+ Tage im Archiv).`,
+  prg_confirm:(n,mb)=>`${n} Datei(en) (${mb} MB) endgültig löschen?`,
+  prg_confirm_big:(n,mb,w)=>`Das löscht ${n} Dateien (${mb} MB) endgültig. Tippe „${w}“ zur Bestätigung.`,
+  prg_word:"löschen", prg_yes:"Ja, löschen", prg_no:"Abbrechen",
+  prg_done:(n,mb)=>`${n===1?"1 Datei gelöscht":n+" Dateien gelöscht"} · ${mb} MB frei ✓`,
+  prg_capped:"Limit pro Durchlauf erreicht — der Rest morgen",
+  prg_total:(n,mb)=>`Archiv: ${n} Datei(en) · ${mb} MB`,
+  prg_du_label:"Logs auf deinen Servern (nur Info)",
+  prg_du_row:(n,mb)=>`${n} Dateien · ${mb} MB`,
+  prg_du_old:(n,mb)=>`${n} älter als ein Jahr · ${mb} MB`,
+  prg_du_howto:"Michi löscht nie per SSH. Wenn du dort aufräumen willst, listet das NUR Dateien älter als ein Jahr — prüfe die Liste, bevor du etwas löschst:",
+  prg_du_howto2:"Um nur diese zu löschen, ersetze -print durch -delete. Lösche nie den ganzen Ordner.",
+  rem_log_purge:(n,mb)=>`${n} Datei(en) aus dem Archiv gelöscht · ${mb} MB frei`,
   rem_arch_on:"Logs, die älter als ein Jahr sind, automatisch archivieren",
   rem_lock:"Michi automatisiert nichts, was du nicht gesehen hast: einmal selbst anwenden, und der Automatikmodus wird freigeschaltet.",
   rem_scan_now:"Jetzt prüfen",
@@ -4667,6 +4815,28 @@ ja:{
   rem_label:"自動修復",
   rem_hint:"Michi は直接制御できるものを、Claude Code のターミナルの外で修復できます。各アクションの初回は必ずあなたがクリックで適用します。",
   rem_zombie_on:"孤立した MCP プロセスを自動で終了する",
+  prg_label:"アーカイブから削除",
+  prg_hint:"アーカイブは古いログを脇にどけるだけで、ディスクは空きません。ここでは、すでにアーカイブ済みのもの（もう誰も読まないファイル）を本当に削除できます。初期状態はオフです。",
+  prg_after:"アーカイブ後、この期間で削除", prg_never:"しない（最初はこれを推奨）",
+  prg_6m:"6か月", prg_1y:"1年", prg_2y:"2年",
+  prg_warn:"削除したものは戻せません。Michiは独自の日次サマリーを保持するのでグラフは残りますが、生の会話は残りません。何を選んでも6か月未満にはなりません。",
+  prg_auto:"自動で削除（1日1回）",
+  prg_scan:"何が削除されるか見る", prg_go:"削除…",
+  prg_off:"削除はオフです — 上で期間を選んでください。",
+  prg_msg:(n,mb,a,b)=>`${n}ファイル · ${mb} MB · ${a}〜${b}`,
+  prg_none:d=>`まだ対象なし（アーカイブ後${d}日以上が必要）。`,
+  prg_confirm:(n,mb)=>`${n}ファイル（${mb} MB）を完全に削除しますか？`,
+  prg_confirm_big:(n,mb,w)=>`${n}ファイル（${mb} MB）を完全に削除します。確認のため「${w}」と入力してください。`,
+  prg_word:"削除", prg_yes:"はい、削除", prg_no:"キャンセル",
+  prg_done:(n,mb)=>`${n}ファイルを削除 · ${mb} MB 解放 ✓`,
+  prg_capped:"1回の上限に達しました — 残りは明日",
+  prg_total:(n,mb)=>`アーカイブ: ${n}ファイル · ${mb} MB`,
+  prg_du_label:"サーバー上のログ（情報のみ）",
+  prg_du_row:(n,mb)=>`${n}ファイル · ${mb} MB`,
+  prg_du_old:(n,mb)=>`1年超が${n}件 · ${mb} MB`,
+  prg_du_howto:"MichiはSSH経由では何も削除しません。向こうで整理したい場合、これは1年超のファイルだけを一覧します — 削除前に必ず一覧を確認してください：",
+  prg_du_howto2:"それだけを削除するには -print を -delete に置き換えます。フォルダごと消さないでください。",
+  rem_log_purge:(n,mb)=>`アーカイブから${n}ファイル削除 · ${mb} MB 解放`,
   rem_arch_on:"1年以上前のログを自動でアーカイブする",
   rem_lock:"Michi はあなたが見ていないことを自動化しません。一度自分で適用すると自動モードが解除されます。",
   rem_scan_now:"今すぐ確認",
@@ -5168,6 +5338,28 @@ ko:{
   rem_label:"자동 복구",
   rem_hint:"Michi는 Claude Code 터미널 밖에서 직접 제어할 수 있는 것을 고칠 수 있습니다. 각 작업의 첫 실행은 항상 사용자가 클릭으로 적용합니다.",
   rem_zombie_on:"고아 MCP 프로세스를 자동으로 종료",
+  prg_label:"보관함에서 삭제",
+  prg_hint:"보관은 오래된 로그를 치워둘 뿐 디스크를 비우지 않습니다. 여기서는 이미 보관된 것(더 이상 아무도 읽지 않는 파일)을 실제로 삭제할 수 있습니다. 기본은 꺼짐입니다.",
+  prg_after:"보관 후 이 기간이 지나면 삭제", prg_never:"안 함(처음에는 권장)",
+  prg_6m:"6개월", prg_1y:"1년", prg_2y:"2년",
+  prg_warn:"삭제한 것은 복구할 수 없습니다. Michi는 자체 일별 요약을 보관하므로 그래프는 남지만 원본 대화는 남지 않습니다. 무엇을 고르든 6개월 미만으로는 내려가지 않습니다.",
+  prg_auto:"자동 삭제(하루 한 번)",
+  prg_scan:"삭제될 항목 보기", prg_go:"삭제…",
+  prg_off:"삭제가 꺼져 있습니다 — 위에서 기간을 고르세요.",
+  prg_msg:(n,mb,a,b)=>`${n}개 파일 · ${mb} MB · ${a}~${b}`,
+  prg_none:d=>`아직 대상 없음(보관 후 ${d}일 이상 필요).`,
+  prg_confirm:(n,mb)=>`${n}개 파일(${mb} MB)을 영구 삭제할까요?`,
+  prg_confirm_big:(n,mb,w)=>`${n}개 파일(${mb} MB)을 영구 삭제합니다. 확인하려면 «${w}»를 입력하세요.`,
+  prg_word:"삭제", prg_yes:"예, 삭제", prg_no:"취소",
+  prg_done:(n,mb)=>`${n}개 파일 삭제 · ${mb} MB 확보 ✓`,
+  prg_capped:"회당 한도 도달 — 나머지는 내일",
+  prg_total:(n,mb)=>`보관함: ${n}개 파일 · ${mb} MB`,
+  prg_du_label:"서버의 로그(정보만)",
+  prg_du_row:(n,mb)=>`${n}개 파일 · ${mb} MB`,
+  prg_du_old:(n,mb)=>`1년 초과 ${n}개 · ${mb} MB`,
+  prg_du_howto:"Michi는 SSH로 아무것도 삭제하지 않습니다. 저쪽을 정리하려면, 이 명령은 1년 넘은 파일만 나열합니다 — 삭제 전에 목록을 확인하세요:",
+  prg_du_howto2:"그것만 삭제하려면 -print를 -delete로 바꾸세요. 폴더 전체를 지우지 마세요.",
+  rem_log_purge:(n,mb)=>`보관함에서 ${n}개 파일 삭제 · ${mb} MB 확보`,
   rem_arch_on:"1년 이상 된 로그를 자동으로 보관",
   rem_lock:"Michi는 사용자가 보지 않은 것을 자동화하지 않습니다. 한 번 직접 적용하면 자동 모드가 잠금 해제됩니다.",
   rem_scan_now:"지금 확인",
@@ -5669,6 +5861,28 @@ zh:{
   rem_label:"自动修复",
   rem_hint:"Michi 可以在 Claude Code 终端之外修复它能直接控制的东西。每类操作的第一次始终由你点击执行。",
   rem_zombie_on:"自动关闭孤立的 MCP 进程",
+  prg_label:"从归档中删除",
+  prg_hint:"归档只是把旧日志挪开，从不释放磁盘。这里可以真正删除已归档的内容 — 那些文件已经没人再读。默认关闭。",
+  prg_after:"归档满此时长后删除", prg_never:"从不（初期推荐）",
+  prg_6m:"6 个月", prg_1y:"1 年", prg_2y:"2 年",
+  prg_warn:"删除后无法恢复。Michi 保留自己的每日摘要，所以图表会留下 — 原始对话不会。无论怎么选，都不会低于 6 个月。",
+  prg_auto:"自动删除（每天一次）",
+  prg_scan:"查看将删除的内容", prg_go:"删除…",
+  prg_off:"删除已关闭 — 请在上方选择时长。",
+  prg_msg:(n,mb,a,b)=>`${n} 个文件 · ${mb} MB · ${a} 至 ${b}`,
+  prg_none:d=>`暂无可删除项（需在归档中满 ${d} 天以上）。`,
+  prg_confirm:(n,mb)=>`永久删除 ${n} 个文件（${mb} MB）？`,
+  prg_confirm_big:(n,mb,w)=>`将永久删除 ${n} 个文件（${mb} MB）。输入“${w}”确认。`,
+  prg_word:"删除", prg_yes:"是，删除", prg_no:"取消",
+  prg_done:(n,mb)=>`已删除 ${n} 个文件 · 释放 ${mb} MB ✓`,
+  prg_capped:"已达单次上限 — 其余明天继续",
+  prg_total:(n,mb)=>`归档：${n} 个文件 · ${mb} MB`,
+  prg_du_label:"服务器上的日志（仅供参考）",
+  prg_du_row:(n,mb)=>`${n} 个文件 · ${mb} MB`,
+  prg_du_old:(n,mb)=>`超过一年的 ${n} 个 · ${mb} MB`,
+  prg_du_howto:"Michi 从不通过 SSH 删除任何东西。若想在那边清理，此命令只列出超过一年的文件 — 删除前先核对列表：",
+  prg_du_howto2:"只删这些的话，把 -print 换成 -delete。永远不要删除整个文件夹。",
+  rem_log_purge:(n,mb)=>`从归档删除 ${n} 个文件 · 释放 ${mb} MB`,
   rem_arch_on:"自动归档一年以上的日志",
   rem_lock:"Michi 不会自动化你没见过的操作：自己应用一次后，自动模式才会解锁。",
   rem_scan_now:"立即检查",
@@ -8841,6 +9055,7 @@ function showTab(name){
   if(name==="prefs"){ renderPricesStatus();       // la descarga de fondo puede
                                                   // haber terminado después de cargar el panel
     remUi(); remLogLoad(); remZombieRows();       // remediación: estado + registro frescos
+    prgLoad(); prgDuLoad();                       // purga del archivo + disco de servidores
     rlyPoll().then(rlyRows); rlyAliasUi(); rlyChatUi(); rlyTermUi(); } // relevo: sesiones, atajo, chat y terminales SSH
   document.querySelector(".panel").scrollTop=0;
 }
@@ -9287,6 +9502,109 @@ $("remArchGo").addEventListener("click",async ()=>{
     remLogLoad();
   }catch(e){ $("remArchMsg").textContent=t("rem_kill_fail"); flog("rem: archive ERROR "+e); }
 });
+// ---------- PURGA DEL ARCHIVO (2026-08-15) ----------
+// El último escalón del ciclo vivo → archivado → purgado. Cuelga del mismo
+// esqueleto que el archivador: interruptor con candado de "primera manual",
+// simulacro antes del botón, pasada automática una vez al día. Lo que es
+// SOLO de aquí: la confirmación fuerte (escribir una palabra) proporcional
+// al daño, el suelo de 6 meses que se enseña como aviso, y que nace en
+// "nunca". Las reglas de seguridad viven en Rust (bloque PURGA de lib.rs);
+// el panel no puede saltárselas aunque quiera.
+let prgCfg={after_days:0,auto:false}, prgLastScan=null;
+const PRG_BIG_MB=1024, PRG_BIG_FILES=100;   // confirmación fuerte a partir de aquí
+async function prgLoad(){
+  if(!invoke) return;
+  try{ prgCfg=await invoke("get_purge_config")||prgCfg; }catch(_){}
+  prgUi();
+}
+function prgUi(){
+  const on=prgCfg.after_days>0;
+  $("prgAfter").value=String(prgCfg.after_days||0);
+  $("prgWarn").hidden=!on;
+  $("prgAutoRow").hidden=!on;
+  $("prgAutoChk").checked=!!prgCfg.auto;
+  $("prgLock").hidden=!(on&&prgCfg.auto&&!remUnlocked("purge"));
+  $("prgGo").hidden=true; $("prgConfirm").hidden=true;
+  if(!on) $("prgMsg").textContent="";
+}
+async function prgSave(){
+  try{ await invoke("save_purge_config",{cfg:prgCfg}); }catch(e){ flog("purga: save ERROR "+e); }
+  prgUi();
+}
+$("prgAfter").addEventListener("change",()=>{
+  prgCfg.after_days=+$("prgAfter").value||0;
+  if(!prgCfg.after_days) prgCfg.auto=false;   // apagar la purga apaga el automático
+  flog("purga: después de "+(prgCfg.after_days||"nunca"));
+  prgSave();
+});
+$("prgAutoChk").addEventListener("change",()=>{
+  prgCfg.auto=$("prgAutoChk").checked;
+  flog("purga: automático → "+(prgCfg.auto?"on":"off"));
+  prgSave();
+});
+function prgFmtDay(e){ return e?new Date(e*1000).toLocaleDateString(lang,{day:"2-digit",month:"short",year:"numeric"}):"—"; }
+// el SIMULACRO: qué, cuánto, de qué fechas. Nunca toca nada.
+$("prgScan").addEventListener("click",async ()=>{
+  if(!invoke) return;
+  $("prgMsg").textContent="…"; $("prgGo").hidden=true; $("prgConfirm").hidden=true;
+  try{
+    const s=await invoke("scan_purgeable"); prgLastScan=s;
+    $("prgTotal").textContent=t("prg_total",s.total_files,remMB(s.total_bytes))+" · "+s.dest;
+    if(!s.days){ $("prgMsg").textContent=t("prg_off"); return; }
+    if(s.files>0){
+      $("prgMsg").textContent=t("prg_msg",s.files,remMB(s.bytes),prgFmtDay(s.oldest),prgFmtDay(s.newest));
+      $("prgGo").hidden=false;
+    }else $("prgMsg").textContent=t("prg_none",s.days);
+  }catch(e){ $("prgMsg").textContent=t("rem_kill_fail"); flog("purga: scan ERROR "+e); }
+});
+// el botón NO borra: abre la confirmación. Fuerte (palabra) si el daño es
+// grande; un clic más si es chico. Nunca un solo clic distraído.
+$("prgGo").addEventListener("click",()=>{
+  const s=prgLastScan; if(!s) return;
+  const big=remMB(s.bytes)>=PRG_BIG_MB||s.files>=PRG_BIG_FILES;
+  const word=t("prg_word");
+  $("prgConfirmTxt").textContent=big?t("prg_confirm_big",s.files,remMB(s.bytes),word)
+                                    :t("prg_confirm",s.files,remMB(s.bytes));
+  $("prgWord").hidden=!big; $("prgWord").value="";
+  $("prgYes").disabled=big;
+  $("prgConfirm").hidden=false;
+  if(big) $("prgWord").focus();
+});
+$("prgWord").addEventListener("input",()=>{
+  $("prgYes").disabled=$("prgWord").value.trim().toLowerCase()!==t("prg_word").toLowerCase();
+});
+$("prgNo").addEventListener("click",()=>{ $("prgConfirm").hidden=true; });
+$("prgYes").addEventListener("click",async ()=>{
+  $("prgConfirm").hidden=true; $("prgGo").hidden=true;
+  try{
+    const r=await invoke("purge_archive",{auto:false});
+    $("prgMsg").textContent=t("prg_done",r.files,remMB(r.bytes))
+      +(r.failed?" · ⚠ "+t("rem_arch_failn",r.failed):"")
+      +(r.capped?" · "+t("prg_capped"):"");
+    if(r.files>0) remMarkManual("purge");
+    flog("purga: borrados "+r.files+" ("+remMB(r.bytes)+" MB) manual"+(r.capped?" [tope]":""));
+    remLogLoad(); prgLastScan=null;
+  }catch(e){ $("prgMsg").textContent=t("rem_kill_fail"); flog("purga: ERROR "+e); }
+});
+// SERVIDORES: solo informar. Ruta, peso, cuánto es viejo, y un comando
+// ACOTADO por edad (con -mtime, nunca un rm de la carpeta entera).
+async function prgDuLoad(){
+  const el=$("prgDu"); if(!el||!invoke) return;
+  try{
+    const list=await invoke("get_remote_du")||[];
+    $("prgDuLbl").hidden=!list.length;
+    el.innerHTML=list.map(d=>{
+      const cmd=`find ${d.path} -name '*.jsonl' -mtime +365 -print`;
+      const rows=`<div class="cfg-note"><b>${escapeHtml(d.name)}</b> · ${escapeHtml(t("prg_du_row",d.files,remMB(d.bytes)))}`+
+        (d.old_files?` · <span style="color:var(--warn)">${escapeHtml(t("prg_du_old",d.old_files,remMB(d.old_bytes)))}</span>`:"")+
+        `<br><span style="font-family:var(--mono);font-size:10px">${escapeHtml(d.path)}</span></div>`+
+        (d.old_files?`<div class="cfg-note">${escapeHtml(t("prg_du_howto"))}
+          <code style="display:block;margin-top:3px;font-size:10px;user-select:all">${escapeHtml(cmd)}</code>
+          <span style="color:var(--txt-dim)">${escapeHtml(t("prg_du_howto2"))}</span></div>`:"");
+      return rows;
+    }).join("");
+  }catch(_){ el.innerHTML=""; }
+}
 // Registro de acciones: la bitácora de TODO lo que Michi aplicó (auto o
 // manual). Se pinta al abrir Ajustes y tras cada acción; datos crudos del
 // backend + textos de t() — así el registro cambia de idioma con la app.
@@ -9301,6 +9619,7 @@ async function remLogLoad(){
         d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
       const what=a.kind==="zombie"?t("rem_log_zombie",a.d1)
         : a.kind==="relay"?t("rem_log_relay",a.d1,a.d2)
+        : a.kind==="purge"?t("rem_log_purge",a.d1,a.d2)
         : t("rem_log_arch",a.d1,a.d2);
       // Botón a la copia del /clear con red: sin él la copia queda en una
       // ruta que nadie se sabe, y una red que no puedes ver a un clic es
@@ -9370,6 +9689,9 @@ $("handX").addEventListener("click",()=>{ $("handPop").hidden=true; });
 // registra; si aún no, nace la tarjeta en Consejos para el clic manual.
 async function remPoll(){
   if(!invoke||simFnd) return;
+  // la config de purga vive en disco (Rust): la pasada automática la
+  // necesita aunque nunca se haya abierto Ajustes en esta sesión
+  try{ prgCfg=await invoke("get_purge_config")||prgCfg; }catch(_){}
   try{
     lastZombies=await invoke("scan_zombies")||[];
     if(lastZombies.length){
@@ -9388,6 +9710,17 @@ async function remPoll(){
       if(s&&s.files>0){
         const r=await invoke("archive_old",{auto:true});
         flog("rem: archivados "+r.files+" ("+remMB(r.bytes)+" MB) auto");
+      }
+    }
+    // purga automática: misma cadencia y mismo candado (primera manual).
+    // Rust aplica suelo, doble reloj y tope por pasada — aquí solo se
+    // decide SI hoy toca. Con tope, mañana sigue sola.
+    if(prgCfg.after_days>0&&prgCfg.auto&&remUnlocked("purge")&&localStorage.getItem("prgDay")!==hoy){
+      localStorage.setItem("prgDay",hoy);
+      const s=await invoke("scan_purgeable");
+      if(s&&s.files>0){
+        const r=await invoke("purge_archive",{auto:true});
+        flog("purga: borrados "+r.files+" ("+remMB(r.bytes)+" MB) auto"+(r.capped?" [tope]":""));
       }
     }
   }catch(_){/* sin backend: el siguiente ciclo reintenta */}
