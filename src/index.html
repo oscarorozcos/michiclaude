@@ -1592,6 +1592,7 @@
       <label class="cfg-row" style="cursor:pointer" id="prgAutoRow" hidden>
         <span data-i18n="prg_auto"></span><input type="checkbox" id="prgAutoChk">
       </label>
+      <div class="cfg-note" id="prgAutoNote" hidden></div>
       <div class="cfg-note" id="prgLock" hidden style="color:var(--warn)" data-i18n="rem_lock"></div>
       <div class="btnrow">
         <button id="prgScan" class="sec" data-i18n="prg_scan"></button>
@@ -2206,6 +2207,8 @@ en:{
   prg_6m:"6 months", prg_1y:"1 year", prg_2y:"2 years",
   prg_warn:"Deleted files can't be recovered. Michi keeps its own daily summary, so your charts survive — but the raw conversations won't. Never below 6 months, whatever you choose.",
   prg_auto:"Delete automatically (one pass a day)",
+  prg_auto_off_note:"Off: nothing is deleted on its own. The period above only filters what “Preview” shows — and it's deleted only when you confirm.",
+  prg_auto_on_note:"On: once a day Michi deletes by itself whatever has been archived longer than the period above (never more than the per-pass limit).",
   prg_scan:"Preview what would be deleted", prg_go:"Delete…",
   prg_off:"Deletion is off — pick a period above.",
   prg_msg:(n,mb,a,b)=>`${n===1?"1 file":n+" files"} · ${mb} MB · from ${a} to ${b}`,
@@ -2729,6 +2732,8 @@ es:{
   prg_6m:"6 meses", prg_1y:"1 año", prg_2y:"2 años",
   prg_warn:"Lo borrado no se recupera. Michi guarda su propio resumen diario, así que tus gráficas sobreviven — las conversaciones crudas no. Nunca por debajo de 6 meses, elijas lo que elijas.",
   prg_auto:"Borrar en automático (una pasada al día)",
+  prg_auto_off_note:"Apagado: nada se borra solo. El plazo de arriba solo filtra lo que enseña «Ver qué se borraría» — y se borra únicamente cuando tú confirmas.",
+  prg_auto_on_note:"Encendido: una vez al día Michi borra sola lo que lleve archivado más del plazo de arriba (nunca más del tope por pasada).",
   prg_scan:"Ver qué se borraría", prg_go:"Borrar…",
   prg_off:"El borrado está apagado — elige un plazo arriba.",
   prg_msg:(n,mb,a,b)=>`${n===1?"1 archivo":n+" archivos"} · ${mb} MB · del ${a} al ${b}`,
@@ -3252,6 +3257,8 @@ pt:{
   prg_6m:"6 meses", prg_1y:"1 ano", prg_2y:"2 anos",
   prg_warn:"O apagado não se recupera. O Michi guarda seu próprio resumo diário, então seus gráficos sobrevivem — as conversas brutas não. Nunca abaixo de 6 meses, escolha o que escolher.",
   prg_auto:"Apagar automaticamente (uma passada por dia)",
+  prg_auto_off_note:"Desligado: nada se apaga sozinho. O prazo acima só filtra o que «Ver o que seria apagado» mostra — e só se apaga quando você confirma.",
+  prg_auto_on_note:"Ligado: uma vez por dia o Michi apaga sozinho o que estiver arquivado há mais tempo que o prazo acima (nunca mais que o limite por passada).",
   prg_scan:"Ver o que seria apagado", prg_go:"Apagar…",
   prg_off:"O apagamento está desligado — escolha um prazo acima.",
   prg_msg:(n,mb,a,b)=>`${n===1?"1 arquivo":n+" arquivos"} · ${mb} MB · de ${a} a ${b}`,
@@ -3775,6 +3782,8 @@ fr:{
   prg_6m:"6 mois", prg_1y:"1 an", prg_2y:"2 ans",
   prg_warn:"Ce qui est supprimé ne se récupère pas. Michi garde son propre résumé quotidien, vos graphiques survivent — pas les conversations brutes. Jamais en dessous de 6 mois, quel que soit votre choix.",
   prg_auto:"Supprimer automatiquement (une passe par jour)",
+  prg_auto_off_note:"Désactivé : rien n'est supprimé tout seul. Le délai ci-dessus ne fait que filtrer ce que montre « Voir ce qui serait supprimé » — et ce n'est supprimé que si vous confirmez.",
+  prg_auto_on_note:"Activé : une fois par jour, Michi supprime seul ce qui est archivé depuis plus longtemps que le délai ci-dessus (jamais plus que la limite par passe).",
   prg_scan:"Voir ce qui serait supprimé", prg_go:"Supprimer…",
   prg_off:"La suppression est désactivée — choisissez un délai ci-dessus.",
   prg_msg:(n,mb,a,b)=>`${n===1?"1 fichier":n+" fichiers"} · ${mb} Mo · du ${a} au ${b}`,
@@ -4298,6 +4307,8 @@ de:{
   prg_6m:"6 Monaten", prg_1y:"1 Jahr", prg_2y:"2 Jahren",
   prg_warn:"Gelöschtes ist nicht wiederherstellbar. Michi behält seine eigene Tageszusammenfassung — deine Diagramme überleben, die rohen Gespräche nicht. Nie unter 6 Monaten, egal was du wählst.",
   prg_auto:"Automatisch löschen (ein Durchlauf pro Tag)",
+  prg_auto_off_note:"Aus: Nichts wird von allein gelöscht. Die Frist oben filtert nur, was „Zeigen, was gelöscht würde“ anzeigt — gelöscht wird erst, wenn du bestätigst.",
+  prg_auto_on_note:"An: Einmal am Tag löscht Michi selbst, was länger als die Frist oben archiviert ist (nie mehr als das Limit pro Durchlauf).",
   prg_scan:"Zeigen, was gelöscht würde", prg_go:"Löschen…",
   prg_off:"Löschen ist aus — wähle oben eine Frist.",
   prg_msg:(n,mb,a,b)=>`${n===1?"1 Datei":n+" Dateien"} · ${mb} MB · vom ${a} bis ${b}`,
@@ -4821,6 +4832,8 @@ ja:{
   prg_6m:"6か月", prg_1y:"1年", prg_2y:"2年",
   prg_warn:"削除したものは戻せません。Michiは独自の日次サマリーを保持するのでグラフは残りますが、生の会話は残りません。何を選んでも6か月未満にはなりません。",
   prg_auto:"自動で削除（1日1回）",
+  prg_auto_off_note:"オフ：何も勝手には削除されません。上の期間は「何が削除されるか見る」の絞り込みに使うだけで、削除はあなたが確認したときだけです。",
+  prg_auto_on_note:"オン：1日1回、上の期間より長くアーカイブされているものをMichiが自動で削除します（1回の上限を超えることはありません）。",
   prg_scan:"何が削除されるか見る", prg_go:"削除…",
   prg_off:"削除はオフです — 上で期間を選んでください。",
   prg_msg:(n,mb,a,b)=>`${n}ファイル · ${mb} MB · ${a}〜${b}`,
@@ -5344,6 +5357,8 @@ ko:{
   prg_6m:"6개월", prg_1y:"1년", prg_2y:"2년",
   prg_warn:"삭제한 것은 복구할 수 없습니다. Michi는 자체 일별 요약을 보관하므로 그래프는 남지만 원본 대화는 남지 않습니다. 무엇을 고르든 6개월 미만으로는 내려가지 않습니다.",
   prg_auto:"자동 삭제(하루 한 번)",
+  prg_auto_off_note:"꺼짐: 아무것도 저절로 삭제되지 않습니다. 위 기간은 «삭제될 항목 보기»에 보이는 것을 거를 뿐이며, 삭제는 당신이 확인할 때만 됩니다.",
+  prg_auto_on_note:"켜짐: 하루 한 번 Michi가 위 기간보다 오래 보관된 것을 스스로 삭제합니다(회당 한도를 넘지 않음).",
   prg_scan:"삭제될 항목 보기", prg_go:"삭제…",
   prg_off:"삭제가 꺼져 있습니다 — 위에서 기간을 고르세요.",
   prg_msg:(n,mb,a,b)=>`${n}개 파일 · ${mb} MB · ${a}~${b}`,
@@ -5867,6 +5882,8 @@ zh:{
   prg_6m:"6 个月", prg_1y:"1 年", prg_2y:"2 年",
   prg_warn:"删除后无法恢复。Michi 保留自己的每日摘要，所以图表会留下 — 原始对话不会。无论怎么选，都不会低于 6 个月。",
   prg_auto:"自动删除（每天一次）",
+  prg_auto_off_note:"关闭：什么都不会自行删除。上面的时长只是筛选“查看将删除的内容”里显示的项 — 只有你确认时才会删除。",
+  prg_auto_on_note:"开启：每天一次，Michi 会自行删除归档时间超过上面时长的内容（不会超过单次上限）。",
   prg_scan:"查看将删除的内容", prg_go:"删除…",
   prg_off:"删除已关闭 — 请在上方选择时长。",
   prg_msg:(n,mb,a,b)=>`${n} 个文件 · ${mb} MB · ${a} 至 ${b}`,
@@ -9524,6 +9541,11 @@ function prgUi(){
   $("prgAutoRow").hidden=!on;
   $("prgAutoChk").checked=!!prgCfg.auto;
   $("prgLock").hidden=!(on&&prgCfg.auto&&!remUnlocked("purge"));
+  // la nota dice EN LLANO qué pasa con el interruptor en cada estado:
+  // apagado = solo tú borras (el plazo es el filtro del simulacro);
+  // encendido = Michi borra sola una vez al día lo que cumpla el plazo
+  $("prgAutoNote").hidden=!on;
+  $("prgAutoNote").textContent=prgCfg.auto?t("prg_auto_on_note"):t("prg_auto_off_note");
   $("prgGo").hidden=true; $("prgConfirm").hidden=true;
   if(!on) $("prgMsg").textContent="";
 }
