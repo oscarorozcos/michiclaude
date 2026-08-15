@@ -255,6 +255,12 @@ como las de Hallazgos:
    ruta, aditivo) para que la línea "Ahora:" diga QUÉ leyó Claude —
    sujeto explícito, "Claude leyó X n veces". El detector `reread` de
    Hallazgos no necesitó cambio: mide chars devueltos y una imagen da 0.
+   SEGUNDO falso positivo, mismo día: la clave de `reads` es ARCHIVO +
+   RANGO (`read_key`: `ruta#Lini-fin` si el Read trae offset/limit; sin
+   ellos, la ruta) — `lib.rs` leído UNA vez en 6 tandas de 1000 líneas
+   contaba 6 relecturas, siendo justo lo que la ficha recomienda. Misma
+   clave en el detector `reread` de Hallazgos (las 4 zonas, Rust y
+   Python). `trail` sigue con la ruta a secas.
    El backend solo reporta HECHOS ({rule, session,
    value}); el anti-spam vive en el frontend: una vez por sesión por
    regla (tipSeen, tope 300) + tope diario global de 5 (tipDay). La ficha

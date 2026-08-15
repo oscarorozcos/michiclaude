@@ -763,7 +763,7 @@ def scan_findings(projects_dir, window_ago, days, end):
                             if sk:
                                 skills_used.add(str(sk).split(":")[-1].lower())
                         if name == "Read":
-                            p = (b.get("input") or {}).get("file_path")
+                            p = read_key(b.get("input") or {})
                             if p:
                                 S["reads"][p] = S["reads"].get(p, 0) + 1
                                 pend_reads[b.get("id")] = (sid, p)
@@ -1016,6 +1016,24 @@ def is_image_path(p):
     return str(p).lower().endswith(IMG_EXT)
 
 
+def read_key(inp):
+    """Clave de una lectura para contar RELECTURAS: archivo + rango. Leer
+    trozos DISTINTOS de un archivo grande (lib.rs en 6 tandas de 1000
+    líneas, 2026-08-15) no apila copias — es justo lo que la ficha
+    recomienda — y contaba como 6 relecturas. Sin offset/limit la clave
+    es la ruta a secas. Réplica del Rust (Hallazgos y coach)."""
+    p = str(inp.get("file_path") or "")
+    off, lim = inp.get("offset"), inp.get("limit")
+    if off is None and lim is None:
+        return p
+    try:
+        o = int(off or 0)
+        end = str(o + int(lim)) if lim is not None else ""
+    except (TypeError, ValueError):
+        return p
+    return "%s#L%d-%s" % (p, o, end)
+
+
 COACH_SUM_QUIET = 10
 COACH_SUM_MIN_TURNS = 5
 COACH_DONE_QUIET = 5
@@ -1221,7 +1239,8 @@ def coach_scan(projects_dir):
                                     if is_image_path(fpx):
                                         st["shots"][fpx] = st["shots"].get(fpx, 0) + 1
                                     else:
-                                        st["reads"][fpx] = st["reads"].get(fpx, 0) + 1
+                                        rk = read_key(inp)   # archivo + rango
+                                        st["reads"][rk] = st["reads"].get(rk, 0) + 1
                                     st["trail"].append(fpx)
                                 elif name == "Bash":
                                     st["cmds"] += 1

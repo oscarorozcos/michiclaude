@@ -270,7 +270,7 @@ en sincronía (invariante #1): motor en `meter-export.py`
 MCP), Ignorar persistente (`fndIgnore`) y ventana propia.
 
 **Detectores y umbrales** (constantes; detalle en el doc): reread (≥3
-lecturas, ~2k tok — MIDE chars devueltos), inflate (+50k, 10+ turnos),
+lecturas del MISMO archivo+RANGO, ~2k tok — MIDE chars devueltos), inflate (+50k, 10+ turnos),
 cachebreak (≥300k reescritos; fuera isSidechain y compactaciones ±120 s),
 mech (≥5; git/pytest/cargo/npm), subagents (≥50k de sidechain),
 acompact (≥3 auto-compacts POR PROYECTO; trigger≠manual, dedup uuid;
@@ -385,7 +385,7 @@ NO lleva `usage`: no se puede facturar, solo se ve en cuota.
 Reglas: ctx ≥60% del techo (`COACH_CTX_PCT`×`ctx_full`, antes 120k
 fijos; el ⚠ "ctx" de `coach_leaks` usa el MISMO umbral) → compact;
 pausa≥6 min con ctx≥30k → cache; mismo
-archivo leído ≥3 → attach (SOLO texto; imágenes → `shots` ≥10, ficha
+archivo+RANGO leído ≥3 → attach (SOLO texto; imágenes → `shots` ≥10, ficha
 propia; ambos hits llevan `file`, la línea "Ahora:" dice QUÉ leyó Claude —
 2026-08-15); `ask` (tool_use sin tool_result ≥3 min) y
 `done` (quieta 5 min, 5+ turnos) son SOLO push, no fichas; `sum` (quieta 10 min) = recibo con

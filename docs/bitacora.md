@@ -4748,3 +4748,11 @@ sigue contando las imágenes: son archivos con los que se trabaja. El
 `reread` de Hallazgos no cambia (mide chars; una imagen da 0). La ficha
 `cache` de esa misma sesión (6 min de pausa con 235k) era legítima.
 `cargo check` pendiente en Windows (el VPS no tiene toolchain).
+
+Segundo falso positivo, mismo día, en los casos anteriores de michiclaude:
+`lib.rs` leído UNA vez en 6 tandas de 1000 líneas (offset 0…5000) contaba
+6 relecturas → ficha attach. Es justo lo que la ficha recomienda hacer.
+Arreglo: la relectura se cuenta por ARCHIVO + RANGO (`read_key` →
+`ruta#Lini-fin`), en el coach y en el detector `reread` de Hallazgos,
+Rust y Python. Regresión: 12/12 hallazgos iguales sobre 30 días de logs
+reales; la sesión de los 6 trozos ya no dispara ni attach ni reread.

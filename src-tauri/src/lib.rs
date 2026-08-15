@@ -3219,11 +3219,12 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
                             }
                         }
                         if name == "Read" {
-                            if let Some(p) = b["input"]["file_path"].as_str() {
+                            if b["input"]["file_path"].as_str().is_some() {
+                                let p = read_key(&b["input"]); // archivo + rango
                                 let st = sessions.entry(sid.clone()).or_default();
-                                *st.reads.entry(p.to_string()).or_insert(0) += 1;
+                                *st.reads.entry(p.clone()).or_insert(0) += 1;
                                 if let Some(id) = b["id"].as_str() {
-                                    pend.insert(id.to_string(), (sid.clone(), p.to_string()));
+                                    pend.insert(id.to_string(), (sid.clone(), p));
                                 }
                             }
                         }
@@ -3668,6 +3669,23 @@ fn is_image_path(p: &str) -> bool {
     let l = p.to_ascii_lowercase();
     IMG_EXT.iter().any(|e| l.ends_with(e))
 }
+
+/// Clave de una lectura para contar RELECTURAS: archivo + rango. Leer
+/// trozos DISTINTOS de un archivo grande (lib.rs en 6 tandas de 1000
+/// líneas, 2026-08-15) no apila copias — es justo lo que la ficha
+/// recomienda — y contaba como 6 relecturas. Sin offset/limit la clave es
+/// la ruta a secas. Réplica en el exportador (Hallazgos y coach).
+fn read_key(inp: &serde_json::Value) -> String {
+    let p = inp["file_path"].as_str().unwrap_or("").to_string();
+    let off = inp["offset"].as_i64();
+    let lim = inp["limit"].as_i64();
+    if off.is_none() && lim.is_none() {
+        return p;
+    }
+    let o = off.unwrap_or(0);
+    let end = lim.map(|l| (o + l).to_string()).unwrap_or_default();
+    format!("{}#L{}-{}", p, o, end)
+}
 const COACH_SUM_QUIET: i64 = 10; // minutos quieta = sesión terminada: resumen
 const COACH_SUM_MIN_TURNS: u64 = 5; // por debajo no hay nada que resumir
 // Aviso al celular de "tu agente terminó": antes que el resumen (que es una
@@ -4111,7 +4129,8 @@ fn coach_scan() -> Vec<CoachHit> {
                                         if is_image_path(p) {
                                             *st.shots.entry(p.to_string()).or_insert(0) += 1;
                                         } else {
-                                            *st.reads.entry(p.to_string()).or_insert(0) += 1;
+                                            // archivo + rango: trozos distintos no son relectura
+                                            *st.reads.entry(read_key(&b["input"])).or_insert(0) += 1;
                                         }
                                         st.trail.push(p.to_string());
                                     }

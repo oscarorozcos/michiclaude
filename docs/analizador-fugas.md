@@ -417,6 +417,11 @@ cuota — pero eso no sale de los logs.
 - [x] Detector 2: archivos releídos (2026-07-29, validado en vivo — y cazó la
       trampa: la estimación por tamaño de archivo exageraba ~100x; se MIDE lo
       devuelto por cada lectura).
+      AJUSTE 2026-08-15: la clave es ARCHIVO + RANGO (`read_key`, réplica
+      Rust/Python: `ruta#Lini-fin` cuando el Read trae offset/limit) —
+      leer lib.rs UNA vez en 6 tandas de 1000 líneas contaba 6 relecturas
+      y es justo lo que el consejo recomienda. Las imágenes ya no entraban
+      (0 chars devueltos).
 - [x] Detector 3: sesiones que se inflan (2026-07-29, validado en vivo;
       cuadró al 0.4% contra la agregación normal por un camino independiente).
 - [x] Detector extra: peticiones mecánicas (git/tests; lista corta a propósito).
