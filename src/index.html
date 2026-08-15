@@ -1062,6 +1062,17 @@
     place-items:center;background:var(--warn);color:#1a1305;font-weight:800;font-size:11px}
   .rp-cov b{color:var(--txt)}
   .rp-cov .s{color:var(--txt-dim);font-size:10px;margin-top:3px}
+  /* guía plazo × automático de la purga */
+  .prg-guide{width:100%;border-collapse:collapse;font-size:10.5px;margin:6px 0 10px;
+    line-height:1.45}
+  .prg-guide th{text-align:left;font-weight:700;color:var(--txt-mut);font-size:9.5px;
+    letter-spacing:.6px;text-transform:uppercase;padding:4px 6px 5px;
+    border-bottom:1px solid var(--stroke)}
+  .prg-guide td{padding:6px;vertical-align:top;border-bottom:1px solid var(--stroke-soft);
+    color:var(--txt-mut)}
+  .prg-guide td:first-child{white-space:nowrap;color:var(--txt);font-weight:600}
+  .prg-guide td:nth-child(2){white-space:nowrap;font-family:var(--mono);font-size:10px}
+  .prg-guide tr:last-child td{border-bottom:0}
 </style>
 </head>
 <body>
@@ -1579,6 +1590,17 @@
            (reglas en lib.rs, bloque PURGA). Nace en "nunca". -->
       <div class="cfg-lbl" data-i18n="prg_label"></div>
       <div class="cfg-note" data-i18n="prg_hint"></div>
+      <!-- guía fija de las tres combinaciones plazo × automático (Oscar
+           2026-08-15: la confusión de "elegí 6 meses, ¿ya borra?" la va a
+           tener cualquiera) -->
+      <table class="prg-guide">
+        <thead><tr><th data-i18n="prg_g_h1"></th><th data-i18n="prg_g_h2"></th><th data-i18n="prg_g_h3"></th></tr></thead>
+        <tbody>
+          <tr><td data-i18n="prg_g_r1a"></td><td>—</td><td data-i18n="prg_g_r1c"></td></tr>
+          <tr><td data-i18n="prg_g_r2a"></td><td data-i18n="prg_g_off"></td><td data-i18n="prg_g_r2c"></td></tr>
+          <tr><td data-i18n="prg_g_r2a"></td><td data-i18n="prg_g_on"></td><td data-i18n="prg_g_r3c"></td></tr>
+        </tbody>
+      </table>
       <div class="cfg-row">
         <span data-i18n="prg_after"></span>
         <select id="prgAfter">
@@ -2201,6 +2223,11 @@ en:{
   rem_label:"Automatic remediation",
   rem_hint:"Michi can fix what it controls directly, outside the Claude Code terminal. The first time of each action is always applied by you, with a click.",
   rem_zombie_on:"Close orphaned MCP processes automatically",
+  prg_g_h1:"Period", prg_g_h2:"Auto", prg_g_h3:"What happens",
+  prg_g_r1a:"Never", prg_g_r1c:"Nothing, ever.",
+  prg_g_r2a:"6 months", prg_g_off:"off", prg_g_on:"on",
+  prg_g_r2c:"Nothing is deleted on its own. It's a filter for the preview: “Preview” shows what meets 6 months, and it's deleted only if you confirm.",
+  prg_g_r3c:"Michi deletes by itself once a day whatever meets the period — and only after you've done at least one manual deletion (the lock).",
   prg_label:"Delete from the archive",
   prg_hint:"Archiving moves old logs aside but never frees disk. Here you can really delete what's already archived — nobody reads those files anymore. Off by default.",
   prg_after:"Delete after being archived for", prg_never:"Never (recommended to start)",
@@ -2726,6 +2753,11 @@ es:{
   rem_label:"Remediación automática",
   rem_hint:"Michi puede arreglar lo que controla directo, fuera de la terminal de Claude Code. La primera vez de cada acción siempre la aplicas tú, con un clic.",
   rem_zombie_on:"Cerrar procesos MCP huérfanos en automático",
+  prg_g_h1:"Plazo", prg_g_h2:"Automático", prg_g_h3:"Qué pasa",
+  prg_g_r1a:"Nunca", prg_g_r1c:"Nada, jamás.",
+  prg_g_r2a:"6 meses", prg_g_off:"apagado", prg_g_on:"encendido",
+  prg_g_r2c:"Nada se borra solo. Es un filtro para el simulacro: al pulsar «Ver qué se borraría» te enseña lo que cumple 6 meses, y borra solo si tú confirmas.",
+  prg_g_r3c:"Michi borra sola una vez al día lo que cumpla el plazo — y solo después de que hayas hecho al menos un borrado manual (el candado).",
   prg_label:"Borrar del archivo",
   prg_hint:"Archivar aparta los logs viejos pero nunca libera disco. Aquí puedes borrar de verdad lo ya archivado — esos archivos ya no los lee nadie. Nace apagado.",
   prg_after:"Borrar tras llevar archivado", prg_never:"Nunca (recomendado para empezar)",
@@ -3251,6 +3283,11 @@ pt:{
   rem_label:"Remediação automática",
   rem_hint:"O Michi pode consertar o que controla diretamente, fora do terminal do Claude Code. A primeira vez de cada ação é sempre aplicada por você, com um clique.",
   rem_zombie_on:"Fechar processos MCP órfãos automaticamente",
+  prg_g_h1:"Prazo", prg_g_h2:"Automático", prg_g_h3:"O que acontece",
+  prg_g_r1a:"Nunca", prg_g_r1c:"Nada, jamais.",
+  prg_g_r2a:"6 meses", prg_g_off:"desligado", prg_g_on:"ligado",
+  prg_g_r2c:"Nada se apaga sozinho. É um filtro para a prévia: «Ver o que seria apagado» mostra o que cumpre 6 meses, e só apaga se você confirmar.",
+  prg_g_r3c:"O Michi apaga sozinho uma vez por dia o que cumprir o prazo — e só depois de você ter feito ao menos um apagamento manual (o cadeado).",
   prg_label:"Apagar do arquivo",
   prg_hint:"Arquivar afasta os logs antigos mas nunca libera disco. Aqui você apaga de verdade o que já está arquivado — ninguém mais lê esses arquivos. Nasce desligado.",
   prg_after:"Apagar após ficar arquivado por", prg_never:"Nunca (recomendado para começar)",
@@ -3776,6 +3813,11 @@ fr:{
   rem_label:"Remédiation automatique",
   rem_hint:"Michi peut réparer ce qu'il contrôle directement, hors du terminal Claude Code. La première fois de chaque action, c'est toujours vous qui l'appliquez, d'un clic.",
   rem_zombie_on:"Fermer automatiquement les processus MCP orphelins",
+  prg_g_h1:"Délai", prg_g_h2:"Auto", prg_g_h3:"Ce qui se passe",
+  prg_g_r1a:"Jamais", prg_g_r1c:"Rien, jamais.",
+  prg_g_r2a:"6 mois", prg_g_off:"désactivé", prg_g_on:"activé",
+  prg_g_r2c:"Rien n'est supprimé tout seul. C'est un filtre pour l'aperçu : « Voir ce qui serait supprimé » montre ce qui atteint 6 mois, et ne supprime que si vous confirmez.",
+  prg_g_r3c:"Michi supprime seul une fois par jour ce qui atteint le délai — et seulement après au moins une suppression manuelle de votre part (le verrou).",
   prg_label:"Supprimer de l'archive",
   prg_hint:"Archiver met les vieux journaux de côté mais ne libère jamais de disque. Ici vous supprimez vraiment ce qui est déjà archivé — plus personne ne lit ces fichiers. Désactivé au départ.",
   prg_after:"Supprimer après avoir été archivé", prg_never:"Jamais (recommandé pour commencer)",
@@ -4301,6 +4343,11 @@ de:{
   rem_label:"Automatische Aufräumaktionen",
   rem_hint:"Michi kann reparieren, was er direkt kontrolliert — außerhalb des Claude-Code-Terminals. Das erste Mal jeder Aktion führst immer du aus, per Klick.",
   rem_zombie_on:"Verwaiste MCP-Prozesse automatisch beenden",
+  prg_g_h1:"Frist", prg_g_h2:"Auto", prg_g_h3:"Was passiert",
+  prg_g_r1a:"Nie", prg_g_r1c:"Nichts, niemals.",
+  prg_g_r2a:"6 Monate", prg_g_off:"aus", prg_g_on:"an",
+  prg_g_r2c:"Nichts wird von allein gelöscht. Es ist ein Filter für die Vorschau: „Zeigen, was gelöscht würde“ zeigt, was 6 Monate erfüllt, und löscht nur, wenn du bestätigst.",
+  prg_g_r3c:"Michi löscht einmal am Tag selbst, was die Frist erfüllt — und erst, nachdem du mindestens einmal manuell gelöscht hast (die Sperre).",
   prg_label:"Aus dem Archiv löschen",
   prg_hint:"Archivieren schafft alte Logs beiseite, gibt aber nie Speicher frei. Hier löschst du wirklich, was schon archiviert ist — diese Dateien liest niemand mehr. Anfangs aus.",
   prg_after:"Löschen, wenn archiviert seit", prg_never:"Nie (zum Start empfohlen)",
@@ -4826,6 +4873,11 @@ ja:{
   rem_label:"自動修復",
   rem_hint:"Michi は直接制御できるものを、Claude Code のターミナルの外で修復できます。各アクションの初回は必ずあなたがクリックで適用します。",
   rem_zombie_on:"孤立した MCP プロセスを自動で終了する",
+  prg_g_h1:"期間", prg_g_h2:"自動", prg_g_h3:"何が起きるか",
+  prg_g_r1a:"しない", prg_g_r1c:"何も、決して。",
+  prg_g_r2a:"6か月", prg_g_off:"オフ", prg_g_on:"オン",
+  prg_g_r2c:"何も勝手には削除されません。プレビュー用の絞り込みです：「何が削除されるか見る」で6か月を満たすものが表示され、あなたが確認したときだけ削除されます。",
+  prg_g_r3c:"Michiが1日1回、期間を満たすものを自動で削除します — ただし、あなたが少なくとも1回手動で削除した後だけです（ロック）。",
   prg_label:"アーカイブから削除",
   prg_hint:"アーカイブは古いログを脇にどけるだけで、ディスクは空きません。ここでは、すでにアーカイブ済みのもの（もう誰も読まないファイル）を本当に削除できます。初期状態はオフです。",
   prg_after:"アーカイブ後、この期間で削除", prg_never:"しない（最初はこれを推奨）",
@@ -5351,6 +5403,11 @@ ko:{
   rem_label:"자동 복구",
   rem_hint:"Michi는 Claude Code 터미널 밖에서 직접 제어할 수 있는 것을 고칠 수 있습니다. 각 작업의 첫 실행은 항상 사용자가 클릭으로 적용합니다.",
   rem_zombie_on:"고아 MCP 프로세스를 자동으로 종료",
+  prg_g_h1:"기간", prg_g_h2:"자동", prg_g_h3:"어떻게 되나",
+  prg_g_r1a:"안 함", prg_g_r1c:"아무것도, 절대.",
+  prg_g_r2a:"6개월", prg_g_off:"꺼짐", prg_g_on:"켜짐",
+  prg_g_r2c:"아무것도 저절로 삭제되지 않습니다. 미리보기용 필터입니다: «삭제될 항목 보기»가 6개월을 채운 것을 보여주고, 당신이 확인할 때만 삭제됩니다.",
+  prg_g_r3c:"Michi가 하루 한 번 기간을 채운 것을 스스로 삭제합니다 — 단, 당신이 최소 한 번 수동 삭제를 한 뒤에만(잠금).",
   prg_label:"보관함에서 삭제",
   prg_hint:"보관은 오래된 로그를 치워둘 뿐 디스크를 비우지 않습니다. 여기서는 이미 보관된 것(더 이상 아무도 읽지 않는 파일)을 실제로 삭제할 수 있습니다. 기본은 꺼짐입니다.",
   prg_after:"보관 후 이 기간이 지나면 삭제", prg_never:"안 함(처음에는 권장)",
@@ -5876,6 +5933,11 @@ zh:{
   rem_label:"自动修复",
   rem_hint:"Michi 可以在 Claude Code 终端之外修复它能直接控制的东西。每类操作的第一次始终由你点击执行。",
   rem_zombie_on:"自动关闭孤立的 MCP 进程",
+  prg_g_h1:"时长", prg_g_h2:"自动", prg_g_h3:"会发生什么",
+  prg_g_r1a:"从不", prg_g_r1c:"什么都不会，永远。",
+  prg_g_r2a:"6 个月", prg_g_off:"关", prg_g_on:"开",
+  prg_g_r2c:"什么都不会自行删除。它只是预览的筛选：“查看将删除的内容”显示满 6 个月的项，只有你确认才删除。",
+  prg_g_r3c:"Michi 每天一次自行删除满足时长的内容 — 且只在你至少手动删除过一次之后（锁）。",
   prg_label:"从归档中删除",
   prg_hint:"归档只是把旧日志挪开，从不释放磁盘。这里可以真正删除已归档的内容 — 那些文件已经没人再读。默认关闭。",
   prg_after:"归档满此时长后删除", prg_never:"从不（初期推荐）",
