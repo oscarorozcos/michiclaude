@@ -20,6 +20,8 @@ discrepan, manda CLAUDE.md y hay que corregir el doc.
 | `avisos-ntfy.md` | Pushes al celular: privacidad, topic, programados, cómo probarlo. |
 | `hub-modo-equipo.md` | Modo HUB multi-máquina y el diseño (bloqueado) de rangos de fecha. |
 | `ruteo-inteligente.md` | Ruteo de subagentes por modelo: etapa 0 hecha, plan 1-6 (bloqueado). |
+| `hallazgos-hooks-token-saving-michiclaude.md` | Análisis EXTERNO (2026-08-15) del ecosistema de hooks/plugins de ahorro de tokens y qué medir/recomendar desde MichiClaude. Leer su nota de encaje: trae supuestos que NO aplican (SQLite, daemon). |
+| `michiclaude-taskbar-parenting-contexto.md` | Análisis EXTERNO: widget embebido en la taskbar de Win11 (SetParent a Shell_TrayWnd). NO arrancar sin el spike sin-WebView2; leer su nota de encaje. |
 | `prompts-diseno-*.md` | Los prompts con que se diseñaron remediación y desperdicio — para repetir el método, no para editar. |
 | `img/` | Capturas y diagramas (convención en `img/README.md`). |
 
