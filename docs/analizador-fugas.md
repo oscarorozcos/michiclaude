@@ -218,6 +218,14 @@ presentarlo como juicio.
 > Si necesitas subir de modelo, casi siempre significa que planteaste mal la
 > tarea. Bajarla a clasificación resuelve el 90% de los casos.
 
+**Matiz (2026-08-16, diseño en `analisis-local.md` §"Etapa 3"):** un
+EMBEDDING no es "un modelo local" en el sentido de esta sección — no
+genera, mismo texto = mismo vector, el coseno se testea con fixture y
+enseña su número. Por eso la capa de TEMAS sobre `inflate` (fronteras de
+tema + ahorro calculado) es admisible como capa ADITIVA y opt-in: el
+hallazgo determinista no cambia y sin modelo la tarjeta es la de hoy.
+El 2B generativo sigue fuera del analizador.
+
 ---
 
 ## 6. Redacción de los mensajes

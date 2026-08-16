@@ -2968,3 +2968,39 @@ relevo / index.html.
 QUÉ QUEDA: usar la plantilla en la próxima jornada; capturas del README
 a `docs/img/`; el skill genérico ("nuevo proyecto con este método") se
 decide aparte, fuera de este repo.
+
+## 2026-08-16 (3) — Etapa 3 del análisis local DISEÑADA: temas sobre `inflate` (contar → demostrar)
+
+QUÉ: diseño (sin código) en `analisis-local.md` §"Etapa 3": la tarjeta
+`inflate` ("una conversación siguió creciendo N turnos") gana una capa
+ADITIVA que parte la sesión en TRAMOS de tema con embeddings
+(EmbeddingGemma, mismo llama-server de la etapa 2, nunca el 2B) y
+CALCULA el ahorro de cada `/clear` que no se hizo (reparto del
+`cache_read` por tramo, mismo `price_for` que `cr_cost`); un solo tramo
+→ "aquí conviene /compact, no /clear". Reglas: hallazgo determinista y
+`fndKey` intactos; fail-quiet (sin GGUF/opt-in = tarjeta de hoy);
+evidencia = mensajes humanos vía `user_turn_text` ≤300 chars, NO se
+persisten; solo en la pasada completa de Hallazgos, caché por sesión
+`inflate_topics.json`; algoritmo con centro de tramo, frontera sostenida
+2 mensajes (`TOPIC_HOLD`), tramo mínimo 4, mensajes ≤3 palabras no
+votan; constantes propias `TOPIC_*` (arrancan en EMB_NEW/EMB_CROSS).
+Tres piezas: Rust local/WSL (`topics_for_inflates`, `ai_emb_vecs`),
+exportador manda `umsgs` por SSH y el Windows embebe (el modelo NO va al
+VPS), panel pinta chips de tramos + ahorro (`fnd_inflate_one/multi` ×8),
+`topics` no viaja al hub. Puntero en `analizador-fugas.md` §5 (por qué
+un embedding no viola "determinista, nunca un modelo local").
+POR QUÉ: Oscar vio dos tarjetas inflate (71 y 30 turnos, VPS-EU) y
+preguntó si Michi "detecta" cambios de tema; la respuesta honesta es
+que la tarjeta cuenta y la ficha SUPONE ("al cambiar de tema…"). Pidió
+que fuera "más inteligente aparte de contar o suponer". Alternativa
+descartada: pasar el 2B por los logs (genera, no reproducible, choca con
+analizador §5 y con la RAM del widget).
+CÓMO SE VERIFICÓ: solo docs — no hay código que verificar. Se comprobó
+en el código dónde engancha: `Finding` (serde default), emisión de
+`inflate` en Rust (`cr_cost`) y en el exportador, `ai_emb_verdict` /
+`EMB_NEW`/`EMB_CROSS`, `user_turn_text` en los dos lados, `fndKey` en
+el panel. CLAUDE.md en 39.925 bytes tras podar dos [x] ya cerrados.
+QUÉ QUEDA: la etapa 3 queda BLOQUEADA detrás de las pruebas en vivo de
+auto-/compact y auto-/clear (misma zona `ai_emb_*`), como el ruteo.
+Orden al arrancar: Rust local + panel → medir fronteras con las
+sesiones reales de la semana → exportador `umsgs` → fixture de test.

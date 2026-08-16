@@ -13,7 +13,7 @@ discrepan, manda CLAUDE.md y hay que corregir el doc.
 | `bitacora-hasta-2026-08-04.md` | Historial de julio: el CLAUDE.md original de 118k, íntegro. Solo grep. |
 | `analizador-fugas.md` | Pestaña Hallazgos: detectores, umbrales, qué NO se detecta, avisos. |
 | `consejos-coach.md` | Pestaña Consejos: fichas, reglas del motor de sesión (`press`, `attach`, `shots`, `sum`…), anti-spam. |
-| `analisis-local.md` | IA local: `ai_intent`, embeddings (etapa 2), descarga guiada, umbrales `EMB_*`. |
+| `analisis-local.md` | IA local: `ai_intent`, embeddings (etapa 2), descarga guiada, umbrales `EMB_*`; etapa 3 (temas sobre `inflate`, diseño). |
 | `remediacion.md` | Relevo (`relevo/`), auto-/compact y auto-/clear, archivador y **purga**. §"REGLAS VIGENTES" es obligatorio. |
 | `presion-y-rendimiento.md` | Pestaña Reporte, `uturns`, histórico de cuota, marcas de arreglo, `waste`. |
 | `adr-multiharness-y-persistencia.md` | Integridad de las fuentes (las 4 piezas) y por qué NO hay SQLite ni otras herramientas. |

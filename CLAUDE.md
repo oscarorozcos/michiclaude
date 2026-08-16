@@ -498,12 +498,13 @@ presion-y-rendimiento §"Qué queda vivo".
       propósito); cualquier rareza de clear/compact que Oscar vea, se
       revisa con flowLog + emb_debug.txt. VISOR DE COPIAS handoff
       validado en vivo (copia remota del VPS renderizada legible).
-- [x] Ficha `compact` proporcional (2026-08-13): 60% de `ctx_full` en vez
-      de 120k fijos, en la ficha Y en el ⚠ "ctx" de `coach_leaks`; réplica
-      en exportador (invariante #1). Seguro respecto a la prueba en vivo:
-      el automático va por `press`/`INTENT_PCT`, camino aparte.
-- [x] REPO PÚBLICO + UPDATER COMPLETO (2026-08-12): v0.1.0 y v0.1.1
-      publicadas; el ciclo detectar→descargar→instalar validado en vivo.
+      ETAPA 3 DISEÑADA (2026-08-16, analisis-local.md §"Etapa 3" —
+      LEERLO antes de tocar): TEMAS sobre `inflate` — embeddings (nunca
+      el 2B) parten la sesión en tramos y CALCULAN el ahorro por
+      frontera; capa ADITIVA sobre el hallazgo (fndKey intacto,
+      fail-quiet); local/WSL primero, VPS manda `umsgs` por SSH y el
+      Windows embebe (el modelo no va al VPS). BLOQUEADA tras las pruebas
+      en vivo de auto-/compact y auto-/clear (misma zona `ai_emb_*`).
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
       LEERLO antes de tocar). CERRADO HASTA DONDE ESTÁ (Oscar,

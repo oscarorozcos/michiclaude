@@ -369,7 +369,144 @@ inferencia se validó de punta a punta (terminal y chat, mismo día):
 - PENDIENTE de la etapa 2: verla decidir en vivo (primer `via:emb` real)
   y revisar umbrales tras unos días de muestra.
 
-## Etapa 3 (algún día, sin fecha)
+## Etapa 3 — TEMAS en los hallazgos `inflate` (DISEÑO 2026-08-16, sin implementar)
+
+### El problema que Oscar señaló
+
+La tarjeta "Una conversación siguió creciendo durante 71 turnos · $2.70"
+CUENTA (turnos, tokens releídos, `cr_cost`) y luego SUPONE: la ficha dice
+"un /clear al cambiar de tema…" sin saber si hubo cambio de tema. Una
+sesión larguísima de UN solo tema saca la misma tarjeta y ahí el consejo
+correcto sería `/compact`. Oscar (2026-08-16): "me gustaría que fuera más
+inteligente aparte de contar o suponer". Esta etapa hace que la tarjeta
+DEMUESTRE los temas y CALCULE lo que cada frontera habría ahorrado.
+
+Cómo se vería (mismo hallazgo, ampliado):
+
+> Esta sesión tuvo 3 temas — bug del login (turnos 1-22) · README
+> (23-48) · docker-compose (49-71). Un `/clear` en el turno 23 y otro en
+> el 49 habrían ahorrado ~$1.90 de los $2.70.
+> — o bien — Un solo tema, muy largo: aquí conviene `/compact`, no `/clear`.
+
+### Reglas duras de la etapa (heredan las de arriba y las del analizador)
+
+1. **El hallazgo determinista NO cambia.** `inflate` sigue naciendo con
+   los mismos umbrales, `cr_cost` y clave (`fndKey` = kind|session|origin):
+   la capa semántica es ADITIVA sobre la tarjeta ya nacida. Sin GGUF, sin
+   opt-in, o con cualquier fallo → la tarjeta de hoy, tal cual (fail-quiet,
+   regla #4). Nunca un hallazgo nace ni muere por el modelo.
+2. **Solo embeddings, nunca el 2B.** Encaja con analizador-fugas.md §5
+   ("determinista, nunca un modelo local") porque un embedding NO genera:
+   mismo modelo + mismo texto = mismo vector, el coseno es aritmética, se
+   testea con fixture (texto → similitud esperada ±0.01) y ENSEÑA su
+   trabajo (la similitud viaja al debug). Lo que §5 prohíbe —adivinar y
+   presentarlo como juicio— queda fuera: la banda media dice "no sé".
+3. **El ahorro no se supone, se calcula:** para cada frontera en el turno
+   f, ahorro = Σ (turnos > f) de `cache_read` de los tokens que pertenecen
+   a los tramos ANTERIORES a f, al precio de lectura de caché del modelo
+   de cada turno (mismo `price_for` que `cr_cost`). Aproximación honesta:
+   el contexto de un turno t se reparte por tramos según su tamaño en
+   `first_cr`→`last_cr`; el doc lo dirá con "~" (`estimated: true` en el
+   campo nuevo, NO en el hallazgo).
+4. **Privacidad igual que el press:** la evidencia son mensajes HUMANOS
+   (`user_turn_text`, el ÚNICO filtro; réplica exacta en el exportador)
+   recortados a 300 chars; NO se persisten (ni en `findings` guardados ni
+   en `fndHist`), solo los tramos resultantes `{from, to, label}` y el
+   ahorro. Los textos NUNCA salen de la máquina que corre el modelo ni van
+   al hub/ntfy. La `label` de cada tramo es el PRIMER mensaje humano del
+   tramo recortado a ~40 chars (no lo redacta el modelo — regla #6 y
+   analizador §5: el modelo no escribe UI).
+5. **Sin red y bajo demanda:** mismo llama-server de embeddings
+   (`--embeddings -c 1024`, kill-on-drop) que `ai_emb_verdict`; se arranca
+   UNA vez por pasada, embebe todo lo pendiente y se mata. Solo corre en
+   la pasada COMPLETA de Hallazgos (abrir la pestaña / refresco >5 min),
+   NUNCA en `fndPass()` ligero ni en el ciclo de cuota. Tope: los
+   `inflate` que salgan (≤12) × sus turnos humanos (tope 200 msgs/sesión;
+   más allá se muestrea uniforme y se dice "muestreado").
+6. **Caché por sesión:** `inflate_topics.json` en app_data, clave =
+   `origin|session_id_completo|turnos` → `{tramos, ahorro, sim_min}`. Los
+   logs viejos no cambian: se embebe una vez. Si la sesión sigue viva
+   (turnos crecen), se recalcula solo esa.
+
+### El algoritmo (determinista, constantes a propósito)
+
+- Entrada: lista ordenada de mensajes humanos `m[0..n]` de la sesión (ya
+  filtrados por `is_user_turn`), con el número de turno de cada uno.
+- Embeber cada `m[i]` SIN prefijos (calibrado en la etapa 2).
+- Recorrer con un CENTRO del tramo actual = media de los vectores del
+  tramo (renormalizada). Para cada `m[i]`: `sim = cos(m[i], centro)`.
+- **Frontera candidata** si `sim < TOPIC_NEW` (arranca en `EMB_NEW` =
+  0.45, constante propia porque el caso es distinto: mensaje suelto vs
+  centro de tramo). Se CONFIRMA solo si los `TOPIC_HOLD` = 2 mensajes
+  siguientes también quedan por debajo contra el centro viejo Y por
+  encima entre sí (>`EMB_CROSS`) — un "corre las pruebas otra vez" es
+  lejano de todo y no debe cortar. Mensajes de ≤3 palabras no votan
+  (ni cortan ni confirman): se adjuntan al tramo vigente.
+- Tramo mínimo `TOPIC_MIN_TURNS` = 4 mensajes humanos; si un corte deja
+  un tramo menor, se funde con el vecino más parecido.
+- Salida: `topics: [{from, to, label}]` (turnos humanos), `saved` ($, con
+  el reparto de la regla 3), `sim_min` (la similitud más baja vista, para
+  el debug) y `sampled: bool`.
+- Veredicto de la ficha (JS, `t()`): 1 tramo → variante "un solo tema →
+  /compact"; ≥2 → variante "N temas → /clear en los turnos X, Y; ahorro
+  ~$Z". Sin capa (None) → ficha de hoy sin cambios.
+
+### Piezas y enganches (las tres, invariante #1)
+
+- **Rust (local + WSL):** `Finding` gana `topics: Option<TopicSplit>`
+  (`#[serde(default)]`). `get_findings` — tras `scan_local_findings` y
+  el tope de 12 — llama a `topics_for_inflates(&mut findings)` en el mismo
+  `spawn_blocking`: para cada `inflate` con `origin` vacío o `wsl-*` abre
+  su jsonl (guarda `session` completo internamente; el `sid8` público no
+  alcanza — resolver por `scan_cache`/ruta, no por prefijo), saca los
+  mensajes humanos con `user_turn_text`, consulta la caché, embebe lo que
+  falte con `ai_emb_sim`-refactorizado a `ai_emb_vecs(texts) ->
+  Vec<Vec<f32>>` (hoy solo devuelve un coseno; el servidor y el guard se
+  comparten). Rastro: `topics_debug.txt` (sesión, n msgs, fronteras,
+  sim por mensaje — SIN los textos).
+- **Exportador (VPS por SSH):** el modelo NO va al VPS (§Lo descartado;
+  el exportador sigue stdlib). Bajo `--findings` cada `inflate` gana
+  `umsgs: [{turn, text≤300}]` (mismo `user_turn_text` que ya usa el coach
+  para `msgs`; tope 200 con muestreo declarado `sampled`). Es la ÚNICA
+  novedad remota: el TEXTO viaja por SSH al Windows, el Windows embebe.
+  Es tu propio servidor por tu propia llave — misma naturaleza que `msgs`
+  del press que ya viaja desde 2026-08-05. Rust, al fusionar, corre el
+  mismo `topics_for_inflates` sobre esos `umsgs` (origen = nombre del
+  server) y los DESCARTA antes de persistir (regla 4). Exportador viejo
+  → sin `umsgs` → tarjeta de hoy (degradación sola, como `--coach`).
+- **Panel:** la tarjeta `inflate` pinta debajo de la fila de costo una
+  línea de tramos (chips "1-22 · bug del login" …) y el ahorro; textos
+  nuevos `fnd_inflate_one`/`fnd_inflate_multi` ×8 idiomas. `fndKey` NO
+  cambia (visto/ignorado se conservan). Interruptor: el MISMO opt-in del
+  análisis local (`ai_config`), sin casilla nueva; con el análisis
+  apagado no se embebe nada.
+- **Hub:** `topics` NO viaja en las fotos (`hosts/*.json`): quien lee no
+  tiene los textos y no debe fingir. Se recalcula donde hay modelo.
+
+### Orden y validación
+
+1. Rust local (Windows/WSL) + panel, sin tocar el exportador. Medir con
+   las sesiones reales de la semana de Oscar: ¿las fronteras coinciden con
+   lo que él recuerda? Anotar aciertos/fallos en la bitácora ANTES de
+   mover umbrales (`TOPIC_NEW`/`TOPIC_HOLD`/`TOPIC_MIN_TURNS`).
+2. Exportador `umsgs` + fusión — invariante #1: réplica de
+   `user_turn_text` ya existe; regresión byte a byte de `--findings` sin
+   el campo nuevo salvo `umsgs`.
+3. Fixture de test: un jsonl sintético con 3 temas evidentes y otro de un
+   tema largo → tramos esperados; y el caso "corre las pruebas" que NO
+   corta.
+- Va DETRÁS del cierre de las pruebas en vivo del auto-/compact y
+  auto-/clear (misma zona de código: `ai_emb_*`), como el ruteo.
+
+### Lo que NO es (para no confundir con lo de arriba)
+
+- No toca el automático ni `intentVerdict`: es análisis A POSTERIORI de
+  sesiones cerradas o largas, no del hit `press`.
+- No clasifica "qué era cada tema" (debug/feature/docs): eso es
+  analizador §5 "clasificar sesiones" con heurísticas de herramientas, y
+  si un día se hace, va por lógica, no por embedding.
+
+### Etapa 3-bis (algún día, sin fecha)
 
 - Decidir si el veredicto del modelo puede DEGRADAR una recomendación
   determinista (freno, nunca acelerador): un "tarea_viva" del modelo sobre
