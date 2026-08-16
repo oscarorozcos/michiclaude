@@ -486,7 +486,7 @@ presion-y-rendimiento §"Qué queda vivo".
       también WSL) y la purga BORRA lo archivado. Nace en "nunca"; suelo
       180 d; doble reloj (sidecar `.arch`); allowlist canónica (jamás
       `~/.claude`); simulacro antes del botón; tope por pasada. VPS: SOLO
-      INFORMA (`--du`) — NUNCA se borra por SSH. cargo check pendiente.
+      INFORMA (`--du`) — NUNCA se borra por SSH. cargo check limpio (2026-08-16).
 - [ ] ANÁLISIS LOCAL: v1 validada en vivo (5/5 tema_nuevo) y ETAPA 2
       OPERATIVA (2026-08-13, ver §Coach y analisis-local.md §"Etapa 2 —
       HECHA"): EmbeddingGemma descargado y Probar en el Windows de Oscar
@@ -509,7 +509,7 @@ presion-y-rendimiento §"Qué queda vivo".
       LEERLO antes de tocar). CERRADO HASTA DONDE ESTÁ (Oscar,
       2026-08-07): fases 1 y 2 hechas. FILA 18 (% de desperdicio
       estructural) HECHA 2026-08-14: `waste` en las 3 piezas (§fórmula
-      del doc), tarjeta en Reporte; pendiente cargo check en Windows. Qué existe: (a) TURNOS ÚTILES `uturns`
+      del doc), tarjeta en Reporte; cargo check limpio (2026-08-16). Qué existe: (a) TURNOS ÚTILES `uturns`
       en LocalStats/proyectos/daily (mensajes HUMANOS: fuera meta,
       sidechain, tool_result, comandos locales, inyecciones `<ide_…` y
       resúmenes de compactación isCompactSummary — 2026-08-14, caché v3;

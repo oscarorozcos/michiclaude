@@ -4756,3 +4756,15 @@ Arreglo: la relectura se cuenta por ARCHIVO + RANGO (`read_key` →
 `ruta#Lini-fin`), en el coach y en el detector `reread` de Hallazgos,
 Rust y Python. Regresión: 12/12 hallazgos iguales sobre 30 días de logs
 reales; la sesión de los 6 trozos ya no dispara ni attach ni reread.
+
+## 2026-08-16 — cargo check limpio en Windows: se cierra la deuda de compilación
+
+`cargo check` en el Windows de Oscar (`michiclaude v0.1.2`, `Finished dev
+en 3.36s`) sin errores ni avisos, con TODO lo escrito desde el VPS del
+14 al 15: fila 18 `waste`, las 4 piezas de integridad, purga del archivo
+(archivador + WSL), detectores `acompact`/`paste` y el fix
+relectura=archivo+rango / regla `shots`. Los dos "cargo check pendiente"
+de CLAUDE.md quedan cerrados. Lo que sigue vivo es solo VALIDACIÓN
+PASIVA con el uso (auto-/compact, auto-/clear, `via:emb`, alarmas,
+ntfy, purga real) — nada bloquea a Oscar y el ruteo (etapa 1+) sigue
+esperando esas pruebas.
