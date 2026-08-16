@@ -4,8 +4,9 @@ Contexto del proyecto para Claude Code. **Léelo completo antes de modificar
 nada.** Aquí vive solo lo VIGENTE: reglas, invariantes y pendientes; el
 HISTORIAL (jornadas, validaciones, bugs con autopsia, decisiones con su
 porqué) está en `docs/bitacora.md` — buscar ahí antes de rediscutir una
-decisión vieja, y allí van las validaciones al cerrar la jornada.
-REGLA DURA: este archivo bajo 40k caracteres —
+decisión vieja; al cerrar la jornada, entrada con SU PLANTILLA (cabecera
+del archivo). `docs/README.md` = índice de docs + "dónde mirar cuando
+algo falla" (rastro por área). REGLA DURA: este archivo bajo 40k —
 Claude Code corta lo que sobre (pasó con 118.8k: dos tercios sin leerse).
 
 ## Qué es esta app
@@ -32,7 +33,7 @@ src/pill.html pcard.html cat.html card.html notif.html   # ventanas del widget
 src-tauri/src/main.rs   # Entry point (windows_subsystem = "windows")
 src-tauri/src/lib.rs    # Backend: comandos, tray, ventanas, Win32
 scripts/meter-export.py # Exportador remoto (VPS vía SSH; solo stdlib)
-docs/                   # bitacora.md + diseños (leer antes de tocar su área)
+docs/                   # README.md (índice) + bitacora.md + diseños + img/
 .github/workflows/release.yml  # compila y publica instalador en tags v*
 ```
 
@@ -490,8 +491,7 @@ presion-y-rendimiento §"Qué queda vivo".
 - [ ] ANÁLISIS LOCAL: v1 validada en vivo (5/5 tema_nuevo) y ETAPA 2
       OPERATIVA (2026-08-13, ver §Coach y analisis-local.md §"Etapa 2 —
       HECHA"): EmbeddingGemma descargado y Probar en el Windows de Oscar
-      dio "embeddings 0.36" — el número CLAVADO con el banco del VPS
-      (cargo check implícito: la app compiló y corrió todo lo del día).
+      dio "embeddings 0.36" — el número CLAVADO con el banco del VPS.
       EN VALIDACIÓN PASIVA con el uso diario (Oscar, desde 2026-08-13):
       falta el primer `via:emb` en sesión REAL al 80% y la muestra
       natural antes de afinar umbrales (EMB_NEW/EMB_CROSS constantes a
