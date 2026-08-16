@@ -1733,6 +1733,7 @@ coach) → nada, y el caso que importa — con el /clear simulado en el
 instante en que nació una sesión, descarta la recién nacida y elige la que
 acababa de morir. `py_compile` y `node --check` limpios.
 
-PENDIENTE: `cargo check` del cambio SSH (llegó después del build de
-Oscar), y validar en vivo los otros caminos — chat (sid), automático con
-copia, WSL y VPS.
+El cambio SSH COMPILA LIMPIO en Windows (Oscar, 2026-08-16, `Compiling
+michiclaude` → `Finished` en 34.86 s): la deuda de compilación de la pieza
+queda cerrada. PENDIENTE solo la validación en vivo de los caminos que
+faltan — chat (sid), automático con copia, WSL y VPS.

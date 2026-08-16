@@ -3096,3 +3096,22 @@ faltan (chat con sid, automático con copia, WSL, VPS). Prueba 2 (el botón
 "Aplicar" de la ficha de caché) sigue esperando a que la regla se dé sola:
 pide ≥6 min de pausa Y ≥30k de contexto, y tras un /clear el contexto nace
 casi vacío — por eso la espera de Oscar no la disparó.
+
+## 2026-08-16 (4) — cargo check limpio del camino SSH: la pieza del globo post-/clear queda sin deuda de compilación
+
+QUÉ: Oscar compiló en Windows el commit 811e9ef (`Compiling michiclaude` →
+`Finished` en 34.86 s, sin errores). Con eso las DOS entregas del día
+—globo post-/clear (e34feeb) y su extensión a WSL/VPS (811e9ef)— tienen
+cargo check limpio.
+
+POR QUÉ: el VPS es espejo de código sin toolchain de Rust; todo cambio en
+Rust necesita el check en la máquina de Oscar antes de darse por cerrado.
+
+CÓMO SE VERIFICÓ: la salida del build (línea `Compiling` presente: sin
+ella, cargo no recompiló y se estaría probando el exe viejo — la trampa
+del empate de mtime, que hoy mordió DOS veces por otra razón: el clon
+estaba varios commits atrás y el `git pull` faltaba, no la fecha).
+
+QUÉ QUEDA: solo validación en vivo de los caminos que faltan (chat con
+sid, automático con copia, WSL, VPS). El de Windows/terminal ya está
+validado (entrada 3).
