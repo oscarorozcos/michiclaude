@@ -4195,6 +4195,9 @@ fn coach_scan() -> Vec<CoachHit> {
                     session: sid.clone(),
                     value: st.last_ctx / 1000, // se enseña en k
                     project: pname(st, &proj_name),
+                    // aditivo (2026-08-16): con el cwd la ficha caliente puede
+                    // casar un relevo (relayFor) y ofrecer el botón "Aplicar"
+                    scwd: st.scwd.clone(),
                     ..Default::default()
                 });
             }
@@ -4205,6 +4208,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     session: sid.clone(),
                     value: gap_min.max(0) as u64,
                     project: pname(st, &proj_name),
+                    scwd: st.scwd.clone(), // aditivo, mismo motivo que "compact"
                     ..Default::default()
                 });
             }
@@ -5748,6 +5752,187 @@ async fn read_handoff(name: String, origin: String) -> Result<String, String> {
         fs::read_to_string(&p)
             .map(capped)
             .map_err(|_| "ERR_HANDOFF_GONE".to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// El .jsonl de la sesión que un /clear acaba de borrar de la vista, para el
+/// visor (globo post-/clear, docs/remediacion.md §"El globo post-/clear").
+/// Claude Code NO borra el transcript al hacer /clear: sigue en
+/// `projects/*/<sid>.jsonl`, así que el "seguir viendo lo anterior" no
+/// necesita que exista copia handoff — este comando lo localiza y lo trae.
+///
+/// SEGURIDAD, misma familia que `read_handoff`: el frontend NUNCA manda una
+/// ruta. Manda un `sid` (charset [A-Za-z0-9-], el uuid que el relevo vio en
+/// modo chat) o, sin sid (terminal), un `cwd` + `ts` con los que ESTE lado
+/// busca la sesión: archivo cuyo cwd (leído de su cabecera) casa y que ya
+/// existía antes del /clear. La ruta se compone siempre aquí, contra las
+/// mismas raíces del coach (local + WSL) o por ssh con el sid validado.
+/// Solo lectura, tope 4 MB. Un sid corto (el de 8 chars de los hits del
+/// coach) se trata como "sin sid": jamás casaría un nombre de archivo.
+#[tauri::command]
+async fn read_cleared(sid: String, cwd: String, ts: i64, origin: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if !sid
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-')
+        {
+            return Err("ERR_SESSION_NAME".to_string());
+        }
+        let sid = if sid.len() >= 36 { sid } else { String::new() };
+        const CAP: usize = 4_000_000;
+        fn capped(mut s: String) -> String {
+            if s.len() > CAP {
+                let mut i = CAP;
+                while !s.is_char_boundary(i) {
+                    i -= 1;
+                }
+                s.truncate(i);
+                s.push_str("\n… [recortado]");
+            }
+            s
+        }
+        // misma normalización que cwdKey() del frontend
+        fn cwd_key(p: &str) -> String {
+            p.replace('\\', "/").trim_end_matches('/').to_lowercase()
+        }
+        // saca el valor de una clave string de un fragmento de JSON crudo,
+        // deshaciendo los escapes: las cabeceras pueden pasar del tamaño de
+        // línea razonable y un parse entero del head no es fiable
+        fn raw_str(head: &str, key: &str) -> Option<String> {
+            let pat = format!("\"{key}\":\"");
+            let i = head.find(&pat)? + pat.len();
+            let mut out = String::new();
+            let mut esc = false;
+            for c in head[i..].chars() {
+                if esc {
+                    out.push(c);
+                    esc = false;
+                } else if c == '\\' {
+                    esc = true;
+                } else if c == '"' {
+                    return Some(out);
+                } else {
+                    out.push(c);
+                }
+            }
+            None
+        }
+        if !origin.is_empty() && !origin.starts_with("wsl-") {
+            // servidor SSH: solo el chat conoce el sid; sin él no hay forma
+            // segura de elegir archivo al otro lado — GONE y en paz
+            if sid.is_empty() {
+                return Err("ERR_SESSION_GONE".to_string());
+            }
+            let Some(r) = load_remotes().into_iter().find(|r| r.name == origin) else {
+                return Err("ERR_SESSION_GONE".to_string());
+            };
+            let s = ssh_out(
+                &r.host,
+                &format!("cat ~/.claude/projects/*/{sid}.jsonl 2>/dev/null"),
+                "15",
+            )
+            .ok_or("ERR_SESSION_GONE")?;
+            if s.is_empty() {
+                return Err("ERR_SESSION_GONE".to_string());
+            }
+            return Ok(capped(s));
+        }
+        // esta máquina: mismas raíces que el coach (local + distros WSL);
+        // con origin "wsl-<distro>" solo esa distro
+        let mut roots: Vec<PathBuf> = Vec::new();
+        if origin.is_empty() {
+            roots.push(claude_dir().join("projects"));
+        }
+        for (d, p) in wsl_claude_dirs() {
+            if origin.is_empty() || wsl_origin(&d) == origin {
+                roots.push(p.join("projects"));
+            }
+        }
+        // 1) con sid: el nombre del archivo ES el sid (regla de
+        // session_jsonl del relevo: no se reproduce la transformación de
+        // carpetas de Claude Code, se busca por nombre)
+        if !sid.is_empty() {
+            for root in &roots {
+                let Ok(projs) = fs::read_dir(root) else { continue };
+                for proj in projs.flatten() {
+                    let p = proj.path().join(format!("{sid}.jsonl"));
+                    if p.is_file() {
+                        return fs::read_to_string(&p)
+                            .map(capped)
+                            .map_err(|_| "ERR_SESSION_GONE".to_string());
+                    }
+                }
+            }
+            return Err("ERR_SESSION_GONE".to_string());
+        }
+        // 2) terminal (sin sid): candidata = sesión del MISMO cwd que calló
+        // justo antes del /clear (mtime <= ts+120 por relojes) y que ya
+        // vivía de antes (primer timestamp < ts-30) — eso excluye a la
+        // recién nacida del propio /clear, que también ronda ese minuto.
+        let want = cwd_key(&cwd);
+        if want.is_empty() || ts <= 0 {
+            return Err("ERR_SESSION_GONE".to_string());
+        }
+        let mut best: Option<(i64, PathBuf)> = None;
+        for root in &roots {
+            let Ok(projs) = fs::read_dir(root) else { continue };
+            for proj in projs.flatten() {
+                let ppath = proj.path();
+                if !ppath.is_dir() {
+                    continue;
+                }
+                let Ok(files) = fs::read_dir(&ppath) else { continue };
+                for f in files.flatten() {
+                    let fp = f.path();
+                    if fp.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+                        continue;
+                    }
+                    let Ok(md) = f.metadata() else { continue };
+                    let mtime = md
+                        .modified()
+                        .ok()
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_secs() as i64)
+                        .unwrap_or(0);
+                    if mtime > ts + 120 || ts - mtime > 6 * 3600 {
+                        continue;
+                    }
+                    if best.as_ref().is_some_and(|(m, _)| *m >= mtime) {
+                        continue; // ya hay una más cercana al /clear
+                    }
+                    // cabecera: cwd y primer timestamp viven en las
+                    // primeras líneas; 16 KB bastan y no cuesta abrir todo
+                    let Ok(fh) = fs::File::open(&fp) else { continue };
+                    let mut buf = vec![0u8; 16384];
+                    let n = {
+                        use std::io::Read as _;
+                        let mut fh = fh;
+                        fh.read(&mut buf).unwrap_or(0)
+                    };
+                    let head = String::from_utf8_lossy(&buf[..n]);
+                    let Some(c) = raw_str(&head, "cwd") else { continue };
+                    if cwd_key(&c) != want {
+                        continue;
+                    }
+                    let born = raw_str(&head, "timestamp")
+                        .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
+                        .map(|d| d.timestamp())
+                        .unwrap_or(i64::MAX);
+                    if born >= ts - 30 {
+                        continue; // nació con (o después de) el /clear: es la nueva
+                    }
+                    best = Some((mtime, fp));
+                }
+            }
+        }
+        let Some((_, fp)) = best else {
+            return Err("ERR_SESSION_GONE".to_string());
+        };
+        fs::read_to_string(&fp)
+            .map(capped)
+            .map_err(|_| "ERR_SESSION_GONE".to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -7949,6 +8134,7 @@ pub fn run() {
             open_export,
             open_handoff,
             read_handoff,
+            read_cleared,
             is_dev,
             app_version,
             get_pill_layer,

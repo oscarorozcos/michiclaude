@@ -168,7 +168,9 @@ $("x").addEventListener("click",e=>{ e.stopPropagation(); EVENT?.emit("notif:ack
 // clic en el globo abre el panel (enfocarlo también confirma la alarma)
 // (el kind "findings" del globo del día se eliminó el 2026-08-04: los
 // hallazgos avisan solo por post-it/campana, que ya abren en Hallazgos)
-$("box").addEventListener("click",()=>{ invoke?.("show_panel"); });
+// Antes de abrir viaja el kind: el panel decide si el clic lleva a algún
+// sitio concreto (el globo "cleared" abre el visor de la sesión borrada).
+$("box").addEventListener("click",()=>{ EVENT?.emit("notif:open",{kind}); invoke?.("show_panel"); });
 window.addEventListener("contextmenu",e=>e.preventDefault());
 </script>
 </body>

@@ -116,6 +116,16 @@ Los prompts para generar las maquetas con otra IA están guardados en
       mensaje en vuelo la extensión no lo pinta; en Linux va delante). En
       DEV manda el michi.exe que compila el crate, no la copia que
       `tauri dev` rehace; el interruptor reconoce sus rutas viejas o se encalla en OTHER.
+      GLOBO POST-/CLEAR (2026-08-16, §"El globo post-/clear"): kind
+      `cleared` informativo; nace del `/clear` TECLEADO (`user_cmd`) o del
+      AUTOMÁTICO con éxito (el botón manual NO); clic = visor — copia
+      handoff si la hubo, si no `read_cleared` localiza el .jsonl vivo (sid
+      COMPLETO del chat, o cwd+ts en terminal excluyendo la sesión recién
+      nacida); solo lectura, 4 MB, fail-quiet. Fichas calientes
+      cache/compact con relevo casado llevan el botón "Aplicar" de la
+      intención (`relayApply`, misma red); sus hits ganan `scwd` ADITIVO
+      (réplica en el exportador, invariante #1). El relevo y su lista
+      blanca: CERO cambios.
 
 ## Purga del archivo — el último escalón del ciclo de vida (2026-08-15)
 
@@ -1607,3 +1617,84 @@ viejo. En debug manda ahora `relevo/target/release/michi.exe`, el que se
 recompila a mano. Y el interruptor reconoce sus PROPIAS rutas anteriores (por el
 nombre del archivo): si no, ve su ruta vieja como un wrapper ajeno, se niega a
 tocarla —regla correcta con uno de verdad ajeno— y se queda encallado.
+
+## El globo post-/clear y el visor de la sesión borrada (2026-08-16)
+
+Lo pidió Oscar con una escena concreta: se levanta unos minutos, el
+automático (o él mismo, siguiendo un consejo) hace `/clear`, y al volver la
+terminal está vacía — "quiero SEGUIR VIENDO la información anterior". La
+respuesta corta del diseño: no hay que impedir el /clear ni reinyectar nada,
+hay que poner enfrente lo que ya se guarda. Tres hechos lo sostienen:
+
+1. El auto-/clear NUNCA borra sin copia verificada (la red /export, arriba).
+2. El visor de copias ya renderiza esas copias legibles.
+3. **Claude Code no borra el transcript al hacer /clear**: el
+   `projects/*/<sid>.jsonl` sigue en disco (verificado contra los docs
+   oficiales, sessions.md; con `cleanupPeriodDays: 365` aguanta un año) y
+   `/resume` recupera la sesión. O sea: hasta el /clear tecleado A MANO —que
+   no deja copia handoff— es recuperable, leyendo el jsonl directo.
+
+### Las piezas
+
+- **Kind `cleared`** en los globos: informativo (no entra a `ACK_KINDS`),
+  persiste vía `infoBalloon` hasta ✕ o abrir el panel — la regla única de
+  siempre. El CLIC en el globo abre el visor con la conversación: la ventana
+  notif emite `notif:open` con el kind ANTES de `show_panel`, y el panel
+  decide (con `cleared` → `clearedView()`). Sin ese evento el panel no sabe
+  distinguir "abrió por el globo" de cualquier otro foco.
+- **Dos disparadores, y solo dos:**
+  (a) el `/clear` TECLEADO por el usuario — `relayUserCmds()` ya veía pasar
+  `user_cmd` para el desbloqueo; ahora además guarda las señas
+  (`clearedInfo`: sid del chat o cwd+momento en terminal, y origin) y saca
+  el globo;
+  (b) el AUTOMÁTICO tras aplicar con éxito — ahí la copia handoff existe
+  siempre (fail-closed) y su nombre se toma del registro de acciones
+  (`relay_inject` lo anota ANTES de responder, así que la acción más
+  reciente es la propia). El botón MANUAL del panel NO dispara globo: quien
+  lo pulsa está delante, con el acuse y el "ver la copia" del registro.
+- **`read_cleared(sid, cwd, ts, origin)`** (Rust, async+spawn_blocking):
+  trae el jsonl de la sesión borrada cuando NO hay copia handoff. Misma
+  familia de seguridad que `read_handoff`: el frontend jamás manda rutas;
+  sid con charset [A-Za-z0-9-] y solo se usa COMPLETO (≥36 chars — el corto
+  de 8 de los hits del coach se trata como vacío); sin sid (terminal) busca
+  por cwd normalizado (la regla de `cwdKey`) + cercanía al momento
+  (`mtime <= ts+120`, no más viejo de 6 h) leyendo cwd y primer timestamp de
+  los primeros 16 KB de cada candidata — y EXCLUYE a la sesión recién nacida
+  del propio /clear exigiendo primer timestamp < ts-30. Raíces: las mismas
+  del coach (local + WSL); por SSH solo con sid (`cat` con glob del lado
+  remoto, sid validado antes). Tope 4 MB, solo lectura, `ERR_SESSION_GONE`
+  fail-quiet (el visor lo traduce con `clr_gone`).
+- **Botón "Aplicar" en fichas calientes** (`TIP_CMD`: cache→/clear,
+  compact→/compact): la ficha que sugería un comando "de adorno" (la captura
+  de Oscar: la de caché con `/clear` al final) gana el MISMO botón de la
+  tarjeta de intención cuando hay relevo casado — `relayApply` tal cual, con
+  su cuenta atrás cancelable y la red /export en el /clear v2. Sin relevo
+  inequívoco, solo "copiar" (fail-closed de `relayFor`, como la intención).
+  Para que el casado funcione también en terminal, los hits `cache` y
+  `compact` del motor ganan `scwd` (ADITIVO, réplica exacta en
+  `meter-export.py` — invariante #1; un backend viejo sin el campo degrada a
+  botón oculto, nada se rompe).
+
+### Lo que NO se hizo, a propósito
+
+- **Reinyectar contexto al modelo** tras el /clear (estilo compact): un
+  auto-/clear se dispara justo porque el contexto viejo estorba (Boundary o
+  tema_nuevo) — reinyectarlo desharía el ahorro. Queda diseñada la escalera
+  (botón "Copiar arranque" con mini-resumen; hook SessionStart(clear)
+  opt-in, confirmado viable contra los docs de hooks) para DESPUÉS, junto
+  con la maquinaria de hooks del ruteo. No entra en esta pieza.
+- **Globo en /compact**: no borra nada de la vista; sería ruido.
+- **Detección de presencia** (GetLastInputInfo) para no correr la cuenta
+  atrás con el usuario ausente: pieza aparte, tocaría `relayAutoCheck` en
+  plena validación pasiva. Después de cerrarla.
+- **Tocar el relevo o su lista blanca**: cero cambios en `relevo/` y
+  `michi-relevo.py`. Todo se cuelga de lo que el relevo ya publica
+  (`user_cmd`) y del registro de acciones.
+
+### Verificación
+
+`python3 -m py_compile` limpio (exportador) y `node --check` limpio sobre
+los scripts extraídos de index.html y notif.html. `cargo check` PENDIENTE
+(este clon es el VPS, sin toolchain): correrlo en el Windows de Oscar antes
+de dar la pieza por cerrada, y validar en vivo los tres caminos — tecleado
+terminal, tecleado chat (sid), automático con copia.

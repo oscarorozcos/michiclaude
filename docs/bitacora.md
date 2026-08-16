@@ -3004,3 +3004,50 @@ QUÉ QUEDA: la etapa 3 queda BLOQUEADA detrás de las pruebas en vivo de
 auto-/compact y auto-/clear (misma zona `ai_emb_*`), como el ruteo.
 Orden al arrancar: Rust local + panel → medir fronteras con las
 sesiones reales de la semana → exportador `umsgs` → fixture de test.
+
+## 2026-08-16 (2) — el /clear ya no te quita la conversación de la vista: globo post-/clear + visor de la sesión borrada
+
+QUÉ: (1) Kind de globo nuevo `cleared`: cualquier /clear —tecleado por el
+usuario (lo publica `user_cmd` del relevo, mismo sello anti-doble del
+desbloqueo) o aplicado por el AUTOMÁTICO— saca el globo persistente "la
+conversación quedó guardada"; el clic abre el visor con la conversación
+(la ventana notif ahora emite `notif:open` con el kind antes de
+`show_panel`). (2) Comando Rust `read_cleared(sid,cwd,ts,origin)`: trae el
+.jsonl de la sesión borrada cuando no hay copia handoff — Claude Code no
+lo borra con /clear (verificado contra sessions.md/hooks.md oficiales);
+seguridad familia `read_handoff` (sin rutas del frontend, sid completo
+validado, búsqueda por cwd+ts que excluye a la sesión recién nacida, 4 MB,
+solo lectura). (3) Fichas calientes cache/compact con relevo casado ganan
+el botón "Aplicar" de la tarjeta de intención (`relayApply` tal cual, con
+su cuenta atrás y la red /export en /clear v2); para el casado en terminal
+los hits `cache`/`compact` ganan `scwd` ADITIVO (réplica exacta en
+meter-export.py, invariante #1). (4) 3 claves i18n × 8 idiomas. (5) Diseño
+completo en remediacion.md §"El globo post-/clear" + resumen en sus REGLAS
+VIGENTES; antes, en la misma jornada (commit 655cf65), entraron dos
+análisis externos a docs/ con nota de encaje (hooks token-saving y widget
+en taskbar).
+
+POR QUÉ: pedido de Oscar con escena real — se aleja unos minutos, el
+automático (o él, siguiendo la ficha de caché) hace /clear, y al volver la
+terminal está vacía y la copia enterrada en el registro de acciones. La
+decisión de diseño: NO reinyectar contexto al modelo (un auto-/clear
+existe porque el contexto viejo estorba; la escalera "Copiar arranque" +
+hook SessionStart(clear) queda diseñada para después, junto a la
+maquinaria de hooks del ruteo) y NO tocar relevo ni lista blanca (cero
+cambios en relevo/ y michi-relevo.py). El botón manual del panel no saca
+globo: quien lo pulsa está viendo el registro. La presencia
+(GetLastInputInfo) se pospone: tocaría relayAutoCheck en plena validación
+pasiva.
+
+CÓMO SE VERIFICÓ: py_compile limpio (exportador) y node --check limpio
+sobre los scripts extraídos de index.html/notif.html; grep de coherencia
+(comando registrado, 26 líneas con las claves nuevas, disparadores). cargo
+check NO corrido (clon VPS sin toolchain): PENDIENTE en el Windows de
+Oscar, más la prueba en vivo de los 3 caminos (tecleado terminal, tecleado
+chat con sid, automático con copia).
+
+QUÉ QUEDA: cargo check en Windows; validación en vivo de los 3 caminos
+(añadida al pendiente VALIDACIÓN PASIVA de CLAUDE.md, que quedó a 39,967
+de 40k — la próxima adición YA exige poda); las piezas 2 (Copiar
+arranque / hook SessionStart) y 3 (presencia) del diseño, bloqueadas
+tras la validación pasiva y la maquinaria de hooks del ruteo.

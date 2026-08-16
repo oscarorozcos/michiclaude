@@ -2279,6 +2279,9 @@ en:{
   hand_loading:"loading…",
   hand_you:"You",
   rem_log_copy_gone:"copy no longer exists",
+  clr_balloon_user:p=>"/clear in "+p+" — the previous conversation is saved. Click to view it.",
+  clr_balloon_auto:p=>"Michi applied /clear in "+p+" — the conversation was saved. Click to view it.",
+  clr_gone:"That conversation is no longer on disk.",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
   rem_fail_lab:"failed",
@@ -2813,6 +2816,9 @@ es:{
   hand_loading:"cargando…",
   hand_you:"Tú",
   rem_log_copy_gone:"la copia ya no existe",
+  clr_balloon_user:p=>"/clear en "+p+" — la conversación anterior quedó guardada. Clic para verla.",
+  clr_balloon_auto:p=>"Michi aplicó /clear en "+p+" — la conversación quedó guardada. Clic para verla.",
+  clr_gone:"Esa conversación ya no está en el disco.",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
   rem_fail_lab:"falló",
@@ -3347,6 +3353,9 @@ pt:{
   hand_loading:"carregando…",
   hand_you:"Você",
   rem_log_copy_gone:"a cópia não existe mais",
+  clr_balloon_user:p=>"/clear em "+p+" — a conversa anterior ficou guardada. Clique para vê-la.",
+  clr_balloon_auto:p=>"Michi aplicou /clear em "+p+" — a conversa ficou guardada. Clique para vê-la.",
+  clr_gone:"Essa conversa já não está no disco.",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
   rem_fail_lab:"falhou",
@@ -3881,6 +3890,9 @@ fr:{
   hand_loading:"chargement…",
   hand_you:"Vous",
   rem_log_copy_gone:"la copie n'existe plus",
+  clr_balloon_user:p=>"/clear dans "+p+" — la conversation précédente est sauvegardée. Cliquez pour la voir.",
+  clr_balloon_auto:p=>"Michi a appliqué /clear dans "+p+" — la conversation est sauvegardée. Cliquez pour la voir.",
+  clr_gone:"Cette conversation n'est plus sur le disque.",
   rem_auto_lab:"auto",
   rem_man_lab:"manuel",
   rem_fail_lab:"échec",
@@ -4415,6 +4427,9 @@ de:{
   hand_loading:"lädt…",
   hand_you:"Du",
   rem_log_copy_gone:"Kopie existiert nicht mehr",
+  clr_balloon_user:p=>"/clear in "+p+" — das vorherige Gespräch wurde gesichert. Zum Ansehen klicken.",
+  clr_balloon_auto:p=>"Michi hat /clear in "+p+" angewendet — das Gespräch wurde gesichert. Zum Ansehen klicken.",
+  clr_gone:"Dieses Gespräch ist nicht mehr auf der Festplatte.",
   rem_auto_lab:"auto",
   rem_man_lab:"manuell",
   rem_fail_lab:"fehlgeschlagen",
@@ -4949,6 +4964,9 @@ ja:{
   hand_loading:"読み込み中…",
   hand_you:"あなた",
   rem_log_copy_gone:"コピーはもうありません",
+  clr_balloon_user:p=>p+" で /clear — 直前の会話は保存済みです。クリックで表示。",
+  clr_balloon_auto:p=>"Michi が "+p+" で /clear を実行 — 会話は保存済みです。クリックで表示。",
+  clr_gone:"その会話はもうディスクにありません。",
   rem_auto_lab:"自動",
   rem_man_lab:"手動",
   rem_fail_lab:"失敗",
@@ -5483,6 +5501,9 @@ ko:{
   hand_loading:"불러오는 중…",
   hand_you:"나",
   rem_log_copy_gone:"사본이 더 이상 없습니다",
+  clr_balloon_user:p=>p+"에서 /clear — 이전 대화가 저장되어 있습니다. 클릭하여 보기.",
+  clr_balloon_auto:p=>"Michi가 "+p+"에서 /clear 적용 — 대화가 저장되었습니다. 클릭하여 보기.",
+  clr_gone:"해당 대화는 더 이상 디스크에 없습니다.",
   rem_auto_lab:"자동",
   rem_man_lab:"수동",
   rem_fail_lab:"실패",
@@ -6017,6 +6038,9 @@ zh:{
   hand_loading:"加载中…",
   hand_you:"你",
   rem_log_copy_gone:"副本已不存在",
+  clr_balloon_user:p=>p+" 中执行了 /clear — 之前的对话已保存。点击查看。",
+  clr_balloon_auto:p=>"Michi 在 "+p+" 中执行了 /clear — 对话已保存。点击查看。",
+  clr_gone:"该对话已不在磁盘上。",
   rem_auto_lab:"自动",
   rem_man_lab:"手动",
   rem_fail_lab:"失败",
@@ -7909,6 +7933,14 @@ function renderTips(){
   const hot={}; cards.forEach(c=>{ if(c.h.rule!=="sum"&&c.h.rule!=="intent"&&c.h.rule!=="zombie"&&!(c.h.rule in hot)) hot[c.h.rule]=c; });
   const ids=[...TIPS].filter(id=>!q ||
     (t("tip_"+id+"_t")+" "+t("tip_"+id+"_b")).toLowerCase().includes(q));
+  // Fichas calientes cuyo consejo ES un comando de la lista blanca: con un
+  // relevo casado ganan el MISMO botón "Aplicar" de la tarjeta de intención
+  // (relayApply: cuenta atrás cancelable y, en el /clear con relevo v2, la
+  // red /export). Sin relevo inequívoco solo se ofrece copiar — prometer un
+  // botón sin nadie que teclee sería vender humo (misma regla que la
+  // intención). Lo pidió Oscar (2026-08-16): la ficha de caché sugería
+  // /clear "de adorno".
+  const TIP_CMD={cache:"/clear", compact:"/compact"};
   const tipHtml=id=>{
     const c=hot[id], h=c&&c.h;
     // la ficha disparada dice A QUÉ sesión aplicar el consejo: proyecto +
@@ -7916,12 +7948,17 @@ function renderTips(){
     // lado la duda era real (Oscar, 2026-07-31)
     const donde=h?[h.project||"", h.origin||t("src_local")]
       .filter(Boolean).join(" · "):"";
+    const cmd=h&&TIP_CMD[id]||"";
+    const rly=cmd?relayFor(h):null;
+    const row=cmd?`<div class="int-row"><code>${cmd}</code><button class="int-copy" data-cmd="${cmd}">${t("int_copy")}</button>${
+        rly?`<button class="int-apply" data-cmd="${cmd}" data-pid="${rly.pid}" data-origin="${esc(rly.origin||"")}">${t("rly_apply")}</button>`:""
+      }</div>`:"";
     return `<div class="fnd tip${h&&!c.min?" open":""}" data-tip="${id}"${
         h?` data-ck="${esc(h.rule+"|"+h.session)}"`:""}>
       ${h?`<button class="tip-x" aria-label="✕">✕</button>`:""}
       <div class="fnd-t">${t("tip_"+id+"_t")}</div>
       ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value,esc(h.file||""))} — ${donde}</div>`:""}
-      <div class="fnd-f">${withCmds(t("tip_"+id+"_b"))}</div>
+      <div class="fnd-f">${withCmds(t("tip_"+id+"_b"))}${row}</div>
     </div>`;};
   for(const id of ids){ if(id in hot) live.push({born:hot[id].born||0, html:tipHtml(id)}); }
   live.sort((a,b)=>b.born-a.born);
@@ -9801,6 +9838,40 @@ async function handView(name,origin){
   }
 }
 $("handX").addEventListener("click",()=>{ $("handPop").hidden=true; });
+// ---------- globo post-/clear (2026-08-16) ----------
+// CUALQUIER /clear —el del automático o el que tecleaste tú— deja la
+// conversación recuperable: la copia handoff si la hubo, o el propio .jsonl
+// de la sesión (Claude Code no lo borra con /clear; read_cleared lo
+// localiza). El globo lo anuncia con la regla única de los globos (kind
+// "cleared", informativo: persiste vía infoBalloon hasta ✕ o abrir el
+// panel) y el CLIC abre el visor con la conversación. El botón manual del
+// panel NO pasa por aquí: quien lo pulsa está viendo el registro con su
+// "ver la copia". Diseño y porqués en remediacion.md — LEERLO antes de
+// tocar esto.
+function clearedRemember(info){
+  try{ localStorage.setItem("clearedInfo", JSON.stringify(info)); }catch(_){}
+  const label=[info.proj||"", info.origin||""].filter(Boolean).join(" · ")||"—";
+  showBalloon(t(info.file?"clr_balloon_auto":"clr_balloon_user", label), "cleared");
+}
+async function clearedView(){
+  let info=null;
+  try{ info=JSON.parse(localStorage.getItem("clearedInfo")||"null"); }catch(_){}
+  if(!info||!invoke) return;
+  if(info.file) return handView(info.file, info.origin||"");
+  const name=(info.sid?info.sid.slice(0,8):"clear")+".jsonl";
+  $("handTt").textContent=[info.proj||"", info.origin||""].filter(Boolean).join(" · ")||name;
+  $("handBody").textContent=t("hand_loading");
+  $("handHint").innerHTML="";
+  $("handPop").hidden=false;
+  try{
+    const txt=await invoke("read_cleared",{sid:info.sid||"", cwd:info.cwd||"",
+      ts:info.ts||0, origin:info.origin||""});
+    $("handBody").innerHTML=handRender(name,txt);
+  }catch(e){
+    $("handBody").textContent=String(e).includes("GONE")?t("clr_gone"):String(e);
+  }
+}
+EVENT?.listen("notif:open",e=>{ if(e?.payload?.kind==="cleared") clearedView(); });
 // Sondeo de fondo: cada hora (la foto de procesos vía PowerShell cuesta
 // ~1 s — cadencia baja a propósito). Con automático ganado, cierra y
 // registra; si aún no, nace la tarjeta en Consejos para el clic manual.
@@ -9986,6 +10057,13 @@ function relayUserCmds(){
     seen[k]=r.user_cmd_ts; dirty=true;
     flog("relevo: "+r.user_cmd+" tecleado por el usuario en pid "+r.pid);
     relayMark(r.user_cmd);
+    // GLOBO POST-/CLEAR (docs/remediacion.md §"El globo post-/clear"): el
+    // /clear que tecleas tú no deja copia handoff, pero el .jsonl de la
+    // sesión sigue en disco — el globo guarda las señas (sid del chat, o
+    // cwd+momento en terminal) para que el visor lo encuentre al clic.
+    if(r.user_cmd==="/clear")
+      clearedRemember({sid:r.sid||"", cwd:r.cwd||"", ts:r.user_cmd_ts||0,
+        origin:r.origin||"", proj:r.project||"", file:""});
   }
   if(dirty){
     // solo las sesiones vivas: el sello no tiene por qué crecer para siempre
@@ -10234,6 +10312,22 @@ async function relayAutoCheck(pr){
       autoBeam(null,null,"ok");
       // quién lo decidió va al rastro: es EL dato de la prueba de unos días
       flog("relevo auto: aplicado "+cmd+(byAi?" por IA (tema_nuevo)":" por hecho"));
+      // GLOBO POST-/CLEAR: el usuario puede no haber visto la cuenta (se
+      // exige widget a la vista, no usuario delante). La copia acaba de
+      // quedar en el registro — relay_inject la anota ANTES de responder,
+      // así que la acción más reciente es esta. El sid del relevo va
+      // completo (chat) o vacío (terminal): el corto del hit no sirve para
+      // buscar archivos.
+      if(cmd==="/clear"){
+        let file="";
+        try{
+          const log=await invoke("get_action_log")||[];
+          const a=log[0];
+          if(a&&a.kind==="relay"&&a.ok&&a.file&&String(a.d1||"").startsWith("/clear")) file=a.file;
+        }catch(_){}
+        clearedRemember({sid:rly.sid||"", cwd:rly.cwd||"", ts:Math.floor(Date.now()/1000),
+          origin:rly.origin||"", proj:rly.project||"", file});
+      }
     }catch(e){
       // el candado se negó (Claude generando, texto sin enviar, copia que
       // no apareció: ERR_RELAY_EXPORT…). Es transitorio: NO se quema la

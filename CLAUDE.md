@@ -481,7 +481,8 @@ presion-y-rendimiento §"Qué queda vivo".
       ventana nueva), camino ntfy completo (PC apagada) y el aviso de
       hallazgos naciendo natural. Auto-/compact y auto-/clear: 4/4 en
       vivo (terminal y chat; el chat copia ÉL el jsonl sin /export —
-      remediacion.md §"La copia SIN /export en el chat").
+      remediacion.md §"La copia SIN /export en el chat"), y el globo
+      post-/clear (3 caminos).
 - [x] PURGA DEL ARCHIVO (2026-08-15; reglas COMPLETAS en remediacion.md
       §"Purga del archivo" — LEERLO): el archivador MUEVE (≥365d, ahora
       también WSL) y la purga BORRA lo archivado. Nace en "nunca"; suelo
