@@ -3051,3 +3051,48 @@ QUÉ QUEDA: cargo check en Windows; validación en vivo de los 3 caminos
 de 40k — la próxima adición YA exige poda); las piezas 2 (Copiar
 arranque / hook SessionStart) y 3 (presencia) del diseño, bloqueadas
 tras la validación pasiva y la maquinaria de hooks del ruteo.
+
+## 2026-08-16 (3) — el globo post-/clear, validado en vivo y extendido a WSL y al VPS
+
+QUÉ: (1) VALIDACIÓN EN VIVO del camino principal (Oscar, Windows): compiló
+limpio en 27.96 s —cierra la deuda del cargo check— y el /clear tecleado en
+una terminal con relevo sacó el globo y el visor enseñó la conversación
+borrada, legible. (2) Se cerró el hueco que destapó la pregunta de Oscar
+("¿y en WSL y el VPS?"): en un servidor SSH el Windows no puede mirar el
+disco ajeno, así que la búsqueda la hace ALLÁ el exportador con
+`--cleared-stdin` (`find_cleared`, réplica exacta de `read_cleared`,
+invariante #1) y las señas {sid,cwd,ts} viajan por STDIN — nunca en la
+línea de comandos. Guarda de compatibilidad: se exigen ≥2 líneas jsonl, así
+que un exportador viejo (que ignora el flag y contesta su JSON de gasto en
+una línea) se descarta y el visor dice GONE. (3) Bug PREEXISTENTE cazado de
+paso: el sello anti-doble de relayUserCmds usaba el pid A SECAS y el pid
+solo es único dentro de una máquina — con WSL y el VPS en la lista dos
+sesiones podían compartirlo y la segunda se daba por vista (sin globo y sin
+contar para el desbloqueo); la clave ahora es `origin#pid` y acepta el sello
+viejo para no recontar al actualizar. (4) Matriz de cobertura por origen en
+remediacion.md.
+
+POR QUÉ: la pregunta de Oscar no era retórica — el hueco existía y era del
+tipo peor: el globo SÍ salía en el VPS (los relevos remotos llegan por el
+compás del coach) y el visor habría contestado "esa conversación ya no está
+en el disco". Un globo que promete lo que no puede cumplir es peor que no
+tener globo. Se descartó buscar por SSH interpolando el cwd en el comando
+(un cwd con espacios o comillas es exactamente la puerta que
+relay_inject_remote cerró): el patrón bueno ya existía en el proyecto y es
+el de --prices-stdin.
+
+CÓMO SE VERIFICÓ: en vivo lo dicho arriba (flowLog: `relevo: /clear
+tecleado por el usuario en pid 21048` → `globo cleared:` → visor con la
+conversación). `find_cleared` probado contra los .jsonl REALES de este VPS,
+5/5 — por cwd, por sid completo, cwd falso→nada, sid corto (el de 8 del
+coach)→nada, y el caso fino: simulando el /clear en el instante en que
+nació una sesión, descarta la recién nacida y elige la que murió.
+Tubería `--cleared-stdin` corrida tal como la invocará Rust (418 líneas de
+jsonl; entradas falsas → 0 bytes). py_compile y node --check limpios.
+PENDIENTE: cargo check del cambio SSH (llegó después del build de Oscar).
+
+QUÉ QUEDA: cargo check en Windows y validación en vivo de los caminos que
+faltan (chat con sid, automático con copia, WSL, VPS). Prueba 2 (el botón
+"Aplicar" de la ficha de caché) sigue esperando a que la regla se dé sola:
+pide ≥6 min de pausa Y ≥30k de contexto, y tras un /clear el contexto nace
+casi vacío — por eso la espera de Oscar no la disparó.

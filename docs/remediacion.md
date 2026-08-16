@@ -1691,10 +1691,48 @@ hay que poner enfrente lo que ya se guarda. Tres hechos lo sostienen:
   `michi-relevo.py`. Todo se cuelga de lo que el relevo ya publica
   (`user_cmd`) y del registro de acciones.
 
+### Dónde funciona (matriz, cerrada el 2026-08-16)
+
+| Origen | Globo | Visor |
+|---|---|---|
+| Windows terminal | sí (sondeo 5 s) | por cwd+ts — **VALIDADO EN VIVO** |
+| Windows chat (extensión) | sí | por sid |
+| WSL terminal / chat | sí (compás del coach) | por cwd+ts / sid, raíces `wsl_claude_dirs` |
+| VPS (SSH) terminal | sí (compás del coach) | `--cleared-stdin` del exportador |
+| VPS (SSH) chat | sí | ídem (con sid) |
+
+El caso del VPS obligó a una pieza más: el Windows no puede mirar el disco
+del servidor, así que la BÚSQUEDA la hace allá el exportador
+(`find_cleared`, réplica exacta de `read_cleared` — invariante #1) y las
+señas viajan por STDIN, JAMÁS en la línea de comandos: un `cwd` con
+espacios o comillas interpolado en un `ssh` es la puerta que este proyecto
+tiene cerrada desde `relay_inject_remote`. Guarda de compatibilidad: la
+respuesta buena son ≥2 líneas que empiezan por `{` (jsonl); un exportador
+VIEJO ignora el flag y contesta su JSON de gasto en UNA línea, que se
+descarta → el visor dice GONE y nadie se rompe (se auto-repara al
+re-subirse el exportador en el siguiente arranque).
+
+Y un bug PREEXISTENTE que solo se vio al llegar aquí: el sello anti-doble
+de `relayUserCmds` usaba el pid A SECAS, que solo es único DENTRO de una
+máquina — con WSL y el VPS en la lista, dos sesiones podían compartirlo y
+la segunda se daba por vista (sin globo y sin contar para el desbloqueo).
+La clave ahora es `origin#pid`, aceptando el sello viejo para no recontar
+lo ya contado al actualizar.
+
 ### Verificación
 
-`python3 -m py_compile` limpio (exportador) y `node --check` limpio sobre
-los scripts extraídos de index.html y notif.html. `cargo check` PENDIENTE
-(este clon es el VPS, sin toolchain): correrlo en el Windows de Oscar antes
-de dar la pieza por cerrada, y validar en vivo los tres caminos — tecleado
-terminal, tecleado chat (sid), automático con copia.
+**VALIDADO EN VIVO (Windows, 2026-08-16, Oscar)** el camino del /clear
+TECLEADO en terminal local: `cargo` compiló limpio (27.96 s, cierra la
+deuda del check), el flowLog dejó `relevo: /clear tecleado por el usuario
+en pid 21048` → `globo cleared: /clear en oscar…`, y el clic abrió el
+visor con la conversación borrada renderizada legible.
+
+`find_cleared` del exportador PROBADO contra los .jsonl reales del VPS,
+5/5: por cwd, por sid completo, cwd falso → nada, sid CORTO (el de 8 del
+coach) → nada, y el caso que importa — con el /clear simulado en el
+instante en que nació una sesión, descarta la recién nacida y elige la que
+acababa de morir. `py_compile` y `node --check` limpios.
+
+PENDIENTE: `cargo check` del cambio SSH (llegó después del build de
+Oscar), y validar en vivo los otros caminos — chat (sid), automático con
+copia, WSL y VPS.

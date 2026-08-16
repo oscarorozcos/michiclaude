@@ -531,6 +531,87 @@ def project_jsonls(proj):
     return sorted(proj.glob("*.jsonl")) + sorted(proj.glob("*/subagents/*.jsonl"))
 
 
+def find_cleared(projects_dir, sid, cwd, ts):
+    """El .jsonl de la sesión que un /clear acaba de borrar de la vista.
+
+    Réplica EXACTA de read_cleared() de lib.rs (invariante #1): con sid
+    COMPLETO (>=36 chars, solo lo tiene el modo chat) casa por nombre de
+    archivo; sin él, por cwd normalizado + cercanía al momento del /clear,
+    excluyendo la sesión que NACIÓ con ese /clear (primer timestamp
+    < ts-30). Devuelve el texto o None. Solo lectura.
+
+    Existe para las sesiones de TERMINAL en un servidor SSH: ahí no hay sid
+    y el Windows no puede mirar el disco del servidor. Los datos llegan por
+    STDIN (nunca interpolados en el shell) igual que --prices-stdin."""
+    CAP = 4_000_000
+
+    def cwd_key(p):
+        return str(p).replace("\\", "/").rstrip("/").lower()
+
+    def head_of(fp):
+        try:
+            with open(fp, "rb") as fh:
+                return fh.read(16384).decode("utf-8", "replace")
+        except OSError:
+            return ""
+
+    def raw_str(head, key):
+        pat = '"%s":"' % key
+        i = head.find(pat)
+        if i < 0:
+            return None
+        out, esc = [], False
+        for c in head[i + len(pat):]:
+            if esc:
+                out.append(c); esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                return "".join(out)
+            else:
+                out.append(c)
+        return None
+
+    def read_capped(fp):
+        try:
+            s = open(fp, encoding="utf-8", errors="replace").read()
+        except OSError:
+            return None
+        return s[:CAP] + "\n… [recortado]" if len(s) > CAP else s
+
+    if sid and len(sid) >= 36:
+        for proj in sorted(projects_dir.glob("*")):
+            fp = proj / (sid + ".jsonl")
+            if fp.is_file():
+                return read_capped(fp)
+        return None
+    want = cwd_key(cwd)
+    if not want or ts <= 0:
+        return None
+    best = None
+    for proj in sorted(projects_dir.glob("*")):
+        if not proj.is_dir():
+            continue
+        for fp in sorted(proj.glob("*.jsonl")):
+            try:
+                mtime = int(fp.stat().st_mtime)
+            except OSError:
+                continue
+            if mtime > ts + 120 or ts - mtime > 6 * 3600:
+                continue
+            if best and best[0] >= mtime:
+                continue
+            head = head_of(fp)
+            c = raw_str(head, "cwd")
+            if c is None or cwd_key(c) != want:
+                continue
+            born = parse_ts(raw_str(head, "timestamp") or "")
+            if born is None or int(born.timestamp()) >= ts - 30:
+                continue        # nació con el /clear: es la sesión NUEVA
+            best = (mtime, fp)
+    return read_capped(best[1]) if best else None
+
+
 def scan_findings(projects_dir, window_ago, days, end):
     """Corre los detectores sobre la ventana pedida y devuelve la lista de
     hallazgos, la más cara primero. Relee los .jsonl (sin caché): solo corre
@@ -1503,6 +1584,21 @@ def main():
     # calcular todo el gasto para tirar el 95% sería trabajo tirado.
     if "--coach" in args:
         print(json.dumps({"coach": coach_scan(projects_dir)}))
+        return
+
+    # --cleared-stdin: el .jsonl de una sesión que un /clear borró de la
+    # vista, para el VISOR del panel. Las señas ({sid,cwd,ts}) llegan por
+    # STDIN, jamás en la línea de comandos: son datos del usuario y ahí no
+    # hay shell que los interprete. Sale texto crudo (o nada).
+    if "--cleared-stdin" in args:
+        try:
+            got = json.loads(sys.stdin.read() or "{}")
+            txt = find_cleared(projects_dir, str(got.get("sid") or ""),
+                               str(got.get("cwd") or ""), int(got.get("ts") or 0))
+        except Exception:
+            txt = None
+        if txt:
+            sys.stdout.write(txt)
         return
     now = datetime.now(timezone.utc)
     end = (datetime.fromtimestamp(end_ts, timezone.utc)

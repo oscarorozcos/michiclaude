@@ -10052,8 +10052,13 @@ function relayUserCmds(){
   let dirty=false;
   for(const r of relays){
     if(!r.user_cmd||!r.user_cmd_ts) continue;
-    const k=String(r.pid);
-    if(seen[k]===r.user_cmd_ts) continue;
+    // La clave lleva el ORIGEN desde 2026-08-16: el pid solo es único DENTRO
+    // de una máquina, y con WSL y el VPS en la lista dos sesiones distintas
+    // podían compartirlo — la segunda se daba por vista y su globo no salía.
+    // Se acepta el sello viejo (pid a secas) para no reabrir lo ya contado
+    // al actualizar.
+    const k=(r.origin||"")+"#"+r.pid;
+    if(seen[k]===r.user_cmd_ts||seen[String(r.pid)]===r.user_cmd_ts) continue;
     seen[k]=r.user_cmd_ts; dirty=true;
     flog("relevo: "+r.user_cmd+" tecleado por el usuario en pid "+r.pid);
     relayMark(r.user_cmd);
@@ -10067,7 +10072,8 @@ function relayUserCmds(){
   }
   if(dirty){
     // solo las sesiones vivas: el sello no tiene por qué crecer para siempre
-    const vivos=new Set(relays.map(r=>String(r.pid)));
+    // (las claves viejas —pid a secas— caducan solas por aquí)
+    const vivos=new Set(relays.map(r=>(r.origin||"")+"#"+r.pid));
     for(const k of Object.keys(seen)) if(!vivos.has(k)) delete seen[k];
     localStorage.setItem("relayUserSeen",JSON.stringify(seen));
   }

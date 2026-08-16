@@ -5820,21 +5820,47 @@ async fn read_cleared(sid: String, cwd: String, ts: i64, origin: String) -> Resu
             None
         }
         if !origin.is_empty() && !origin.starts_with("wsl-") {
-            // servidor SSH: solo el chat conoce el sid; sin él no hay forma
-            // segura de elegir archivo al otro lado — GONE y en paz
-            if sid.is_empty() {
-                return Err("ERR_SESSION_GONE".to_string());
-            }
+            // Servidor SSH: el disco es suyo, así que la BÚSQUEDA la hace él
+            // con el exportador (`--cleared-stdin`, réplica de esta misma
+            // función — invariante #1). Las señas van por STDIN igual que
+            // los precios: son datos del usuario (un cwd con espacios o
+            // comillas) y en la línea de comandos habría shell que los
+            // interpretara. Un exportador VIEJO no conoce el flag, cae al
+            // camino normal y devuelve JSON de gasto: no empieza por "{"…
+            // con líneas jsonl, así que se descarta y el visor dice GONE —
+            // se degrada solo, como --coach.
             let Some(r) = load_remotes().into_iter().find(|r| r.name == origin) else {
                 return Err("ERR_SESSION_GONE".to_string());
             };
-            let s = ssh_out(
-                &r.host,
-                &format!("cat ~/.claude/projects/*/{sid}.jsonl 2>/dev/null"),
-                "15",
-            )
-            .ok_or("ERR_SESSION_GONE")?;
-            if s.is_empty() {
+            let payload = serde_json::json!({"sid": &sid, "cwd": &cwd, "ts": ts}).to_string();
+            let mut cmd = std::process::Command::new("ssh");
+            cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=15"])
+                .arg(&r.host)
+                .arg(format!("{} --cleared-stdin", r.command))
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped());
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+            }
+            let mut child = cmd.spawn().map_err(|_| "ERR_SESSION_GONE".to_string())?;
+            if let Some(mut si) = child.stdin.take() {
+                use std::io::Write;
+                let _ = si.write_all(payload.as_bytes());
+                // cerrar stdin siempre: si no, el exportador espera para siempre
+            }
+            let out = child
+                .wait_with_output()
+                .map_err(|_| "ERR_SESSION_GONE".to_string())?;
+            let s = String::from_utf8_lossy(&out.stdout).to_string();
+            // la respuesta buena son líneas jsonl (cada una un objeto); un
+            // exportador viejo devolvería el JSON de gasto en UNA línea
+            if !out.status.success() || s.trim().is_empty() || !s.trim_start().starts_with('{') {
+                return Err("ERR_SESSION_GONE".to_string());
+            }
+            if s.lines().filter(|l| l.trim_start().starts_with('{')).count() < 2 {
                 return Err("ERR_SESSION_GONE".to_string());
             }
             return Ok(capped(s));
