@@ -395,6 +395,17 @@ inferencia se validó de punta a punta (terminal y chat, mismo día):
 >    leyó. Verificado con 1200 combinaciones de cortes sobre las sesiones
 >    reales del VPS: monotonía y tope, 0 fallos.
 >
+> 3. **La capa va en una SEGUNDA pasada de fondo**, no dentro del escaneo
+>    que pinta las tarjetas: arrancar el server de embeddings cuesta ~20 s
+>    de carga fría y meterlo en el camino haría ESPERAR a la pestaña por
+>    un extra. `loadFindings` pide los hallazgos sin temas, pinta, y
+>    después `fndTopicsLater()` repite la consulta con `topics:true` y
+>    repinta si trajo tramos. Con el análisis apagado —el caso normal— esa
+>    segunda consulta NI SE HACE (se mira `ai_get_config` antes). Se
+>    descarta el resultado si mientras tanto cambió el periodo o entró un
+>    escaneo más nuevo (`fndCacheAt`). Regla de la etapa: la capa solo
+>    puede SUMAR, y tardar más es restar.
+>
 > **Interruptor: el del análisis local, sin casilla nueva** (como decía el
 > diseño). Sin ese opt-in no se embebe nada; el texto de la casilla lo dice
 > ahora en los 8 idiomas. Y `topics:true` lo pide SOLO la pasada COMPLETA

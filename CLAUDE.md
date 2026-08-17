@@ -372,8 +372,10 @@ write_text` invocado directo (capability
 §"Etapa 3". Capa ADITIVA sobre el hallazgo (nace igual, misma clave, mismo
 costo): embeddings —NUNCA el 2B— parten la sesión en tramos y CALCULAN el
 ahorro por frontera. Cuelga del opt-in del análisis local, SIN casilla
-nueva, y solo corre con `topics:true` (pasada COMPLETA de Hallazgos; la
-ligera de 1 día y el Reporte no arrancan modelo). La evidencia (`umsgs` +
+nueva, y corre en una SEGUNDA pasada de fondo (`fndTopicsLater`,
+`topics:true`) que repinta al terminar: el escaneo que pinta las tarjetas
+NO espera al modelo, y con el análisis apagado ni se pide. La pasada
+ligera de 1 día y el Reporte no arrancan modelo. La evidencia (`umsgs` +
 `crs`) se recoge en la pasada QUE YA EXISTE con dedup PROPIO y viaja
 pegada al hallazgo: local/WSL la llenan en el escaneo, el exportador la
 manda por SSH (`topic_sample` réplica exacta) y el modelo corre SIEMPRE en

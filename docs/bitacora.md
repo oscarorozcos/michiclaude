@@ -3983,3 +3983,14 @@ QUÉ QUEDA: `cargo check` en el Windows de Oscar y la primera tarjeta con
 temas REALES (el modelo de embeddings vive ahí). Umbrales
 `TOPIC_NEW`/`TOPIC_HOLD`/`TOPIC_MIN_MSGS` son constantes A PROPÓSITO hasta
 tener muestra real, como los de la etapa 2.
+
+AÑADIDO EL MISMO DÍA (23b): los temas se movieron a una SEGUNDA PASADA de
+fondo. Metida en `get_findings` a secas, la pestaña habría esperado la
+carga fría del modelo (~20 s) más el presupuesto de 25 s antes de pintar
+NADA. Ahora `loadFindings` pinta sin temas y `fndTopicsLater()` repite con
+`topics:true` solo si `ai_get_config` dice que el análisis está encendido;
+descarta si cambió el periodo o entró un escaneo más nuevo. Tercer bug del
+día cazado verificando: la función usaba `$("tab-fnd")`, id que NO EXISTE
+(es `tab-findings`) — un repintado que nunca habría ocurrido. Se comprobó
+con un barrido de TODOS los `$("…")` del archivo contra los `id=`
+declarados: ninguno huérfano.
