@@ -620,7 +620,8 @@ manda pushes; al parar, `processAcks()` restaura lo real. Pausa `simMin`
 
 ## Flujo de trabajo del repo
 
-- Remoto: `github.com/oscarorozcos/michiclaude` — **PRIVADO**.
+- Remoto: `github.com/oscarorozcos/michiclaude` — **PÚBLICO**; CLA ligero
+  en CONTRIBUTING.md (abrir un PR lo acepta).
 - Windows de Oscar (`C:\Users\oscar\Claude\MichiClaude`) desarrolla y
   prueba; el VPS es clon espejo (`/opt/projects/michiclaude`). Al mover un
   clon en Windows: `target/` guarda rutas absolutas → `cargo clean`.
