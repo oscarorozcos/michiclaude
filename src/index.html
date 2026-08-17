@@ -12134,15 +12134,18 @@ async function loadFindings(force){
     $("fndFoot").textContent="";
   }
   try{
-    // `topics:true` SOLO aquí: la pasada ligera de 1 día y el Reporte no
-    // arrancan el modelo de embeddings (docs/analisis-local.md §Etapa 3).
-    fndCache=(await invoke("get_findings",{...fndArgs(),topics:true})).findings||[];
+    // SIN temas: las tarjetas primero. La capa semántica arranca un modelo
+    // (carga fría de ~20 s) y meterla aquí haría esperar al escaneo entero
+    // por algo que es un extra — la regla de la etapa es que solo puede
+    // SUMAR. Va detrás, en fndTopicsLater().
+    fndCache=(await invoke("get_findings",fndArgs())).findings||[];
     fndCacheAt=Date.now();
     fndTrackHist(fndCache);   // marcas de arreglo: solo con resultado FRESCO
     flog("fnd: escaneo ok, "+fndCache.length+" tarjetas ("+fndDays+"d)");
     try{ localStorage.setItem("fndCacheSaved",
       JSON.stringify({days:fndDays,list:fndCache})); }catch(_){}
     renderFindings();
+    fndTopicsLater();
   }
   catch(_){
     // con datos viejos ya en pantalla se quedan; el pie dice que falló
@@ -12157,6 +12160,36 @@ async function loadFindings(force){
 // Sin ella, TODO se pinta exactamente como antes (fail-quiet, regla #4).
 // El hallazgo determinista, su clave y su costo NO cambian: esto solo deja
 // de SUPONER ("un /clear al cambiar de tema") cuando se puede DEMOSTRAR.
+// Segunda pasada, en segundo plano y SOLO con el análisis local encendido:
+// pide lo mismo con `topics:true` y repinta si trajo tramos. Con el análisis
+// apagado —el caso normal— no se pide nada y no cuesta un milisegundo. Si
+// el usuario cambió de periodo mientras corría, el resultado se DESCARTA.
+// El historial de marcas NO se vuelve a tocar: son los mismos hallazgos,
+// solo que enriquecidos.
+let fndTopicsRun=false;
+async function fndTopicsLater(){
+  if(fndTopicsRun||!invoke||simFnd) return;
+  if(!(fndCache||[]).some(f=>f.kind==="inflate")) return;
+  try{
+    const c=aiCfg||await invoke("ai_get_config");
+    if(!c||!c.enabled) return;
+  }catch(_){ return; }
+  fndTopicsRun=true;
+  const args=fndArgs(), at=fndCacheAt;
+  try{
+    const r=await invoke("get_findings",{...args,topics:true});
+    if(JSON.stringify(args)!==JSON.stringify(fndArgs())) return;   // cambió el periodo
+    if(fndCacheAt!==at) return;              // entró un escaneo más nuevo: manda él
+    const list=r.findings||[];
+    if(!list.some(f=>f.topics)) return;                            // sin modelo o sin temas
+    fndCache=list;
+    flog("fnd: temas listos en "+list.filter(f=>f.topics).length+" sesión(es)");
+    try{ localStorage.setItem("fndCacheSaved",
+      JSON.stringify({days:fndDays,list:fndCache})); }catch(_){}
+    if(!$("tab-findings").hidden) renderFindings();
+  }catch(e){ flog("fnd: temas ERROR "+e); }
+  finally{ fndTopicsRun=false; }
+}
 function fndTopics(f){
   const tp=f&&f.kind==="inflate"?f.topics:null;
   return (tp&&Array.isArray(tp.segs)&&tp.segs.length)?tp:null;
