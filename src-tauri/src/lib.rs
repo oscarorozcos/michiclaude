@@ -7217,7 +7217,7 @@ fn wsl_verdict_py(_distro: &str, _script: &str, _op: &str) -> Result<String, Str
 fn wsl_upload_script(distro: &str, name: &str, body: &str) -> Result<(), String> {
     use std::io::Write;
     use std::os::windows::process::CommandExt;
-    if ![RELEVO_NAME, WRAP_NAME, ROUTER_NAME].contains(&name) {
+    if ![RELEVO_NAME, WRAP_NAME, ROUTER_NAME, GUARD_NAME].contains(&name) {
         return Err("FAIL".to_string());
     }
     let sh = format!(
@@ -7505,38 +7505,72 @@ fn michi_dir() -> PathBuf {
 }
 
 const ROUTER_NAME: &str = "router-hook.py";
+const GUARD_NAME: &str = "guard-hook.py";
 const ROUTER_HOOK_PATH: &str = "~/.michiclaude/router-hook.py";
+const GUARD_HOOK_PATH: &str = "~/.michiclaude/guard-hook.py";
 const ROUTER_HOOK_PY: &str = include_str!("../../scripts/router-hook.py");
 const ROUTER_HOOK_PS1: &str = include_str!("../../scripts/router-hook.ps1");
-/// La huella que identifica NUESTRA entrada en settings.json. Quitar solo
-/// lo que la lleve; todo lo demás es del usuario y no se toca.
-const RUTEO_MARK: &str = "router-hook";
+const GUARD_HOOK_PY: &str = include_str!("../../scripts/guard-hook.py");
+const GUARD_HOOK_PS1: &str = include_str!("../../scripts/guard-hook.ps1");
+/// Las huellas que identifican NUESTRAS entradas en settings.json. Quitar
+/// solo lo que las lleve; todo lo demás es del usuario y no se toca.
+const RUTEO_MARKS: [&str; 2] = ["router-hook", "guard-hook"];
 
-fn ruteo_cfg_on() -> bool {
+/// Los dos hooks del ruteo, en el orden en que se registran: (evento,
+/// matcher, nombre .py, nombre .ps1). El guardián no lleva matcher —
+/// UserPromptSubmit no filtra por herramienta.
+const RUTEO_HOOKS: [(&str, Option<&str>, &str, &str); 2] = [
+    ("PreToolUse", Some("Task|Agent"), "router-hook.py", "router-hook.ps1"),
+    ("UserPromptSubmit", None, "guard-hook.py", "guard-hook.ps1"),
+];
+
+/// Configuración del ruteo (`ruteo.json` en APPDATA). `on` = hooks
+/// instalados y nota regándose; `guard` y `ctx` viajan DENTRO de la nota
+/// y los lee el guardián en cada prompt: apagar cualquiera de los dos no
+/// toca settings.json (nacen apagados; el ctx es lo único que gasta).
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct RuteoCfg {
+    #[serde(default)]
+    on: bool,
+    #[serde(default)]
+    guard: bool,
+    #[serde(default)]
+    ctx: bool,
+}
+
+fn ruteo_cfg() -> RuteoCfg {
     fs::read_to_string(app_data_dir().join("ruteo.json"))
         .ok()
-        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
-        .and_then(|v| v.get("on").and_then(|b| b.as_bool()))
-        .unwrap_or(false)
+        .and_then(|s| serde_json::from_str::<RuteoCfg>(&s).ok())
+        .unwrap_or_default()
+}
+
+fn ruteo_cfg_on() -> bool {
+    ruteo_cfg().on
+}
+
+fn ruteo_cfg_write(c: &RuteoCfg) {
+    let _ = fs::create_dir_all(app_data_dir());
+    if let Ok(txt) = serde_json::to_string(c) {
+        let _ = fs::write(app_data_dir().join("ruteo.json"), txt);
+    }
 }
 
 fn ruteo_cfg_save(on: bool) {
-    let _ = fs::create_dir_all(app_data_dir());
-    let _ = fs::write(app_data_dir().join("ruteo.json"), format!("{{\"on\":{on}}}"));
+    let mut c = ruteo_cfg();
+    c.on = on;
+    ruteo_cfg_write(&c);
 }
 
-fn ruteo_local_hook_path() -> PathBuf {
-    if cfg!(windows) {
-        michi_dir().join("router-hook.ps1")
-    } else {
-        michi_dir().join("router-hook.py")
-    }
+/// Ruta local de un hook: `.ps1` en Windows nativo, `.py` en el resto.
+fn ruteo_local_hook_path(py: &str, ps1: &str) -> PathBuf {
+    michi_dir().join(if cfg!(windows) { ps1 } else { py })
 }
 
 /// El comando que queda registrado en settings.json. PowerShell en Windows
 /// nativo, python3 en el resto — la cobertura que validó la etapa 0.
-fn ruteo_local_cmd() -> String {
-    let p = ruteo_local_hook_path();
+fn ruteo_local_cmd(py: &str, ps1: &str) -> String {
+    let p = ruteo_local_hook_path(py, ps1);
     if cfg!(windows) {
         format!(
             "powershell -NoProfile -ExecutionPolicy Bypass -File \"{}\"",
@@ -7554,7 +7588,7 @@ fn ruteo_entry_is_ours(e: &serde_json::Value) -> bool {
             arr.iter().any(|h| {
                 h.get("command")
                     .and_then(|c| c.as_str())
-                    .map(|c| c.contains(RUTEO_MARK))
+                    .map(|c| RUTEO_MARKS.iter().any(|m| c.contains(m)))
                     .unwrap_or(false)
             })
         })
@@ -7581,11 +7615,20 @@ fn ruteo_write_settings(sf: &PathBuf, raw: &str, data: &serde_json::Value) -> bo
     fs::write(&tmp, txt).is_ok() && fs::rename(&tmp, sf).is_ok()
 }
 
-/// El alta/baja/estado del hook en ESTA máquina. Misma lógica que el guion
-/// RUTEO_PY de los servidores (los dos lados en sincronía a propósito):
-/// archivo que no parsea = MANUAL y no se toca; encender escribe el hook
-/// fresco SIEMPRE (embebido, como el exportador); apagar quita SOLO nuestra
-/// entrada, poda las ramas vacías y borra el script.
+fn ruteo_has(data: &serde_json::Value, ev: &str) -> bool {
+    data.get("hooks")
+        .and_then(|h| h.get(ev))
+        .and_then(|p| p.as_array())
+        .map(|arr| arr.iter().any(ruteo_entry_is_ours))
+        .unwrap_or(false)
+}
+
+/// El alta/baja/estado de LOS DOS hooks en ESTA máquina. Misma lógica que
+/// el guion RUTEO_PY de los servidores (los dos lados en sincronía a
+/// propósito): archivo que no parsea = MANUAL y no se toca; encender
+/// escribe los scripts frescos SIEMPRE (embebidos, como el exportador);
+/// ON = los dos registrados (un alta a medias se repite y ya); apagar quita
+/// SOLO nuestras entradas, poda las ramas vacías y borra los scripts.
 fn ruteo_local(op: &str) -> String {
     let sf = claude_dir().join("settings.json");
     let raw = fs::read_to_string(&sf).unwrap_or_default();
@@ -7600,27 +7643,33 @@ fn ruteo_local(op: &str) -> String {
     if !data.is_object() {
         return "MANUAL".into();
     }
-    let has = data
-        .get("hooks")
-        .and_then(|h| h.get("PreToolUse"))
-        .and_then(|p| p.as_array())
-        .map(|arr| arr.iter().any(ruteo_entry_is_ours))
-        .unwrap_or(false);
     match op {
-        "status" => (if has { "ON" } else { "OFF" }).to_string(),
+        "status" => {
+            let all = RUTEO_HOOKS.iter().all(|(ev, _, _, _)| ruteo_has(&data, ev));
+            (if all { "ON" } else { "OFF" }).to_string()
+        }
         "on" => {
             if fs::create_dir_all(michi_dir()).is_err() {
                 return "FAIL".into();
             }
-            let body = if cfg!(windows) {
-                ROUTER_HOOK_PS1.to_string()
-            } else {
-                ROUTER_HOOK_PY.replace("\r\n", "\n")
-            };
-            if fs::write(ruteo_local_hook_path(), body).is_err() {
-                return "FAIL".into();
+            for (py, ps1, body_py, body_ps1) in [
+                ("router-hook.py", "router-hook.ps1", ROUTER_HOOK_PY, ROUTER_HOOK_PS1),
+                ("guard-hook.py", "guard-hook.ps1", GUARD_HOOK_PY, GUARD_HOOK_PS1),
+            ] {
+                let body = if cfg!(windows) {
+                    body_ps1.to_string()
+                } else {
+                    body_py.replace("\r\n", "\n")
+                };
+                if fs::write(ruteo_local_hook_path(py, ps1), body).is_err() {
+                    return "FAIL".into();
+                }
             }
-            if !has {
+            let mut cambio = false;
+            for (ev, matcher, py, ps1) in RUTEO_HOOKS {
+                if ruteo_has(&data, ev) {
+                    continue;
+                }
                 let Some(obj) = data.as_object_mut() else {
                     return "MANUAL".into();
                 };
@@ -7628,40 +7677,51 @@ fn ruteo_local(op: &str) -> String {
                 let Some(hobj) = hooks.as_object_mut() else {
                     return "MANUAL".into();
                 };
-                let pre = hobj.entry("PreToolUse").or_insert(serde_json::json!([]));
-                let Some(parr) = pre.as_array_mut() else {
+                let lst = hobj.entry(ev).or_insert(serde_json::json!([]));
+                let Some(arr) = lst.as_array_mut() else {
                     return "MANUAL".into();
                 };
-                parr.push(serde_json::json!({
-                    "matcher": "Task|Agent",
-                    "hooks": [{ "type": "command", "command": ruteo_local_cmd(), "timeout": 10 }]
-                }));
-                if !ruteo_write_settings(&sf, &raw, &data) {
-                    return "FAIL".into();
+                let mut entry = serde_json::json!({
+                    "hooks": [{ "type": "command", "command": ruteo_local_cmd(py, ps1), "timeout": 10 }]
+                });
+                if let Some(m) = matcher {
+                    entry["matcher"] = serde_json::Value::String(m.to_string());
                 }
+                arr.push(entry);
+                cambio = true;
+            }
+            if cambio && !ruteo_write_settings(&sf, &raw, &data) {
+                return "FAIL".into();
             }
             "ON".into()
         }
         "off" => {
-            if has {
-                if let Some(parr) = data
+            let mut cambio = false;
+            for (ev, _, _, _) in RUTEO_HOOKS {
+                if !ruteo_has(&data, ev) {
+                    continue;
+                }
+                if let Some(arr) = data
                     .get_mut("hooks")
-                    .and_then(|h| h.get_mut("PreToolUse"))
+                    .and_then(|h| h.get_mut(ev))
                     .and_then(|p| p.as_array_mut())
                 {
-                    parr.retain(|e| !ruteo_entry_is_ours(e));
+                    arr.retain(|e| !ruteo_entry_is_ours(e));
                 }
-                let pre_empty = data
+                let empty = data
                     .get("hooks")
-                    .and_then(|h| h.get("PreToolUse"))
+                    .and_then(|h| h.get(ev))
                     .and_then(|p| p.as_array())
                     .map(|a| a.is_empty())
                     .unwrap_or(false);
-                if pre_empty {
+                if empty {
                     if let Some(h) = data.get_mut("hooks").and_then(|h| h.as_object_mut()) {
-                        h.remove("PreToolUse");
+                        h.remove(ev);
                     }
                 }
+                cambio = true;
+            }
+            if cambio {
                 let hooks_empty = data
                     .get("hooks")
                     .and_then(|h| h.as_object())
@@ -7676,7 +7736,9 @@ fn ruteo_local(op: &str) -> String {
                     return "FAIL".into();
                 }
             }
-            let _ = fs::remove_file(ruteo_local_hook_path());
+            for (_, _, py, ps1) in RUTEO_HOOKS {
+                let _ = fs::remove_file(ruteo_local_hook_path(py, ps1));
+            }
             "OFF".into()
         }
         _ => "BADOP".into(),
@@ -7700,8 +7762,14 @@ if op not in ("status", "on", "off"):
 home = os.path.expanduser("~")
 cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(home, ".claude")
 sf = os.path.join(cfg, "settings.json")
-hook = os.path.join(home, ".michiclaude", "router-hook.py")
-MARK = "router-hook"
+md = os.path.join(home, ".michiclaude")
+# los DOS hooks del ruteo van juntos: el B (subagentes) y el A (guardian);
+# el guardian ademas se gobierna con la bandera `guard` de la nota
+HOOKS = [
+    ("PreToolUse", "Task|Agent", os.path.join(md, "router-hook.py")),
+    ("UserPromptSubmit", None, os.path.join(md, "guard-hook.py")),
+]
+MARKS = ("router-hook", "guard-hook")
 
 raw = ""
 data = {}
@@ -7717,13 +7785,21 @@ if not isinstance(data, dict):
 def nuestro(e):
     hs = e.get("hooks") if isinstance(e, dict) else None
     return isinstance(hs, list) and any(
-        isinstance(h, dict) and MARK in str(h.get("command", "")) for h in hs)
+        isinstance(h, dict) and any(m in str(h.get("command", "")) for m in MARKS) for h in hs)
 
-pre = data.get("hooks", {}).get("PreToolUse") if isinstance(data.get("hooks"), dict) else None
-tiene = isinstance(pre, list) and any(nuestro(e) for e in pre)
+def lista(evname):
+    h = data.get("hooks")
+    if not isinstance(h, dict):
+        return None
+    return h.get(evname)
 
+def tiene(evname):
+    l = lista(evname)
+    return isinstance(l, list) and any(nuestro(e) for e in l)
+
+# ON = los dos puestos (un alta a medias no es ON: se repite el alta y ya)
 if op == "status":
-    print("ON" if tiene else "OFF"); sys.exit(0)
+    print("ON" if all(tiene(ev) for ev, _, _ in HOOKS) else "OFF"); sys.exit(0)
 
 def escribe():
     if raw and not os.path.isfile(sf + ".michi-backup"):
@@ -7736,32 +7812,47 @@ def escribe():
     os.replace(tmp, sf)
 
 if op == "on":
-    if not os.path.isfile(hook):
+    if not all(os.path.isfile(h) for _, _, h in HOOKS):
         print("NOHOOK"); sys.exit(0)
-    if not tiene:
+    cambio = False
+    for evname, matcher, hook in HOOKS:
+        if tiene(evname):
+            continue
         h = data.setdefault("hooks", {})
         if not isinstance(h, dict):
             print("MANUAL"); sys.exit(0)
-        p = h.setdefault("PreToolUse", [])
+        p = h.setdefault(evname, [])
         if not isinstance(p, list):
             print("MANUAL"); sys.exit(0)
-        p.append({"matcher": "Task|Agent", "hooks": [
-            {"type": "command", "command": "%s %s" % (sys.executable, hook), "timeout": 10}]})
+        entry = {"hooks": [{"type": "command", "command": "%s %s" % (sys.executable, hook), "timeout": 10}]}
+        if matcher:
+            entry["matcher"] = matcher
+        p.append(entry)
+        cambio = True
+    if cambio:
         escribe()
     print("ON"); sys.exit(0)
 
-# off: quitar SOLO lo nuestro, podar ramas vacias y llevarse el script
-if tiene:
-    data["hooks"]["PreToolUse"] = [e for e in pre if not nuestro(e)]
-    if not data["hooks"]["PreToolUse"]:
-        del data["hooks"]["PreToolUse"]
+# off: quitar SOLO lo nuestro de cada evento, podar ramas vacias y
+# llevarse los scripts
+cambio = False
+for evname, _, _ in HOOKS:
+    l = lista(evname)
+    if not (isinstance(l, list) and any(nuestro(e) for e in l)):
+        continue
+    data["hooks"][evname] = [e for e in l if not nuestro(e)]
+    if not data["hooks"][evname]:
+        del data["hooks"][evname]
+    cambio = True
+if cambio:
     if not data["hooks"]:
         del data["hooks"]
     escribe()
-try:
-    os.remove(hook)
-except OSError:
-    pass
+for _, _, hook in HOOKS:
+    try:
+        os.remove(hook)
+    except OSError:
+        pass
 print("OFF")
 "##;
 
@@ -7802,6 +7893,7 @@ async fn set_ruteo(on: bool) -> Result<Vec<ChatRelayRow>, String> {
                 // el hook fresco ANTES de registrar: una entrada que apunte
                 // a un archivo ausente muere en silencio en cada subagente
                 let _ = upload_script(&r.host, ROUTER_HOOK_PATH, ROUTER_HOOK_PY);
+                let _ = upload_script(&r.host, GUARD_HOOK_PATH, GUARD_HOOK_PY);
             }
             let state = remote_verdict_py(&r.host, &remote_python(&r), RUTEO_PY, op)
                 .unwrap_or_else(|e| e);
@@ -7810,6 +7902,7 @@ async fn set_ruteo(on: bool) -> Result<Vec<ChatRelayRow>, String> {
         for d in wsl_distros() {
             if on {
                 let _ = wsl_upload_script(&d, ROUTER_NAME, ROUTER_HOOK_PY);
+                let _ = wsl_upload_script(&d, GUARD_NAME, GUARD_HOOK_PY);
             }
             let state = wsl_verdict_py(&d, RUTEO_PY, op).unwrap_or_else(|e| e);
             out.push(ChatRelayRow { name: wsl_label(&d), state });
@@ -7858,15 +7951,20 @@ fn upload_state(host: &str, json: &str) -> Result<(), String> {
 #[tauri::command]
 async fn save_router_state(state: String) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
-        if !ruteo_cfg_on() {
+        let cfg = ruteo_cfg();
+        if !cfg.on {
             return Ok(());
         }
         // se re-parsea para no propagar basura a tres máquinas
-        let v: serde_json::Value =
+        let mut v: serde_json::Value =
             serde_json::from_str(&state).map_err(|_| "ERR_BAD_STATE".to_string())?;
         if !v.is_object() {
             return Err("ERR_BAD_STATE".into());
         }
+        // las banderas del guardián viajan DENTRO de la nota: así apagarlo
+        // no toca settings.json y llega a las tres máquinas en un ciclo
+        v["guard"] = serde_json::Value::Bool(cfg.guard);
+        v["ctx"] = serde_json::Value::Bool(cfg.ctx);
         let compact = v.to_string();
         let dir = michi_dir();
         let _ = fs::create_dir_all(&dir);
@@ -7890,6 +7988,108 @@ async fn save_router_state(state: String) -> Result<(), String> {
             let _ = upload_state(&r.host, &compact);
         }
         Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn get_ruteo_cfg() -> RuteoCfg {
+    ruteo_cfg()
+}
+
+/// Las banderas del guardián y del contexto inyectado. No tocan
+/// settings.json: viajan en la nota del siguiente ciclo (el panel la
+/// re-empuja al instante desde el interruptor).
+#[tauri::command]
+fn set_ruteo_flags(guard: bool, ctx: bool) -> RuteoCfg {
+    let mut c = ruteo_cfg();
+    c.guard = guard;
+    c.ctx = ctx;
+    ruteo_cfg_write(&c);
+    c
+}
+
+/// Una decisión del ruteo tal como la anotó un hook. Todos los campos con
+/// default: las filas del guardián y las del Hook B no llevan lo mismo, y
+/// una fila rara no debe tirar la lista entera.
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct RuteoRow {
+    #[serde(default)]
+    origin: String,
+    #[serde(default)]
+    ts: i64,
+    #[serde(default)]
+    ev: String,
+    #[serde(default, rename = "type")]
+    kind: String,
+    #[serde(default)]
+    why: String,
+    #[serde(default)]
+    after: String,
+    #[serde(default)]
+    model: String,
+    #[serde(default)]
+    sig: Vec<String>,
+    #[serde(default)]
+    cwd: String,
+    #[serde(default)]
+    sid: String,
+}
+
+/// Últimas filas de UN cuaderno (texto ya leído). Se lee la cola: el
+/// archivo rota a 512 KB pero entre medias puede ser grande.
+fn ruteo_rows_from(text: &str, origin: &str, max: usize) -> Vec<RuteoRow> {
+    let mut out: Vec<RuteoRow> = text
+        .lines()
+        .rev()
+        .filter(|l| !l.trim().is_empty())
+        .filter_map(|l| serde_json::from_str::<RuteoRow>(l).ok())
+        .take(max)
+        .collect();
+    for r in out.iter_mut() {
+        r.origin = origin.to_string();
+    }
+    out
+}
+
+/// El registro del ruteo de las tres máquinas, fusionado por fecha. Local y
+/// WSL por fs; servidores con un `tail` por SSH (fallar = esa máquina no
+/// aporta filas, nada más). Tope 60 filas para el panel.
+#[tauri::command]
+async fn get_ruteo_log() -> Result<Vec<RuteoRow>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        const PER: usize = 60;
+        let mut out = Vec::new();
+        if let Ok(t) = fs::read_to_string(michi_dir().join("ruteo_log.jsonl")) {
+            out.extend(ruteo_rows_from(&t, "", PER));
+        }
+        for (d, cdir) in wsl_claude_dirs() {
+            if let Some(h) = cdir.parent() {
+                if let Ok(t) = fs::read_to_string(h.join(".michiclaude").join("ruteo_log.jsonl")) {
+                    out.extend(ruteo_rows_from(&t, &wsl_origin(&d), PER));
+                }
+            }
+        }
+        for r in load_remotes() {
+            let mut cmd = std::process::Command::new("ssh");
+            cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+                .arg(&r.host)
+                .arg(format!("tail -n {PER} ~/.michiclaude/ruteo_log.jsonl 2>/dev/null"));
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x0800_0000);
+            }
+            if let Ok(o) = cmd.output() {
+                if o.status.success() {
+                    out.extend(ruteo_rows_from(&String::from_utf8_lossy(&o.stdout), &r.name, PER));
+                }
+            }
+        }
+        out.sort_by(|a, b| b.ts.cmp(&a.ts));
+        out.truncate(PER);
+        Ok(out)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -8656,7 +8856,10 @@ pub fn run() {
             set_term_relay,
             get_ruteo,
             set_ruteo,
-            save_router_state
+            save_router_state,
+            get_ruteo_cfg,
+            set_ruteo_flags,
+            get_ruteo_log
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

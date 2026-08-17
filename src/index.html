@@ -1707,6 +1707,25 @@
       </label>
       <div class="cfg-note" id="rtMsg" hidden></div>
       <div class="cfg-note" data-i18n="rt_hint"></div>
+      <!-- El GUARDIÁN (Hook A, etapa 5): protege del único error caro —
+           pedir algo complejo en un modelo barato. Bloquea ANTES de gastar
+           un token; el usuario decide (/model opus o «~»). Va en la misma
+           instalación que el Hook B; su bandera viaja en la nota. -->
+      <label class="cfg-row" style="cursor:pointer;margin-top:6px" id="rtGuardRow">
+        <span data-i18n="rt_guard_on"></span><input type="checkbox" id="rtGuardChk">
+      </label>
+      <div class="cfg-note" data-i18n="rt_guard_hint"></div>
+      <!-- CONTEXTO INYECTADO: lo ÚNICO del sistema que gasta tokens (~60 por
+           turno). Apagable aparte y AUTO-REPORTADO en el registro. -->
+      <label class="cfg-row" style="cursor:pointer;margin-top:6px" id="rtCtxRow">
+        <span data-i18n="rt_ctx_on"></span><input type="checkbox" id="rtCtxChk">
+      </label>
+      <div class="cfg-note" data-i18n="rt_ctx_hint"></div>
+      <!-- Latido + registro: que se VEA que está vivo y qué decidió. Sin
+           esto el ruteo es un acto de fe (Oscar 2026-08-17). -->
+      <div class="cfg-lbl" data-i18n="rt_log_label"></div>
+      <div class="cfg-note" id="rtBeat"></div>
+      <div id="rtLog" class="cfg-note"></div>
     </div>
   </div>
 
@@ -2357,6 +2376,24 @@ en:{
   rt_hint:"Installs a hook in each machine's ~/.claude (with a backup): exploration subagents start on Haiku, implementation on Sonnet, and deep analysis only steps down when your quota is tight. Your main session is never touched, an explicit model is respected, and if MichiClaude isn't running the hook does nothing. Every decision is logged to ~/.michiclaude/ruteo_log.jsonl.",
   rt_restart:"applies to Claude Code sessions started from now on.",
   rt_nohook:"the hook didn't reach that machine",
+  rt_guard_on:"Escalation guard: stop complex prompts sent to a cheap model",
+  rt_guard_hint:"If your session is on Haiku or Sonnet and the prompt looks heavy (code block, several file paths, an error trace, a long instruction), it's stopped BEFORE spending a token, with the fix on screen: /model opus and resend, or prefix ~ to send as is. Sending the same prompt again passes. Never touches Opus/Fable sessions.",
+  rt_ctx_on:"Inject quota context so Claude itself suggests the tier",
+  rt_ctx_hint:"Adds two short lines per prompt (your session model and rough quota) so Claude can suggest a cheaper /model on trivial asks. This is the ONLY part that costs tokens (~60 per turn) and it's counted in the log below.",
+  rt_log_label:"Routing log",
+  rt_beat_today:(n,h,s,b)=>`Today: ${n} subagent${n===1?"":"s"} routed (${h} → Haiku, ${s} → Sonnet)${b?` · guard stopped ${b}`:""}`,
+  rt_beat_none:"No routing decisions in the last 24 h — nothing to route, or no new sessions since you switched it on.",
+  rt_beat_last:(w,p)=>`last ${w} in «${p}»`,
+  rt_ev_route:(k,m)=>`${k} → ${m}`,
+  rt_ev_skip:(k,why)=>`${k} → kept (${why})`,
+  rt_why_explicit:"explicit model",
+  rt_why_bypass:"~ bypass",
+  rt_why_comfort:"quota is fine",
+  rt_ev_block:(m,sig)=>`guard stopped a heavy prompt on ${m} (${sig})`,
+  rt_ev_insist:m=>`you insisted on ${m} — sent`,
+  rt_ev_bypass:"~ sent as is",
+  rt_ev_ctx:"context injected (~60 tok)",
+  rt_log_empty:"No decisions yet.",
   rem_log_relay:(cmd,proj)=>`applied ${cmd} in «${proj}»`,
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
@@ -2902,6 +2939,24 @@ es:{
   rt_hint:"Instala un hook en el ~/.claude de cada máquina (con respaldo): los subagentes de exploración nacen en Haiku, los de implementación en Sonnet y los de análisis solo bajan si la cuota aprieta. Tu sesión principal no se toca, un modelo explícito se respeta, y si MichiClaude no está corriendo el hook no hace nada. Cada decisión queda en ~/.michiclaude/ruteo_log.jsonl.",
   rt_restart:"aplica en las sesiones de Claude Code que arranquen desde ahora.",
   rt_nohook:"el hook no llegó a esa máquina",
+  rt_guard_on:"Guardián de escalada: frenar prompts complejos en un modelo barato",
+  rt_guard_hint:"Si tu sesión va en Haiku o Sonnet y el prompt se ve pesado (bloque de código, varias rutas de archivo, una traza de error, una instrucción larga), se frena ANTES de gastar un token y en pantalla sale el remedio: /model opus y reenviar, o anteponer ~ para mandarlo tal cual. Reenviar el mismo prompt pasa. Nunca toca sesiones en Opus/Fable.",
+  rt_ctx_on:"Inyectar contexto de cuota para que el propio Claude sugiera el tier",
+  rt_ctx_hint:"Añade dos líneas cortas por prompt (modelo de tu sesión y cuota gruesa) para que Claude sugiera un /model más barato en peticiones triviales. Es lo ÚNICO que gasta tokens (~60 por turno) y se cuenta en el registro de abajo.",
+  rt_log_label:"Registro del ruteo",
+  rt_beat_today:(n,h,s,b)=>`Hoy: ${n} subagente${n===1?"":"s"} ruteado${n===1?"":"s"} (${h} → Haiku, ${s} → Sonnet)${b?` · el guardián frenó ${b}`:""}`,
+  rt_beat_none:"Sin decisiones de ruteo en las últimas 24 h — nada que rutear, o ninguna sesión nueva desde que lo encendiste.",
+  rt_beat_last:(w,p)=>`último ${w} en «${p}»`,
+  rt_ev_route:(k,m)=>`${k} → ${m}`,
+  rt_ev_skip:(k,why)=>`${k} → se quedó (${why})`,
+  rt_why_explicit:"modelo explícito",
+  rt_why_bypass:"escotilla ~",
+  rt_why_comfort:"cuota holgada",
+  rt_ev_block:(m,sig)=>`el guardián frenó un prompt pesado en ${m} (${sig})`,
+  rt_ev_insist:m=>`insististe en ${m} — se envió`,
+  rt_ev_bypass:"~ enviado tal cual",
+  rt_ev_ctx:"contexto inyectado (~60 tok)",
+  rt_log_empty:"Todavía sin decisiones.",
   rem_log_relay:(cmd,proj)=>`aplicó ${cmd} en «${proj}»`,
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
@@ -3447,6 +3502,24 @@ pt:{
   rt_hint:"Instala um hook no ~/.claude de cada máquina (com backup): subagentes de exploração nascem no Haiku, os de implementação no Sonnet e os de análise só descem se a cota apertar. Sua sessão principal não é tocada, um modelo explícito é respeitado e, se o MichiClaude não estiver rodando, o hook não faz nada. Cada decisão fica em ~/.michiclaude/ruteo_log.jsonl.",
   rt_restart:"vale para as sessões do Claude Code iniciadas a partir de agora.",
   rt_nohook:"o hook não chegou àquela máquina",
+  rt_guard_on:"Guardião de escalada: travar prompts complexos num modelo barato",
+  rt_guard_hint:"Se a sessão está em Haiku ou Sonnet e o prompt parece pesado (bloco de código, vários caminhos de arquivo, um traceback, uma instrução longa), ele é travado ANTES de gastar um token, com o remédio na tela: /model opus e reenviar, ou prefixar ~ para mandar assim mesmo. Reenviar o mesmo prompt passa. Nunca toca sessões em Opus/Fable.",
+  rt_ctx_on:"Injetar contexto de cota para o próprio Claude sugerir o tier",
+  rt_ctx_hint:"Acrescenta duas linhas curtas por prompt (modelo da sessão e cota aproximada) para o Claude sugerir um /model mais barato em pedidos triviais. É a ÚNICA parte que gasta tokens (~60 por turno) e entra na contagem do registro abaixo.",
+  rt_log_label:"Registro do roteamento",
+  rt_beat_today:(n,h,s,b)=>`Hoje: ${n} subagente${n===1?"":"s"} roteado${n===1?"":"s"} (${h} → Haiku, ${s} → Sonnet)${b?` · o guardião travou ${b}`:""}`,
+  rt_beat_none:"Sem decisões de roteamento nas últimas 24 h — nada para rotear, ou nenhuma sessão nova desde que você ligou.",
+  rt_beat_last:(w,p)=>`última ${w} em «${p}»`,
+  rt_ev_route:(k,m)=>`${k} → ${m}`,
+  rt_ev_skip:(k,why)=>`${k} → ficou (${why})`,
+  rt_why_explicit:"modelo explícito",
+  rt_why_bypass:"escotilha ~",
+  rt_why_comfort:"cota folgada",
+  rt_ev_block:(m,sig)=>`o guardião travou um prompt pesado em ${m} (${sig})`,
+  rt_ev_insist:m=>`você insistiu em ${m} — enviado`,
+  rt_ev_bypass:"~ enviado assim mesmo",
+  rt_ev_ctx:"contexto injetado (~60 tok)",
+  rt_log_empty:"Ainda sem decisões.",
   rem_log_relay:(cmd,proj)=>`aplicou ${cmd} em «${proj}»`,
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
@@ -3992,6 +4065,24 @@ fr:{
   rt_hint:"Installe un hook dans le ~/.claude de chaque machine (avec sauvegarde) : les sous-agents d’exploration naissent sur Haiku, ceux d’implémentation sur Sonnet, et l’analyse ne descend que si le quota est serré. Votre session principale n’est jamais touchée, un modèle explicite est respecté, et si MichiClaude ne tourne pas, le hook ne fait rien. Chaque décision est consignée dans ~/.michiclaude/ruteo_log.jsonl.",
   rt_restart:"s’applique aux sessions Claude Code lancées à partir de maintenant.",
   rt_nohook:"le hook n’est pas arrivé sur cette machine",
+  rt_guard_on:"Garde-fou d’escalade : bloquer les prompts complexes sur un modèle bon marché",
+  rt_guard_hint:"Si votre session tourne sur Haiku ou Sonnet et que le prompt semble lourd (bloc de code, plusieurs chemins de fichiers, une trace d’erreur, une consigne longue), il est bloqué AVANT de dépenser un token, avec le remède à l’écran : /model opus et renvoyer, ou préfixer ~ pour l’envoyer tel quel. Renvoyer le même prompt passe. Ne touche jamais aux sessions Opus/Fable.",
+  rt_ctx_on:"Injecter le contexte de quota pour que Claude lui-même suggère le tier",
+  rt_ctx_hint:"Ajoute deux lignes courtes par prompt (modèle de la session et quota approximatif) pour que Claude suggère un /model moins cher sur les demandes triviales. C’est la SEULE partie qui coûte des tokens (~60 par tour), comptée dans le journal ci-dessous.",
+  rt_log_label:"Journal du routage",
+  rt_beat_today:(n,h,s,b)=>`Aujourd’hui : ${n} sous-agent${n===1?"":"s"} routé${n===1?"":"s"} (${h} → Haiku, ${s} → Sonnet)${b?` · le garde-fou a bloqué ${b}`:""}`,
+  rt_beat_none:"Aucune décision de routage depuis 24 h — rien à router, ou aucune nouvelle session depuis l’activation.",
+  rt_beat_last:(w,p)=>`dernière ${w} dans «${p}»`,
+  rt_ev_route:(k,m)=>`${k} → ${m}`,
+  rt_ev_skip:(k,why)=>`${k} → conservé (${why})`,
+  rt_why_explicit:"modèle explicite",
+  rt_why_bypass:"passe-droit ~",
+  rt_why_comfort:"quota confortable",
+  rt_ev_block:(m,sig)=>`le garde-fou a bloqué un prompt lourd sur ${m} (${sig})`,
+  rt_ev_insist:m=>`vous avez insisté sur ${m} — envoyé`,
+  rt_ev_bypass:"~ envoyé tel quel",
+  rt_ev_ctx:"contexte injecté (~60 tok)",
+  rt_log_empty:"Pas encore de décisions.",
   rem_log_relay:(cmd,proj)=>`a appliqué ${cmd} dans «${proj}»`,
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
@@ -4537,6 +4628,24 @@ de:{
   rt_hint:"Installiert einen Hook im ~/.claude jeder Maschine (mit Backup): Erkundungs-Subagenten starten auf Haiku, Implementierung auf Sonnet, und Tiefenanalyse steigt nur ab, wenn das Kontingent knapp ist. Die Hauptsitzung bleibt unberührt, ein explizites Modell wird respektiert, und läuft MichiClaude nicht, tut der Hook nichts. Jede Entscheidung landet in ~/.michiclaude/ruteo_log.jsonl.",
   rt_restart:"gilt für Claude-Code-Sitzungen, die ab jetzt starten.",
   rt_nohook:"der Hook ist auf der Maschine nicht angekommen",
+  rt_guard_on:"Eskalationswächter: komplexe Prompts auf einem günstigen Modell stoppen",
+  rt_guard_hint:"Läuft die Sitzung auf Haiku oder Sonnet und der Prompt wirkt schwer (Codeblock, mehrere Dateipfade, ein Fehler-Trace, eine lange Anweisung), wird er gestoppt, BEVOR ein Token ausgegeben wird – mit der Lösung am Bildschirm: /model opus und erneut senden, oder ~ voranstellen, um ihn so zu schicken. Denselben Prompt erneut zu senden geht durch. Opus/Fable-Sitzungen bleiben unberührt.",
+  rt_ctx_on:"Kontingent-Kontext einfügen, damit Claude selbst das Tier vorschlägt",
+  rt_ctx_hint:"Fügt pro Prompt zwei kurze Zeilen hinzu (Sitzungsmodell und grobes Kontingent), damit Claude bei trivialen Bitten ein günstigeres /model vorschlägt. Das ist der EINZIGE Teil, der Tokens kostet (~60 pro Zug), und wird im Protokoll unten mitgezählt.",
+  rt_log_label:"Routing-Protokoll",
+  rt_beat_today:(n,h,s,b)=>`Heute: ${n} Subagent${n===1?"":"en"} geroutet (${h} → Haiku, ${s} → Sonnet)${b?` · Wächter stoppte ${b}`:""}`,
+  rt_beat_none:"Keine Routing-Entscheidungen in den letzten 24 h – nichts zu routen, oder keine neue Sitzung seit dem Einschalten.",
+  rt_beat_last:(w,p)=>`zuletzt ${w} in «${p}»`,
+  rt_ev_route:(k,m)=>`${k} → ${m}`,
+  rt_ev_skip:(k,why)=>`${k} → behalten (${why})`,
+  rt_why_explicit:"explizites Modell",
+  rt_why_bypass:"~-Umgehung",
+  rt_why_comfort:"Kontingent entspannt",
+  rt_ev_block:(m,sig)=>`Wächter stoppte einen schweren Prompt auf ${m} (${sig})`,
+  rt_ev_insist:m=>`du hast auf ${m} bestanden – gesendet`,
+  rt_ev_bypass:"~ unverändert gesendet",
+  rt_ev_ctx:"Kontext eingefügt (~60 Tok)",
+  rt_log_empty:"Noch keine Entscheidungen.",
   rem_log_relay:(cmd,proj)=>`${cmd} in «${proj}» angewendet`,
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
@@ -5082,6 +5191,24 @@ ja:{
   rt_hint:"各マシンの ~/.claude にフックを設置します(バックアップ付き)。探索系サブエージェントは Haiku、実装は Sonnet で起動し、深い分析は残量が少ないときだけ下げます。メインセッションには一切触れず、明示されたモデルは尊重します。MichiClaude が動いていなければフックは何もしません。すべての判断は ~/.michiclaude/ruteo_log.jsonl に記録されます。",
   rt_restart:"これ以降に起動する Claude Code のセッションから有効です。",
   rt_nohook:"フックがそのマシンに届いていません",
+  rt_guard_on:"エスカレーション・ガード: 安価なモデルへの複雑なプロンプトを止める",
+  rt_guard_hint:"セッションが Haiku か Sonnet で、プロンプトが重そうなとき(コードブロック、複数のファイルパス、エラートレース、長い指示)、トークンを使う前に止めて対処法を表示します: /model opus で再送、または先頭に ~ を付けてそのまま送信。同じプロンプトの再送は通ります。Opus/Fable のセッションには一切触れません。",
+  rt_ctx_on:"残量コンテキストを注入して Claude 自身にティアを提案させる",
+  rt_ctx_hint:"プロンプトごとに短い2行(セッションのモデルと概算の残量)を追加し、些細な依頼では Claude が安い /model を提案できるようにします。システムで唯一トークンを消費する部分(1ターン約60)で、下の記録に計上されます。",
+  rt_log_label:"ルーティング記録",
+  rt_beat_today:(n,h,s,b)=>`今日: サブエージェント ${n} 件を振り分け(${h} → Haiku、${s} → Sonnet)${b?` · ガードが ${b} 件停止`:""}`,
+  rt_beat_none:"過去24時間にルーティングの判断はありません — 対象がなかったか、有効化後に新しいセッションがありません。",
+  rt_beat_last:(w,p)=>`最新 ${w}「${p}」`,
+  rt_ev_route:(k,m)=>`${k} → ${m}`,
+  rt_ev_skip:(k,why)=>`${k} → 維持(${why})`,
+  rt_why_explicit:"モデル明示",
+  rt_why_bypass:"~ バイパス",
+  rt_why_comfort:"残量に余裕",
+  rt_ev_block:(m,sig)=>`ガードが ${m} 上の重いプロンプトを停止(${sig})`,
+  rt_ev_insist:m=>`${m} で続行を選択 — 送信済み`,
+  rt_ev_bypass:"~ そのまま送信",
+  rt_ev_ctx:"コンテキスト注入(約60トークン)",
+  rt_log_empty:"まだ判断はありません。",
   rem_log_relay:(cmd,proj)=>`「${proj}」で ${cmd} を適用`,
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
@@ -5627,6 +5754,24 @@ ko:{
   rt_hint:"각 머신의 ~/.claude에 훅을 설치합니다(백업 포함). 탐색 서브에이전트는 Haiku, 구현은 Sonnet으로 시작하고, 심층 분석은 쿼터가 빠듯할 때만 내려갑니다. 메인 세션은 건드리지 않고, 명시된 모델은 존중하며, MichiClaude가 꺼져 있으면 훅은 아무것도 하지 않습니다. 모든 결정은 ~/.michiclaude/ruteo_log.jsonl에 기록됩니다.",
   rt_restart:"지금부터 시작하는 Claude Code 세션에 적용됩니다.",
   rt_nohook:"훅이 해당 머신에 도착하지 않았습니다",
+  rt_guard_on:"에스컬레이션 가드: 저렴한 모델로 보내는 복잡한 프롬프트 차단",
+  rt_guard_hint:"세션이 Haiku나 Sonnet이고 프롬프트가 무거워 보이면(코드 블록, 여러 파일 경로, 오류 트레이스, 긴 지시), 토큰을 쓰기 전에 멈추고 해결법을 보여줍니다: /model opus 후 재전송, 또는 앞에 ~를 붙여 그대로 전송. 같은 프롬프트를 다시 보내면 통과합니다. Opus/Fable 세션은 건드리지 않습니다.",
+  rt_ctx_on:"쿼터 컨텍스트를 주입해 Claude가 직접 티어를 제안하게",
+  rt_ctx_hint:"프롬프트마다 짧은 두 줄(세션 모델과 대략적인 쿼터)을 추가해 사소한 요청에서 Claude가 더 저렴한 /model을 제안하도록 합니다. 시스템에서 유일하게 토큰을 쓰는 부분(턴당 약 60)이며 아래 기록에 집계됩니다.",
+  rt_log_label:"라우팅 기록",
+  rt_beat_today:(n,h,s,b)=>`오늘: 서브에이전트 ${n}개 라우팅(${h} → Haiku, ${s} → Sonnet)${b?` · 가드가 ${b}건 차단`:""}`,
+  rt_beat_none:"최근 24시간 라우팅 결정 없음 — 라우팅할 것이 없었거나, 켠 뒤 새 세션이 없습니다.",
+  rt_beat_last:(w,p)=>`최근 ${w} «${p}»`,
+  rt_ev_route:(k,m)=>`${k} → ${m}`,
+  rt_ev_skip:(k,why)=>`${k} → 유지(${why})`,
+  rt_why_explicit:"명시된 모델",
+  rt_why_bypass:"~ 우회",
+  rt_why_comfort:"쿼터 여유",
+  rt_ev_block:(m,sig)=>`가드가 ${m}의 무거운 프롬프트를 차단(${sig})`,
+  rt_ev_insist:m=>`${m}로 계속하기로 함 — 전송됨`,
+  rt_ev_bypass:"~ 그대로 전송",
+  rt_ev_ctx:"컨텍스트 주입(약 60토큰)",
+  rt_log_empty:"아직 결정이 없습니다.",
   rem_log_relay:(cmd,proj)=>`「${proj}」에 ${cmd} 적용`,
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
@@ -6172,6 +6317,24 @@ zh:{
   rt_hint:"在每台机器的 ~/.claude 安装一个钩子(带备份):探索类子代理用 Haiku 启动,实现类用 Sonnet,深度分析只在额度吃紧时才降级。主会话绝不改动,显式指定的模型会被尊重;MichiClaude 没在运行时钩子什么也不做。每个决定都记录在 ~/.michiclaude/ruteo_log.jsonl。",
   rt_restart:"对从现在起启动的 Claude Code 会话生效。",
   rt_nohook:"钩子未送达该机器",
+  rt_guard_on:"升级守卫:拦下发给廉价模型的复杂提示",
+  rt_guard_hint:"当会话在 Haiku 或 Sonnet 上、且提示看起来很重(代码块、多个文件路径、错误堆栈、长指令)时,会在花费任何 token 之前拦下,并在屏幕上给出办法:/model opus 后重发,或在开头加 ~ 原样发送。重发同一提示会放行。绝不触碰 Opus/Fable 会话。",
+  rt_ctx_on:"注入额度上下文,让 Claude 自己建议档位",
+  rt_ctx_hint:"每条提示追加两行短文(会话模型和大致额度),让 Claude 在琐碎请求时建议更便宜的 /model。这是系统中唯一消耗 token 的部分(每轮约 60),会计入下方记录。",
+  rt_log_label:"路由记录",
+  rt_beat_today:(n,h,s,b)=>`今天:路由了 ${n} 个子代理(${h} → Haiku,${s} → Sonnet)${b?` · 守卫拦下 ${b} 次`:""}`,
+  rt_beat_none:"过去 24 小时没有路由决定——没有可路由的,或开启后还没有新会话。",
+  rt_beat_last:(w,p)=>`最近 ${w},在「${p}」`,
+  rt_ev_route:(k,m)=>`${k} → ${m}`,
+  rt_ev_skip:(k,why)=>`${k} → 保持(${why})`,
+  rt_why_explicit:"显式指定模型",
+  rt_why_bypass:"~ 绕过",
+  rt_why_comfort:"额度充裕",
+  rt_ev_block:(m,sig)=>`守卫拦下了 ${m} 上的重提示(${sig})`,
+  rt_ev_insist:m=>`你坚持用 ${m} — 已发送`,
+  rt_ev_bypass:"~ 原样发送",
+  rt_ev_ctx:"已注入上下文(约 60 tok)",
+  rt_log_empty:"还没有决定。",
   rem_log_relay:(cmd,proj)=>`在「${proj}」应用了 ${cmd}`,
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
@@ -10742,6 +10905,7 @@ async function rtUi(){
     $("rtMsg").hidden=false;
     $("rtMsg").textContent=rtRows(rows);
   }catch(_){}
+  rtFlagsUi(); rtLogLoad();
 }
 $("rtChk").addEventListener("change",async ()=>{
   const on=$("rtChk").checked;
@@ -10756,12 +10920,89 @@ $("rtChk").addEventListener("change",async ()=>{
     // la nota fresca YA, sin esperar al próximo ciclo (hasta 3 min en los
     // que los hooks recién puestos se quedarían callados por estado viejo)
     if(on && lastQuotaData) pushRouterState(lastQuotaData);
+    rtFlagsUi();
   }catch(e){
     $("rtChk").checked=!on;
     $("rtMsg").textContent=String(e);
     flog("ruteo: interruptor ERROR "+e);
   }
 });
+// Las banderas del guardián y del contexto viven en ruteo.json y viajan
+// DENTRO de la nota: apagarlas no toca settings.json. Solo tienen sentido
+// con el ruteo encendido (sin hooks no hay quien las lea).
+async function rtFlagsUi(){
+  if(!invoke) return;
+  try{
+    const c=await invoke("get_ruteo_cfg");
+    $("rtGuardChk").checked=!!c.guard; $("rtCtxChk").checked=!!c.ctx;
+    $("rtGuardChk").disabled=!c.on; $("rtCtxChk").disabled=!c.on;
+  }catch(_){}
+}
+async function rtFlagsSave(){
+  try{
+    await invoke("set_ruteo_flags",{guard:$("rtGuardChk").checked, ctx:$("rtCtxChk").checked});
+    flog("ruteo: guard="+$("rtGuardChk").checked+" ctx="+$("rtCtxChk").checked);
+    // la nota re-empujada al instante para que las tres máquinas lo sepan
+    // ya, no en el próximo ciclo
+    if(lastQuotaData) pushRouterState(lastQuotaData);
+  }catch(e){ flog("ruteo: banderas ERROR "+e); }
+}
+$("rtGuardChk").addEventListener("change",rtFlagsSave);
+$("rtCtxChk").addEventListener("change",rtFlagsSave);
+
+// El registro del ruteo: latido (hoy) + últimas decisiones de las tres
+// máquinas. Es la respuesta a "¿está vivo? ¿qué decidió? ¿se queda siempre
+// en el caro?" — sin esto el ruteo es un acto de fe (Oscar 2026-08-17).
+// Pinta lo que el hook DECIDIÓ; que Claude Code obedeció lo comprueba la
+// medición (etapa 3) contra los transcripts.
+function rtProj(cwd){
+  const s=String(cwd||"").replace(/[\\/]+$/,"");
+  return s.split(/[\\/]/).pop()||s||"—";
+}
+function rtWhere(r){
+  return [rtProj(r.cwd), r.origin||t("src_local")].join(" · ");
+}
+function rtModelName(m){ return m?m.charAt(0).toUpperCase()+m.slice(1):"—"; }
+function rtRowTxt(r){
+  if(r.ev==="route") return t("rt_ev_route", r.type||"?", rtModelName(r.after));
+  if(r.ev==="skip"){
+    const why={explicit:t("rt_why_explicit"),bypass:t("rt_why_bypass"),
+      "think-comfort":t("rt_why_comfort")}[r.why]||r.why;
+    return t("rt_ev_skip", r.type||"?", why);
+  }
+  if(r.ev==="block") return t("rt_ev_block", rtModelName(r.model), (r.sig||[]).join(", "));
+  if(r.ev==="insist") return t("rt_ev_insist", rtModelName(r.model));
+  if(r.ev==="bypass") return t("rt_ev_bypass");
+  if(r.ev==="ctx") return t("rt_ev_ctx");
+  return r.ev;
+}
+function rtRender(rows){
+  const beat=$("rtBeat"), el=$("rtLog"); if(!beat||!el) return;
+  const day=Math.floor(Date.now()/1000)-86400;
+  const hoy=rows.filter(r=>r.ts>=day);
+  const routed=hoy.filter(r=>r.ev==="route");
+  const h=routed.filter(r=>r.after==="haiku").length, sn=routed.filter(r=>r.after==="sonnet").length;
+  const b=hoy.filter(r=>r.ev==="block").length;
+  if(!routed.length && !b) beat.textContent=t("rt_beat_none");
+  else{
+    const last=hoy[0];
+    beat.textContent=t("rt_beat_today",routed.length,h,sn,b)
+      +(last?" · "+t("rt_beat_last",fmtWhen(last.ts),rtWhere(last)):"");
+  }
+  const filas=rows.slice(0,15);
+  if(!filas.length){ el.innerHTML=t("rt_log_empty"); return; }
+  el.innerHTML=filas.map(r=>{
+    const d=new Date(r.ts*1000);
+    const when=d.toLocaleDateString(undefined,{day:"2-digit",month:"2-digit"})+" "+
+      d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+    return `<div class="rem-l">${when} · ${escapeHtml(rtWhere(r))} · ${escapeHtml(rtRowTxt(r))}</div>`;
+  }).join("");
+}
+async function rtLogLoad(){
+  if(!invoke||!$("rtLog")) return;
+  try{ rtRender(await invoke("get_ruteo_log")||[]); }
+  catch(e){ flog("ruteo: registro ERROR "+e); }
+}
 
 async function rlyPollUi(){
   if($("tab-prefs").hidden||document.hidden) return;
