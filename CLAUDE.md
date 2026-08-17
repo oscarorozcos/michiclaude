@@ -482,11 +482,10 @@ presion-y-rendimiento §"Qué queda vivo".
 - [ ] VALIDACIÓN PASIVA (con el uso): alarmas reales (umbral, 100%,
       ventana nueva), camino ntfy completo (PC apagada) y el aviso de
       hallazgos naciendo natural. CERRADO el bloque del relevo
-      (2026-08-17): auto-/compact y auto-/clear 4/4 en vivo (terminal y
-      chat; el chat copia ÉL el jsonl sin /export — remediacion.md §"La
-      copia SIN /export en el chat"), globo post-/clear (3 caminos) y el
-      rescate de la conversación por el REGISTRO (fila «tú» naciendo sola
-      con Ajustes abierto + "ver la copia" abriendo el visor correcto).
+      (2026-08-17): auto-/compact y auto-/clear 4/4 (terminal y chat; el
+      chat copia ÉL el jsonl sin /export — remediacion.md §"La copia SIN
+      /export en el chat"), globo post-/clear (3 caminos) y el rescate por
+      el REGISTRO (fila «tú» + "ver la copia").
 - [x] PURGA DEL ARCHIVO (2026-08-15; reglas COMPLETAS en remediacion.md
       §"Purga del archivo" — LEERLO; aquí solo lo que no se puede
       olvidar): el archivador MUEVE (≥365d), la purga BORRA
@@ -506,9 +505,8 @@ presion-y-rendimiento §"Qué queda vivo".
       el 2B) parten la sesión en tramos y CALCULAN el ahorro por
       frontera; capa ADITIVA sobre el hallazgo (fndKey intacto,
       fail-quiet); local/WSL primero, VPS manda `umsgs` por SSH y el
-      Windows embebe (el modelo no va al VPS). DESBLOQUEADA 2026-08-17
-      (cerraron las pruebas en vivo que la frenaban), pero APARCADA
-      detrás del ruteo por decisión de Oscar.
+      Windows embebe (el modelo no va al VPS). DESBLOQUEADA 2026-08-17,
+      APARCADA detrás del ruteo.
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
       LEERLO antes de tocar). CERRADO HASTA DONDE ESTÁ (Oscar,
@@ -544,13 +542,10 @@ presion-y-rendimiento §"Qué queda vivo".
       espera el veredicto del análisis (`aiPending`); michi.exe viaja en
       el instalador SIN tocar el workflow (invariante #9).
 - [ ] RUTEO INTELIGENTE (etapas 0-6, decidido 2026-08-13): EN CURSO —
-      DESBLOQUEADO 2026-08-17 al cerrar las pruebas en vivo del día a día
-      (auto-/compact y auto-/clear 4/4, globo y registro post-/clear,
-      análisis local v1 5/5). Lo único que sigue abierto de esa zona es la
-      validación PASIVA de embeddings (`via:emb` en sesión real), que se
-      acumula con el uso y NO frena al ruteo: no toca `ai_emb_*`.
-      Plan y auditoría en `docs/ruteo-inteligente.md` §10-11 — LEERLO
-      antes de arrancar; la etapa 1 empieza por ahí.
+      DESBLOQUEADO 2026-08-17 al cerrar las pruebas en vivo del relevo
+      (bitácora). La validación PASIVA de embeddings sigue abierta pero NO
+      frena: el ruteo no toca `ai_emb_*`. Plan y auditoría en
+      `docs/ruteo-inteligente.md` §10-11 — LEERLO antes de arrancar.
       ETAPA 0 HECHA Y VALIDADA (2026-08-14, VPS; experimento en
       `scripts/ruteo-etapa0/`, autopsia en bitácora): un `PreToolUse`
       SÍ impone el modelo del subagente vía `updatedInput` — A/B real
