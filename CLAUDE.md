@@ -393,7 +393,9 @@ propia; ambos hits llevan `file`, la línea "Ahora:" dice QUÉ leyó Claude —
 título AI, min/comandos/archivos, `· ~$X` y ⚠ de `coach_leaks()` (kinds
 attach/compact/cache; ctx y cache EXCLUYENTES; cerrar con ctx≥30k es fuga
 al cierre). Anti-spam: tope diario 10 (`tipDay`, sum EXENTO), una tarjeta viva por
-regla, `tipSeen` se marca al ENTRAR al almacén. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`), leído (`v`)
+regla, `tipSeen` se marca al ENTRAR al almacén. La ficha CALIENTE se REFRESCA
+cada sondeo sin renacer (misma sesión, conserva born/min/v) y lleva `ts`
+("medido hace X min" si la regla calla); `sum`/`acomp` NO: son fotos. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`), leído (`v`)
 apaga el aviso sin despachar, caducidad 24 h (TIP_TTL). "LEÍDO" = CLIC en
 la tarjeta (regla Gmail, ver Hallazgos); el ✕ además la despacha. Las
 vivas (recibos y fichas calientes) van en UNA corriente por `born` desc —
@@ -484,11 +486,10 @@ presion-y-rendimiento §"Qué queda vivo".
       remediacion.md §"La copia SIN /export en el chat"), y el globo
       post-/clear (3 caminos).
 - [x] PURGA DEL ARCHIVO (2026-08-15; reglas COMPLETAS en remediacion.md
-      §"Purga del archivo" — LEERLO): el archivador MUEVE (≥365d, ahora
-      también WSL) y la purga BORRA lo archivado. Nace en "nunca"; suelo
-      180 d; doble reloj (sidecar `.arch`); allowlist canónica (jamás
-      `~/.claude`); simulacro antes del botón; tope por pasada. VPS: SOLO
-      INFORMA (`--du`) — NUNCA se borra por SSH. cargo check limpio (2026-08-16).
+      §"Purga del archivo" — LEERLO; aquí solo lo que no se puede
+      olvidar): el archivador MUEVE (≥365d), la purga BORRA
+      solo lo archivado, allowlist canónica (JAMÁS `~/.claude`) y el VPS
+      SOLO INFORMA (`--du`) — nunca se borra por SSH.
 - [ ] ANÁLISIS LOCAL: v1 validada en vivo (5/5 tema_nuevo) y ETAPA 2
       OPERATIVA (2026-08-13, ver §Coach y analisis-local.md §"Etapa 2 —
       HECHA"): EmbeddingGemma descargado y Probar en el Windows de Oscar
@@ -497,8 +498,7 @@ presion-y-rendimiento §"Qué queda vivo".
       falta el primer `via:emb` en sesión REAL al 80% y la muestra
       natural antes de afinar umbrales (EMB_NEW/EMB_CROSS constantes a
       propósito); cualquier rareza de clear/compact que Oscar vea, se
-      revisa con flowLog + emb_debug.txt. VISOR DE COPIAS handoff
-      validado en vivo (copia remota del VPS renderizada legible).
+      revisa con flowLog + emb_debug.txt.
       ETAPA 3 DISEÑADA (2026-08-16, analisis-local.md §"Etapa 3" —
       LEERLO antes de tocar): TEMAS sobre `inflate` — embeddings (nunca
       el 2B) parten la sesión en tramos y CALCULAN el ahorro por

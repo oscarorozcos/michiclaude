@@ -3228,3 +3228,33 @@ cargo check.
 QUÉ QUEDA: verlo en vivo (que el número de la ficha se mueva y aparezca
 "medido hace X min" al reanudar). Validación pendiente de siempre: /clear
 del chat, automático con copia, WSL y VPS.
+
+## 2026-08-17 (4) — cierre de jornada y poda de CLAUDE.md
+
+QUÉ: se cierra el tema del /clear. CLAUDE.md recoge la regla nueva del
+coach (ficha caliente que se refresca y lleva `ts`) y, para que cupiera,
+se PODARON dos bloques cuyo detalle vive verificado en otro sitio: la
+entrada de PURGA (reglas completas en remediacion.md §"Purga del archivo";
+quedan el puntero y lo que no se puede olvidar — allowlist jamás
+`~/.claude`, VPS solo informa) y la línea "VISOR DE COPIAS handoff
+validado en vivo" (registro de validación ya cumplido; el diseño vive en
+remediacion.md:1458). Antes de cada poda se comprobó por grep que la
+regla existía en el doc de destino.
+
+ESTADO AL CIERRE: CLAUDE.md a 39.931 de 40.000 — 69 caracteres de margen.
+Sigue estructuralmente EN EL TOPE: la próxima jornada que necesite anotar
+algo ahí debe empezar por una PODA GRANDE (mover a docs/ lo que ya esté
+explicado allí), no por improvisar recortes al final como hoy.
+
+LO ENTREGADO HOY (4 commits de código + docs): globo post-/clear con
+visor de la sesión borrada (Windows, WSL y VPS, este último vía
+`--cleared-stdin` del exportador); botón "Aplicar" en las fichas
+cache/compact con la red /export; enlace a la copia en la propia fila;
+las fichas dicen de qué sesión hablan (title) y se refrescan en vez de
+congelarse. Tres bugs preexistentes cazados de paso: sello del relevo por
+pid sin origen, fichas que parecían duplicadas y el dato fósil bajo la
+palabra "Ahora".
+
+QUÉ QUEDA: solo validación PASIVA con el uso (Oscar avisa si ve algo
+raro): /clear del chat con sid, automático con copia, WSL y VPS, y ver el
+refresco de la ficha en vivo. Y la poda grande de CLAUDE.md.
