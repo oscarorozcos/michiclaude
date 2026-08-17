@@ -748,6 +748,12 @@ superficie visible con el panel cerrado — ver "lo que falta" al final.
   sin él y saldría duplicado—. `remLogLoad` fusiona por `ts` desc y el clic
   usa la foto `remLogMine` que se PINTÓ, no `clearedLog()` releído: un
   `/clear` nuevo se mete por delante y el índice abriría la de al lado.
+  Y **el registro se repinta EN EL SITIO** (2026-08-17, misma prueba de
+  Oscar): `remLogLoad` solo corría al ENTRAR en Ajustes, así que con esa
+  pestaña abierta esperando la fila, la lista se quedaba tal cual y parecía
+  que la fila no existía. `relayUserCmds` la repinta si Ajustes está a la
+  vista. Regla general: **una fila que nace fuera del render de su pestaña
+  tiene que pedir el repintado; nadie va a volver a entrar solo para verla.**
 - **Desbloqueo progresivo** en `localStorage.relayDone`: `/compact` 2
   aplicaciones manuales, `/clear` 3 —una más porque borra memoria y no se
   deshace—. El marcador se enseña en Ajustes para que se vea acumular, en vez

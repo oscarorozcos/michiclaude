@@ -10188,7 +10188,7 @@ async function rlyPoll(remote){
 // NO va al registro de acciones — ese es de lo que aplica MICHI, no tú.
 function relayUserCmds(){
   let seen={}; try{ seen=JSON.parse(localStorage.getItem("relayUserSeen")||"{}"); }catch(_){}
-  let dirty=false;
+  let dirty=false, nuevoClear=false;
   for(const r of relays){
     if(!r.user_cmd||!r.user_cmd_ts) continue;
     // La clave lleva el ORIGEN desde 2026-08-16: el pid solo es único DENTRO
@@ -10205,10 +10205,18 @@ function relayUserCmds(){
     // /clear que tecleas tú no deja copia handoff, pero el .jsonl de la
     // sesión sigue en disco — el globo guarda las señas (sid del chat, o
     // cwd+momento en terminal) para que el visor lo encuentre al clic.
-    if(r.user_cmd==="/clear")
+    if(r.user_cmd==="/clear"){
       clearedRemember({sid:r.sid||"", cwd:r.cwd||"", ts:r.user_cmd_ts||0,
         origin:r.origin||"", proj:r.project||"", file:"", you:true});
+      nuevoClear=true;
+    }
   }
+  // El registro de acciones solo se pinta al ENTRAR en Ajustes, y su fila
+  // nueva nace AQUÍ: si estabas mirando esa pestaña cuando tecleaste el
+  // /clear, la lista se quedaba tal cual y parecía que la fila no existía
+  // (lo vio Oscar 2026-08-17, con la pestaña abierta esperándola). Se
+  // repinta en el sitio; fuera de Ajustes no hay nada que repintar.
+  if(nuevoClear && !$("tab-prefs").hidden) remLogLoad();
   if(dirty){
     // solo las sesiones vivas: el sello no tiene por qué crecer para siempre
     // (las claves viejas —pid a secas— caducan solas por aquí)

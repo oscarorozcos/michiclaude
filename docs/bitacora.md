@@ -3355,3 +3355,31 @@ vivo todavía: falta que Oscar teclee un `/clear` y vea la fila nacer y su
 
 QUÉ QUEDA: la prueba en vivo de arriba, dentro de la validación pasiva que
 ya estaba abierta. No abre pendientes nuevos.
+
+## 2026-08-17 — la fila «tú» existía pero nadie la mandaba pintar
+
+QUÉ: `relayUserCmds()` repinta el registro de acciones (`remLogLoad()`)
+cuando acaba de anotar un `/clear` tecleado y la pestaña Ajustes está a la
+vista. Un `let nuevoClear` y una línea; sin tocar Rust.
+
+POR QUÉ: Oscar hizo la prueba en vivo de la fila «tú» (commit 79160d6) y
+no la vio. La cadena estaba entera y correcta —el relevo publica
+`user_cmd`, `clearedRemember` guarda con `you:true` en `clearedLog`,
+`remLogLoad` fusiona por `ts` y pinta— pero `remLogLoad` SOLO se llama al
+entrar en una pestaña (`showTab("prefs")`) y tras una acción de Michi.
+Estando ya en Ajustes esperando a que la fila naciera, no había ningún
+render entre el `/clear` y la mirada: la lista era la de hace un rato. El
+globo sí salía (ese lo dispara `clearedRemember`), y ese contraste —globo
+sí, fila no— es lo que hacía pensar que la fila no se había implementado.
+Autopsia en una frase: **se pintó la fila y se olvidó quién la manda
+pintar.** Segunda causa posible que NO se descarta desde el VPS: que el
+binario de Windows fuera el de antes del commit (mismo síntoma exacto);
+por eso el arreglo se acompaña de la comprobación de compilar/instalar.
+
+CÓMO SE VERIFICÓ: solo lectura del código (frontend, sin Rust — no procede
+`cargo check`). La prueba en vivo la hace Oscar: con Ajustes abierto en el
+registro, teclear `/clear` y ver la fila aparecer sola, sin cambiar de
+pestaña.
+
+QUÉ QUEDA: esa prueba, dentro de la validación pasiva ya abierta. No abre
+pendientes nuevos.
