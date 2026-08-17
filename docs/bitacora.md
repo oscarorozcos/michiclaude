@@ -3914,3 +3914,28 @@ confirma. Globo del gatito y registro del panel en Windows lo pintaron
 refresco (VPS sin toolchain).
 QUÉ QUEDA: cargo check en Windows; `think-top` real tras el reset de
 sesión.
+
+## 2026-08-17 (22) — «bajar solo»: la sesión principal también baja a Sonnet sola (con compuerta y cuenta atrás)
+
+QUÉ: interruptor `down` en `ruteo.json` (Ajustes → Ruteo, bajo «reenviar
+por mí»; exige «Escalar solo»). Con él, el hecho `light` del motor que
+pasa la compuerta de la tarjeta (modelo caro + peor gauge ≥70 + sin 3
+«no») se encola (`downQ`, 10 min) y `relayDownCheck` arranca la MISMA
+cuenta atrás del auto-/compact (15 s en la cápsula, un toque = «no» vía
+`autoRun.onStop`), y al terminar `relay_inject` con `/model sonnet`.
+Suelo Sonnet. Sello `relayAuto["down:<sid>"]`. La tarjeta `light` queda
+`applied:"now"` (`lgt_applied_now` ×8). Textos `rt_down_*` ×8.
+POR QUÉ: Oscar («no solo la sugerencia, también automático» en su día a
+día). Preguntado y decidido: SOLO con cuota apretada (misma compuerta que
+la tarjeta) y con cuenta atrás visible/cancelable — no silenciosa. Cambia
+la regla dura de remediacion.md («/model lo pide el guardián, NUNCA el
+panel a ciegas»): ahora hay una excepción CON compuerta, documentada en
+§5d; se exige `esc` porque la red que devuelve la sesión arriba es el
+guardián.
+CÓMO SE VERIFICÓ: js ok (parse); Rust son dos campos con `#[serde
+(default)]` (cargo check en Windows, VPS sin toolchain). NO probado en
+vivo: hace falta una sesión real en opus/fable con 8 turnos ligeros y
+cuota ≥70 — validación pasiva.
+QUÉ QUEDA: primera bajada en vivo; ver que en terminal la coreografía del
+`/model` (diálogo + restaurar default) sirve igual para bajar que para
+subir.

@@ -1740,6 +1740,18 @@
         <span data-i18n="rt_rs_on"></span><input type="checkbox" id="rtRsChk">
       </label>
       <div class="cfg-note" style="margin-left:36px" data-i18n="rt_rs_hint"></div>
+      <!-- BAJAR SOLO (petición de Oscar 2026-08-17): el consejero ya detecta
+           la racha de turnos ligeros y hoy solo SUGIERE (tarjeta). Con esto,
+           además, el relevo de esa sesión teclea `/model sonnet` tras la
+           cuenta atrás de 15 s del widget (misma coreografía que el
+           auto-/compact: visible, cancelable, un toque = "no" y 3 = modo
+           manual del proyecto). Compuerta IDÉNTICA a la tarjeta: modelo
+           caro + cuota apretada (≥70). Exige «Escalar solo»: la red es el
+           guardián, que vuelve a subir si mandas algo pesado. -->
+      <label class="cfg-row" style="cursor:pointer;margin-left:36px" id="rtDownRow">
+        <span data-i18n="rt_down_on"></span><input type="checkbox" id="rtDownChk">
+      </label>
+      <div class="cfg-note" style="margin-left:36px" data-i18n="rt_down_hint"></div>
       <!-- MODELO TOP (petición de Oscar 2026-08-17): el más caro e
            inteligente del momento (hoy Fable; el alias lo pone Rust como
            ÚLTIMO de la lista cerrada, así al salir uno nuevo el interruptor
@@ -2436,6 +2448,9 @@ en:{
   rt_top_on:"Also use the top model ({m})",
   rt_top_hint:"The most expensive and smartest model of the moment. Off (default): the routing never touches it, exactly as now. On: it joins the same rules as the others — deep-analysis subagents get it when your quota is comfortable (under 50%), and the guardian's ladder can climb up to it (three signals; sessions on Opus become escalable too). It is the model that spends the most: keep it off unless you want it.",
   rt_why_top:"top model, quota is comfortable",
+  rt_down_on:"…and step down on its own when the work is light",
+  rt_down_hint:"When a session on an expensive model has 8+ light turns in a row (questions, no edits) AND your quota is tight (≥70%), the relay of that session runs /model sonnet after the widget's 15-second countdown — tap to stop (a stop counts as a “no”; three make that project manual). This session only. If you then send something heavy, the guardian steps it back up. Requires “Escalate on its own”.",
+  lgt_applied_now:m=>`Done: Michi switched THIS session to ${m} (this session only). Send something heavy and the guardian steps it back up.`,
   rt_ev_esc_rs:(m,to)=>`guard stopped a heavy prompt on ${m}, switched the session to ${to} and resent it`,
   rt_ev_resent:to=>`resent by Michi on ${to}`,
   rt_rep_resent:n=>`${n} resent for you`,
@@ -3050,6 +3065,9 @@ es:{
   rt_top_on:"Usar también el modelo top ({m})",
   rt_top_hint:"El modelo más caro e inteligente del momento. Apagado (por defecto): el ruteo ni lo toca, igual que ahora. Encendido: entra a las mismas reglas que los demás — los subagentes de análisis profundo lo reciben cuando la cuota va holgada (menos del 50%) y la escalera del guardián puede subir hasta él (tres señales; las sesiones en Opus también pasan a ser escalables). Es el que más gasta: déjalo apagado salvo que lo quieras.",
   rt_why_top:"modelo top, cuota holgada",
+  rt_down_on:"…y bajar solo cuando el trabajo sea ligero",
+  rt_down_hint:"Cuando una sesión en un modelo caro lleva 8+ turnos ligeros seguidos (preguntas, sin ediciones) Y tu cuota aprieta (≥70 %), el relevo de esa sesión teclea /model sonnet tras la cuenta atrás de 15 s del widget — toca para parar (parar cuenta como un «no»; tres ponen ese proyecto en manual). Solo esa sesión. Si luego mandas algo pesado, el guardián la vuelve a subir. Exige «Escalar solo».",
+  lgt_applied_now:m=>`Hecho: Michi bajó ESTA sesión a ${m} (solo esta sesión). Manda algo pesado y el guardián la vuelve a subir.`,
   rt_ev_esc_rs:(m,to)=>`el guardián frenó un prompt pesado en ${m}, subió la sesión a ${to} y lo reenvió`,
   rt_ev_resent:to=>`reenviado por Michi en ${to}`,
   rt_rep_resent:n=>`${n} reenviados por ti`,
@@ -3664,6 +3682,9 @@ pt:{
   rt_top_on:"Usar também o modelo top ({m})",
   rt_top_hint:"O modelo mais caro e inteligente do momento. Desligado (padrão): o roteamento nem toca nele, como agora. Ligado: entra nas mesmas regras que os outros — os subagentes de análise profunda o recebem quando a cota está folgada (abaixo de 50%) e a escada do guardião pode subir até ele (três sinais; sessões em Opus também passam a ser escaláveis). É o que mais gasta: deixe desligado a menos que o queira.",
   rt_why_top:"modelo top, cota folgada",
+  rt_down_on:"…e descer sozinho quando o trabalho for leve",
+  rt_down_hint:"Quando uma sessão num modelo caro acumula 8+ turnos leves seguidos (perguntas, sem edições) E sua cota aperta (≥70%), o relevo dessa sessão digita /model sonnet após a contagem de 15 s do widget — toque para parar (parar conta como um “não”; três deixam esse projeto em manual). Só essa sessão. Se depois você mandar algo pesado, o guardião a sobe de volta. Exige “Escalar sozinho”.",
+  lgt_applied_now:m=>`Feito: o Michi baixou ESTA sessão para ${m} (só esta sessão). Mande algo pesado e o guardião a sobe de volta.`,
   rt_ev_esc_rs:(m,to)=>`o guardião travou um prompt pesado em ${m}, subiu a sessão para ${to} e o reenviou`,
   rt_ev_resent:to=>`reenviado pelo Michi em ${to}`,
   rt_rep_resent:n=>`${n} reenviados por você`,
@@ -4278,6 +4299,9 @@ fr:{
   rt_top_on:"Utiliser aussi le modèle top ({m})",
   rt_top_hint:"Le modèle le plus cher et le plus intelligent du moment. Désactivé (par défaut) : le routage n’y touche pas, comme maintenant. Activé : il entre dans les mêmes règles que les autres — les sous-agents d’analyse profonde le reçoivent quand le quota est confortable (moins de 50 %) et l’échelle du gardien peut monter jusqu’à lui (trois signaux ; les sessions sur Opus deviennent aussi escaladables). C’est celui qui dépense le plus : laissez-le désactivé sauf si vous le voulez.",
   rt_why_top:"modèle top, quota confortable",
+  rt_down_on:"…et redescendre tout seul quand le travail est léger",
+  rt_down_hint:"Quand une session sur un modèle cher enchaîne 8 tours légers ou plus (questions, sans modifications) ET que votre quota est serré (≥70 %), le relais de cette session tape /model sonnet après le compte à rebours de 15 s du widget — touchez pour arrêter (arrêter compte comme un « non » ; trois passent ce projet en manuel). Cette session seulement. Si vous envoyez ensuite quelque chose de lourd, le gardien la remonte. Exige « Escalader tout seul ».",
+  lgt_applied_now:m=>`Fait : Michi a descendu CETTE session vers ${m} (cette session seulement). Envoyez quelque chose de lourd et le gardien la remonte.`,
   rt_ev_esc_rs:(m,to)=>`le garde-fou a bloqué un prompt lourd sur ${m}, a monté la session vers ${to} et l’a renvoyé`,
   rt_ev_resent:to=>`renvoyé par Michi sur ${to}`,
   rt_rep_resent:n=>`${n} renvoyés pour vous`,
@@ -4892,6 +4916,9 @@ de:{
   rt_top_on:"Auch das Top-Modell nutzen ({m})",
   rt_top_hint:"Das teuerste und klügste Modell des Moments. Aus (Standard): das Routing fasst es nicht an, wie bisher. An: es folgt denselben Regeln wie die anderen – Subagenten für tiefe Analyse bekommen es bei entspanntem Kontingent (unter 50 %), und die Leiter des Wächters kann bis zu ihm hinaufsteigen (drei Signale; auch Sitzungen auf Opus werden eskalierbar). Es verbraucht am meisten: lass es aus, wenn du es nicht willst.",
   rt_why_top:"Top-Modell, Kontingent entspannt",
+  rt_down_on:"…und bei leichter Arbeit von selbst herunterstufen",
+  rt_down_hint:"Wenn eine Sitzung auf einem teuren Modell 8+ leichte Züge in Folge hat (Fragen, keine Änderungen) UND dein Kontingent knapp ist (≥70 %), tippt die Ablösung dieser Sitzung nach dem 15-Sekunden-Countdown des Widgets /model sonnet – Antippen stoppt (ein Stopp zählt als „Nein“; drei stellen das Projekt auf manuell). Nur diese Sitzung. Schickst du danach etwas Schweres, stuft der Wächter wieder hoch. Erfordert „Von selbst eskalieren“.",
+  lgt_applied_now:m=>`Erledigt: Michi hat DIESE Sitzung auf ${m} gesetzt (nur diese Sitzung). Schick etwas Schweres und der Wächter stuft wieder hoch.`,
   rt_ev_esc_rs:(m,to)=>`Wächter stoppte einen schweren Prompt auf ${m}, stufte die Sitzung auf ${to} hoch und sendete ihn erneut`,
   rt_ev_resent:to=>`von Michi auf ${to} erneut gesendet`,
   rt_rep_resent:n=>`${n} für dich erneut gesendet`,
@@ -5506,6 +5533,9 @@ ja:{
   rt_top_on:"最上位モデルも使う({m})",
   rt_top_hint:"今もっとも高価で賢いモデルです。オフ(既定):ルーティングは一切触れません(今まで通り)。オン:他と同じルールに加わります — 深い分析のサブエージェントはクォータに余裕がある(50%未満)ときにこのモデルを受け取り、ガーディアンのはしごもここまで上がれます(シグナル3つ。Opus のセッションもエスカレーション対象になります)。いちばん消費するモデルなので、必要でなければオフのままに。",
   rt_why_top:"最上位モデル、クォータに余裕",
+  rt_down_on:"…軽い作業のときは自動で下げる",
+  rt_down_hint:"高価なモデルのセッションで軽いターン(質問のみ、編集なし)が 8 回以上続き、かつクォータが逼迫(70%以上)しているとき、そのセッションのリレーがウィジェットの 15 秒カウントダウン後に /model sonnet を入力します — タップで停止(停止は「いいえ」として数え、3 回でそのプロジェクトは手動に)。このセッションのみ。その後に重い依頼を送れば、ガーディアンが元に戻します。「自動でエスカレーション」が必要です。",
+  lgt_applied_now:m=>`完了: Michi がこのセッションを ${m} に下げました(このセッションのみ)。重い依頼を送ればガーディアンが戻します。`,
   rt_ev_esc_rs:(m,to)=>`ガードが ${m} 上の重いプロンプトを止め、セッションを ${to} に上げて再送しました`,
   rt_ev_resent:to=>`Michi が ${to} で再送`,
   rt_rep_resent:n=>`うち ${n} 件を代わりに再送`,
@@ -6120,6 +6150,9 @@ ko:{
   rt_top_on:"최상위 모델도 사용({m})",
   rt_top_hint:"현재 가장 비싸고 똑똑한 모델입니다. 끔(기본): 라우팅이 전혀 건드리지 않습니다(지금과 동일). 켬: 다른 모델과 같은 규칙에 들어갑니다 — 심층 분석 서브에이전트는 할당량이 여유로울 때(50% 미만) 이 모델을 받고, 가디언의 사다리도 여기까지 올라갈 수 있습니다(신호 3개; Opus 세션도 에스컬레이션 대상이 됩니다). 가장 많이 소비하는 모델이니 원하지 않으면 꺼 두세요.",
   rt_why_top:"최상위 모델, 할당량 여유",
+  rt_down_on:"…작업이 가벼우면 스스로 내리기",
+  rt_down_hint:"비싼 모델의 세션에서 가벼운 턴(질문만, 편집 없음)이 8회 이상 이어지고 할당량이 빠듯할 때(70% 이상), 해당 세션의 릴레이가 위젯의 15초 카운트다운 후 /model sonnet 을 입력합니다 — 탭하면 멈춥니다(멈춤은 ‘아니오’로 집계, 3번이면 그 프로젝트는 수동). 이 세션만 해당. 이후 무거운 요청을 보내면 가디언이 다시 올립니다. ‘스스로 에스컬레이션’이 필요합니다.",
+  lgt_applied_now:m=>`완료: Michi가 이 세션을 ${m}(으)로 내렸습니다(이 세션만). 무거운 요청을 보내면 가디언이 다시 올립니다.`,
   rt_ev_esc_rs:(m,to)=>`가드가 ${m}의 무거운 프롬프트를 막고 세션을 ${to}로 올린 뒤 다시 보냈습니다`,
   rt_ev_resent:to=>`Michi가 ${to}에서 재전송`,
   rt_rep_resent:n=>`그중 ${n}건을 대신 재전송`,
@@ -6734,6 +6767,9 @@ zh:{
   rt_top_on:"也使用顶级模型({m})",
   rt_top_hint:"当前最贵、最聪明的模型。关闭(默认):路由完全不碰它,与现在一样。开启:它进入与其他模型相同的规则——深度分析子代理在配额宽裕(低于 50%)时会用到它,守卫的阶梯也能升到它(三个信号;Opus 会话也可被升级)。它是最费配额的模型:除非需要,否则保持关闭。",
   rt_why_top:"顶级模型,配额宽裕",
+  rt_down_on:"…工作轻时自动降级",
+  rt_down_hint:"当昂贵模型的会话连续出现 8 次以上轻量回合(只问不改)且配额吃紧(≥70%)时,该会话的中继会在小部件 15 秒倒计时后输入 /model sonnet——点一下即可停止(停止算一次“否”;三次后该项目转为手动)。仅限本会话。之后若发送重任务,守卫会再升回去。需要开启“自动升级”。",
+  lgt_applied_now:m=>`已完成:Michi 已把本会话降到 ${m}(仅本会话)。发送重任务时守卫会再升回去。`,
   rt_ev_esc_rs:(m,to)=>`守卫拦下了 ${m} 上的重提示,把会话升到 ${to} 并重发了它`,
   rt_ev_resent:to=>`由 Michi 在 ${to} 上重发`,
   rt_rep_resent:n=>`其中 ${n} 次替你重发`,
@@ -9254,6 +9290,7 @@ async function coachPoll(){
       const fam=lightFam(h.model||""), q2=lightQuota();
       const ok=(fam==="opus"||fam==="fable"||fam==="mythos") && q2!=null && q2>=LIGHT_QUOTA_PCT && !lightManual(h);
       if(!ok){ hits.splice(i,1); flog("light: hecho sin compuerta ("+fam+", cuota "+q2+") "+h.session); }
+      else downQueue(h);   // bajar solo (si su interruptor está): misma compuerta que la tarjeta
     }
     const seen=tipSeenSet();
     let day={}; try{ day=JSON.parse(localStorage.getItem("tipDay")||"{}"); }catch(_){ day={}; }
@@ -9329,6 +9366,7 @@ async function coachPoll(){
     // en vivo (18:32: /compact y "ai: analizando" el mismo segundo, el
     // "clear·tema_nuevo" llegó 10 s tarde a una cuenta ya corriendo).
     relayAutoCheck(pr);            // ¿toca aplicar /compact solo? (3c-2)
+    relayDownCheck();              // ¿toca bajar la sesión sola? (consejero)
     renderTipsDot();
     if(lastPillArgs) emitPill(...lastPillArgs);   // el widget lo ve al instante
     if(!$("tab-tips").hidden && !relayBusy) renderTips();
@@ -11355,6 +11393,7 @@ function autoBeam(left,cmd,mark){
 function autoStop(why){
   if(!autoRun) return;
   clearInterval(autoRun.timer);
+  try{ if(autoRun.onStop) autoRun.onStop(why); }catch(_){}
   flog("relevo auto: cancelado ("+why+")");
   autoRun=null;
   autoBeam(null);
@@ -11456,6 +11495,72 @@ async function relayAutoCheck(pr){
     setTimeout(()=>autoBeam(null),4000);     // el ✓/✕ no se queda a vivir ahí
     remLogLoad();
   },1000)};
+}
+
+// ---------- bajar solo (consejero de modelo, petición de Oscar 2026-08-17) ----------
+// La tarjeta `light` SUGIERE bajar la próxima sesión; con `down` en
+// ruteo.json además se baja ESTA: el relevo teclea `/model sonnet` (lista
+// blanca del relevo, misma entrada que usa el guardián para subir) tras la
+// MISMA cuenta atrás visible del auto-/compact — 15 s en la cápsula, un
+// toque la para y ese toque cuenta como "no" (3 = proyecto en manual).
+// Compuerta IDÉNTICA a la tarjeta (modelo caro + cuota ≥70 + sin 3 "no"): la
+// decide coachPoll y aquí solo se ejecuta. El hecho `light` nace UNA vez por
+// racha, así que se guarda en cola DOWN_WAIT_MIN por si el relevo está
+// ocupado en ese instante (transitorio, como el auto-/compact). Exige `esc`:
+// la red es el guardián, que vuelve a subir la sesión si llega algo pesado.
+// El suelo es SONNET — la sesión principal jamás baja a haiku.
+const DOWN_ALIAS="sonnet";
+const DOWN_WAIT_MIN=10;
+let downQ={};                       // sid -> {h, at}
+function downQueue(h){ if(h&&h.session&&!downQ[h.session]) downQ[h.session]={h,at:Date.now()}; }
+function downMarkCard(sid){
+  try{
+    const a=coachCardsStore(); const c=a.find(x=>x.h.rule==="light"&&x.h.session===sid);
+    if(c){ c.applied="now"; c.appliedTo="Sonnet"; saveCoachCards(a); if(!$("tab-tips").hidden) renderTips(); }
+  }catch(_){}
+}
+async function relayDownCheck(){
+  const sids=Object.keys(downQ);
+  if(!sids.length||autoRun||simRunning||!invoke) return;
+  let cfg=null; try{ cfg=await invoke("get_ruteo_cfg"); }catch(_){ return; }
+  if(!cfg||!cfg.on||!cfg.guard||!cfg.esc||!cfg.down){ downQ={}; return; }
+  for(const sid of sids){
+    const e=downQ[sid], h=e.h;
+    if(Date.now()-e.at>DOWN_WAIT_MIN*60000||lightManual(h)){ delete downQ[sid]; continue; }
+    const q2=lightQuota();
+    if(q2==null||q2<LIGHT_QUOTA_PCT) continue;   // ya no aprieta: se espera (la cola caduca sola)
+    const key="down:"+sid;
+    if(autoBlocked(key)) continue;               // aplicado o intento reciente
+    const rly=relayFor(h);
+    if(!rly||!rly.ready||!pillOn) continue;      // sin pareja, ocupado o sin widget a la vista
+    autoStamp(key,Date.now());                   // el INTENTO se sella antes de arrancar
+    const cmd="/model "+DOWN_ALIAS;
+    let left=RELAY_AUTO_WAIT;
+    flog("bajar solo: cuenta atrás para "+cmd+" en pid "+rly.pid+" ("+lightFam(h.model)+", cuota "+q2+")");
+    autoBeam(left,cmd);
+    autoRun={cmd,pid:rly.pid,
+      onStop:()=>{ lightRefuse(h); delete downQ[sid]; flog("bajar solo: parado por el usuario = no"); },
+      timer:setInterval(async ()=>{
+        left--;
+        if(left>0){ autoBeam(left,cmd); return; }
+        clearInterval(autoRun.timer);
+        autoRun=null;
+        autoBeam(null);
+        try{
+          await invoke("relay_inject",{pid:rly.pid,text:cmd,auto:true,origin:rly.origin||"",export:false});
+          autoStamp(key,"done"); delete downQ[sid];
+          autoBeam(null,null,"ok");
+          flog("bajar solo: aplicado "+cmd+" en "+(rly.project||rly.cwd||sid));
+          downMarkCard(sid);
+        }catch(err){
+          autoBeam(null,null,"err");
+          flog("bajar solo: NO aplicado "+cmd+" — "+err+" (reintento en "+AUTO_RETRY_MIN+" min)");
+        }
+        setTimeout(()=>autoBeam(null),4000);
+        remLogLoad();
+      },1000)};
+    return;                                      // una cuenta a la vez
+  }
 }
 
 // ---------- el atajo: que `claude` pase por el relevo ----------
@@ -11637,7 +11742,7 @@ async function rtFlagsUi(){
   try{
     const c=await invoke("get_ruteo_cfg");
     $("rtGuardChk").checked=!!c.guard; $("rtCtxChk").checked=!!c.ctx; $("rtEscChk").checked=!!c.esc; $("rtRsChk").checked=!!c.rs;
-    $("rtTopChk").checked=!!c.top;
+    $("rtTopChk").checked=!!c.top; $("rtDownChk").checked=!!c.down;
     // el nombre del top lo pone Rust (último de la lista cerrada): la
     // casilla dice el modelo REAL y sigue sola cuando salga uno más caro
     const topName=c.top_alias?prettyModel(c.top_alias):"";
@@ -11646,14 +11751,16 @@ async function rtFlagsUi(){
     $("rtGuardChk").disabled=!c.on; $("rtCtxChk").disabled=!c.on; $("rtTopChk").disabled=!c.on;
     $("rtEscChk").disabled=!c.on||!c.guard;   // escalar exige el guardián
     $("rtRsChk").disabled=!c.on||!c.guard||!c.esc;   // reenviar exige escalar
+    $("rtDownChk").disabled=!c.on||!c.guard||!c.esc; // bajar solo exige la red (escalar)
   }catch(_){}
 }
 async function rtFlagsSave(){
   try{
-    await invoke("set_ruteo_flags",{guard:$("rtGuardChk").checked, ctx:$("rtCtxChk").checked, esc:$("rtEscChk").checked, rs:$("rtRsChk").checked, top:$("rtTopChk").checked});
-    flog("ruteo: guard="+$("rtGuardChk").checked+" ctx="+$("rtCtxChk").checked+" esc="+$("rtEscChk").checked+" rs="+$("rtRsChk").checked+" top="+$("rtTopChk").checked);
+    await invoke("set_ruteo_flags",{guard:$("rtGuardChk").checked, ctx:$("rtCtxChk").checked, esc:$("rtEscChk").checked, rs:$("rtRsChk").checked, top:$("rtTopChk").checked, down:$("rtDownChk").checked});
+    flog("ruteo: guard="+$("rtGuardChk").checked+" ctx="+$("rtCtxChk").checked+" esc="+$("rtEscChk").checked+" rs="+$("rtRsChk").checked+" top="+$("rtTopChk").checked+" down="+$("rtDownChk").checked);
     $("rtEscChk").disabled=!$("rtGuardChk").checked;
     $("rtRsChk").disabled=!$("rtGuardChk").checked||!$("rtEscChk").checked;
+    $("rtDownChk").disabled=!$("rtGuardChk").checked||!$("rtEscChk").checked;
     // la nota re-empujada al instante para que las tres máquinas lo sepan
     // ya, no en el próximo ciclo
     if(lastQuotaData) pushRouterState(lastQuotaData);
@@ -11664,6 +11771,7 @@ $("rtCtxChk").addEventListener("change",rtFlagsSave);
 $("rtEscChk").addEventListener("change",rtFlagsSave);
 $("rtRsChk").addEventListener("change",rtFlagsSave);
 $("rtTopChk").addEventListener("change",rtFlagsSave);
+$("rtDownChk").addEventListener("change",rtFlagsSave);
 
 // El registro del ruteo: latido (hoy) + últimas decisiones de las tres
 // máquinas. Es la respuesta a "¿está vivo? ¿qué decidió? ¿se queda siempre

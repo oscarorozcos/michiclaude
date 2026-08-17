@@ -7614,6 +7614,15 @@ struct RuteoCfg {
     /// modelo que más gasta.
     #[serde(default)]
     top: bool,
+    /// BAJAR SOLO (petición de Oscar 2026-08-17): cuando el consejero ve la
+    /// racha de turnos ligeros (`light`) en un modelo caro Y la cuota
+    /// aprieta (misma compuerta que la tarjeta), el relevo de esa sesión
+    /// teclea `/model sonnet` tras una cuenta atrás visible de 15 s en el
+    /// widget (cancelable; cancelar cuenta como "no"). Exige `esc`: la red
+    /// es el guardián, que vuelve a subir la sesión si llega algo pesado.
+    /// No viaja en la nota (los hooks no lo necesitan). Nace apagado.
+    #[serde(default)]
+    down: bool,
 }
 
 /// El alias del modelo TOP del momento: el ÚLTIMO de la lista cerrada del
@@ -8137,6 +8146,7 @@ fn set_ruteo_flags(
     esc: Option<bool>,
     rs: Option<bool>,
     top: Option<bool>,
+    down: Option<bool>,
 ) -> RuteoCfg {
     let mut c = ruteo_cfg();
     c.guard = guard;
@@ -8149,6 +8159,9 @@ fn set_ruteo_flags(
     }
     if let Some(t) = top {
         c.top = t;
+    }
+    if let Some(d) = down {
+        c.down = d;
     }
     ruteo_cfg_write(&c);
     c

@@ -490,6 +490,10 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
   solo encendido; Hook B → THINK al top con cuota <50 (`TOP_ROOM`);
   guardián → peso ≥3 (`TOP_PESO`) al top y opus escalable. Modelo más
   caro nuevo = AL FINAL de esa lista + LADDER + listas del relevo.
+  BAJAR SOLO (`RuteoCfg.down`, apagado, exige `esc`): hecho `light` +
+  compuerta de la tarjeta (caro, ≥70, sin 3 «no») → cola `downQ` →
+  cuenta atrás del auto (15 s, toque = «no») → `relay_inject` `/model
+  sonnet` (suelo, jamás haiku); remediacion.md §5d.
 - **MÉTRICAS Y REPORTE** — `docs/presion-y-rendimiento.md` (fases 1-2 y
   fila 18 `waste` hechas; fase 3 y lo DESCARTADO, en el doc). Reglas:
   `uturns` = mensajes HUMANOS (fuera meta, sidechain, tool_result,

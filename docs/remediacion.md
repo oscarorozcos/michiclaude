@@ -1368,8 +1368,12 @@ guardián). Con eso entra, con estas cadenas:
   Nada más: ni `/model` a secas, ni un id con fecha, ni texto extra.
   Misma función en las TRES piezas (michi-relevo.py, relevo/main.rs,
   lib.rs) — se prueba en las tres.
-- Quien lo pide es el guardián (guard-hook), NUNCA el panel a ciegas:
-  solo tras frenar un prompt pesado en haiku/sonnet, y sube al peldaño
+- Quien lo pide es el guardián (guard-hook), NUNCA el panel a ciegas —
+  con UNA excepción con compuerta, «bajar solo» (5d, abajo): el panel
+  pide `/model sonnet` SOLO tras el hecho `light` del motor + cuota ≥70 +
+  sin 3 «no», con la cuenta atrás visible de 15 s del auto-/compact y
+  exigiendo «Escalar solo» (la red que devuelve la sesión arriba). El
+  guardián sube solo tras frenar un prompt pesado en haiku/sonnet, y sube al peldaño
   de la escalera (haiku→sonnet con una señal, →opus con dos o código;
   JAMÁS a fable solo — SALVO con el interruptor «modelo top» del ruteo,
   2026-08-17 (20): entonces con peso ≥3 el destino es el top y opus pasa
@@ -1406,6 +1410,23 @@ de insistencia lleva `auto:true` para que el reenvío se anote como
 `resent` (Michi) y no como `insist` (tú). Validado en vivo (VPS, chat
 stream-json): freno → /model opus → reenvío → respuesta en opus-5, sin
 tocar nada.
+
+**5d — …y bajar solo (2026-08-17, misma jornada, pedido por Oscar: «no
+solo la sugerencia, también automático»).** Interruptor `down` en
+`ruteo.json` (apagado; exige `esc`, que exige `guard`). Cuando el motor
+del coach emite `light` (8+ turnos ligeros seguidos, una vez por racha) y
+la compuerta de la TARJETA pasa (modelo opus/fable/mythos, peor gauge
+≥70, sin 3 «no» en el proyecto), `coachPoll` lo encola (`downQ`, 10 min
+por si el relevo está ocupado) y `relayDownCheck` arranca la MISMA
+cuenta atrás del auto-/compact (15 s en la cápsula, widget a la vista,
+`autoRun`, un toque la para y ese toque = `lightRefuse`, 3 = manual);
+al terminar, `relay_inject` con `/model sonnet` (lista blanca; en
+terminal el relevo hace la coreografía del diálogo y restaura el
+default). Suelo SONNET: la sesión principal jamás baja a haiku. Sello
+`relayAuto["down:<sid>"]` (done / reintento 10 min). La tarjeta `light`
+queda marcada `applied:"now"`. Si después llega un prompt pesado, el
+guardián (con `esc`) la vuelve a subir — por eso se exige. No viaja en
+la nota: los hooks no lo necesitan.
 
 **Terminal: se escala solo CON COREOGRAFÍA (medido 2026-08-17, TUI
 2.1.233).** En terminal `/model opus` (a) abre un DIÁLOGO («Switch model?
