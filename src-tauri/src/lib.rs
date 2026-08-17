@@ -8582,7 +8582,7 @@ async fn set_default_model(scope: String, model: String, cwd: String, origin: St
         Ok(remote_verdict_py(&r.host, &remote_python(&r), &script, "on").unwrap_or_else(|e| e))
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?
 }
 
 /// Un proceso MCP huérfano detectado. `start` (epoch de arranque) es la
