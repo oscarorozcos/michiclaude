@@ -110,9 +110,6 @@ function Escalar($sid, $cwd, $alias, $then) {
     # anota en ningun sitio.
     $st = RelevoDe $sid $cwd
     if ($null -eq $st -or -not (Tiene $st 'pid')) { return ,@($false, 'NORELAY', $false) }
-    # SOLO CHAT: en terminal /model abre un dialogo y guarda el modelo como
-    # DEFAULT de sesiones nuevas (medido 2026-08-17). Ahi, freno con mensaje.
-    if (-not (Tiene $st 'mode') -or ('' + $st.mode) -ne 'chat') { return ,@($false, 'TERMINAL', $false) }
     $pid2 = $st.pid
     $rid = 'esc-' + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     $orden = [ordered]@{ id = $rid; op = 'inject'; text = ('/model ' + $alias); export = $false }

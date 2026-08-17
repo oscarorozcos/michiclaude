@@ -3752,3 +3752,33 @@ QUÉ QUEDA: si una versión futura de la TUI deja de guardar el default
 con /model (o de pedir confirmación), quitar la compuerta `mode==chat`
 del guardián y probar el pegado (`type_paste` ya está). Oscar: git pull,
 cargo check en relevo/ y src-tauri, npm run dev; el chat sigue igual.
+
+## 2026-08-17 (17) — terminal también escala y reenvía solo: la coreografía del /model
+
+QUÉ: la respuesta a «¿hay manera de arreglar lo de terminal?»: sí. Dos
+hipótesis medidas en PTY real (probe): (1) el diálogo «Switch model?» se
+confirma con un Enter y un Enter sobre la caja vacía no hace nada; (2)
+la sesión NO relee settings.json a media sesión — tras restaurar el
+default el turno siguiente siguió en opus. Con eso `type_model` (py y
+rs): guarda `model` de settings, teclea `/model`, +1.5 s Enter (solo si
+el usuario no tecleó), +3.5 s restaura el default; en Python va como
+pasos del bucle de la PTY (`mstep`) para no congelar la pantalla; en
+Rust bloquea dentro del hilo (la I/O va aparte). El guardián vuelve a
+pedir la escalada también con relevo terminal (fuera la compuerta
+`mode==chat`). Textos del interruptor «…y reenviarlo por mí» ya sin el
+"(solo chat)" ×8. remediacion.md y CLAUDE.md al día.
+
+CÓMO SE VERIFICÓ: PTY real, entorno limpio: hola (sonnet) → prompt
+pesado pegado UNA vez → freno → `/model` del relevo (+Enter al diálogo)
+→ default restaurado → pegado del prompt a los ~26 s → ASSIST claude-
+opus-5; log `escalate(resend) → resent`; `settings.json` sin `model` al
+final. Chat: regresión previa intacta. NO verificado: cargo check de
+relevo/ (type_model, settings_model*, guess_sid, type_paste, say_echo) —
+Oscar; y el michi.exe en terminal de Windows nativo (ConPTY): la misma
+coreografía, sin probar aquí.
+
+QUÉ QUEDA: Oscar: git pull, cargo check en relevo/ y src-tauri, npm run
+dev; probar en una TERMINAL de Windows (`michi claude` o el alias),
+sesión Sonnet, prompt pesado y no tocar nada — debe frenar, cambiar a
+Opus, reenviar y responder en Opus, con el default de settings.json
+intacto (mirar `~/.claude/settings.json` antes y después).

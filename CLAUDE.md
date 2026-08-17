@@ -554,9 +554,10 @@ presion-y-rendimiento §"Qué queda vivo".
       SOLO (5b, `esc`, apagado, exige guardián): al frenar, el hook deja
       `/model <peldaño>` al relevo SIN esperar acuse (abrazo mortal
       medido); el relevo espera ≤8 s SOLO para /model; globo del gatito.
-      5c `rs` (exige esc): el relevo de CHAT reenvía el prompt (`then`,
-      sin eco, jamás persistido); terminal sigue "reenvía tú". Validados
-      en vivo. FALTA: cargo check 5b/5c (lib.rs y relevo/), .ps1,
+      5c `rs` (exige esc): el relevo reenvía el prompt (`then`, jamás
+      persistido) — chat: mensaje JSON; terminal: `type_model` (Enter al
+      diálogo de la TUI + RESTAURAR el default que /model guarda) y
+      `type_paste`. Validados en vivo. FALTA: cargo check relevo/, .ps1,
       consejero, WSL.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito. NO:
   rastrear otras herramientas, BD de historial, modo equipo.

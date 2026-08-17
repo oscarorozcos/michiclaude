@@ -157,6 +157,62 @@ fn handoff_dir() -> PathBuf {
 /// por nombre en vez de reproducir la transformación de carpetas de Claude
 /// Code — menos frágil ante sus cambios. Solo lo usa el modo chat
 /// (2026-08-13): la extensión NO tiene /export y la copia de la red la
+/// El settings.json del usuario (respeta CLAUDE_CONFIG_DIR).
+fn settings_path() -> Option<PathBuf> {
+    match std::env::var("CLAUDE_CONFIG_DIR") {
+        Ok(d) if !d.is_empty() => Some(PathBuf::from(d).join("settings.json")),
+        _ => {
+            let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).ok()?;
+            Some(PathBuf::from(home).join(".claude").join("settings.json"))
+        }
+    }
+}
+
+/// El `model` por defecto del usuario (None si no hay). Solo lectura.
+fn settings_model() -> Option<String> {
+    let p = settings_path()?;
+    let raw = std::fs::read_to_string(p).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    v.get("model").and_then(|m| m.as_str()).map(|s| s.to_string())
+}
+
+/// Devuelve `model` a como estaba ANTES del /model tecleado por el relevo.
+/// La TUI (2.1.233) guarda el modelo elegido como default de sesiones
+/// nuevas; la sesión en curso ya cambió en memoria y no relee el archivo
+/// (medido 2026-08-17), así que el efecto neto es "solo esta sesión", como
+/// en el chat. Solo se toca la clave `model`; si ya está como estaba, no se
+/// escribe nada. Réplica de settings_model_restore en michi-relevo.py.
+fn settings_model_restore(prev: &Option<String>) {
+    let Some(p) = settings_path() else { return };
+    let raw = std::fs::read_to_string(&p).unwrap_or_default();
+    let mut v: serde_json::Value = if raw.trim().is_empty() {
+        serde_json::json!({})
+    } else {
+        match serde_json::from_str(&raw) {
+            Ok(v) => v,
+            Err(_) => return,
+        }
+    };
+    let Some(obj) = v.as_object_mut() else { return };
+    let cur = obj.get("model").and_then(|m| m.as_str()).map(|s| s.to_string());
+    if cur == *prev {
+        return;
+    }
+    match prev {
+        Some(m) => {
+            obj.insert("model".into(), serde_json::Value::String(m.clone()));
+        }
+        None => {
+            obj.remove("model");
+        }
+    }
+    let Ok(txt) = serde_json::to_string_pretty(&v) else { return };
+    let tmp = PathBuf::from(format!("{}.michi.tmp", p.to_string_lossy()));
+    if std::fs::write(&tmp, format!("{txt}\n")).is_ok() {
+        let _ = std::fs::rename(&tmp, &p);
+    }
+}
+
 /// El session_id de una sesión de TERMINAL: el transcript más reciente de
 /// la carpeta de este cwd nacido tras el arranque del relevo. Sin esto el
 /// estado no lleva `sid` y el guardián solo puede casar por carpeta — y con
@@ -1188,6 +1244,30 @@ fn type_line(writer: &Arc<Mutex<Option<Box<dyn Write + Send>>>>, text: &str) -> 
     true
 }
 
+/// Teclea `/model <alias>` con su coreografía de terminal (medida en la TUI
+/// 2.1.233): guarda el default de settings, teclea el comando, ~1.5 s
+/// después —solo si el usuario NO ha tecleado nada— un Enter que confirma el
+/// diálogo «Switch model? 1. Yes / 2. No» (sin diálogo es un Enter sobre la
+/// caja vacía: inofensivo, medido), y ~2 s más tarde restaura el default que
+/// la TUI acaba de sobrescribir. La I/O va en hilos: esperar aquí no congela.
+fn type_model(sh: &Shared, writer: &Arc<Mutex<Option<Box<dyn Write + Send>>>>, text: &str) -> bool {
+    let prev = settings_model();
+    if !type_line(writer, text) {
+        return false;
+    }
+    std::thread::sleep(Duration::from_millis(1_500));
+    if !sh.has_text() {
+        let mut lock = writer.lock().unwrap();
+        if let Some(w) = lock.as_mut() {
+            let _ = w.write_all(b"\r");
+            let _ = w.flush();
+        }
+    }
+    std::thread::sleep(Duration::from_millis(2_000));
+    settings_model_restore(&prev);
+    true
+}
+
 /// PEGA un texto (multilínea entero) y luego Enter aparte: envuelto en las
 /// marcas de bracketed paste, la TUI lo toma como un pegado y no como Enter
 /// tras Enter — así el reenvío del 5c no se corta en el primer salto de
@@ -1236,6 +1316,10 @@ impl Speaker {
     /// replica la CLI y con el eco salía dos veces en el chat.
     fn say_echo(&self, sh: &Shared, text: &str, echo: bool) -> bool {
         let Some(sid) = &self.sid else {
+            // terminal: /model lleva su coreografía (diálogo + default)
+            if is_model_cmd(text) {
+                return type_model(sh, &self.to_child, text);
+            }
             return type_line(&self.to_child, text);
         };
         let sid = sid.lock().unwrap().clone();

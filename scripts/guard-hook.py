@@ -188,12 +188,9 @@ def escalar(sid, cwd, alias, then=None):
     st = relevo_de(sid, cwd)
     if not st or not st.get("pid"):
         return False, "NORELAY", False
-    # SOLO CHAT (medido 2026-08-17 en la TUI 2.1.233): en terminal `/model`
-    # abre un diálogo («Switch model? … 1. Yes / 2. No») Y guarda el modelo
-    # como DEFAULT de sesiones nuevas — justo lo que este sistema promete no
-    # hacer en silencio. En terminal se queda el freno con su mensaje.
-    if st.get("mode") != "chat":
-        return False, "TERMINAL", False
+    # Chat y terminal: en terminal el relevo hace la coreografía del /model
+    # (confirma el diálogo de la TUI y restaura el default que ella guarda —
+    # medido 2026-08-17), así el efecto es "solo esta sesión" en los dos.
     pid = st.get("pid")
     rid = "esc-%d" % int(time.time() * 1000)
     orden = {"id": rid, "op": "inject", "text": "/model " + alias, "export": False}

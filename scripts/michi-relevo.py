@@ -171,6 +171,48 @@ def session_jsonl(sid):
     return None
 
 
+def settings_path():
+    base = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    return os.path.join(base, "settings.json")
+
+
+def settings_model():
+    """El `model` por defecto del usuario (o None). Solo lectura."""
+    try:
+        with open(settings_path(), encoding="utf-8") as f:
+            d = json.load(f)
+        return d.get("model") if isinstance(d, dict) else None
+    except Exception:
+        return None
+
+
+def settings_model_restore(prev):
+    """Devuelve `model` a como estaba ANTES del /model tecleado por el
+    relevo. La TUI (2.1.233) guarda el modelo elegido como default de
+    sesiones nuevas; la sesión en curso ya cambió en memoria y no relee
+    el archivo (medido 2026-08-17), así que el efecto neto es "solo esta
+    sesión", como en el chat. Solo se toca la clave `model`; si el archivo
+    ya está como estaba, no se escribe nada."""
+    p = settings_path()
+    try:
+        with open(p, encoding="utf-8") as f:
+            raw = f.read()
+        d = json.loads(raw) if raw.strip() else {}
+        if not isinstance(d, dict) or d.get("model") == prev:
+            return
+        if prev is None:
+            d.pop("model", None)
+        else:
+            d["model"] = prev
+        tmp = p + ".michi.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(d, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+        os.replace(tmp, p)
+    except Exception:
+        pass
+
+
 def guess_sid(cwd, started):
     """El session_id de una sesión de TERMINAL: el transcript más reciente
     de la carpeta de este cwd nacido tras el arranque del relevo. Sin esto
@@ -471,6 +513,7 @@ def run_relevo(extra):
     # hilo para que este bucle siga bombeando pantalla y estado)
     hand = {"on": False}
     pend = {"cmd": None}   # /model a la espera de que el relevo quede libre
+    mstep = {"prev": None, "confirm_at": 0.0, "restore_at": 0.0}  # coreografía del /model
     paste = {"cmd": None}  # 5c: prompt a PEGAR cuando el /model haya salido
     prune_handoffs()
     d = state_dir()
@@ -544,6 +587,19 @@ def run_relevo(extra):
         os.write(master, txt.encode())
         time.sleep(ENTER_GAP_S)
         os.write(master, b"\r")
+
+    def type_model(txt):
+        """Teclea `/model <alias>` con su coreografía de terminal (medida en
+        la TUI 2.1.233): guarda el default de settings y teclea el comando;
+        el bucle de la PTY hace el resto SIN congelar la pantalla (`mstep`):
+        ~1.5 s después —solo si el usuario NO ha tecleado nada— un Enter que
+        confirma el diálogo «Switch model? 1. Yes / 2. No» (sin diálogo es
+        un Enter sobre la caja vacía: inofensivo, medido), y ~2 s más tarde
+        restaura el default que la TUI acaba de sobrescribir."""
+        mstep["prev"] = settings_model()
+        type_line(txt)
+        mstep["confirm_at"] = time.time() + 1.5
+        mstep["restore_at"] = time.time() + 3.5
 
     def type_paste(txt):
         """PEGA un texto (multilínea entero) y luego Enter aparte: envuelto
@@ -639,7 +695,7 @@ def run_relevo(extra):
             return ack_row(rid, text, False, w)
         if then:
             try:
-                type_line(text)
+                type_model(text)
             except OSError:
                 return ack_row(rid, text, False, "ERR_RELAY_WRITE")
             inject_at = now_ms()
@@ -652,7 +708,10 @@ def run_relevo(extra):
                              daemon=True).start()
             return None
         try:
-            type_line(text)
+            if is_model_cmd(text):
+                type_model(text)
+            else:
+                type_line(text)
         except OSError:
             return ack_row(rid, text, False, "ERR_RELAY_WRITE")
         inject_at = now_ms()
@@ -696,7 +755,7 @@ def run_relevo(extra):
                 if not pw:
                     pend["cmd"] = None
                     try:
-                        type_line(ptext)
+                        type_model(ptext)
                         inject_at = now_ms()
                         if pthen:
                             paste["cmd"] = (prid, ptext, time.time() + MODEL_WAIT_S + 25, pthen)
@@ -709,6 +768,18 @@ def run_relevo(extra):
                     pend["cmd"] = None
                     last_ack = ack_row(prid, ptext, False, pw)
                     last_state = 0.0
+            # coreografía del /model tecleado (ver type_model)
+            if mstep["confirm_at"] and time.time() >= mstep["confirm_at"]:
+                mstep["confirm_at"] = 0.0
+                kw.resolve(now_ms(), last_out)
+                if not kw.has_text():
+                    try:
+                        os.write(master, b"\r")
+                    except OSError:
+                        pass
+            if mstep["restore_at"] and time.time() >= mstep["restore_at"]:
+                mstep["restore_at"] = 0.0
+                settings_model_restore(mstep["prev"])
             # el reenvío del 5c: cuando el /model salió y la PTY volvió a la
             # calma, se PEGA el prompt (entero) y Enter aparte
             if paste["cmd"]:
