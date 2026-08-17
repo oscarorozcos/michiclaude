@@ -832,7 +832,7 @@ def run_wrap(args):
         except (OSError, ValueError):
             pass
 
-    def send_user(text):
+    def send_user(text, echo=True):
         """Una línea `user` al hijo Y su eco al chat. El eco es obligatorio:
         --replay-user-messages replica los mensajes normales pero NO los
         comandos — la CLI los intercepta antes (medido 2026-08-08). Sin él,
@@ -841,13 +841,17 @@ def run_wrap(args):
         este proyecto no permite. Se emite la MISMA forma que la CLI usa al
         replicar un mensaje de usuario, así que la extensión ya sabe
         pintarla. Va solo al chat: el JSONL lo escribe la CLI y no se toca,
-        así que esto no falsea el registro."""
+        así que esto no falsea el registro. `echo=False` para un mensaje
+        NORMAL (el reenvío del 5c): ese sí lo replica la CLI y con el eco
+        salía dos veces en el chat (medido 2026-08-17)."""
         emit_banner()
         with lock:
             child.stdin.write(user_line(text).encode())
             child.stdin.flush()
         st["inject_at"] = now_ms()
         st["busy"] = True
+        if not echo:
+            return
         try:
             with olock:
                 sys.stdout.buffer.write(
@@ -938,6 +942,36 @@ def run_wrap(args):
             st["hand"] = True
             threading.Thread(target=wrap_handoff, args=(rid, text),
                              daemon=True).start()
+            return None
+        # REENVÍO (ruteo 5c): tras un /model, el guardián puede pedir que se
+        # reenvíe el prompt frenado (`then`). SOLO detrás de un /model y SOLO
+        # aquí (chat: mensaje JSON atómico, el multilínea viaja entero). El
+        # texto NO se persiste: ni acuse, ni estado, ni log — vive en esta
+        # variable y se va con el hilo.
+        then = v.get("then") if is_model_cmd(text) else None
+        if isinstance(then, str) and then.strip():
+            try:
+                send_user(text)
+            except (OSError, ValueError):
+                return ack_row(rid, text, False, "ERR_RELAY_WRITE")
+
+            def resend():
+                # el /model es un comando local: su result llega en <1 s. Se
+                # espera a que el turno cierre y se reenvía el prompt.
+                fin = time.time() + MODEL_WAIT_S
+                while st["busy"] and time.time() < fin:
+                    time.sleep(MODEL_TICK_S)
+                ok = False
+                if not st["busy"]:
+                    try:
+                        send_user(then, echo=False)
+                        ok = True
+                    except (OSError, ValueError):
+                        ok = False
+                a = ack_row(rid, text, True, "")
+                a["resent"] = ok
+                st["ack"] = a
+            threading.Thread(target=resend, daemon=True).start()
             return None
         try:
             send_user(text)

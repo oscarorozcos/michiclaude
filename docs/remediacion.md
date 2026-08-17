@@ -1390,6 +1390,20 @@ guardián). Con eso entra, con estas cadenas:
   «Set model to Opus 5 for this session only» → el reenvío corrió en
   `claude-opus-5`. Autopsia completa en la bitácora 2026-08-17 (12).
 
+**5c — …y reenviar por mí (2026-08-17, misma jornada).** Con el
+interruptor `rs` (apagado, exige `esc`), la orden `/model` lleva además
+`then` = el prompt frenado, y el relevo, tras el `result` del /model, lo
+reenvía como mensaje `user` (SIN eco: la CLI replica los mensajes
+normales y con eco salía doble). SOLO en modo chat (mensaje JSON
+atómico, multilínea entero); el guardián lo pide solo si el relevo de la
+sesión dice `mode: chat` — en terminal sigue «reenvía tú». El texto NO
+se persiste en ningún sitio: viaja en el `.cmd` (que se borra al leerlo)
+y vive en la variable del hilo; ni acuse, ni estado, ni log. La memoria
+de insistencia lleva `auto:true` para que el reenvío se anote como
+`resent` (Michi) y no como `insist` (tú). Validado en vivo (VPS, chat
+stream-json): freno → /model opus → reenvío → respuesta en opus-5, sin
+tocar nada.
+
 ## El auto-/clear con red (/export verificado) — 2026-08-09
 
 Lo pidió Oscar tras ver el hallazgo de una conversación de 729 turnos:

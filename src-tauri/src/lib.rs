@@ -7601,6 +7601,10 @@ struct RuteoCfg {
     /// `/model <peldaño>` y el usuario solo reenvía. Nace apagado.
     #[serde(default)]
     esc: bool,
+    /// …y reenviar por mí (5c): tras el /model, el relevo de CHAT reenvía
+    /// el prompt frenado (mensaje JSON atómico). Exige `esc`. Nace apagado.
+    #[serde(default)]
+    rs: bool,
 }
 
 fn ruteo_cfg() -> RuteoCfg {
@@ -8028,6 +8032,7 @@ async fn save_router_state(state: String) -> Result<(), String> {
         v["ctx"] = serde_json::Value::Bool(cfg.ctx);
         // escalar SOLO tiene sentido con el guardián encendido
         v["esc"] = serde_json::Value::Bool(cfg.esc && cfg.guard);
+        v["rs"] = serde_json::Value::Bool(cfg.rs && cfg.esc && cfg.guard);
         let compact = v.to_string();
         let dir = michi_dir();
         let _ = fs::create_dir_all(&dir);
@@ -8065,12 +8070,15 @@ fn get_ruteo_cfg() -> RuteoCfg {
 /// settings.json: viajan en la nota del siguiente ciclo (el panel la
 /// re-empuja al instante desde el interruptor).
 #[tauri::command]
-fn set_ruteo_flags(guard: bool, ctx: bool, esc: Option<bool>) -> RuteoCfg {
+fn set_ruteo_flags(guard: bool, ctx: bool, esc: Option<bool>, rs: Option<bool>) -> RuteoCfg {
     let mut c = ruteo_cfg();
     c.guard = guard;
     c.ctx = ctx;
     if let Some(e) = esc {
         c.esc = e;
+    }
+    if let Some(r) = rs {
+        c.rs = r;
     }
     ruteo_cfg_write(&c);
     c
@@ -8107,6 +8115,9 @@ struct RuteoRow {
     to: String,
     #[serde(default)]
     ok: bool,
+    /// "escalate": se pidió además el reenvío del prompt (5c).
+    #[serde(default)]
+    resend: bool,
 }
 
 /// Últimas filas de UN cuaderno (texto ya leído). Se lee la cola: el
@@ -8214,6 +8225,8 @@ struct RuteoReport {
     #[serde(default)]
     esc: u64,
     #[serde(default)]
+    resent: u64,
+    #[serde(default)]
     estimated: bool,
 }
 
@@ -8307,6 +8320,7 @@ fn scan_ruteo(projects: &PathBuf, michi: &PathBuf, days: u32, end: i64) -> Ruteo
                 }
             }
             "insist" => out.insist += 1,
+            "resent" => out.resent += 1,
             "ctx" => out.ctx += 1,
             "skip" => out.skip += 1,
             _ => {}

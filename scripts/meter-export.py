@@ -1615,7 +1615,7 @@ def scan_ruteo(projects_dir, michi_dir, days, end):
     out = {"routed": 0, "haiku": 0, "sonnet": 0, "matched": 0, "up": 0,
            "tok": 0, "cost": 0.0, "cost_base": 0.0, "saved": 0.0,
            "blocks": 0, "insist": 0, "ctx": 0, "ctx_tok": 0, "skip": 0,
-           "esc": 0, "estimated": False}
+           "esc": 0, "resent": 0, "estimated": False}
     rows = _ruteo_rows(Path(michi_dir), since, until)
     agents = {}      # sid -> [(first_ts, family, path)] aún sin usar
     parents = {}     # sid -> entradas del transcript madre (para el respaldo)
@@ -1630,6 +1630,8 @@ def scan_ruteo(projects_dir, michi_dir, days, end):
                 out["esc"] += 1
         elif ev == "insist":
             out["insist"] += 1
+        elif ev == "resent":
+            out["resent"] += 1
         elif ev == "ctx":
             out["ctx"] += 1
         elif ev == "skip":

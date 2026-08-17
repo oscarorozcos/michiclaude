@@ -175,19 +175,26 @@ def relevo_de(sid, cwd):
     return por_cwd[0] if len(por_cwd) == 1 else None
 
 
-def escalar(sid, cwd, alias):
+def escalar(sid, cwd, alias, then=None):
     """Le deja al relevo de la sesión la orden `/model <alias>` y SALE sin
     esperar el acuse: el relevo solo queda libre cuando Claude Code emite el
     `result` del bloqueo, y ese result espera a que ESTE hook termine —
     esperar aquí era un abrazo mortal (medido 2026-08-17: ERR_RELAY_BUSY
     durante toda la espera). El relevo teclea en cuanto pueda; el acuse
-    queda en su estado y el panel lo lee. Devuelve (escrito, err)."""
+    queda en su estado y el panel lo lee. `then` = el prompt a REENVIAR
+    tras el /model (5c): solo viaja si el relevo es de CHAT (mensaje JSON
+    atómico); el buzón se borra al leerlo y el texto no se anota en ningún
+    sitio. Devuelve (escrito, err, reenvio_pedido)."""
     st = relevo_de(sid, cwd)
     if not st or not st.get("pid"):
-        return False, "NORELAY"
+        return False, "NORELAY", False
     pid = st.get("pid")
     rid = "esc-%d" % int(time.time() * 1000)
-    body = json.dumps({"id": rid, "op": "inject", "text": "/model " + alias, "export": False})
+    orden = {"id": rid, "op": "inject", "text": "/model " + alias, "export": False}
+    reenvio = bool(then) and st.get("mode") == "chat"
+    if reenvio:
+        orden["then"] = then
+    body = json.dumps(orden, ensure_ascii=False)
     path = os.path.join(RELAY_DIR, "%s.cmd" % pid)
     try:
         tmp = path + ".tmp"
@@ -195,8 +202,8 @@ def escalar(sid, cwd, alias):
             fh.write(body)
         os.replace(tmp, path)
     except OSError:
-        return False, "WRITE"
-    return True, rid
+        return False, "WRITE", False
+    return True, rid, reenvio
 
 
 def senales(prompt):
@@ -255,36 +262,51 @@ def main():
         if peso >= umbral:
             h = hashlib.sha1(prompt.strip().encode("utf-8")).hexdigest()[:16]
             insiste = False
+            auto = False
             try:
                 with open(LAST, "r", encoding="utf-8") as fh:
                     last = json.load(fh)
                 insiste = (last.get("h") == h and last.get("tier") == tr
                            and time.time() - float(last.get("ts", 0)) < INSIST_S)
+                auto = bool(last.get("auto"))
             except Exception:
                 pass
             if insiste:
-                apunta(dict(base, ev="insist", model=tr, sig=sig))
+                # el mismo prompt vuelve: o insististe tú, o lo reenvió el
+                # relevo por orden nuestra (5c) — se anota lo que fue
+                apunta(dict(base, ev="resent" if auto else "insist", model=tr, sig=sig))
             else:
+                dest = destino(tr, peso) or "opus"
+                # ESCALAR SOLO (bandera `esc` en la nota): el relevo de esta
+                # sesión teclea `/model <dest>`; el usuario solo reenvía —
+                # o, con `rs` (5c) y relevo de chat, lo reenvía el relevo.
+                # Sin relevo o sin acuse, se cae al freno de siempre.
+                esc_ok, esc_err, reenvio = (False, "", False)
+                if st.get("esc"):
+                    esc_ok, esc_err, reenvio = escalar(
+                        base["sid"], base["cwd"], dest,
+                        prompt if st.get("rs") else None)
+                    apunta(dict(base, ev="escalate", model=tr, to=dest,
+                                ok=esc_ok, err=esc_err, resend=reenvio, sig=sig))
+                else:
+                    apunta(dict(base, ev="block", model=tr, sig=sig, to=dest))
+                # la memoria de insistencia se escribe DESPUÉS de escalar: así
+                # sabe si el próximo reenvío será del relevo (auto) o tuyo
                 try:
                     os.makedirs(MICHI, exist_ok=True)
                     with open(LAST, "w", encoding="utf-8") as fh:
-                        json.dump({"h": h, "tier": tr, "ts": time.time()}, fh)
+                        json.dump({"h": h, "tier": tr, "ts": time.time(),
+                                   "auto": bool(esc_ok and reenvio)}, fh)
                 except Exception:
                     pass
-                dest = destino(tr, peso) or "opus"
-                # ESCALAR SOLO (bandera `esc` en la nota): el relevo de esta
-                # sesión teclea `/model <dest>`; el usuario solo reenvía.
-                # Sin relevo o sin acuse, se cae al freno de siempre.
-                esc_ok, esc_err = (False, "")
-                if st.get("esc"):
-                    esc_ok, esc_err = escalar(base["sid"], base["cwd"], dest)
-                    apunta(dict(base, ev="escalate", model=tr, to=dest,
-                                ok=esc_ok, err=esc_err, sig=sig))
-                else:
-                    apunta(dict(base, ev="block", model=tr, sig=sig, to=dest))
                 # el texto lo lee el USUARIO en su terminal, no Claude: va
                 # bilingüe corto (el hook no tiene el diccionario del panel)
-                if esc_ok:
+                if esc_ok and reenvio:
+                    razon = ("MichiClaude: this looked complex for %s, so I'm switching "
+                             "this session to %s and resending it for you. Nothing to do. "
+                             "/ Esto se veia complejo para %s: estoy subiendo la sesion a %s "
+                             "y lo reenvio yo. No tienes que hacer nada." % (tr, dest, tr, dest))
+                elif esc_ok:
                     razon = ("MichiClaude: this looked complex for %s, so I'm switching "
                              "this session to %s. Give it ~10 s and resend (Up + Enter). "
                              "/ Esto se veia complejo para %s: estoy subiendo la sesion a %s. "

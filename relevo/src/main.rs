@@ -58,6 +58,18 @@ const ALLOWED: [&str; 2] = ["/compact", "/clear"];
 /// escala solo): `/model <alias>` con alias de LISTA CERRADA. Nada más.
 const MODEL_ALIASES: [&str; 4] = ["haiku", "sonnet", "opus", "fable"];
 
+/// Un `/model` llega en el instante en que el guardián FRENA un prompt: el
+/// relevo aún ve el turno "en curso" (el result del bloqueo llega un pelo
+/// después). Para ese comando —y SOLO para ese, que no destruye nada— se
+/// espera a quedar libre en vez de rechazar (medido 2026-08-17). La I/O va
+/// en hilos, así que esperar aquí no congela nada.
+const MODEL_WAIT_MS: u64 = 8_000;
+const MODEL_TICK_MS: u64 = 200;
+
+fn is_model_cmd(text: &str) -> bool {
+    text.split_whitespace().next() == Some("/model")
+}
+
 /// ¿Puede este relevo teclear ese texto? Los dos exactos, o `/model <alias>`.
 fn allowed(text: &str) -> bool {
     if ALLOWED.contains(&text) {
@@ -1129,6 +1141,11 @@ struct Speaker {
 
 impl Speaker {
     fn say(&self, sh: &Shared, text: &str) -> bool {
+        self.say_echo(sh, text, true)
+    }
+    /// `echo=false` para un mensaje NORMAL (el reenvío del 5c): ese sí lo
+    /// replica la CLI y con el eco salía dos veces en el chat.
+    fn say_echo(&self, sh: &Shared, text: &str, echo: bool) -> bool {
         let Some(sid) = &self.sid else {
             return type_line(&self.to_child, text);
         };
@@ -1144,6 +1161,9 @@ impl Speaker {
         // Turno en curso por CERTEZA: acaba de entrar un `user`, y hasta que
         // salga su `result` esta sesión está ocupada.
         sh.busy.store(1, Ordering::Relaxed);
+        if !echo {
+            return true;
+        }
         // Y su eco al chat, que es obligatorio: la CLI intercepta los comandos
         // antes de replicarlos, así que sin esto la conversación se
         // compactaría sin que nada en pantalla dijera quién lo pidió.
@@ -1186,8 +1206,47 @@ fn attend(raw: &str, sh: &Arc<Shared>, sp: &Arc<Speaker>) -> Option<serde_json::
     if !allowed(&text) {
         return Some(ack_json(&id, &text, false, "ERR_RELAY_BADCMD", None));
     }
+    if !sh.ready() && is_model_cmd(&text) {
+        // /model: esperar a que el relevo quede libre (ver MODEL_WAIT_MS)
+        let fin = sh.ms() + MODEL_WAIT_MS;
+        while !sh.ready() && sh.ms() < fin {
+            std::thread::sleep(Duration::from_millis(MODEL_TICK_MS));
+        }
+    }
     if !sh.ready() {
         return Some(ack_json(&id, &text, false, sh.why_not(), None));
+    }
+    // REENVÍO (ruteo 5c): tras un /model, el guardián puede pedir que se
+    // reenvíe el prompt frenado (`then`). SOLO en modo chat (mensaje JSON
+    // atómico: el multilínea viaja entero) y SOLO detrás de un /model. El
+    // texto NO se persiste en ningún sitio: ni acuse, ni estado, ni log.
+    let then = if is_model_cmd(&text) && sp.sid.is_some() {
+        v["then"].as_str().map(|t| t.to_string()).filter(|t| !t.trim().is_empty())
+    } else {
+        None
+    };
+    if let Some(then) = then {
+        if !sp.say(sh, &text) {
+            return Some(ack_json(&id, &text, false, "ERR_RELAY_WRITE", None));
+        }
+        sh.inject_at.store(sh.ms(), Ordering::Relaxed);
+        let sh2 = sh.clone();
+        let sp2 = sp.clone();
+        let id2 = id.clone();
+        let text2 = text.clone();
+        std::thread::spawn(move || {
+            // el /model es un comando local: su result llega en <1 s. Se
+            // espera a que el turno cierre y se reenvía el prompt.
+            let fin = sh2.ms() + MODEL_WAIT_MS;
+            while sh2.busy.load(Ordering::Relaxed) != 0 && sh2.ms() < fin {
+                std::thread::sleep(Duration::from_millis(MODEL_TICK_MS));
+            }
+            let ok = sh2.busy.load(Ordering::Relaxed) == 0 && sp2.say_echo(&sh2, &then, false);
+            let mut ack = ack_json(&id2, &text2, true, "", None);
+            ack["resent"] = serde_json::Value::Bool(ok);
+            *sh2.ack.lock().unwrap() = Some(ack);
+        });
+        return None;
     }
 
     if export {

@@ -1733,6 +1733,13 @@
         <span data-i18n="rt_esc_on"></span><input type="checkbox" id="rtEscChk">
       </label>
       <div class="cfg-note" style="margin-left:18px" data-i18n="rt_esc_hint"></div>
+      <!-- 5c: …y reenviar por mí. Solo chat (mensaje JSON atómico); el texto
+           del prompt viaja por el buzón del relevo y se borra al leerlo,
+           nunca al log. Exige «Escalar solo». Nace apagado. -->
+      <label class="cfg-row" style="cursor:pointer;margin-left:36px" id="rtRsRow">
+        <span data-i18n="rt_rs_on"></span><input type="checkbox" id="rtRsChk">
+      </label>
+      <div class="cfg-note" style="margin-left:36px" data-i18n="rt_rs_hint"></div>
       <!-- CONTEXTO INYECTADO: lo ÚNICO del sistema que gasta tokens (~60 por
            turno). Apagable aparte y AUTO-REPORTADO en el registro. -->
       <label class="cfg-row" style="cursor:pointer;margin-top:6px" id="rtCtxRow">
@@ -2412,6 +2419,12 @@ en:{
   rt_ev_bypass:"~ sent as is",
   rt_ev_ctx:"context injected (~60 tok)",
   rt_log_empty:"No decisions yet.",
+  rt_rs_on:"…and resend it for me (VS Code chat only)",
+  rt_rs_hint:"After switching the session up, the relay resends your stopped prompt itself — you don't touch anything. Only in the VS Code chat (the message travels whole, multi-line included); in a terminal it still asks you to resend. Your prompt text goes to that session's relay and is dropped right after; it never enters any log.",
+  rt_ev_esc_rs:(m,to)=>`guard stopped a heavy prompt on ${m}, switched the session to ${to} and resent it`,
+  rt_ev_resent:to=>`resent by Michi on ${to}`,
+  rt_rep_resent:n=>`${n} resent for you`,
+  rt_balloon_esc_rs:(m,to,w)=>`I stopped your prompt: it looked heavy for ${m}, so I switched the session to ${to} and resent it for you. Nothing to do · ${w}`,
   rt_esc_on:"Escalate by itself: when it stops a prompt, switch that session up and let me just resend",
   rt_esc_hint:"Instead of just stopping, MichiClaude asks the relay of that session to type /model for the next step up (Haiku → Sonnet, or → Opus when it looks heavy; never Fable on its own). You only resend (Up + Enter). Needs the relay in that session; without it, it just stops as usual. Uses more quota — the quota you meant to spend.",
   rt_ev_esc:(m,to)=>`guard stopped a heavy prompt on ${m} and switched the session to ${to}`,
@@ -3017,6 +3030,12 @@ es:{
   rt_ev_bypass:"~ enviado tal cual",
   rt_ev_ctx:"contexto inyectado (~60 tok)",
   rt_log_empty:"Todavía sin decisiones.",
+  rt_rs_on:"…y reenviarlo por mí (solo chat de VS Code)",
+  rt_rs_hint:"Tras subir la sesión, el relevo reenvía él tu prompt frenado — no tocas nada. Solo en el chat de VS Code (el mensaje viaja entero, multilínea incluida); en terminal sigue pidiéndote reenviar. El texto de tu prompt va al relevo de esa sesión y se borra al instante; jamás entra a ningún registro.",
+  rt_ev_esc_rs:(m,to)=>`el guardián frenó un prompt pesado en ${m}, subió la sesión a ${to} y lo reenvió`,
+  rt_ev_resent:to=>`reenviado por Michi en ${to}`,
+  rt_rep_resent:n=>`${n} reenviados por ti`,
+  rt_balloon_esc_rs:(m,to,w)=>`Frené tu prompt: se veía pesado para ${m}, así que subí la sesión a ${to} y lo reenvié yo. No tienes que hacer nada · ${w}`,
   rt_esc_on:"Escalar solo: al frenar un prompt, subir esa sesión y que yo solo reenvíe",
   rt_esc_hint:"En vez de solo frenar, MichiClaude le pide al relevo de esa sesión que teclee /model al peldaño siguiente (Haiku → Sonnet, o → Opus si se ve pesado; nunca Fable por su cuenta). Tú solo reenvías (↑ y Enter). Necesita el relevo en esa sesión; sin él, frena como siempre. Gasta más cuota — la que querías gastar.",
   rt_ev_esc:(m,to)=>`el guardián frenó un prompt pesado en ${m} y subió la sesión a ${to}`,
@@ -3622,6 +3641,12 @@ pt:{
   rt_ev_bypass:"~ enviado assim mesmo",
   rt_ev_ctx:"contexto injetado (~60 tok)",
   rt_log_empty:"Ainda sem decisões.",
+  rt_rs_on:"…e reenviar por mim (só chat do VS Code)",
+  rt_rs_hint:"Depois de subir a sessão, o relevo reenvia ele mesmo seu prompt travado — você não toca em nada. Só no chat do VS Code (a mensagem viaja inteira, multilinha incluída); no terminal ainda pede que você reenvie. O texto do seu prompt vai ao relevo dessa sessão e é apagado na hora; nunca entra em nenhum registro.",
+  rt_ev_esc_rs:(m,to)=>`o guardião travou um prompt pesado em ${m}, subiu a sessão para ${to} e o reenviou`,
+  rt_ev_resent:to=>`reenviado pelo Michi em ${to}`,
+  rt_rep_resent:n=>`${n} reenviados por você`,
+  rt_balloon_esc_rs:(m,to,w)=>`Travei seu prompt: parecia pesado para ${m}, então subi a sessão para ${to} e o reenviei. Nada a fazer · ${w}`,
   rt_esc_on:"Escalar sozinho: ao travar um prompt, subir essa sessão e eu só reenvio",
   rt_esc_hint:"Em vez de só travar, o MichiClaude pede ao relevo dessa sessão que digite /model para o degrau seguinte (Haiku → Sonnet, ou → Opus se parecer pesado; nunca Fable por conta própria). Você só reenvia (↑ e Enter). Precisa do relevo nessa sessão; sem ele, trava como sempre. Gasta mais cota — a que você queria gastar.",
   rt_ev_esc:(m,to)=>`o guardião travou um prompt pesado em ${m} e subiu a sessão para ${to}`,
@@ -4227,6 +4252,12 @@ fr:{
   rt_ev_bypass:"~ envoyé tel quel",
   rt_ev_ctx:"contexte injecté (~60 tok)",
   rt_log_empty:"Pas encore de décisions.",
+  rt_rs_on:"…et le renvoyer à ma place (chat VS Code seulement)",
+  rt_rs_hint:"Après avoir monté la session, le relais renvoie lui-même votre prompt bloqué — vous ne touchez à rien. Uniquement dans le chat VS Code (le message voyage entier, multiligne compris) ; dans un terminal, il vous demande encore de renvoyer. Le texte de votre prompt va au relais de cette session et est effacé aussitôt ; il n’entre jamais dans aucun journal.",
+  rt_ev_esc_rs:(m,to)=>`le garde-fou a bloqué un prompt lourd sur ${m}, a monté la session vers ${to} et l’a renvoyé`,
+  rt_ev_resent:to=>`renvoyé par Michi sur ${to}`,
+  rt_rep_resent:n=>`${n} renvoyés pour vous`,
+  rt_balloon_esc_rs:(m,to,w)=>`J’ai bloqué votre prompt : il semblait lourd pour ${m}, j’ai donc monté la session vers ${to} et l’ai renvoyé. Rien à faire · ${w}`,
   rt_esc_on:"Escalader seul : quand un prompt est bloqué, monter cette session et je n’ai qu’à renvoyer",
   rt_esc_hint:"Au lieu de seulement bloquer, MichiClaude demande au relais de cette session de taper /model vers le palier supérieur (Haiku → Sonnet, ou → Opus si ça semble lourd ; jamais Fable tout seul). Vous ne faites que renvoyer (↑ et Entrée). Nécessite le relais dans cette session ; sans lui, ça bloque comme d’habitude. Consomme plus de quota — celui que vous vouliez dépenser.",
   rt_ev_esc:(m,to)=>`le garde-fou a bloqué un prompt lourd sur ${m} et a monté la session vers ${to}`,
@@ -4832,6 +4863,12 @@ de:{
   rt_ev_bypass:"~ unverändert gesendet",
   rt_ev_ctx:"Kontext eingefügt (~60 Tok)",
   rt_log_empty:"Noch keine Entscheidungen.",
+  rt_rs_on:"…und ihn für mich erneut senden (nur VS-Code-Chat)",
+  rt_rs_hint:"Nach dem Hochstufen sendet die Ablösung deinen gestoppten Prompt selbst erneut – du rührst nichts an. Nur im VS-Code-Chat (die Nachricht reist als Ganzes, mehrzeilig inklusive); im Terminal bittet sie dich weiterhin um erneutes Senden. Der Prompt-Text geht an die Ablösung dieser Sitzung und wird sofort verworfen; er landet nie in einem Protokoll.",
+  rt_ev_esc_rs:(m,to)=>`Wächter stoppte einen schweren Prompt auf ${m}, stufte die Sitzung auf ${to} hoch und sendete ihn erneut`,
+  rt_ev_resent:to=>`von Michi auf ${to} erneut gesendet`,
+  rt_rep_resent:n=>`${n} für dich erneut gesendet`,
+  rt_balloon_esc_rs:(m,to,w)=>`Ich habe deinen Prompt gestoppt: er wirkte schwer für ${m}, also habe ich die Sitzung auf ${to} hochgestuft und ihn erneut gesendet. Nichts zu tun · ${w}`,
   rt_esc_on:"Selbst eskalieren: beim Stoppen die Sitzung hochstufen, ich sende nur erneut",
   rt_esc_hint:"Statt nur zu stoppen, bittet MichiClaude die Ablösung dieser Sitzung, /model für die nächste Stufe zu tippen (Haiku → Sonnet, oder → Opus, wenn es schwer wirkt; nie Fable von allein). Du sendest nur erneut (↑ und Enter). Braucht die Ablösung in dieser Sitzung; ohne sie wird wie gewohnt gestoppt. Verbraucht mehr Kontingent – das, das du ausgeben wolltest.",
   rt_ev_esc:(m,to)=>`Wächter stoppte einen schweren Prompt auf ${m} und stufte die Sitzung auf ${to} hoch`,
@@ -5437,6 +5474,12 @@ ja:{
   rt_ev_bypass:"~ そのまま送信",
   rt_ev_ctx:"コンテキスト注入(約60トークン)",
   rt_log_empty:"まだ判断はありません。",
+  rt_rs_on:"…そして私の代わりに再送する(VS Code チャットのみ)",
+  rt_rs_hint:"セッションを上げたあと、リレーが止めたプロンプトを自分で再送します — あなたは何も触りません。VS Code チャットのみ(メッセージは複数行ごと丸ごと届きます)。ターミナルでは引き続き再送をお願いします。プロンプトの文面はそのセッションのリレーに渡され、すぐに破棄されます。記録には一切残りません。",
+  rt_ev_esc_rs:(m,to)=>`ガードが ${m} 上の重いプロンプトを止め、セッションを ${to} に上げて再送しました`,
+  rt_ev_resent:to=>`Michi が ${to} で再送`,
+  rt_rep_resent:n=>`うち ${n} 件を代わりに再送`,
+  rt_balloon_esc_rs:(m,to,w)=>`プロンプトを止めました: ${m} には重そうだったので、セッションを ${to} に上げて再送しました。何もしなくて大丈夫 · ${w}`,
   rt_esc_on:"自動で引き上げ: プロンプトを止めたらそのセッションを上げ、私は再送するだけ",
   rt_esc_hint:"止めるだけでなく、そのセッションのリレーに次の段への /model を入力させます(Haiku → Sonnet、重そうなら → Opus。Fable へは自動で上げません)。あなたは再送するだけ(↑ と Enter)。そのセッションにリレーが必要で、なければ従来どおり止めるだけです。残量は多く使います — 使うつもりだった分です。",
   rt_ev_esc:(m,to)=>`ガードが ${m} 上の重いプロンプトを止め、セッションを ${to} に上げました`,
@@ -6042,6 +6085,12 @@ ko:{
   rt_ev_bypass:"~ 그대로 전송",
   rt_ev_ctx:"컨텍스트 주입(약 60토큰)",
   rt_log_empty:"아직 결정이 없습니다.",
+  rt_rs_on:"…그리고 나 대신 다시 보내기(VS Code 채팅만)",
+  rt_rs_hint:"세션을 올린 뒤 릴레이가 막힌 프롬프트를 스스로 다시 보냅니다 — 아무것도 건드리지 않아도 됩니다. VS Code 채팅에서만(메시지가 여러 줄 통째로 전달됨). 터미널에서는 여전히 재전송을 요청합니다. 프롬프트 텍스트는 해당 세션의 릴레이로 전달되고 즉시 삭제되며, 어떤 기록에도 남지 않습니다.",
+  rt_ev_esc_rs:(m,to)=>`가드가 ${m}의 무거운 프롬프트를 막고 세션을 ${to}로 올린 뒤 다시 보냈습니다`,
+  rt_ev_resent:to=>`Michi가 ${to}에서 재전송`,
+  rt_rep_resent:n=>`그중 ${n}건을 대신 재전송`,
+  rt_balloon_esc_rs:(m,to,w)=>`프롬프트를 막았습니다: ${m}에는 무거워 보여 세션을 ${to}로 올리고 다시 보냈습니다. 할 일 없음 · ${w}`,
   rt_esc_on:"자동 에스컬레이션: 프롬프트를 막으면 그 세션을 올리고 나는 다시 보내기만",
   rt_esc_hint:"막기만 하는 대신, 그 세션의 릴레이에 다음 단계로 /model을 입력하게 합니다(Haiku → Sonnet, 무거워 보이면 → Opus, Fable로는 자동으로 올리지 않음). 당신은 다시 보내기만 하면 됩니다(↑ 와 Enter). 그 세션에 릴레이가 필요하며, 없으면 평소처럼 막기만 합니다. 쿼터를 더 씁니다 — 쓰려던 만큼입니다.",
   rt_ev_esc:(m,to)=>`가드가 ${m}의 무거운 프롬프트를 막고 세션을 ${to}로 올렸습니다`,
@@ -6647,6 +6696,12 @@ zh:{
   rt_ev_bypass:"~ 原样发送",
   rt_ev_ctx:"已注入上下文(约 60 tok)",
   rt_log_empty:"还没有决定。",
+  rt_rs_on:"…并替我重发(仅 VS Code 聊天)",
+  rt_rs_hint:"升级会话后,中继会自己重发被拦下的提示——你什么都不用碰。仅限 VS Code 聊天(消息整条传递,多行也不例外);在终端仍会请你重发。提示文本会交给该会话的中继并立即丢弃,绝不进入任何记录。",
+  rt_ev_esc_rs:(m,to)=>`守卫拦下了 ${m} 上的重提示,把会话升到 ${to} 并重发了它`,
+  rt_ev_resent:to=>`由 Michi 在 ${to} 上重发`,
+  rt_rep_resent:n=>`其中 ${n} 次替你重发`,
+  rt_balloon_esc_rs:(m,to,w)=>`我拦下了你的提示:对 ${m} 来说太重,所以把会话升到了 ${to} 并替你重发了。无需操作 · ${w}`,
   rt_esc_on:"自动升级:拦下提示时把该会话升级,我只需重发",
   rt_esc_hint:"不只是拦下,MichiClaude 会让该会话的中继输入 /model 到上一档(Haiku → Sonnet;看起来重则 → Opus;绝不自动到 Fable)。你只需重发(↑ 和 Enter)。需要该会话有中继;没有则照常只拦下。会多花额度——你本来就想花的那部分。",
   rt_ev_esc:(m,to)=>`守卫拦下了 ${m} 上的重提示,并把会话升到 ${to}`,
@@ -9080,7 +9135,7 @@ async function rtEscBalloon(){
     if(Date.now()/1000-r.ts>300) return;      // viejo: ya pasó, no molestar
     const where=rtWhere(r);
     const body=r.ev==="escalate"&&r.ok
-      ? t("rt_balloon_esc", rtModelName(r.model), rtModelName(r.to), where)
+      ? t(r.resend?"rt_balloon_esc_rs":"rt_balloon_esc", rtModelName(r.model), rtModelName(r.to), where)
       : t("rt_balloon_block", rtModelName(r.model), rtModelName(r.to||"opus"), where);
     showBalloon(body, r.ev==="escalate"&&r.ok?"escalate":"guard");
     if(!$("tab-prefs").hidden) rtLogLoad();
@@ -9631,7 +9686,7 @@ function renderRepRuteo(rows){
   const el=$("repRuteo"); if(!el) return;
   if(rows===null){ el.innerHTML=`<div class="rp-empty">${t("fnd_err")}</div>`; return; }
   const s={routed:0,haiku:0,sonnet:0,matched:0,up:0,tok:0,cost:0,cost_base:0,saved:0,
-    blocks:0,insist:0,ctx:0,ctx_tok:0,skip:0,esc:0,estimated:false};
+    blocks:0,insist:0,ctx:0,ctx_tok:0,skip:0,esc:0,resent:0,estimated:false};
   for(const r of rows){ for(const k in s){ if(k==="estimated") s.estimated=s.estimated||!!r.estimated; else s[k]+=(+r[k]||0); } }
   if(!s.routed && !s.blocks && !s.ctx){
     el.innerHTML=`<div class="rp-empty">${escapeHtml(t("rt_rep_none"))}</div>`; return;
@@ -9647,7 +9702,7 @@ function renderRepRuteo(rows){
   }
   if(s.routed>s.matched) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_unmatched",s.routed-s.matched))}</span></div>`);
   if(s.blocks) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_blocks",s.blocks,s.insist))}</span></div>`);
-  if(s.esc) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_esc",s.esc))}</span></div>`);
+  if(s.esc) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_esc",s.esc))}${s.resent?" · "+escapeHtml(t("rt_rep_resent",s.resent)):""}</span></div>`);
   if(s.skip) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_skip",s.skip))}</span></div>`);
   // autoconsumo: lo ÚNICO que gasta el sistema, dicho en su propia fila
   rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(s.ctx?t("rt_rep_ctx",s.ctx,repFmtN(s.ctx_tok)):t("rt_rep_ctx0"))}</span></div>`);
@@ -11545,16 +11600,18 @@ async function rtFlagsUi(){
   if(!invoke) return;
   try{
     const c=await invoke("get_ruteo_cfg");
-    $("rtGuardChk").checked=!!c.guard; $("rtCtxChk").checked=!!c.ctx; $("rtEscChk").checked=!!c.esc;
+    $("rtGuardChk").checked=!!c.guard; $("rtCtxChk").checked=!!c.ctx; $("rtEscChk").checked=!!c.esc; $("rtRsChk").checked=!!c.rs;
     $("rtGuardChk").disabled=!c.on; $("rtCtxChk").disabled=!c.on;
     $("rtEscChk").disabled=!c.on||!c.guard;   // escalar exige el guardián
+    $("rtRsChk").disabled=!c.on||!c.guard||!c.esc;   // reenviar exige escalar
   }catch(_){}
 }
 async function rtFlagsSave(){
   try{
-    await invoke("set_ruteo_flags",{guard:$("rtGuardChk").checked, ctx:$("rtCtxChk").checked, esc:$("rtEscChk").checked});
-    flog("ruteo: guard="+$("rtGuardChk").checked+" ctx="+$("rtCtxChk").checked+" esc="+$("rtEscChk").checked);
+    await invoke("set_ruteo_flags",{guard:$("rtGuardChk").checked, ctx:$("rtCtxChk").checked, esc:$("rtEscChk").checked, rs:$("rtRsChk").checked});
+    flog("ruteo: guard="+$("rtGuardChk").checked+" ctx="+$("rtCtxChk").checked+" esc="+$("rtEscChk").checked+" rs="+$("rtRsChk").checked);
     $("rtEscChk").disabled=!$("rtGuardChk").checked;
+    $("rtRsChk").disabled=!$("rtGuardChk").checked||!$("rtEscChk").checked;
     // la nota re-empujada al instante para que las tres máquinas lo sepan
     // ya, no en el próximo ciclo
     if(lastQuotaData) pushRouterState(lastQuotaData);
@@ -11563,6 +11620,7 @@ async function rtFlagsSave(){
 $("rtGuardChk").addEventListener("change",rtFlagsSave);
 $("rtCtxChk").addEventListener("change",rtFlagsSave);
 $("rtEscChk").addEventListener("change",rtFlagsSave);
+$("rtRsChk").addEventListener("change",rtFlagsSave);
 
 // El registro del ruteo: latido (hoy) + últimas decisiones de las tres
 // máquinas. Es la respuesta a "¿está vivo? ¿qué decidió? ¿se queda siempre
@@ -11585,8 +11643,9 @@ function rtRowTxt(r){
     return t("rt_ev_skip", r.type||"?", why);
   }
   if(r.ev==="block") return t("rt_ev_block", rtModelName(r.model), (r.sig||[]).join(", "));
-  if(r.ev==="escalate") return r.ok ? t("rt_ev_esc", rtModelName(r.model), rtModelName(r.to))
+  if(r.ev==="escalate") return r.ok ? t(r.resend?"rt_ev_esc_rs":"rt_ev_esc", rtModelName(r.model), rtModelName(r.to))
                                     : t("rt_ev_esc_fail", rtModelName(r.model), rtModelName(r.to));
+  if(r.ev==="resent") return t("rt_ev_resent", rtModelName(r.to||"opus"));
   if(r.ev==="insist") return t("rt_ev_insist", rtModelName(r.model));
   if(r.ev==="bypass") return t("rt_ev_bypass");
   if(r.ev==="ctx") return t("rt_ev_ctx");

@@ -103,21 +103,26 @@ function RelevoDe($sid, $cwd) {
     return $null
 }
 
-function Escalar($sid, $cwd, $alias) {
+function Escalar($sid, $cwd, $alias, $then) {
     # Deja la orden /model al relevo y SALE sin esperar el acuse (el relevo
     # solo queda libre tras el result del bloqueo, que espera a este hook).
+    # $then = el prompt a REENVIAR tras el /model (5c): solo viaja si el
+    # relevo es de CHAT; el texto no se anota en ningun sitio.
     $st = RelevoDe $sid $cwd
-    if ($null -eq $st -or -not (Tiene $st 'pid')) { return ,@($false, 'NORELAY') }
+    if ($null -eq $st -or -not (Tiene $st 'pid')) { return ,@($false, 'NORELAY', $false) }
     $pid2 = $st.pid
     $rid = 'esc-' + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-    $body = @{ id = $rid; op = 'inject'; text = ('/model ' + $alias); export = $false } | ConvertTo-Json -Compress
+    $orden = [ordered]@{ id = $rid; op = 'inject'; text = ('/model ' + $alias); export = $false }
+    $reenvio = ($then -and (Tiene $st 'mode') -and ('' + $st.mode) -eq 'chat')
+    if ($reenvio) { $orden['then'] = $then }
+    $body = $orden | ConvertTo-Json -Compress -Depth 3
     $path = Join-Path $relayDir ($pid2.ToString() + '.cmd')
     try {
         $tmp = $path + '.tmp'
         [System.IO.File]::WriteAllText($tmp, $body, (New-Object System.Text.UTF8Encoding($false)))
         Move-Item -Path $tmp -Destination $path -Force
-    } catch { return ,@($false, 'WRITE') }
-    return ,@($true, $rid)
+    } catch { return ,@($false, 'WRITE', $false) }
+    return ,@($true, $rid, $reenvio)
 }
 
 function CodigoPelado($prompt) {
@@ -179,30 +184,39 @@ try {
         if ($peso -ge $umbral) {
             $sha = [System.Security.Cryptography.SHA1]::Create()
             $h = ([BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($prompt.Trim()))) -replace '-','').ToLower().Substring(0,16)
-            $insiste = $false
+            $insiste = $false; $auto = $false
             try {
                 $l = Get-Content -Path $last -Raw -Encoding UTF8 | ConvertFrom-Json
                 if ((Tiene $l 'h') -and $l.h -eq $h -and (Tiene $l 'tier') -and $l.tier -eq $tr -and (Tiene $l 'ts') -and ($ts - [double]$l.ts) -lt $INSIST_S) { $insiste = $true }
+                if ((Tiene $l 'auto') -and [bool]$l.auto) { $auto = $true }
             } catch { }
             if ($insiste) {
-                $f = Fila 'insist'; $f['model'] = $tr; $f['sig'] = $sig; Apunta $f
+                # el mismo prompt vuelve: o insististe tu, o lo reenvio el relevo (5c)
+                $evn = 'insist'; if ($auto) { $evn = 'resent' }
+                $f = Fila $evn; $f['model'] = $tr; $f['sig'] = $sig; Apunta $f
             } else {
-                try {
-                    if (-not (Test-Path $michi)) { New-Item -ItemType Directory -Path $michi -Force | Out-Null }
-                    Set-Content -Path $last -Value (@{ h = $h; tier = $tr; ts = $ts } | ConvertTo-Json -Compress) -Encoding UTF8
-                } catch { }
                 $dest = Destino $tr $peso; if (-not $dest) { $dest = 'opus' }
-                $escOk = $false; $escErr = ''
+                $escOk = $false; $escErr = ''; $reenvio = $false
                 $escOn = (Tiene $st 'esc') -and [bool]$st.esc
+                $rsOn = (Tiene $st 'rs') -and [bool]$st.rs
                 if ($escOn) {
                     # ESCALAR SOLO: el relevo de esta sesion teclea /model; el
-                    # usuario solo reenvia. Sin relevo/acuse, freno de siempre.
-                    $r2 = Escalar $sid $cwd $dest; $escOk = $r2[0]; $escErr = $r2[1]
-                    $f = Fila 'escalate'; $f['model'] = $tr; $f['to'] = $dest; $f['ok'] = $escOk; $f['err'] = $escErr; $f['sig'] = $sig; Apunta $f
+                    # usuario solo reenvia - o con rs (5c) lo reenvia el relevo.
+                    $thenTxt = $null; if ($rsOn) { $thenTxt = $prompt }
+                    $r2 = Escalar $sid $cwd $dest $thenTxt; $escOk = $r2[0]; $escErr = $r2[1]; $reenvio = $r2[2]
+                    $f = Fila 'escalate'; $f['model'] = $tr; $f['to'] = $dest; $f['ok'] = $escOk; $f['err'] = $escErr; $f['resend'] = $reenvio; $f['sig'] = $sig; Apunta $f
                 } else {
                     $f = Fila 'block'; $f['model'] = $tr; $f['sig'] = $sig; $f['to'] = $dest; Apunta $f
                 }
-                if ($escOk) {
+                # la memoria de insistencia se escribe DESPUES de escalar: asi
+                # sabe si el proximo reenvio sera del relevo (auto) o tuyo
+                try {
+                    if (-not (Test-Path $michi)) { New-Item -ItemType Directory -Path $michi -Force | Out-Null }
+                    Set-Content -Path $last -Value (@{ h = $h; tier = $tr; ts = $ts; auto = ($escOk -and $reenvio) } | ConvertTo-Json -Compress) -Encoding UTF8
+                } catch { }
+                if ($escOk -and $reenvio) {
+                    $razon = "MichiClaude: this looked complex for $tr, so I'm switching this session to $dest and resending it for you. Nothing to do. / Esto se veia complejo para ${tr}: estoy subiendo la sesion a $dest y lo reenvio yo. No tienes que hacer nada."
+                } elseif ($escOk) {
                     $razon = "MichiClaude: this looked complex for $tr, so I'm switching this session to $dest. Give it ~10 s and resend (Up + Enter). / Esto se veia complejo para ${tr}: estoy subiendo la sesion a $dest. Dale ~10 s y reenvialo (flecha arriba + Enter)."
                 } else {
                     $razon = "MichiClaude: this looks complex and you're on $tr. Run /model $dest and resend, or prefix ~ to send as is. / Esto se ve complejo y vas en ${tr}: /model $dest y reenvia, o antepon ~ para mandarlo tal cual."

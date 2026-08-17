@@ -3680,3 +3680,36 @@ relevo, sesión nueva de Claude).
 QUÉ QUEDA: cargo check de src-tauri con la 5b lo hizo `npm run dev`
 (arrancó y la nota llegó con `esc`); relevo/ `cargo check` limpio en
 Windows. Pendientes: consejero en vivo (cuota ≥70), WSL, etapa 6.
+
+## 2026-08-17 (15) — 5c: el guardián reenvía por ti (100 % automático en el chat)
+
+QUÉ: la última pieza que Oscar quería desde el principio: tras el freno
+y el `/model`, el relevo REENVÍA el prompt frenado y el usuario no toca
+nada. Interruptor «…y reenviarlo por mí» (`rs`, apagado, exige «Escalar
+solo»); bandera en la nota; el guardián (py+ps1) manda `then` con el
+prompt SOLO si el relevo de esa sesión es de chat (`mode: chat`); el
+relevo (py+rs) espera el `result` del /model y manda `then` como
+mensaje `user` sin eco (`send_user(echo=False)` / `say_echo`) —con eco
+salía dos veces, medido—; acuse con `resent`; memoria de insistencia con
+`auto` → el reenvío se anota `resent` (Michi), no `insist` (tú). Rust
+además ganó la espera de 8 s para /model que solo tenía Python (un
+`attend` para los dos modos; la I/O va en hilos, esperar ahí no congela).
+Textos rt_rs_*/rt_ev_esc_rs/rt_ev_resent/rt_rep_resent/rt_balloon_esc_rs
+×8. Privacidad: el texto viaja en el `.cmd` (borrado al leer) y en la
+variable del hilo; ni acuse, ni estado, ni log (verificado: grep del
+prompt en el log = 0). Terminal: sigue «reenvía tú» (un multilínea
+tecleado se manda al primer salto de línea).
+
+CÓMO SE VERIFICÓ: en vivo (VPS, relevo real, chat stream-json): freno →
+/model opus (relevo) → «Set model to Opus 5» → prompt reenviado por el
+relevo (multilínea entero) → respuesta en claude-opus-5; el "usuario"
+(alimentador) no mandó nada tras el prompt. Segunda corrida con el eco
+corregido: un solo mensaje. Matriz del guardián 24/24; --ruteo cuenta
+esc=6, resent=2 con el log real del día. NO verificado: cargo check
+(lib.rs: RuteoCfg.rs, set_ruteo_flags(rs), RuteoRow.resend, resent en
+report; relevo/: is_model_cmd, espera, then, say_echo), el .ps1, la app.
+
+QUÉ QUEDA: Oscar — git pull, cargo check en src-tauri y relevo/, npm run
+dev, encender «…y reenviarlo por mí», y la prueba de siempre en el chat
+del VPS: tras el freno NO tocar nada — el globo debe decir «…y lo reenvié
+yo», y la respuesta llegar en Opus sola.
