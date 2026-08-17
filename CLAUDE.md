@@ -582,8 +582,7 @@ marcas congelan su "antes" (`m.b`) al nacer. NADA de SQLite (inv. #4).
 
 ## Retención de logs
 
-Claude Code borra a los 30 días y el analizador necesita historial:
-`cleanupPeriodDays: 365` (VPS y Windows).
+Claude Code borra a los 30 días: `cleanupPeriodDays: 365` (VPS y Windows).
 
 ## Comandos
 
