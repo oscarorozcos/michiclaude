@@ -526,7 +526,9 @@ FOTO COMPLETA: bitácora §"cierre 2026-08-08/09" y §"2026-08-17 (18)".
 - [ ] VALIDACIÓN PASIVA (con el uso): alarmas reales (umbral, 100%,
       ventana nueva), camino ntfy completo (PC apagada), aviso de
       hallazgos naciendo natural, ruteo (consejero en vivo con cuota ≥70,
-      WSL, terminal nativo ConPTY) y análisis local (primer `via:emb` en
+      primer `think-top → fable` real con cuota <50, primera BAJADA SOLA
+      real —8 ligeros + cuota ≥70—, `/model` en terminal ConPTY tanto
+      para subir como para bajar, WSL) y análisis local (primer `via:emb` en
       sesión REAL al 80% y muestra natural antes de afinar umbrales;
       cualquier rareza de clear/compact se revisa con flowLog +
       emb_debug.txt).
