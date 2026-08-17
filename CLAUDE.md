@@ -535,30 +535,21 @@ presion-y-rendimiento §"Qué queda vivo".
       el instalador SIN tocar el workflow (invariante #9).
 - [x] RUTEO INTELIGENTE — CERRADO 2026-08-17 (etapas 0-5c; TODAS las
       reglas vigentes en `docs/ruteo-inteligente.md` §10-11 y
-      remediacion.md §"La ÚNICA ampliación" — LEERLO antes de tocar). En
-      VALIDACIÓN PASIVA con el uso: falta ver nacer el consejero (cuota
-      ≥70), la corrida en WSL y la terminal de Windows nativo (ConPTY,
-      michi.exe). Etapa 6 (v2) cuando haya días de datos. Piezas:
-      nota `router_state.json` (local+WSL+SSH; apagado = no se escribe;
-      >10 min = ausente; lleva `guard`/`ctx`/`esc`); Hook B `router-hook.py/
-      .ps1` (exploración→haiku, implementación→sonnet, análisis baja solo
-      con cuota ≥70; anota `parent`); Hook A `guard-hook.py/.ps1`
-      (UserPromptSubmit: frena prompt pesado en haiku/sonnet ANTES de
-      gastar; insistencia pasa; `~` escotilla; JAMÁS el texto al log); UN
-      alta para los dos hooks (respaldo+atómico); registro visible en
-      Ajustes; medición `scan_ruteo` (Rust+exportador `--ruteo`, réplicas:
-      agent-*.jsonl reales × tarifa padre−impuesto; sin casar no se
-      factura) en Reporte; consejero `light` (motor del coach, réplicas:
-      racha de turnos ligeros que se reinicia con código; compuerta en el
-      panel: modelo caro + gauge ≥70 + sin 3 «no») → tarjeta →
-      `set_default_model` (SOLO sesiones nuevas, lista cerrada). ESCALAR
-      SOLO (5b, `esc`, exige guardián): al frenar, el hook deja `/model
-      <peldaño>` al relevo SIN esperar acuse (abrazo mortal medido); el
-      relevo espera ≤20 s SOLO para /model; globo del gatito.
-      5c `rs` (exige esc): el relevo reenvía el prompt (`then`, jamás
-      persistido) — chat: mensaje JSON; terminal: `type_model` (Enter al
-      diálogo + RESTAURAR el default que /model guarda) y `type_paste`.
-      Validados en vivo; cargo check limpio en Windows (2026-08-17).
+      remediacion.md §"La ÚNICA ampliación" — LEERLO antes de tocar).
+      Resumen: nota `router_state.json` (local+WSL+SSH; apagado = no se
+      escribe; >10 min = ausente; banderas guard/ctx/esc/rs); Hook B
+      (subagentes → haiku/sonnet, `parent` anotado); Hook A guardián
+      (UserPromptSubmit: frena prompt pesado en haiku/sonnet, insistencia,
+      `~`, JAMÁS el texto al log); escalar solo por el RELEVO (`/model
+      <alias>` = ÚNICA ampliación de la lista blanca; el hook NO espera
+      acuse; terminal: `type_model` = Enter al diálogo + RESTAURAR el
+      default que la TUI guarda) y reenviar (`then`, jamás persistido;
+      chat JSON / terminal `type_paste`); consejero `light` (motor del
+      coach, réplicas; compuerta en el panel; `set_default_model` SOLO
+      sesiones nuevas); medición `scan_ruteo` (réplicas; sin casar no se
+      factura); registro visible y globo. Cargo check limpio en Windows.
+      VALIDACIÓN PASIVA: consejero en vivo (cuota ≥70), WSL, terminal de
+      Windows nativo (ConPTY). Etapa 6 (v2) con datos del Reporte.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito. NO:
   rastrear otras herramientas, BD de historial, modo equipo.
 
