@@ -182,16 +182,22 @@ def escalar(sid, cwd, alias, then=None):
     esperar aquí era un abrazo mortal (medido 2026-08-17: ERR_RELAY_BUSY
     durante toda la espera). El relevo teclea en cuanto pueda; el acuse
     queda en su estado y el panel lo lee. `then` = el prompt a REENVIAR
-    tras el /model (5c): solo viaja si el relevo es de CHAT (mensaje JSON
-    atómico); el buzón se borra al leerlo y el texto no se anota en ningún
-    sitio. Devuelve (escrito, err, reenvio_pedido)."""
+    tras el /model (5c): chat = mensaje JSON atómico, terminal = pegado
+    entre marcas; el buzón se borra al leerlo y el texto no se anota en
+    ningún sitio. Devuelve (escrito, err, reenvio_pedido)."""
     st = relevo_de(sid, cwd)
     if not st or not st.get("pid"):
         return False, "NORELAY", False
+    # SOLO CHAT (medido 2026-08-17 en la TUI 2.1.233): en terminal `/model`
+    # abre un diálogo («Switch model? … 1. Yes / 2. No») Y guarda el modelo
+    # como DEFAULT de sesiones nuevas — justo lo que este sistema promete no
+    # hacer en silencio. En terminal se queda el freno con su mensaje.
+    if st.get("mode") != "chat":
+        return False, "TERMINAL", False
     pid = st.get("pid")
     rid = "esc-%d" % int(time.time() * 1000)
     orden = {"id": rid, "op": "inject", "text": "/model " + alias, "export": False}
-    reenvio = bool(then) and st.get("mode") == "chat"
+    reenvio = bool(then)   # chat: mensaje JSON atómico (multilínea entero)
     if reenvio:
         orden["then"] = then
     body = json.dumps(orden, ensure_ascii=False)

@@ -3713,3 +3713,42 @@ QUÉ QUEDA: Oscar — git pull, cargo check en src-tauri y relevo/, npm run
 dev, encender «…y reenviarlo por mí», y la prueba de siempre en el chat
 del VPS: tras el freno NO tocar nada — el globo debe decir «…y lo reenvié
 yo», y la respuesta llegar en Opus sola.
+
+## 2026-08-17 (16) — 5c en terminal: la TUI pide confirmación y guarda el default — se escala solo SOLO en chat
+
+QUÉ: intento de llevar el reenvío automático (5c) al modo terminal con
+pegado entre marcas (`type_paste`, bracketed paste + Enter aparte, en
+Python y Rust), más `sid` publicado por el relevo terminal (`guess_sid`
+en los dos) y `then` en el pendiente del bucle de la PTY. Todo eso QUEDA
+en el relevo — pero el guardián NO lo pide en terminal, por lo medido:
+(1) en la TUI 2.1.233 `/model opus` abre un diálogo «Switch model? 1.
+Yes / 2. No» — el pegado del reenvío caía encima y su Enter era el «Yes»;
+(2) al confirmar, «Set model to Opus 5 and saved as your default for
+new sessions»: escribió `model: opus` en el settings.json del VPS
+(revertido a mano al instante). En el chat no pasa ninguna de las dos
+(«for this session only», sin diálogo). Decisión: escalar/reenviar SOLO
+si el relevo publica `mode: chat`; en terminal, freno con mensaje y
+`err: TERMINAL` en el log. Y `MODEL_WAIT` a 20 s (la TUI repinta tras el
+bloqueo y 8 s se quedaban cortos), pegado solo con calma TOTAL y 1 s
+antes del Enter.
+
+AUTOPSIAS de la tarde (varias mordidas de mi propio banco de pruebas):
+la PTY hija heredaba `CLAUDE_CODE_CHILD_SESSION` y no guardaba
+transcript (sin transcript ni sid ni modelo → el guardián callaba);
+Claude Code se actualizó a 2.1.233 a media tarde y estrenó el diálogo
+«Set up auto mode?» tras el primer turno (mi pegado lo confirmaba y
+cerraba la sesión); y `wait_for("❯")` cazaba el prompt de más y
+re-pegaba. Nada de eso es del código de MichiClaude, pero costó tres
+corridas distinguirlo del fallo real (el diálogo de /model).
+
+CÓMO SE VERIFICÓ: terminal (PTY real, entorno limpio, diálogo auto mode
+contestado): freno con mensaje manual, `escalate ok=False err=TERMINAL`,
+settings sin `model`. Chat (regresión): freno → /model opus «for this
+session only» → reenvío → claude-opus-5, settings sin `model`. Matriz del
+guardián 24/24. NO verificado: cargo check de relevo/ (guess_sid,
+type_paste, then en terminal, calm=ready) y del guardián .ps1.
+
+QUÉ QUEDA: si una versión futura de la TUI deja de guardar el default
+con /model (o de pedir confirmación), quitar la compuerta `mode==chat`
+del guardián y probar el pegado (`type_paste` ya está). Oscar: git pull,
+cargo check en relevo/ y src-tauri, npm run dev; el chat sigue igual.

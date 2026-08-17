@@ -106,14 +106,17 @@ function RelevoDe($sid, $cwd) {
 function Escalar($sid, $cwd, $alias, $then) {
     # Deja la orden /model al relevo y SALE sin esperar el acuse (el relevo
     # solo queda libre tras el result del bloqueo, que espera a este hook).
-    # $then = el prompt a REENVIAR tras el /model (5c): solo viaja si el
-    # relevo es de CHAT; el texto no se anota en ningun sitio.
+    # $then = el prompt a REENVIAR tras el /model (5c); el texto no se
+    # anota en ningun sitio.
     $st = RelevoDe $sid $cwd
     if ($null -eq $st -or -not (Tiene $st 'pid')) { return ,@($false, 'NORELAY', $false) }
+    # SOLO CHAT: en terminal /model abre un dialogo y guarda el modelo como
+    # DEFAULT de sesiones nuevas (medido 2026-08-17). Ahi, freno con mensaje.
+    if (-not (Tiene $st 'mode') -or ('' + $st.mode) -ne 'chat') { return ,@($false, 'TERMINAL', $false) }
     $pid2 = $st.pid
     $rid = 'esc-' + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     $orden = [ordered]@{ id = $rid; op = 'inject'; text = ('/model ' + $alias); export = $false }
-    $reenvio = ($then -and (Tiene $st 'mode') -and ('' + $st.mode) -eq 'chat')
+    $reenvio = [bool]$then
     if ($reenvio) { $orden['then'] = $then }
     $body = $orden | ConvertTo-Json -Compress -Depth 3
     $path = Join-Path $relayDir ($pid2.ToString() + '.cmd')

@@ -1404,6 +1404,25 @@ de insistencia lleva `auto:true` para que el reenvío se anote como
 stream-json): freno → /model opus → reenvío → respuesta en opus-5, sin
 tocar nada.
 
+**Terminal: NO se escala solo (medido 2026-08-17, TUI 2.1.233).** En
+terminal `/model opus` (a) abre un DIÁLOGO («Switch model? Your next
+response will be slower… 1. Yes, switch / 2. No, go back») y (b) al
+confirmar «Set model to Opus 5 **and saved as your default for new
+sessions**»: escribe `model` en settings.json. En el chat no pasa nada
+de eso («for this session only», sin diálogo). Lo primero rompe la
+coreografía (el pegado del reenvío caía sobre el diálogo y su Enter era
+el «Yes»); lo segundo es EXACTAMENTE lo que este sistema promete no
+hacer en silencio — y en la prueba dejó `model: opus` en el settings del
+VPS (revertido a mano). Regla: el guardián solo escala/reenvía si el
+relevo de la sesión publica `mode: chat`; en terminal se queda el freno
+con su mensaje («/model opus y reenvía») y el log dice `err: TERMINAL`.
+El relevo CONSERVA el soporte de `then` en terminal (pegado entre
+marcas + Enter, `type_paste`) por si la TUI cambia, pero el guardián no
+lo pide. De paso: el relevo terminal ahora publica `sid` (guess_sid:
+transcript más reciente de su carpeta nacido tras el arranque) — sin
+eso el guardián casaba por carpeta y con dos terminales en el mismo repo
+acertaba al azar.
+
 ## El auto-/clear con red (/export verificado) — 2026-08-09
 
 Lo pidió Oscar tras ver el hallazgo de una conversación de 729 turnos:

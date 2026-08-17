@@ -63,7 +63,7 @@ const MODEL_ALIASES: [&str; 4] = ["haiku", "sonnet", "opus", "fable"];
 /// después). Para ese comando —y SOLO para ese, que no destruye nada— se
 /// espera a quedar libre en vez de rechazar (medido 2026-08-17). La I/O va
 /// en hilos, así que esperar aquí no congela nada.
-const MODEL_WAIT_MS: u64 = 8_000;
+const MODEL_WAIT_MS: u64 = 20_000; // la TUI repinta tras el bloqueo: 8 s se quedaban cortos en terminal
 const MODEL_TICK_MS: u64 = 200;
 
 fn is_model_cmd(text: &str) -> bool {
@@ -157,6 +157,58 @@ fn handoff_dir() -> PathBuf {
 /// por nombre en vez de reproducir la transformación de carpetas de Claude
 /// Code — menos frágil ante sus cambios. Solo lo usa el modo chat
 /// (2026-08-13): la extensión NO tiene /export y la copia de la red la
+/// El session_id de una sesión de TERMINAL: el transcript más reciente de
+/// la carpeta de este cwd nacido tras el arranque del relevo. Sin esto el
+/// estado no lleva `sid` y el guardián solo puede casar por carpeta — y con
+/// dos terminales en el mismo repo eso acierta al azar (mordió 2026-08-17).
+/// La carpeta sigue la regla de Claude Code (no alfanumérico → «-»).
+/// Réplica de `guess_sid` en michi-relevo.py.
+fn guess_sid(cwd: &PathBuf, started: i64) -> String {
+    let base = match std::env::var("CLAUDE_CONFIG_DIR") {
+        Ok(d) if !d.is_empty() => PathBuf::from(d),
+        _ => {
+            let Some(home) = std::env::var("USERPROFILE")
+                .or_else(|_| std::env::var("HOME"))
+                .ok()
+            else {
+                return String::new();
+            };
+            PathBuf::from(home).join(".claude")
+        }
+    };
+    let slug: String = cwd
+        .to_string_lossy()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect();
+    let Ok(rd) = std::fs::read_dir(base.join("projects").join(slug)) else {
+        return String::new();
+    };
+    let mut best = String::new();
+    let mut best_m: i64 = 0;
+    for e in rd.flatten() {
+        let name = e.file_name().to_string_lossy().to_string();
+        if !name.ends_with(".jsonl") {
+            continue;
+        }
+        let Ok(md) = e.metadata() else { continue };
+        if !md.is_file() {
+            continue;
+        }
+        let m = md
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        if m >= started - 2 && m > best_m {
+            best = name.trim_end_matches(".jsonl").to_string();
+            best_m = m;
+        }
+    }
+    best
+}
+
 /// hace el relevo. Réplica exacta de `session_jsonl` en michi-relevo.py.
 fn session_jsonl(sid: &str) -> Option<PathBuf> {
     if sid.is_empty() {
@@ -997,6 +1049,8 @@ fn run_relevo(extra: &[String]) -> ! {
     let state_path = dir.join(format!("{pid}.json"));
     let cmd_path = dir.join(format!("{pid}.cmd"));
     let mut last_size = (cols, rows);
+    let mut tsid = String::new();
+    let mut tsid_at: u64 = 0;
     let mut last_state = 0u64;
 
     loop {
@@ -1029,7 +1083,16 @@ fn run_relevo(extra: &[String]) -> ! {
         let now = sh.ms();
         if last_state == 0 || now.saturating_sub(last_state) >= STATE_EVERY_MS {
             last_state = now.max(1);
-            write_atomic(&state_path, &snapshot(&sh, pid, started, &cwd, "terminal", ""));
+            // el sid de la sesión (para que el guardián case EXACTO): se busca
+            // cada 5 s hasta dar con él; luego se re-mira por si hubo /clear
+            if now.saturating_sub(tsid_at) >= 5_000 {
+                tsid_at = now;
+                let g = guess_sid(&cwd, started);
+                if !g.is_empty() {
+                    tsid = g;
+                }
+            }
+            write_atomic(&state_path, &snapshot(&sh, pid, started, &cwd, "terminal", &tsid));
         }
 
         std::thread::sleep(Duration::from_millis(TICK_MS));
@@ -1116,6 +1179,32 @@ fn type_line(writer: &Arc<Mutex<Option<Box<dyn Write + Send>>>>, text: &str) -> 
         let _ = w.flush();
     }
     std::thread::sleep(Duration::from_millis(ENTER_GAP_MS));
+    let mut lock = writer.lock().unwrap();
+    let Some(w) = lock.as_mut() else { return false };
+    if w.write_all(b"\r").is_err() {
+        return false;
+    }
+    let _ = w.flush();
+    true
+}
+
+/// PEGA un texto (multilínea entero) y luego Enter aparte: envuelto en las
+/// marcas de bracketed paste, la TUI lo toma como un pegado y no como Enter
+/// tras Enter — así el reenvío del 5c no se corta en el primer salto de
+/// línea. R5 intacta: solo se AÑADE. Réplica de `type_paste` en Python.
+fn type_paste(writer: &Arc<Mutex<Option<Box<dyn Write + Send>>>>, text: &str) -> bool {
+    {
+        let mut lock = writer.lock().unwrap();
+        let Some(w) = lock.as_mut() else { return false };
+        if w.write_all(b"\x1b[200~").is_err()
+            || w.write_all(text.as_bytes()).is_err()
+            || w.write_all(b"\x1b[201~").is_err()
+        {
+            return false;
+        }
+        let _ = w.flush();
+    }
+    std::thread::sleep(Duration::from_millis(1_000)); // la TUI registra el «[Pasted text]» antes del Enter
     let mut lock = writer.lock().unwrap();
     let Some(w) = lock.as_mut() else { return false };
     if w.write_all(b"\r").is_err() {
@@ -1217,10 +1306,11 @@ fn attend(raw: &str, sh: &Arc<Shared>, sp: &Arc<Speaker>) -> Option<serde_json::
         return Some(ack_json(&id, &text, false, sh.why_not(), None));
     }
     // REENVÍO (ruteo 5c): tras un /model, el guardián puede pedir que se
-    // reenvíe el prompt frenado (`then`). SOLO en modo chat (mensaje JSON
-    // atómico: el multilínea viaja entero) y SOLO detrás de un /model. El
-    // texto NO se persiste en ningún sitio: ni acuse, ni estado, ni log.
-    let then = if is_model_cmd(&text) && sp.sid.is_some() {
+    // reenvíe el prompt frenado (`then`). SOLO detrás de un /model. Chat:
+    // mensaje JSON atómico (el multilínea viaja entero); terminal: PEGADO
+    // entre marcas cuando la PTY vuelve a la calma. El texto NO se persiste
+    // en ningún sitio: ni acuse, ni estado, ni log.
+    let then = if is_model_cmd(&text) {
         v["then"].as_str().map(|t| t.to_string()).filter(|t| !t.trim().is_empty())
     } else {
         None
@@ -1230,18 +1320,38 @@ fn attend(raw: &str, sh: &Arc<Shared>, sp: &Arc<Speaker>) -> Option<serde_json::
             return Some(ack_json(&id, &text, false, "ERR_RELAY_WRITE", None));
         }
         sh.inject_at.store(sh.ms(), Ordering::Relaxed);
+        let chat = sp.sid.is_some();
         let sh2 = sh.clone();
         let sp2 = sp.clone();
         let id2 = id.clone();
         let text2 = text.clone();
         std::thread::spawn(move || {
-            // el /model es un comando local: su result llega en <1 s. Se
-            // espera a que el turno cierre y se reenvía el prompt.
-            let fin = sh2.ms() + MODEL_WAIT_MS;
-            while sh2.busy.load(Ordering::Relaxed) != 0 && sh2.ms() < fin {
-                std::thread::sleep(Duration::from_millis(MODEL_TICK_MS));
-            }
-            let ok = sh2.busy.load(Ordering::Relaxed) == 0 && sp2.say_echo(&sh2, &then, false);
+            // el pegado en terminal exige CALM_MS (8 s) de quietud tras el
+            // /model: el plazo va holgado a propósito
+            let fin = sh2.ms() + MODEL_WAIT_MS + COOLDOWN_MS + CALM_MS;
+            let ok = if chat {
+                // el /model es un comando local: su result llega en <1 s. Se
+                // espera a que el turno cierre y se reenvía el prompt.
+                while sh2.busy.load(Ordering::Relaxed) != 0 && sh2.ms() < fin {
+                    std::thread::sleep(Duration::from_millis(MODEL_TICK_MS));
+                }
+                sh2.busy.load(Ordering::Relaxed) == 0 && sp2.say_echo(&sh2, &then, false)
+            } else {
+                // terminal: calma TOTAL (cooldown del /model incluido):
+                // pegar mientras la TUI repinta el «Set model…» dejaba el
+                // texto en la caja sin enviar
+                let calm = |s: &Shared| s.ready();
+                while !calm(&sh2) && sh2.ms() < fin {
+                    std::thread::sleep(Duration::from_millis(MODEL_TICK_MS));
+                }
+                if calm(&sh2) {
+                    let ok = type_paste(&sp2.to_child, &then);
+                    sh2.inject_at.store(sh2.ms(), Ordering::Relaxed);
+                    ok
+                } else {
+                    false
+                }
+            };
             let mut ack = ack_json(&id2, &text2, true, "", None);
             ack["resent"] = serde_json::Value::Bool(ok);
             *sh2.ack.lock().unwrap() = Some(ack);

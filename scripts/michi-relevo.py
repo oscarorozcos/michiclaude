@@ -51,7 +51,7 @@ MODEL_ALIASES = ("haiku", "sonnet", "opus", "fable")
 # después). Para ese comando —y SOLO para ese, que no destruye nada— se
 # espera a que el relevo quede libre en vez de rechazar (medido 2026-08-17:
 # ERR_RELAY_BUSY con la orden escrita 0.2 s después del bloqueo).
-MODEL_WAIT_S = 8.0
+MODEL_WAIT_S = 20.0    # la TUI repinta tras el bloqueo (spinner, mensaje): 8 s se quedaban cortos en terminal
 MODEL_TICK_S = 0.2
 
 
@@ -169,6 +169,30 @@ def session_jsonl(sid):
     except OSError:
         pass
     return None
+
+
+def guess_sid(cwd, started):
+    """El session_id de una sesión de TERMINAL: el transcript más reciente
+    de la carpeta de este cwd nacido tras el arranque del relevo. Sin esto
+    el estado no lleva `sid` y el guardián solo puede casar por carpeta —
+    y con dos terminales en el mismo repo eso acierta al azar (mordió
+    2026-08-17). La carpeta sigue la regla de Claude Code (todo lo que no
+    es alfanumérico → «-»); si no existe, se busca el sid por contenido no
+    hace falta: se vuelve a intentar en el siguiente sondeo."""
+    base = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    slug = "".join(c if c.isalnum() else "-" for c in cwd)
+    d = os.path.join(base, "projects", slug)
+    best, best_m = "", 0
+    try:
+        for e in os.scandir(d):
+            if not e.name.endswith(".jsonl") or not e.is_file():
+                continue
+            m = e.stat().st_mtime
+            if m >= started - 2 and m > best_m:
+                best, best_m = e.name[:-6], m
+    except OSError:
+        pass
+    return best
 
 
 def prune_handoffs():
@@ -447,6 +471,7 @@ def run_relevo(extra):
     # hilo para que este bucle siga bombeando pantalla y estado)
     hand = {"on": False}
     pend = {"cmd": None}   # /model a la espera de que el relevo quede libre
+    paste = {"cmd": None}  # 5c: prompt a PEGAR cuando el /model haya salido
     prune_handoffs()
     d = state_dir()
     state_path = os.path.join(d, f"{pid}.json")
@@ -471,16 +496,26 @@ def run_relevo(extra):
             return "ERR_RELAY_COOLDOWN"
         return ""
 
+    tsid = {"sid": "", "at": 0.0}
+
     def snapshot():
         now = now_ms()
         kw.resolve(now, last_out)
         why = why_not()
         uc = kw.user_cmd
+        # el sid de la sesión (para que el guardián case EXACTO): se busca
+        # cada 5 s hasta dar con él; luego se re-mira por si hubo /clear
+        if time.time() - tsid["at"] >= 5:
+            tsid["at"] = time.time()
+            g = guess_sid(cwd, started)
+            if g:
+                tsid["sid"] = g
         return json.dumps({
             "v": STATE_V,
             "pid": pid,
             "started": started,
             "cwd": cwd,
+            "sid": tsid["sid"],
             "ts": now_epoch(),
             "alive": child.poll() is None,
             "typed": kw.has_text(),
@@ -508,6 +543,15 @@ def run_relevo(extra):
         ENTER_GAP_S). R5 intacta: solo se AÑADE, ni un borrado."""
         os.write(master, txt.encode())
         time.sleep(ENTER_GAP_S)
+        os.write(master, b"\r")
+
+    def type_paste(txt):
+        """PEGA un texto (multilínea entero) y luego Enter aparte: envuelto
+        en las marcas de bracketed paste, la TUI lo toma como un pegado y no
+        como Enter tras Enter — así el reenvío del 5c no se corta en el
+        primer salto de línea. R5 intacta: solo se AÑADE."""
+        os.write(master, b"\x1b[200~" + txt.encode() + b"\x1b[201~")
+        time.sleep(1.0)      # la TUI registra el «[Pasted text]» antes del Enter
         os.write(master, b"\r")
 
     def do_handoff(rid, text):
@@ -578,15 +622,30 @@ def run_relevo(extra):
         export = bool(v.get("export")) and text == "/clear"
         if not allowed(text):
             return ack_row(rid, text, False, "ERR_RELAY_BADCMD")
+        # REENVÍO (5c) en terminal: `then` = el prompt frenado, que se PEGA
+        # (bracketed paste, multilínea entero) cuando el /model haya salido
+        # y la PTY vuelva a la calma. Solo detrás de un /model. El texto no
+        # se persiste: vive en `pend`/`paste` y se va con ellos.
+        then = v.get("then") if is_model_cmd(text) else None
+        then = then if isinstance(then, str) and then.strip() else None
         w = why_not()
         if w and is_model_cmd(text):
             # /model: no se rechaza, se deja PENDIENTE y el bucle de la PTY
             # lo reintenta en cada vuelta hasta MODEL_WAIT_S (esperar aquí
             # dentro congelaría la pantalla: este attend corre en el bucle)
-            pend["cmd"] = (rid, text, time.time() + MODEL_WAIT_S)
+            pend["cmd"] = (rid, text, time.time() + MODEL_WAIT_S, then)
             return None
         if w:
             return ack_row(rid, text, False, w)
+        if then:
+            try:
+                type_line(text)
+            except OSError:
+                return ack_row(rid, text, False, "ERR_RELAY_WRITE")
+            inject_at = now_ms()
+            # el pegado exige la calma del teclado (CALM): plazo holgado
+            paste["cmd"] = (rid, text, time.time() + MODEL_WAIT_S + 25, then)
+            return None
         if export:
             hand["on"] = True
             threading.Thread(target=do_handoff, args=(rid, text),
@@ -632,20 +691,48 @@ def run_relevo(extra):
                     os.write(1, tm.feed(data))
             # un /model pendiente (guardián): se teclea en cuanto haya calma
             if pend["cmd"]:
-                prid, ptext, pfin = pend["cmd"]
+                prid, ptext, pfin, pthen = pend["cmd"]
                 pw = why_not()
                 if not pw:
                     pend["cmd"] = None
                     try:
                         type_line(ptext)
                         inject_at = now_ms()
-                        last_ack = ack_row(prid, ptext, True, "")
+                        if pthen:
+                            paste["cmd"] = (prid, ptext, time.time() + MODEL_WAIT_S + 25, pthen)
+                        else:
+                            last_ack = ack_row(prid, ptext, True, "")
                     except OSError:
                         last_ack = ack_row(prid, ptext, False, "ERR_RELAY_WRITE")
                     last_state = 0.0
                 elif time.time() > pfin:
                     pend["cmd"] = None
                     last_ack = ack_row(prid, ptext, False, pw)
+                    last_state = 0.0
+            # el reenvío del 5c: cuando el /model salió y la PTY volvió a la
+            # calma, se PEGA el prompt (entero) y Enter aparte
+            if paste["cmd"]:
+                qrid, qtext, qfin, qthen = paste["cmd"]
+                # calma TOTAL (cooldown del /model incluido): pegar mientras
+                # la TUI repinta el «Set model…» dejaba el texto en la caja
+                qw = why_not()
+                if qw == "":
+                    paste["cmd"] = None
+                    try:
+                        type_paste(qthen)
+                        inject_at = now_ms()
+                        a2 = ack_row(qrid, qtext, True, "")
+                        a2["resent"] = True
+                    except OSError:
+                        a2 = ack_row(qrid, qtext, True, "")
+                        a2["resent"] = False
+                    last_ack = a2
+                    last_state = 0.0
+                elif time.time() > qfin:
+                    paste["cmd"] = None
+                    a2 = ack_row(qrid, qtext, True, "")
+                    a2["resent"] = False
+                    last_ack = a2
                     last_state = 0.0
             # órdenes del panel (o de `inject`): el buzón se borra al leer
             if os.path.exists(cmd_path):
