@@ -48,6 +48,25 @@ function EstadoFresco {
     } catch { return $null }
 }
 
+function ModeloPadre($transcript) {
+    # El modelo de la sesion MADRE, de la cola del transcript: lo que el
+    # subagente habria heredado. Con el la medicion calcula el ahorro REAL.
+    try {
+        if (-not $transcript -or -not (Test-Path $transcript)) { return '' }
+        $fs = [System.IO.File]::Open($transcript, 'Open', 'Read', 'ReadWrite')
+        try {
+            $len = $fs.Length; $from = [Math]::Max(0, $len - 65536)
+            $fs.Seek($from, 'Begin') | Out-Null
+            $buf = New-Object byte[] ($len - $from)
+            $fs.Read($buf, 0, $buf.Length) | Out-Null
+        } finally { $fs.Close() }
+        $tail = [System.Text.Encoding]::UTF8.GetString($buf)
+        $ms = [regex]::Matches($tail, '"model"\s*:\s*"(claude-[^"]+)"')
+        if ($ms.Count -gt 0) { return $ms[$ms.Count - 1].Groups[1].Value }
+    } catch { }
+    return ''
+}
+
 function Clase($tipo) {
     $t = ('' + $tipo).ToLower()
     foreach ($w in $LIGHT_WORDS) { if ($t.Contains($w)) { return 'light' } }
@@ -80,11 +99,13 @@ try {
     $sid = ''; if ($evento.PSObject.Properties.Name -contains 'session_id') { $sid = '' + $evento.session_id }
     $cwd = ''; if ($evento.PSObject.Properties.Name -contains 'cwd') { $cwd = '' + $evento.cwd }
     $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    $tp = $null; if ($evento.PSObject.Properties.Name -contains 'transcript_path') { $tp = '' + $evento.transcript_path }
+    $parent = ModeloPadre $tp
 
     # la fila del cuaderno se arma explicita cada vez: sumar diccionarios
     # ordered es terreno resbaloso en PowerShell 5.1
     function Fila($ev, $why, $after) {
-        $f = [ordered]@{ ts = $ts; type = $tipo; before = $antes; sid = $sid; cwd = $cwd; ev = $ev; why = $why }
+        $f = [ordered]@{ ts = $ts; type = $tipo; before = $antes; sid = $sid; cwd = $cwd; parent = $parent; ev = $ev; why = $why }
         if ($null -ne $after) { $f['after'] = $after }
         return $f
     }

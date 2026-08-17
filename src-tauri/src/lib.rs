@@ -8095,6 +8095,314 @@ async fn get_ruteo_log() -> Result<Vec<RuteoRow>, String> {
     .map_err(|e| e.to_string())?
 }
 
+// ---------- medición del ruteo (etapa 3) ----------
+// docs/ruteo-inteligente.md §11. Cruza el cuaderno de decisiones con los
+// transcripts REALES de los subagentes: cada fila `route` busca su
+// agent-*.jsonl (mismo sid, nacido en los 3 min siguientes, misma familia)
+// y suma sus tokens; ahorro = tokens × (tarifa del PADRE − tarifa del
+// impuesto). Nada estimado salvo el contexto inyectado (~60 tok/evento,
+// marcado). RÉPLICA EXACTA de scan_ruteo() en meter-export.py (invariante
+// #1): en los servidores lo calcula el exportador con `--ruteo`.
+
+const RUTEO_MATCH_S: i64 = 180;
+const CTX_TOK_EST: u64 = 60;
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct RuteoReport {
+    #[serde(default)]
+    origin: String,
+    #[serde(default)]
+    routed: u64,
+    #[serde(default)]
+    haiku: u64,
+    #[serde(default)]
+    sonnet: u64,
+    #[serde(default)]
+    matched: u64,
+    #[serde(default)]
+    up: u64,
+    #[serde(default)]
+    tok: u64,
+    #[serde(default)]
+    cost: f64,
+    #[serde(default)]
+    cost_base: f64,
+    #[serde(default)]
+    saved: f64,
+    #[serde(default)]
+    blocks: u64,
+    #[serde(default)]
+    insist: u64,
+    #[serde(default)]
+    ctx: u64,
+    #[serde(default)]
+    ctx_tok: u64,
+    #[serde(default)]
+    skip: u64,
+    #[serde(default)]
+    estimated: bool,
+}
+
+/// El exportador devuelve `{"ruteo": {...}}`; un exportador viejo ignora
+/// `--ruteo` y devuelve el resumen normal (sin esa clave) → None.
+#[derive(Deserialize)]
+struct RuteoWrap {
+    ruteo: Option<RuteoReport>,
+}
+
+fn ruteo_family(model: &str) -> &'static str {
+    let m = model.to_lowercase();
+    for f in ["haiku", "sonnet", "opus", "fable", "mythos"] {
+        if m.contains(f) {
+            return match f {
+                "haiku" => "haiku",
+                "sonnet" => "sonnet",
+                "opus" => "opus",
+                "fable" => "fable",
+                _ => "mythos",
+            };
+        }
+    }
+    ""
+}
+
+fn ruteo_rows_window(michi: &PathBuf, since: i64, until: i64) -> Vec<serde_json::Value> {
+    let mut rows = Vec::new();
+    for name in ["ruteo_log.jsonl.1", "ruteo_log.jsonl"] {
+        let Ok(text) = fs::read_to_string(michi.join(name)) else { continue };
+        for line in text.lines() {
+            let Ok(r) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+            if !r.is_object() {
+                continue;
+            }
+            let Some(ts) = r["ts"].as_f64() else { continue };
+            let ts = ts as i64;
+            if ts < since || ts > until {
+                continue;
+            }
+            rows.push(r);
+        }
+    }
+    rows
+}
+
+/// La carpeta <proyecto>/<sid>/ de una sesión, buscándola en todos los
+/// proyectos: el sid es único y el cwd del cuaderno no siempre casa con el
+/// slug de la carpeta.
+fn ruteo_sid_dir(projects: &PathBuf, sid: &str) -> Option<PathBuf> {
+    if sid.is_empty() || sid.contains('/') || sid.contains('\\') || sid.starts_with('.') {
+        return None;
+    }
+    let rd = fs::read_dir(projects).ok()?;
+    for p in rd.flatten() {
+        let d = p.path().join(sid);
+        if d.is_dir() {
+            return Some(d);
+        }
+    }
+    None
+}
+
+fn ruteo_cost(e: &CachedEntry, p: (f64, f64, f64, f64)) -> f64 {
+    (e.inp as f64 * p.0 + e.out as f64 * p.1 + e.cw as f64 * p.2 + e.cr as f64 * p.3) / 1e6
+}
+
+struct RuteoAgent {
+    first: i64,
+    fam: &'static str,
+    ents: Vec<CachedEntry>,
+    used: bool,
+}
+
+fn scan_ruteo(projects: &PathBuf, michi: &PathBuf, days: u32, end: i64) -> RuteoReport {
+    let since = end - days as i64 * 86400;
+    let mut out = RuteoReport::default();
+    let rows = ruteo_rows_window(michi, since, end);
+    let mut agents: HashMap<String, Vec<RuteoAgent>> = HashMap::new();
+    let mut parents: HashMap<String, Vec<CachedEntry>> = HashMap::new();
+    for r in rows {
+        let ev = r["ev"].as_str().unwrap_or("");
+        match ev {
+            "block" => out.blocks += 1,
+            "insist" => out.insist += 1,
+            "ctx" => out.ctx += 1,
+            "skip" => out.skip += 1,
+            _ => {}
+        }
+        if ev != "route" {
+            continue;
+        }
+        out.routed += 1;
+        let after = r["after"].as_str().unwrap_or("").to_string();
+        if after == "haiku" {
+            out.haiku += 1;
+        } else if after == "sonnet" {
+            out.sonnet += 1;
+        }
+        let sid = r["sid"].as_str().unwrap_or("").to_string();
+        let ts = r["ts"].as_f64().unwrap_or(0.0) as i64;
+        let Some(sdir) = ruteo_sid_dir(projects, &sid) else { continue };
+        if !agents.contains_key(&sid) {
+            let mut lst = Vec::new();
+            let mut paths: Vec<PathBuf> = fs::read_dir(sdir.join("subagents"))
+                .map(|rd| {
+                    rd.flatten()
+                        .map(|e| e.path())
+                        .filter(|p| {
+                            p.file_name()
+                                .and_then(|n| n.to_str())
+                                .map(|n| n.starts_with("agent-") && n.ends_with(".jsonl"))
+                                .unwrap_or(false)
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            paths.sort();
+            for ap in paths {
+                let (_, ents, _, _) = parse_jsonl_file(&ap, 0);
+                let first = ents.iter().filter_map(|e| e.ts).min();
+                let (Some(first), Some(e0)) = (first, ents.first()) else { continue };
+                let fam = ruteo_family(&e0.model);
+                lst.push(RuteoAgent { first, fam, ents, used: false });
+            }
+            agents.insert(sid.clone(), lst);
+        }
+        let lst = agents.get_mut(&sid).unwrap();
+        let mut best: Option<usize> = None;
+        for (i, c) in lst.iter().enumerate() {
+            if c.used || c.fam != after.as_str() || c.first < ts - 5 || c.first > ts + RUTEO_MATCH_S {
+                continue;
+            }
+            if best.map(|b| c.first < lst[b].first).unwrap_or(true) {
+                best = Some(i);
+            }
+        }
+        let Some(bi) = best else { continue };
+        lst[bi].used = true;
+        let ents: Vec<CachedEntry> = lst[bi].ents.clone();
+        // el modelo del padre: la fila lo trae desde 2026-08-17; a las
+        // viejas se les busca en el transcript madre (última entrada
+        // anterior al hook, con tolerancia de 5 s: el hook anota segundos
+        // enteros y el transcript milisegundos). Sin padre no hay base.
+        let mut parent = r["parent"].as_str().unwrap_or("").to_string();
+        if parent.is_empty() {
+            if !parents.contains_key(&sid) {
+                let mp = sdir.parent().map(|p| p.join(format!("{sid}.jsonl")));
+                let mut pents: Vec<CachedEntry> = mp
+                    .filter(|p| p.is_file())
+                    .map(|p| parse_jsonl_file(&p, 0).1)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|e| e.ts.is_some())
+                    .collect();
+                pents.sort_by_key(|e| e.ts.unwrap_or(0));
+                parents.insert(sid.clone(), pents);
+            }
+            for e in &parents[&sid] {
+                let et = e.ts.unwrap_or(0);
+                if et <= ts + 5 {
+                    parent = e.model.clone();
+                } else if !parent.is_empty() {
+                    break;
+                }
+            }
+        }
+        if parent.is_empty() {
+            continue;
+        }
+        let actual = ents[0].model.clone();
+        let pa = price_for(&actual);
+        let pb = price_for(&parent);
+        let cost: f64 = ents.iter().map(|e| ruteo_cost(e, pa)).sum();
+        let base: f64 = ents.iter().map(|e| ruteo_cost(e, pb)).sum();
+        out.matched += 1;
+        out.tok += ents.iter().map(|e| e.inp + e.out + e.cw).sum::<u64>(); // cache_read fuera
+        out.cost += cost;
+        out.cost_base += base;
+        out.saved += base - cost;
+        if base < cost {
+            out.up += 1;
+        }
+        if price_is_estimated(&actual) || price_is_estimated(&parent) {
+            out.estimated = true;
+        }
+    }
+    out.ctx_tok = out.ctx * CTX_TOK_EST;
+    out
+}
+
+/// La medición en UN servidor: `--ruteo --days N [--end E]` con los precios
+/// por stdin, como el resto de consultas. Exportador viejo → None.
+fn fetch_remote_ruteo(r: &RemoteSource, days: u32, end_ts: Option<i64>) -> Option<RuteoReport> {
+    use std::io::Write;
+    let prices = prices_map()
+        .read()
+        .ok()
+        .filter(|m| !m.is_empty())
+        .and_then(|m| serde_json::to_string(&*m).ok());
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+        .arg(&r.host)
+        .arg(format!(
+            "{} --ruteo --days {}{}{}",
+            r.command,
+            days,
+            end_ts.map(|t| format!(" --end {t}")).unwrap_or_default(),
+            if prices.is_some() { " --prices-stdin" } else { "" }
+        ))
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let mut child = cmd.spawn().ok()?;
+    if let Some(mut si) = child.stdin.take() {
+        if let Some(json) = &prices {
+            let _ = si.write_all(json.as_bytes());
+        }
+    }
+    let out = child.wait_with_output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let mut rep = serde_json::from_slice::<RuteoWrap>(&out.stdout).ok()?.ruteo?;
+    rep.origin = r.name.clone();
+    Some(rep)
+}
+
+/// La medición del ruteo de las tres máquinas, una fila por origen (el
+/// panel suma). Misma firma que el resto del Reporte: `days` (clamp 1..90)
+/// y `end` opcional (epoch) — invariante #1, camino ancho + final.
+#[tauri::command]
+async fn get_ruteo_report(days: Option<u32>, end: Option<i64>) -> Result<Vec<RuteoReport>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let days = days.unwrap_or(7).clamp(1, 90);
+        let end_ts = end.unwrap_or_else(|| Utc::now().timestamp());
+        let mut out = Vec::new();
+        let mut local = scan_ruteo(&claude_dir().join("projects"), &michi_dir(), days, end_ts);
+        local.origin = String::new();
+        out.push(local);
+        for (d, cdir) in wsl_claude_dirs() {
+            if let Some(h) = cdir.parent() {
+                let mut rep = scan_ruteo(&cdir.join("projects"), &h.join(".michiclaude"), days, end_ts);
+                rep.origin = wsl_origin(&d);
+                out.push(rep);
+            }
+        }
+        for r in load_remotes() {
+            if let Some(rep) = fetch_remote_ruteo(&r, days, end) {
+                out.push(rep);
+            }
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Un proceso MCP huérfano detectado. `start` (epoch de arranque) es la
 /// mitad del anti-reciclaje de PID: para cerrar hay que devolverlo y
 /// que siga coincidiendo.
@@ -8859,7 +9167,8 @@ pub fn run() {
             save_router_state,
             get_ruteo_cfg,
             set_ruteo_flags,
-            get_ruteo_log
+            get_ruteo_log,
+            get_ruteo_report
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

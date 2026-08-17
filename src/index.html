@@ -1356,6 +1356,15 @@
       <div class="eyebrow"><span data-i18n="wst_title"></span> <span class="q" data-i18n="wst_q"></span></div>
       <div id="repWaste"></div>
     </div>
+    <!-- RUTEO INTELIGENTE (ruteo-inteligente.md etapa 3): lo MEDIDO contra
+         los transcripts reales — cuántos subagentes se redirigieron, qué
+         costaron y qué habrían costado en el modelo del padre. Incluye el
+         AUTOCONSUMO (contexto inyectado, único gasto del sistema, con «~»
+         porque es estimado). Invariante #8: sin filas casadas, sin cifra. -->
+    <div class="sect" id="repRuteoSect">
+      <div class="eyebrow"><span data-i18n="rt_rep_t"></span> <span class="q" data-i18n="rt_rep_q"></span></div>
+      <div id="repRuteo"></div>
+    </div>
     <div class="sect">
       <div class="eyebrow"><span data-i18n="rep_last_t"></span> <span class="q" data-i18n="rep_last_q"></span></div>
       <div id="repLast"></div>
@@ -2394,6 +2403,22 @@ en:{
   rt_ev_bypass:"~ sent as is",
   rt_ev_ctx:"context injected (~60 tok)",
   rt_log_empty:"No decisions yet.",
+  rt_rep_t:"Smart routing", rt_rep_q:"measured against the real transcripts",
+  rt_rep_none:"No routing activity in this period. Turn it on under Settings → Smart subagent routing.",
+  rt_rep_saved:"saved",
+  rt_rep_sub:"real tokens × (rate of the model your session was on − rate of the model the subagent actually ran on)",
+  rt_rep_routed:(n,h,s)=>`${n} subagent${n===1?"":"s"} routed (${h} → Haiku, ${s} → Sonnet)`,
+  rt_rep_cost:(m,tok)=>`${m} matched with their transcript · ${tok} tokens · cost`,
+  rt_rep_was:v=>`would have been ${v}`,
+  rt_rep_up:n=>`${n} stepped UP (Haiku session, implementation subagent → Sonnet): counted against you`,
+  rt_rep_unmatched:n=>`${n} without a transcript to match yet (not billed)`,
+  rt_rep_blocks:(b,i)=>`guard stopped ${b} heavy prompt${b===1?"":"s"} on a cheap model before spending a token${i?` · you insisted ${i}`:""}`,
+  rt_rep_skip:n=>`${n} kept the parent model (explicit model, ~ or comfortable quota)`,
+  rt_rep_ctx:(n,tok)=>`the routing itself cost you ~${tok} tokens (${n} context injections)`,
+  rt_rep_ctx0:"the routing itself cost you 0 tokens",
+  rt_rep_nomatch_t:"Routed, but nothing to bill yet",
+  rt_rep_nomatch_b:"The subagent transcripts haven't been matched — the figures appear once they are.",
+  rt_rep_note:"Your main session is never touched. Savings are API-equivalent (notional), like every $ in MichiClaude.",
   rem_log_relay:(cmd,proj)=>`applied ${cmd} in «${proj}»`,
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
@@ -2957,6 +2982,22 @@ es:{
   rt_ev_bypass:"~ enviado tal cual",
   rt_ev_ctx:"contexto inyectado (~60 tok)",
   rt_log_empty:"Todavía sin decisiones.",
+  rt_rep_t:"Ruteo inteligente", rt_rep_q:"medido contra los transcripts reales",
+  rt_rep_none:"Sin actividad de ruteo en este periodo. Se enciende en Ajustes → Ruteo inteligente de subagentes.",
+  rt_rep_saved:"ahorrado",
+  rt_rep_sub:"tokens reales × (tarifa del modelo en que iba tu sesión − tarifa del modelo en que corrió de verdad el subagente)",
+  rt_rep_routed:(n,h,s)=>`${n} subagente${n===1?"":"s"} ruteado${n===1?"":"s"} (${h} → Haiku, ${s} → Sonnet)`,
+  rt_rep_cost:(m,tok)=>`${m} casados con su transcript · ${tok} tokens · costaron`,
+  rt_rep_was:v=>`habrían costado ${v}`,
+  rt_rep_up:n=>`${n} SUBIERON (sesión en Haiku, subagente de implementación → Sonnet): cuentan en contra`,
+  rt_rep_unmatched:n=>`${n} todavía sin transcript que casar (no se facturan)`,
+  rt_rep_blocks:(b,i)=>`el guardián frenó ${b} prompt${b===1?"":"s"} pesado${b===1?"":"s"} en un modelo barato antes de gastar un token${i?` · insististe ${i}`:""}`,
+  rt_rep_skip:n=>`${n} se quedaron con el modelo del padre (modelo explícito, ~ o cuota holgada)`,
+  rt_rep_ctx:(n,tok)=>`el propio ruteo te costó ~${tok} tokens (${n} contextos inyectados)`,
+  rt_rep_ctx0:"el propio ruteo te costó 0 tokens",
+  rt_rep_nomatch_t:"Ruteado, pero todavía nada que facturar",
+  rt_rep_nomatch_b:"Los transcripts de los subagentes aún no se han casado — las cifras salen en cuanto lo estén.",
+  rt_rep_note:"Tu sesión principal nunca se toca. El ahorro es equivalente API (nocional), como todo $ en MichiClaude.",
   rem_log_relay:(cmd,proj)=>`aplicó ${cmd} en «${proj}»`,
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
@@ -3520,6 +3561,22 @@ pt:{
   rt_ev_bypass:"~ enviado assim mesmo",
   rt_ev_ctx:"contexto injetado (~60 tok)",
   rt_log_empty:"Ainda sem decisões.",
+  rt_rep_t:"Roteamento inteligente", rt_rep_q:"medido contra os transcripts reais",
+  rt_rep_none:"Sem atividade de roteamento neste período. Liga-se em Ajustes → Roteamento inteligente de subagentes.",
+  rt_rep_saved:"economizado",
+  rt_rep_sub:"tokens reais × (tarifa do modelo da sua sessão − tarifa do modelo em que o subagente realmente rodou)",
+  rt_rep_routed:(n,h,s)=>`${n} subagente${n===1?"":"s"} roteado${n===1?"":"s"} (${h} → Haiku, ${s} → Sonnet)`,
+  rt_rep_cost:(m,tok)=>`${m} casados com seu transcript · ${tok} tokens · custaram`,
+  rt_rep_was:v=>`teriam custado ${v}`,
+  rt_rep_up:n=>`${n} SUBIRAM (sessão em Haiku, subagente de implementação → Sonnet): contam contra`,
+  rt_rep_unmatched:n=>`${n} ainda sem transcript para casar (não faturados)`,
+  rt_rep_blocks:(b,i)=>`o guardião travou ${b} prompt${b===1?"":"s"} pesado${b===1?"":"s"} num modelo barato antes de gastar um token${i?` · você insistiu ${i}`:""}`,
+  rt_rep_skip:n=>`${n} ficaram com o modelo do pai (modelo explícito, ~ ou cota folgada)`,
+  rt_rep_ctx:(n,tok)=>`o próprio roteamento custou ~${tok} tokens (${n} contextos injetados)`,
+  rt_rep_ctx0:"o próprio roteamento custou 0 tokens",
+  rt_rep_nomatch_t:"Roteado, mas ainda nada a faturar",
+  rt_rep_nomatch_b:"Os transcripts dos subagentes ainda não foram casados — os números aparecem assim que estiverem.",
+  rt_rep_note:"Sua sessão principal nunca é tocada. A economia é equivalente API (nocional), como todo $ no MichiClaude.",
   rem_log_relay:(cmd,proj)=>`aplicou ${cmd} em «${proj}»`,
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
@@ -4083,6 +4140,22 @@ fr:{
   rt_ev_bypass:"~ envoyé tel quel",
   rt_ev_ctx:"contexte injecté (~60 tok)",
   rt_log_empty:"Pas encore de décisions.",
+  rt_rep_t:"Routage intelligent", rt_rep_q:"mesuré sur les transcriptions réelles",
+  rt_rep_none:"Aucune activité de routage sur cette période. À activer dans Réglages → Routage intelligent des sous-agents.",
+  rt_rep_saved:"économisé",
+  rt_rep_sub:"tokens réels × (tarif du modèle de votre session − tarif du modèle sur lequel le sous-agent a réellement tourné)",
+  rt_rep_routed:(n,h,s)=>`${n} sous-agent${n===1?"":"s"} routé${n===1?"":"s"} (${h} → Haiku, ${s} → Sonnet)`,
+  rt_rep_cost:(m,tok)=>`${m} appariés à leur transcription · ${tok} tokens · ont coûté`,
+  rt_rep_was:v=>`auraient coûté ${v}`,
+  rt_rep_up:n=>`${n} sont MONTÉS (session Haiku, sous-agent d’implémentation → Sonnet) : comptés en négatif`,
+  rt_rep_unmatched:n=>`${n} sans transcription à apparier pour l’instant (non facturés)`,
+  rt_rep_blocks:(b,i)=>`le garde-fou a bloqué ${b} prompt${b===1?"":"s"} lourd${b===1?"":"s"} sur un modèle bon marché avant de dépenser un token${i?` · vous avez insisté ${i}`:""}`,
+  rt_rep_skip:n=>`${n} ont gardé le modèle parent (modèle explicite, ~ ou quota confortable)`,
+  rt_rep_ctx:(n,tok)=>`le routage lui-même vous a coûté ~${tok} tokens (${n} injections de contexte)`,
+  rt_rep_ctx0:"le routage lui-même vous a coûté 0 token",
+  rt_rep_nomatch_t:"Routé, mais rien à facturer pour l’instant",
+  rt_rep_nomatch_b:"Les transcriptions des sous-agents ne sont pas encore appariées — les chiffres apparaîtront dès qu’elles le seront.",
+  rt_rep_note:"Votre session principale n’est jamais touchée. L’économie est en équivalent API (notionnel), comme tout $ dans MichiClaude.",
   rem_log_relay:(cmd,proj)=>`a appliqué ${cmd} dans «${proj}»`,
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
@@ -4646,6 +4719,22 @@ de:{
   rt_ev_bypass:"~ unverändert gesendet",
   rt_ev_ctx:"Kontext eingefügt (~60 Tok)",
   rt_log_empty:"Noch keine Entscheidungen.",
+  rt_rep_t:"Intelligentes Routing", rt_rep_q:"gemessen an den echten Transkripten",
+  rt_rep_none:"Keine Routing-Aktivität in diesem Zeitraum. Einschalten unter Einstellungen → Intelligentes Subagenten-Routing.",
+  rt_rep_saved:"gespart",
+  rt_rep_sub:"echte Tokens × (Tarif des Modells deiner Sitzung − Tarif des Modells, auf dem der Subagent wirklich lief)",
+  rt_rep_routed:(n,h,s)=>`${n} Subagent${n===1?"":"en"} geroutet (${h} → Haiku, ${s} → Sonnet)`,
+  rt_rep_cost:(m,tok)=>`${m} mit ihrem Transkript abgeglichen · ${tok} Tokens · kosteten`,
+  rt_rep_was:v=>`hätten ${v} gekostet`,
+  rt_rep_up:n=>`${n} HOCHGESTUFT (Haiku-Sitzung, Implementierungs-Subagent → Sonnet): zählen dagegen`,
+  rt_rep_unmatched:n=>`${n} noch ohne passendes Transkript (nicht abgerechnet)`,
+  rt_rep_blocks:(b,i)=>`Wächter stoppte ${b} schwere${b===1?"n":""} Prompt${b===1?"":"s"} auf einem günstigen Modell, bevor ein Token floss${i?` · du hast ${i}× bestanden`:""}`,
+  rt_rep_skip:n=>`${n} behielten das Elternmodell (explizites Modell, ~ oder entspanntes Kontingent)`,
+  rt_rep_ctx:(n,tok)=>`das Routing selbst kostete dich ~${tok} Tokens (${n} Kontext-Einfügungen)`,
+  rt_rep_ctx0:"das Routing selbst kostete dich 0 Tokens",
+  rt_rep_nomatch_t:"Geroutet, aber noch nichts abzurechnen",
+  rt_rep_nomatch_b:"Die Subagenten-Transkripte sind noch nicht abgeglichen – die Zahlen erscheinen, sobald sie es sind.",
+  rt_rep_note:"Deine Hauptsitzung bleibt unberührt. Die Ersparnis ist API-äquivalent (nominell), wie jeder $ in MichiClaude.",
   rem_log_relay:(cmd,proj)=>`${cmd} in «${proj}» angewendet`,
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
@@ -5209,6 +5298,22 @@ ja:{
   rt_ev_bypass:"~ そのまま送信",
   rt_ev_ctx:"コンテキスト注入(約60トークン)",
   rt_log_empty:"まだ判断はありません。",
+  rt_rep_t:"スマートルーティング", rt_rep_q:"実際のトランスクリプトで計測",
+  rt_rep_none:"この期間にルーティングの活動はありません。設定 → サブエージェントのスマートルーティングでオンにできます。",
+  rt_rep_saved:"節約",
+  rt_rep_sub:"実トークン ×(セッションのモデル料金 − サブエージェントが実際に動いたモデル料金)",
+  rt_rep_routed:(n,h,s)=>`サブエージェント ${n} 件を振り分け(${h} → Haiku、${s} → Sonnet)`,
+  rt_rep_cost:(m,tok)=>`${m} 件をトランスクリプトと照合 · ${tok} トークン · 費用`,
+  rt_rep_was:v=>`本来なら ${v}`,
+  rt_rep_up:n=>`${n} 件は上げました(Haiku セッションで実装サブエージェント → Sonnet):マイナス計上`,
+  rt_rep_unmatched:n=>`${n} 件はまだ照合するトランスクリプトなし(未計上)`,
+  rt_rep_blocks:(b,i)=>`ガードが安価なモデル上の重いプロンプト ${b} 件をトークン消費前に停止${i?` · 続行を選択 ${i} 回`:""}`,
+  rt_rep_skip:n=>`${n} 件は親モデルを維持(モデル明示、~、または残量に余裕)`,
+  rt_rep_ctx:(n,tok)=>`ルーティング自体の消費 約${tok} トークン(コンテキスト注入 ${n} 回)`,
+  rt_rep_ctx0:"ルーティング自体の消費 0 トークン",
+  rt_rep_nomatch_t:"振り分け済み、ただしまだ計上なし",
+  rt_rep_nomatch_b:"サブエージェントのトランスクリプトがまだ照合されていません — 照合でき次第、数字が出ます。",
+  rt_rep_note:"メインセッションには一切触れません。節約額は API 換算(名目)で、MichiClaude の他の $ と同じです。",
   rem_log_relay:(cmd,proj)=>`「${proj}」で ${cmd} を適用`,
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
@@ -5772,6 +5877,22 @@ ko:{
   rt_ev_bypass:"~ 그대로 전송",
   rt_ev_ctx:"컨텍스트 주입(약 60토큰)",
   rt_log_empty:"아직 결정이 없습니다.",
+  rt_rep_t:"스마트 라우팅", rt_rep_q:"실제 트랜스크립트로 측정",
+  rt_rep_none:"이 기간에 라우팅 활동이 없습니다. 설정 → 서브에이전트 스마트 라우팅에서 켤 수 있습니다.",
+  rt_rep_saved:"절약",
+  rt_rep_sub:"실제 토큰 × (세션 모델 요금 − 서브에이전트가 실제로 실행된 모델 요금)",
+  rt_rep_routed:(n,h,s)=>`서브에이전트 ${n}개 라우팅(${h} → Haiku, ${s} → Sonnet)`,
+  rt_rep_cost:(m,tok)=>`${m}개를 트랜스크립트와 대조 · ${tok} 토큰 · 비용`,
+  rt_rep_was:v=>`원래대로면 ${v}`,
+  rt_rep_up:n=>`${n}개는 올림(Haiku 세션, 구현 서브에이전트 → Sonnet): 마이너스 집계`,
+  rt_rep_unmatched:n=>`${n}개는 아직 대조할 트랜스크립트 없음(미집계)`,
+  rt_rep_blocks:(b,i)=>`가드가 저렴한 모델의 무거운 프롬프트 ${b}건을 토큰 사용 전에 차단${i?` · ${i}회 계속 선택`:""}`,
+  rt_rep_skip:n=>`${n}개는 부모 모델 유지(명시된 모델, ~, 또는 쿼터 여유)`,
+  rt_rep_ctx:(n,tok)=>`라우팅 자체 비용 약 ${tok} 토큰(컨텍스트 주입 ${n}회)`,
+  rt_rep_ctx0:"라우팅 자체 비용 0 토큰",
+  rt_rep_nomatch_t:"라우팅됨, 아직 집계할 것 없음",
+  rt_rep_nomatch_b:"서브에이전트 트랜스크립트가 아직 대조되지 않았습니다 — 대조되는 대로 수치가 나옵니다.",
+  rt_rep_note:"메인 세션은 절대 건드리지 않습니다. 절약액은 API 환산(명목)이며 MichiClaude의 다른 $와 같습니다.",
   rem_log_relay:(cmd,proj)=>`「${proj}」에 ${cmd} 적용`,
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
@@ -6335,6 +6456,22 @@ zh:{
   rt_ev_bypass:"~ 原样发送",
   rt_ev_ctx:"已注入上下文(约 60 tok)",
   rt_log_empty:"还没有决定。",
+  rt_rep_t:"智能路由", rt_rep_q:"按真实转录测量",
+  rt_rep_none:"本时段没有路由活动。可在设置 → 子代理智能路由中开启。",
+  rt_rep_saved:"节省",
+  rt_rep_sub:"真实 token × (会话所在模型的费率 − 子代理实际运行模型的费率)",
+  rt_rep_routed:(n,h,s)=>`路由了 ${n} 个子代理(${h} → Haiku,${s} → Sonnet)`,
+  rt_rep_cost:(m,tok)=>`${m} 个已与转录匹配 · ${tok} token · 花费`,
+  rt_rep_was:v=>`本应花费 ${v}`,
+  rt_rep_up:n=>`${n} 个被升级(Haiku 会话中的实现子代理 → Sonnet):计为负`,
+  rt_rep_unmatched:n=>`${n} 个暂无可匹配的转录(不计费)`,
+  rt_rep_blocks:(b,i)=>`守卫在花费任何 token 前拦下了廉价模型上的 ${b} 条重提示${i?` · 你坚持了 ${i} 次`:""}`,
+  rt_rep_skip:n=>`${n} 个保持父模型(显式指定、~ 或额度充裕)`,
+  rt_rep_ctx:(n,tok)=>`路由本身花了你约 ${tok} token(${n} 次上下文注入)`,
+  rt_rep_ctx0:"路由本身花了你 0 token",
+  rt_rep_nomatch_t:"已路由,但暂无可计费项",
+  rt_rep_nomatch_b:"子代理转录尚未匹配——匹配后数字就会出现。",
+  rt_rep_note:"主会话绝不改动。节省额为 API 等价(名义值),与 MichiClaude 中所有 $ 一样。",
   rem_log_relay:(cmd,proj)=>`在「${proj}」应用了 ${cmd}`,
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
@@ -8941,8 +9078,15 @@ async function loadReport(force){
   const stamp=++repStamp;
   markRepChips();
   const wait=`<div class="rp-empty">${t("fnd_scanning")}</div>`;
-  for(const id of ["repHero","repWaste","repLast","repProj","repFix","repNext"]) $(id).innerHTML=wait;
+  for(const id of ["repHero","repWaste","repLast","repProj","repFix","repNext","repRuteo"]) $(id).innerHTML=wait;
   const W=repWidth(), endE=repEnd();
+  // la medición del ruteo arranca YA y pinta sola al llegar (SSH incluido):
+  // no bloquea el resto del reporte
+  invoke("get_ruteo_report",repArgs()).then(rows=>{
+    if(stamp!==repStamp) return;
+    repData && (repData.ruteo=rows||[]);
+    renderRepRuteo(rows||[]);
+  }).catch(()=>{ if(stamp===repStamp) renderRepRuteo(null); });
   // los hallazgos arrancan YA, en paralelo, pero no se les espera aún.
   // get_findings devuelve {findings, waste} desde 2026-08-14: la misma
   // pasada trae las tarjetas y el % de desperdicio estructural. El del
@@ -9046,6 +9190,45 @@ function renderReport(){
   markRepChips();
   renderRepHero(d); renderRepWaste(d); renderRepLast(d); renderRepChart(d);
   renderRepProj(d); renderRepFix(d); renderRepNext(d);
+  // la del ruteo llega aparte (SSH); si el periodo viene de caché ya la trae
+  if(d.ruteo) renderRepRuteo(d.ruteo);
+}
+
+// ---------- la medición del ruteo (ruteo-inteligente.md etapa 3) ----------
+// Suma las tres máquinas. Regla dura (invariante #8): el $ solo sale de
+// subagentes CASADOS con su transcript (matched); los ruteados sin casar se
+// cuentan pero no se facturan. El ahorro es una RESTA de tarifas reales
+// sobre tokens reales, no un % contra una línea base hipotética. El
+// contexto inyectado se muestra como coste PROPIO, con «~» (estimado).
+function renderRepRuteo(rows){
+  const el=$("repRuteo"); if(!el) return;
+  if(rows===null){ el.innerHTML=`<div class="rp-empty">${t("fnd_err")}</div>`; return; }
+  const s={routed:0,haiku:0,sonnet:0,matched:0,up:0,tok:0,cost:0,cost_base:0,saved:0,
+    blocks:0,insist:0,ctx:0,ctx_tok:0,skip:0,estimated:false};
+  for(const r of rows){ for(const k in s){ if(k==="estimated") s.estimated=s.estimated||!!r.estimated; else s[k]+=(+r[k]||0); } }
+  if(!s.routed && !s.blocks && !s.ctx){
+    el.innerHTML=`<div class="rp-empty">${escapeHtml(t("rt_rep_none"))}</div>`; return;
+  }
+  const tld=s.estimated?"~":"";
+  const money=v=>(v<0?"−":"")+wstMoney(Math.abs(v));
+  const rowsHtml=[];
+  rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_routed",s.routed,s.haiku,s.sonnet))}</span></div>`);
+  if(s.matched){
+    rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_cost",s.matched,repFmtN(s.tok)))}</span>
+      <b>${tld}${money(s.cost)} <span class="was">${escapeHtml(t("rt_rep_was",tld+money(s.cost_base)))}</span></b></div>`);
+    if(s.up) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_up",s.up))}</span></div>`);
+  }
+  if(s.routed>s.matched) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_unmatched",s.routed-s.matched))}</span></div>`);
+  if(s.blocks) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_blocks",s.blocks,s.insist))}</span></div>`);
+  if(s.skip) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_skip",s.skip))}</span></div>`);
+  // autoconsumo: lo ÚNICO que gasta el sistema, dicho en su propia fila
+  rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(s.ctx?t("rt_rep_ctx",s.ctx,repFmtN(s.ctx_tok)):t("rt_rep_ctx0"))}</span></div>`);
+  const big=s.matched
+    ? `<div class="wst-big"><span class="al">${escapeHtml(t("rt_rep_saved"))}</span> <b>${tld}${money(s.saved)}</b></div>
+       <div class="wst-sub">${escapeHtml(t("rt_rep_sub"))}</div>`
+    : `<div class="wst-none"><b>${escapeHtml(t("rt_rep_nomatch_t"))}</b><div>${escapeHtml(t("rt_rep_nomatch_b"))}</div></div>`;
+  el.innerHTML=big+`<div class="wst-rows">${rowsHtml.join("")}</div>
+    <div class="wst-note">${escapeHtml(t("rt_rep_note"))}</div>`;
 }
 
 // 1 · héroe: EL número con su veredicto en llano

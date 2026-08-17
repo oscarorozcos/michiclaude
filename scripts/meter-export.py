@@ -1510,6 +1510,166 @@ def read_hosts(exclude_id, days):
     return out
 
 
+# ---------- medición del ruteo (--ruteo) ----------
+# docs/ruteo-inteligente.md §11 etapa 3. Cruza el cuaderno de decisiones de
+# los hooks (~/.michiclaude/ruteo_log.jsonl) con los transcripts REALES de
+# los subagentes: cada fila `route` busca su agent-*.jsonl (mismo sid,
+# nacido en los 3 min siguientes, misma familia de modelo) y suma sus
+# tokens; el ahorro es tokens × (tarifa del modelo del PADRE − tarifa del
+# impuesto). Nada estimado salvo el contexto inyectado (~60 tok/evento,
+# marcado como tal). RÉPLICA EXACTA de scan_ruteo() en lib.rs (invariante
+# #1): este archivo lo pide el panel por SSH con `--ruteo --days N`.
+
+RUTEO_MATCH_S = 180   # el subagente nace en los segundos siguientes al hook
+CTX_TOK_EST = 60      # coste estimado del contexto inyectado, por evento
+
+
+def _ruteo_family(model):
+    m = (model or "").lower()
+    for f in ("haiku", "sonnet", "opus", "fable", "mythos"):
+        if f in m:
+            return f
+    return ""
+
+
+def _ruteo_rows(michi_dir, since, until):
+    """Filas del cuaderno (y de su rotación .1) dentro de la ventana."""
+    rows = []
+    for name in ("ruteo_log.jsonl.1", "ruteo_log.jsonl"):
+        p = michi_dir / name
+        try:
+            lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(r, dict):
+                continue
+            ts = r.get("ts")
+            if not isinstance(ts, (int, float)) or ts < since or ts > until:
+                continue
+            rows.append(r)
+    return rows
+
+
+def _ruteo_sid_dir(projects_dir, sid):
+    """La carpeta <proyecto>/<sid>/ de una sesión, buscándola en todos los
+    proyectos: el sid es único y el cwd del cuaderno no siempre casa con el
+    slug de la carpeta."""
+    if not sid or "/" in sid or "\\" in sid or sid.startswith("."):
+        return None
+    try:
+        for proj in projects_dir.iterdir():
+            d = proj / sid
+            if d.is_dir():
+                return d
+    except OSError:
+        pass
+    return None
+
+
+# parse_file compara timestamps con un datetime: "desde siempre" es esto
+RUTEO_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def _ruteo_cost(e, prices):
+    pi, po, pcw, pcr = prices
+    return (e[2] * pi + e[3] * po + e[4] * pcw + e[5] * pcr) / 1e6
+
+
+def scan_ruteo(projects_dir, michi_dir, days, end):
+    since = end.timestamp() - days * 86400
+    until = end.timestamp()
+    out = {"routed": 0, "haiku": 0, "sonnet": 0, "matched": 0, "up": 0,
+           "tok": 0, "cost": 0.0, "cost_base": 0.0, "saved": 0.0,
+           "blocks": 0, "insist": 0, "ctx": 0, "ctx_tok": 0, "skip": 0,
+           "estimated": False}
+    rows = _ruteo_rows(Path(michi_dir), since, until)
+    agents = {}      # sid -> [(first_ts, family, path)] aún sin usar
+    parents = {}     # sid -> entradas del transcript madre (para el respaldo)
+    for r in rows:
+        ev = r.get("ev")
+        if ev == "block":
+            out["blocks"] += 1
+        elif ev == "insist":
+            out["insist"] += 1
+        elif ev == "ctx":
+            out["ctx"] += 1
+        elif ev == "skip":
+            out["skip"] += 1
+        if ev != "route":
+            continue
+        out["routed"] += 1
+        after = str(r.get("after") or "")
+        if after == "haiku":
+            out["haiku"] += 1
+        elif after == "sonnet":
+            out["sonnet"] += 1
+        sid = str(r.get("sid") or "")
+        ts = float(r.get("ts"))
+        sdir = _ruteo_sid_dir(projects_dir, sid)
+        if sdir is None:
+            continue
+        if sid not in agents:
+            lst = []
+            for ap in sorted((sdir / "subagents").glob("agent-*.jsonl")):
+                _, ents, _, _ = parse_file(ap, RUTEO_EPOCH)
+                tss = [e[0] for e in ents if e[0] is not None]
+                if not ents or not tss:
+                    continue
+                lst.append([min(tss), _ruteo_family(ents[0][1]), ap, ents])
+            agents[sid] = lst
+        best = None
+        for cand in agents[sid]:
+            first, fam, ap, ents = cand
+            if fam != after or first < ts - 5 or first > ts + RUTEO_MATCH_S:
+                continue
+            if best is None or first < best[0]:
+                best = cand
+        if best is None:
+            continue
+        agents[sid].remove(best)
+        first, fam, ap, ents = best
+        # el modelo del padre: la fila lo trae desde 2026-08-17; a las
+        # viejas se les busca en el transcript madre (última entrada
+        # anterior al hook). Sin padre no hay base: no se inventa.
+        parent = str(r.get("parent") or "")
+        if not parent:
+            if sid not in parents:
+                mp = sdir.parent / (sid + ".jsonl")
+                _, pents, _, _ = parse_file(mp, RUTEO_EPOCH) if mp.is_file() else (None, [], [], 0)
+                parents[sid] = sorted((e for e in pents if e[0] is not None), key=lambda e: e[0])
+            # tolerancia: el hook anota segundos ENTEROS y el transcript
+            # milisegundos — la entrada del padre del MISMO turno puede
+            # ir 1-2 s "después" del hook (mordió con +0.4 s)
+            for e in parents[sid]:
+                if e[0] <= ts + 5:
+                    parent = e[1]
+                elif parent:
+                    break
+        if not parent:
+            continue
+        actual = ents[0][1]
+        pa = price_for(actual)
+        pb = price_for(parent)
+        cost = sum(_ruteo_cost(e, pa) for e in ents)
+        base = sum(_ruteo_cost(e, pb) for e in ents)
+        out["matched"] += 1
+        out["tok"] += sum(e[2] + e[3] + e[4] for e in ents)   # cache_read fuera
+        out["cost"] += cost
+        out["cost_base"] += base
+        out["saved"] += base - cost
+        if base < cost:
+            out["up"] += 1
+        if is_estimated(actual) or is_estimated(parent):
+            out["estimated"] = True
+    out["ctx_tok"] = out["ctx"] * CTX_TOK_EST
+    return out
+
+
 def disk_usage_report():
     """`--du`: cuánto pesan los logs de ESTE servidor y cuánto es viejo.
     SOLO LECTURA — desde MichiClaude no se borra nada por SSH (decisión de
@@ -1617,6 +1777,12 @@ def main():
     now = datetime.now(timezone.utc)
     end = (datetime.fromtimestamp(end_ts, timezone.utc)
            if end_ts is not None else now)
+    # --ruteo: SOLO la medición del ruteo (etapa 3), con --days/--end de
+    # siempre. Los precios llegan por --prices-stdin como al resto.
+    if "--ruteo" in args:
+        michi = Path.home() / ".michiclaude"
+        print(json.dumps({"ruteo": scan_ruteo(projects_dir, michi, days, end)}))
+        return
     window_ago = end - timedelta(days=days)
     # "hoy" y la serie de 30 días van con AHORA a propósito: no son la
     # ventana elegida y moverlos convertiría "Hoy" en "el último día del

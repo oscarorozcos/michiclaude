@@ -78,6 +78,25 @@ def estado_fresco():
         return None
 
 
+def modelo_padre(transcript):
+    """El modelo con el que va la sesión MADRE, leído de la cola del
+    transcript (0.4 ms medidos). Es lo que el subagente habría heredado:
+    con él la medición (etapa 3) calcula el ahorro REAL sin adivinar. Si
+    no se puede saber, "" — nunca se inventa."""
+    try:
+        if not transcript or not os.path.isfile(transcript):
+            return ""
+        size = os.path.getsize(transcript)
+        with open(transcript, "rb") as fh:
+            fh.seek(max(0, size - 65536))
+            tail = fh.read().decode("utf-8", "replace")
+        import re
+        ms = re.findall(r'"model"\s*:\s*"(claude-[^"]+)"', tail)
+        return ms[-1] if ms else ""
+    except Exception:
+        return ""
+
+
 def clase(tipo):
     t = (tipo or "").lower()
     if any(w in t for w in LIGHT_WORDS):
@@ -114,6 +133,7 @@ def main():
         "before": entrada.get("model"),
         "sid": evento.get("session_id") or "",
         "cwd": evento.get("cwd") or "",
+        "parent": modelo_padre(evento.get("transcript_path")),
     }
 
     # El padre ya eligió modelo: se respeta y se anota.
