@@ -635,6 +635,15 @@ Cómo quedó (reglas VIGENTES):
   Sin peldaño al que subir no hay freno (antes caía a «opus» por
   defecto; el caso no se daba y ahora no puede darse).
 - La lista blanca del relevo ya aceptaba `/model fable`: no cambia.
+- Salieron de la prueba en vivo (VPS): (a) los hooks EMBEBIDOS solo se
+  re-subían al ENCENDER el interruptor — tras actualizar la app las tres
+  máquinas seguían con la versión vieja (el guardián decía «opus» con
+  `top` en la nota). Ahora `ruteo_refresh_scripts()` los refresca AL
+  ARRANCAR (solo con ruteo ON, solo los scripts, hilo aparte, como el
+  exportador). (b) El latido «N → Haiku, M → Sonnet» era fijo: ahora el
+  desglose es DINÁMICO por destino (invariante #6). (c) `insist`/`resent`
+  llevan `to` (la memoria `guard_last.json` lo recuerda): con el top ya
+  no es siempre opus.
 - Verificado con matriz sintética 29/29 de los dos .py (HOME temporal;
   Hook B: sin top hereda / top+20 → fable / top+60 hereda / top+75 →
   sonnet / padre fable hereda / alias raro, booleano o mayúsculas / sin

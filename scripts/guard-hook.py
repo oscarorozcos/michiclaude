@@ -310,12 +310,16 @@ def main():
                 insiste = (last.get("h") == h and last.get("tier") == tr
                            and time.time() - float(last.get("ts", 0)) < INSIST_S)
                 auto = bool(last.get("auto"))
+                # el peldaño al que se subió (o se pidió subir): con el top
+                # ya no es siempre opus, y el registro lo dice tal cual
+                if isinstance(last.get("to"), str):
+                    dest = last["to"]
             except Exception:
                 pass
             if insiste:
                 # el mismo prompt vuelve: o insististe tú, o lo reenvió el
                 # relevo por orden nuestra (5c) — se anota lo que fue
-                apunta(dict(base, ev="resent" if auto else "insist", model=tr, sig=sig))
+                apunta(dict(base, ev="resent" if auto else "insist", model=tr, to=dest, sig=sig))
             else:
                 # ESCALAR SOLO (bandera `esc` en la nota): el relevo de esta
                 # sesión teclea `/model <dest>`; el usuario solo reenvía —
@@ -335,7 +339,7 @@ def main():
                 try:
                     os.makedirs(MICHI, exist_ok=True)
                     with open(LAST, "w", encoding="utf-8") as fh:
-                        json.dump({"h": h, "tier": tr, "ts": time.time(),
+                        json.dump({"h": h, "tier": tr, "ts": time.time(), "to": dest,
                                    "auto": bool(esc_ok and reenvio)}, fh)
                 except Exception:
                     pass

@@ -7939,6 +7939,40 @@ for _, _, hook in HOOKS:
 print("OFF")
 "##;
 
+/// Los hooks viajan EMBEBIDOS: tras cada actualización de MichiClaude hay
+/// que refrescarlos donde estén instalados, o las tres máquinas siguen
+/// corriendo la versión vieja (mordió 2026-08-17: el interruptor del top
+/// llegaba en la nota y el guardián del VPS, viejo, seguía subiendo a
+/// opus). Solo con el ruteo ENCENDIDO y solo los scripts — settings.json
+/// no se toca (las entradas ya apuntan a estas rutas). Se llama en el
+/// arranque, en hilo aparte y en silencio, como el exportador.
+fn ruteo_refresh_scripts() {
+    if !ruteo_cfg().on {
+        return;
+    }
+    if ruteo_local("status") == "ON" {
+        for (py, ps1, body_py, body_ps1) in [
+            ("router-hook.py", "router-hook.ps1", ROUTER_HOOK_PY, ROUTER_HOOK_PS1),
+            ("guard-hook.py", "guard-hook.ps1", GUARD_HOOK_PY, GUARD_HOOK_PS1),
+        ] {
+            let body = if cfg!(windows) {
+                body_ps1.to_string()
+            } else {
+                body_py.replace("\r\n", "\n")
+            };
+            let _ = fs::write(ruteo_local_hook_path(py, ps1), body);
+        }
+    }
+    for r in load_remotes() {
+        let _ = upload_script(&r.host, ROUTER_HOOK_PATH, ROUTER_HOOK_PY);
+        let _ = upload_script(&r.host, GUARD_HOOK_PATH, GUARD_HOOK_PY);
+    }
+    for d in wsl_distros() {
+        let _ = wsl_upload_script(&d, ROUTER_NAME, ROUTER_HOOK_PY);
+        let _ = wsl_upload_script(&d, GUARD_NAME, GUARD_HOOK_PY);
+    }
+}
+
 #[tauri::command]
 async fn get_ruteo() -> Result<Vec<ChatRelayRow>, String> {
     tauri::async_runtime::spawn_blocking(|| {
@@ -9515,6 +9549,8 @@ pub fn run() {
                         let _ = upload_exporter(&r.host);
                     }
                 }
+                // y los hooks del ruteo, por la misma razón (embebidos)
+                ruteo_refresh_scripts();
             });
 
             // Precios: intento al arrancar y luego cada 6 h (refresh_prices ya

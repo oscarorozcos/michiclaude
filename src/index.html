@@ -2418,7 +2418,7 @@ en:{
   rt_ctx_on:"Inject quota context so Claude itself suggests the tier",
   rt_ctx_hint:"Adds two short lines per prompt (your session model and rough quota) so Claude can suggest a cheaper /model on trivial asks. This is the ONLY part that costs tokens (~60 per turn) and it's counted in the log below.",
   rt_log_label:"Routing log",
-  rt_beat_today:(n,h,s,b)=>`Today: ${n} subagent${n===1?"":"s"} routed (${h} → Haiku, ${s} → Sonnet)${b?` · guard stopped ${b}`:""}`,
+  rt_beat_today:(n,d,b)=>`Today: ${n} subagent${n===1?"":"s"} routed (${d.join(", ")})${b?` · guard stopped ${b}`:""}`,
   rt_beat_none:"No routing decisions in the last 24 h — nothing to route, or no new sessions since you switched it on.",
   rt_beat_last:(w,p)=>`last ${w} in «${p}»`,
   rt_ev_route:(k,m)=>`${k} → ${m}`,
@@ -3032,7 +3032,7 @@ es:{
   rt_ctx_on:"Inyectar contexto de cuota para que el propio Claude sugiera el tier",
   rt_ctx_hint:"Añade dos líneas cortas por prompt (modelo de tu sesión y cuota gruesa) para que Claude sugiera un /model más barato en peticiones triviales. Es lo ÚNICO que gasta tokens (~60 por turno) y se cuenta en el registro de abajo.",
   rt_log_label:"Registro del ruteo",
-  rt_beat_today:(n,h,s,b)=>`Hoy: ${n} subagente${n===1?"":"s"} ruteado${n===1?"":"s"} (${h} → Haiku, ${s} → Sonnet)${b?` · el guardián frenó ${b}`:""}`,
+  rt_beat_today:(n,d,b)=>`Hoy: ${n} subagente${n===1?"":"s"} ruteado${n===1?"":"s"} (${d.join(", ")})${b?` · el guardián frenó ${b}`:""}`,
   rt_beat_none:"Sin decisiones de ruteo en las últimas 24 h — nada que rutear, o ninguna sesión nueva desde que lo encendiste.",
   rt_beat_last:(w,p)=>`último ${w} en «${p}»`,
   rt_ev_route:(k,m)=>`${k} → ${m}`,
@@ -3646,7 +3646,7 @@ pt:{
   rt_ctx_on:"Injetar contexto de cota para o próprio Claude sugerir o tier",
   rt_ctx_hint:"Acrescenta duas linhas curtas por prompt (modelo da sessão e cota aproximada) para o Claude sugerir um /model mais barato em pedidos triviais. É a ÚNICA parte que gasta tokens (~60 por turno) e entra na contagem do registro abaixo.",
   rt_log_label:"Registro do roteamento",
-  rt_beat_today:(n,h,s,b)=>`Hoje: ${n} subagente${n===1?"":"s"} roteado${n===1?"":"s"} (${h} → Haiku, ${s} → Sonnet)${b?` · o guardião travou ${b}`:""}`,
+  rt_beat_today:(n,d,b)=>`Hoje: ${n} subagente${n===1?"":"s"} roteado${n===1?"":"s"} (${d.join(", ")})${b?` · o guardião travou ${b}`:""}`,
   rt_beat_none:"Sem decisões de roteamento nas últimas 24 h — nada para rotear, ou nenhuma sessão nova desde que você ligou.",
   rt_beat_last:(w,p)=>`última ${w} em «${p}»`,
   rt_ev_route:(k,m)=>`${k} → ${m}`,
@@ -4260,7 +4260,7 @@ fr:{
   rt_ctx_on:"Injecter le contexte de quota pour que Claude lui-même suggère le tier",
   rt_ctx_hint:"Ajoute deux lignes courtes par prompt (modèle de la session et quota approximatif) pour que Claude suggère un /model moins cher sur les demandes triviales. C’est la SEULE partie qui coûte des tokens (~60 par tour), comptée dans le journal ci-dessous.",
   rt_log_label:"Journal du routage",
-  rt_beat_today:(n,h,s,b)=>`Aujourd’hui : ${n} sous-agent${n===1?"":"s"} routé${n===1?"":"s"} (${h} → Haiku, ${s} → Sonnet)${b?` · le garde-fou a bloqué ${b}`:""}`,
+  rt_beat_today:(n,d,b)=>`Aujourd’hui : ${n} sous-agent${n===1?"":"s"} routé${n===1?"":"s"} (${d.join(", ")})${b?` · le garde-fou a bloqué ${b}`:""}`,
   rt_beat_none:"Aucune décision de routage depuis 24 h — rien à router, ou aucune nouvelle session depuis l’activation.",
   rt_beat_last:(w,p)=>`dernière ${w} dans «${p}»`,
   rt_ev_route:(k,m)=>`${k} → ${m}`,
@@ -4874,7 +4874,7 @@ de:{
   rt_ctx_on:"Kontingent-Kontext einfügen, damit Claude selbst das Tier vorschlägt",
   rt_ctx_hint:"Fügt pro Prompt zwei kurze Zeilen hinzu (Sitzungsmodell und grobes Kontingent), damit Claude bei trivialen Bitten ein günstigeres /model vorschlägt. Das ist der EINZIGE Teil, der Tokens kostet (~60 pro Zug), und wird im Protokoll unten mitgezählt.",
   rt_log_label:"Routing-Protokoll",
-  rt_beat_today:(n,h,s,b)=>`Heute: ${n} Subagent${n===1?"":"en"} geroutet (${h} → Haiku, ${s} → Sonnet)${b?` · Wächter stoppte ${b}`:""}`,
+  rt_beat_today:(n,d,b)=>`Heute: ${n} Subagent${n===1?"":"en"} geroutet (${d.join(", ")})${b?` · Wächter stoppte ${b}`:""}`,
   rt_beat_none:"Keine Routing-Entscheidungen in den letzten 24 h – nichts zu routen, oder keine neue Sitzung seit dem Einschalten.",
   rt_beat_last:(w,p)=>`zuletzt ${w} in «${p}»`,
   rt_ev_route:(k,m)=>`${k} → ${m}`,
@@ -5488,7 +5488,7 @@ ja:{
   rt_ctx_on:"残量コンテキストを注入して Claude 自身にティアを提案させる",
   rt_ctx_hint:"プロンプトごとに短い2行(セッションのモデルと概算の残量)を追加し、些細な依頼では Claude が安い /model を提案できるようにします。システムで唯一トークンを消費する部分(1ターン約60)で、下の記録に計上されます。",
   rt_log_label:"ルーティング記録",
-  rt_beat_today:(n,h,s,b)=>`今日: サブエージェント ${n} 件を振り分け(${h} → Haiku、${s} → Sonnet)${b?` · ガードが ${b} 件停止`:""}`,
+  rt_beat_today:(n,d,b)=>`今日: サブエージェント ${n} 件を振り分け(${d.join("、")})${b?` · ガードが ${b} 件停止`:""}`,
   rt_beat_none:"過去24時間にルーティングの判断はありません — 対象がなかったか、有効化後に新しいセッションがありません。",
   rt_beat_last:(w,p)=>`最新 ${w}「${p}」`,
   rt_ev_route:(k,m)=>`${k} → ${m}`,
@@ -6102,7 +6102,7 @@ ko:{
   rt_ctx_on:"쿼터 컨텍스트를 주입해 Claude가 직접 티어를 제안하게",
   rt_ctx_hint:"프롬프트마다 짧은 두 줄(세션 모델과 대략적인 쿼터)을 추가해 사소한 요청에서 Claude가 더 저렴한 /model을 제안하도록 합니다. 시스템에서 유일하게 토큰을 쓰는 부분(턴당 약 60)이며 아래 기록에 집계됩니다.",
   rt_log_label:"라우팅 기록",
-  rt_beat_today:(n,h,s,b)=>`오늘: 서브에이전트 ${n}개 라우팅(${h} → Haiku, ${s} → Sonnet)${b?` · 가드가 ${b}건 차단`:""}`,
+  rt_beat_today:(n,d,b)=>`오늘: 서브에이전트 ${n}개 라우팅(${d.join(", ")})${b?` · 가드가 ${b}건 차단`:""}`,
   rt_beat_none:"최근 24시간 라우팅 결정 없음 — 라우팅할 것이 없었거나, 켠 뒤 새 세션이 없습니다.",
   rt_beat_last:(w,p)=>`최근 ${w} «${p}»`,
   rt_ev_route:(k,m)=>`${k} → ${m}`,
@@ -6716,7 +6716,7 @@ zh:{
   rt_ctx_on:"注入额度上下文,让 Claude 自己建议档位",
   rt_ctx_hint:"每条提示追加两行短文(会话模型和大致额度),让 Claude 在琐碎请求时建议更便宜的 /model。这是系统中唯一消耗 token 的部分(每轮约 60),会计入下方记录。",
   rt_log_label:"路由记录",
-  rt_beat_today:(n,h,s,b)=>`今天:路由了 ${n} 个子代理(${h} → Haiku,${s} → Sonnet)${b?` · 守卫拦下 ${b} 次`:""}`,
+  rt_beat_today:(n,d,b)=>`今天:路由了 ${n} 个子代理(${d.join(",")})${b?` · 守卫拦下 ${b} 次`:""}`,
   rt_beat_none:"过去 24 小时没有路由决定——没有可路由的,或开启后还没有新会话。",
   rt_beat_last:(w,p)=>`最近 ${w},在「${p}」`,
   rt_ev_route:(k,m)=>`${k} → ${m}`,
@@ -11699,12 +11699,17 @@ function rtRender(rows){
   const day=Math.floor(Date.now()/1000)-86400;
   const hoy=rows.filter(r=>r.ts>=day);
   const routed=hoy.filter(r=>r.ev==="route");
-  const h=routed.filter(r=>r.after==="haiku").length, sn=routed.filter(r=>r.after==="sonnet").length;
+  // desglose por modelo DINÁMICO (invariante #6): haiku y sonnet siempre
+  // (son las salidas base del Hook B), y cualquier otro destino que haya
+  // aparecido hoy — p. ej. el top con su interruptor — con su nombre real
+  const cnt={haiku:0,sonnet:0};
+  for(const r of routed){ const k=String(r.after||"").toLowerCase(); cnt[k]=(cnt[k]||0)+1; }
+  const det=Object.entries(cnt).map(([k,v])=>v+" → "+rtModelName(k));
   const b=hoy.filter(r=>r.ev==="block"||r.ev==="escalate").length;
   if(!routed.length && !b) beat.textContent=t("rt_beat_none");
   else{
     const last=hoy[0];
-    beat.textContent=t("rt_beat_today",routed.length,h,sn,b)
+    beat.textContent=t("rt_beat_today",routed.length,det,b)
       +(last?" · "+t("rt_beat_last",fmtWhen(last.ts),rtWhere(last)):"");
   }
   const filas=rows.slice(0,15);

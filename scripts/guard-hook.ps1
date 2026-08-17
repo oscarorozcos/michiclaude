@@ -221,11 +221,13 @@ try {
                 $l = Get-Content -Path $last -Raw -Encoding UTF8 | ConvertFrom-Json
                 if ((Tiene $l 'h') -and $l.h -eq $h -and (Tiene $l 'tier') -and $l.tier -eq $tr -and (Tiene $l 'ts') -and ($ts - [double]$l.ts) -lt $INSIST_S) { $insiste = $true }
                 if ((Tiene $l 'auto') -and [bool]$l.auto) { $auto = $true }
+                # el peldano al que se subio: con el top ya no es siempre opus
+                if ((Tiene $l 'to') -and ($l.to -is [string])) { $dest = '' + $l.to }
             } catch { }
             if ($insiste) {
                 # el mismo prompt vuelve: o insististe tu, o lo reenvio el relevo (5c)
                 $evn = 'insist'; if ($auto) { $evn = 'resent' }
-                $f = Fila $evn; $f['model'] = $tr; $f['sig'] = $sig; Apunta $f
+                $f = Fila $evn; $f['model'] = $tr; $f['to'] = $dest; $f['sig'] = $sig; Apunta $f
             } else {
                 $escOk = $false; $escErr = ''; $reenvio = $false
                 $escOn = (Tiene $st 'esc') -and [bool]$st.esc
@@ -243,7 +245,7 @@ try {
                 # sabe si el proximo reenvio sera del relevo (auto) o tuyo
                 try {
                     if (-not (Test-Path $michi)) { New-Item -ItemType Directory -Path $michi -Force | Out-Null }
-                    Set-Content -Path $last -Value (@{ h = $h; tier = $tr; ts = $ts; auto = ($escOk -and $reenvio) } | ConvertTo-Json -Compress) -Encoding UTF8
+                    Set-Content -Path $last -Value (@{ h = $h; tier = $tr; ts = $ts; to = $dest; auto = ($escOk -and $reenvio) } | ConvertTo-Json -Compress) -Encoding UTF8
                 } catch { }
                 if ($escOk -and $reenvio) {
                     $razon = "MichiClaude: this looked complex for $tr, so I'm switching this session to $dest and resending it for you. Nothing to do. / Esto se veia complejo para ${tr}: estoy subiendo la sesion a $dest y lo reenvio yo. No tienes que hacer nada."

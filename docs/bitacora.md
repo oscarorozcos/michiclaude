@@ -3893,3 +3893,24 @@ VPS) ni la casilla en vivo — quedan para el Windows de Oscar.
 QUÉ QUEDA: en Windows: `cargo check`, encender la casilla, ver `top` en
 la nota y una fila `think-top` real en el registro; se suma a la
 validación pasiva del ruteo.
+
+## 2026-08-17 (21) — prueba en vivo del top: los hooks embebidos se refrescan al arrancar; latido dinámico
+
+QUÉ: `ruteo_refresh_scripts()` en el arranque (ruteo ON → reescribe los
+scripts locales, SSH y WSL; settings.json intacto); latido del registro
+con desglose por destino dinámico (`det`, rtModelName); `insist`/`resent`
+anotan `to` (guard_last.json lo guarda), .py/.ps1 a la par.
+POR QUÉ: al probar en vivo desde el VPS, con `top:"fable"` ya en la nota
+el guardián frenó hacia OPUS: el `~/.michiclaude/guard-hook.py` era la
+copia vieja (19:06) — el exe solo la re-subía al encender el interruptor.
+Y el latido «0 → Haiku, 0 → Sonnet» no habría enseñado un `→ Fable`.
+CÓMO SE VERIFICÓ: en vivo (VPS, `claude -p --resume` de una sesión en
+sonnet): prompt pesado → «/model fable y reenvía» sin gastar; el mismo
+prompt otra vez → pasa (`insist`, `to: fable`). Hook B real desde esta
+sesión (padre fable): Explore → haiku, transcript del subagente lo
+confirma. Globo del gatito y registro del panel en Windows lo pintaron
+(capturas de Oscar). Matriz 29/29 sigue verde; js ok. NO probado:
+`think-top` real (sesión al 50-55 %, umbral <50) ni `cargo check` del
+refresco (VPS sin toolchain).
+QUÉ QUEDA: cargo check en Windows; `think-top` real tras el reset de
+sesión.
