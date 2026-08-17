@@ -499,7 +499,7 @@ presion-y-rendimiento §"Qué queda vivo".
       frontera; capa ADITIVA sobre el hallazgo (fndKey intacto,
       fail-quiet); local/WSL primero, VPS manda `umsgs` por SSH y el
       Windows embebe (el modelo no va al VPS). APARCADA tras el ruteo.
-- [ ] Capturas del README (Oscar).
+- [ ] Capturas del README.
 - [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
       LEERLO antes de tocar). CERRADO HASTA DONDE ESTÁ (Oscar,
       2026-08-07): fases 1 y 2 hechas. FILA 18 (% de desperdicio
@@ -563,9 +563,8 @@ presion-y-rendimiento §"Qué queda vivo".
 
 ## Consumo de recursos (medido en release)
 
-Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**. El peso
-son los ~9 procesos WebView2 (~57 MB por ventana): por eso los pares de
-widget se crean y destruyen.
+Instalador 5.8 MB · exe 21.7 MB · RAM **276 MB** (~9 procesos WebView2,
+~57 MB por ventana: por eso los pares de widget se crean y destruyen).
 
 ## Integridad de las fuentes (los .jsonl no son nuestros)
 
