@@ -1361,13 +1361,15 @@ def coach_scan(projects_dir):
                                                st.get("ctx_seen", 0))
                                       * COACH_CTX_PCT // 100):
                     # scwd aditivo (2026-08-16, réplica de Rust): con el cwd
-                    # la ficha caliente casa un relevo y ofrece "Aplicar"
+                    # la ficha caliente casa un relevo y ofrece "Aplicar".
+                    # title (2026-08-17): dice DE QUÉ SESIÓN habla la ficha
                     hit("compact", st["last_ctx"] // 1000,
-                        scwd=st.get("scwd", ""))
+                        scwd=st.get("scwd", ""), title=st.get("title", ""))
                 gap_min = (now - st["last_turn"]) // 60
                 if (st["last_turn"] > 0 and gap_min >= COACH_GAP_MIN
                         and st["last_ctx"] >= COACH_GAP_CTX):
-                    hit("cache", max(gap_min, 0), scwd=st.get("scwd", ""))
+                    hit("cache", max(gap_min, 0), scwd=st.get("scwd", ""),
+                        title=st.get("title", ""))
                 reread = [(f, n) for f, n in st["reads"].items()
                           if n >= COACH_REREAD]
                 if reread:

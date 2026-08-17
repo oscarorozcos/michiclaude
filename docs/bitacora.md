@@ -3155,3 +3155,33 @@ confirma que fue el BOTÓN y no un comando tecleado — por eso no hubo globo.
 QUÉ QUEDA: decidir las dos mejoras de UI (enlace a la copia tras aplicar;
 identificar la sesión en la ficha). Validación en vivo pendiente: chat con
 sid, automático con copia, WSL y VPS.
+
+## 2026-08-17 (2) — las dos mejoras de UI del coach: enlace a la copia y la ficha dice qué sesión
+
+QUÉ: (1) Tras aplicar `/clear` desde una tarjeta aparece "ver la copia" en
+la misma fila del botón, abriendo el visor de siempre; el nombre sale del
+registro de acciones y se guarda en `tipCopies` para sobrevivir a los
+repintados. Vale igual para la ficha caliente y para la tarjeta de
+intención. (2) Las fichas `cache` y `compact` dicen a qué sesión se
+refieren: el campo `title` viaja ahora en esos hits (aditivo, réplica en
+meter-export.py — invariante #1) y la ficha lo enseña recortado a 42
+chars, con el sid corto de respaldo si la sesión aún no tiene título.
+
+POR QUÉ: las dos salieron de la primera prueba real del botón (entrada
+anterior). La segunda dejó de ser cosmética en cuanto la ficha ganó un
+botón que ACTÚA: mientras se escribía esta misma respuesta le llegó a
+Oscar una ficha de caché de la sesión `michiclaude · VPS-EU` — la que
+estábamos usando— con su botón "Aplicar" al lado. Sin identificar la
+sesión, un clic ahí borra la conversación equivocada (con copia, pero
+cortada). El título de Claude Code es el identificador humano que ya
+existía: el `sum` lo usaba desde siempre.
+
+CÓMO SE VERIFICÓ: `node --check` y `py_compile` limpios; el coach del VPS
+devolvió el hit `press` con `title: "Analizar viabilidad de dos documentos
+.md para implementaci…"` — o sea, el campo está poblado y es legible, que
+era la duda; regresión de `--cleared-stdin` OK (sigue devolviendo jsonl y
+eligiendo por ventana de tiempo). `cargo check` PENDIENTE en Windows (dos
+líneas nuevas en los hits del coach).
+
+QUÉ QUEDA: cargo check + ver las dos mejoras en vivo. Validación pendiente
+de siempre: chat con sid, automático con copia, WSL y VPS.

@@ -1743,8 +1743,23 @@ por el código nuevo: (1) el botón NO saca globo — es la regla de diseño (el
 que pulsa está delante del panel), pero deja al usuario yendo a Ajustes a
 buscar la copia; (2) la ficha "volvió" al minuto porque era OTRA sesión del
 MISMO proyecto cruzando los 6 min (una tarjeta viva por regla: la nueva
-sustituye a la vieja) y la ficha no dice de QUÉ sesión habla. Las dos son
-mejoras de UI pendientes de decidir, anotadas aquí para no rediscutirlas.
+sustituye a la vieja) y la ficha no dice de QUÉ sesión habla. Las dos se
+ARREGLARON el 2026-08-17, con Oscar de acuerdo:
+
+- **El camino a la copia, en la propia fila.** Tras aplicar `/clear` desde
+  una tarjeta (ficha caliente o intención) aparece "ver la copia" junto al
+  botón, al mismo visor del registro. El nombre lo da el registro de
+  acciones (relay_inject lo anota ANTES de responder, así que la acción más
+  reciente es la nuestra) y se guarda en `tipCopies` (memoria, clave
+  `rule|session`) para que un repintado no se lo lleve. Fail-quiet: si el
+  registro no lo da, silencio — la copia sigue ahí, esto es un atajo.
+- **La ficha dice DE QUÉ SESIÓN habla.** `cache` y `compact` ganan `title`
+  (ADITIVO, réplica en el exportador — invariante #1): el título que Claude
+  Code le pone a la conversación, recortado a 42 chars, y si aún no lo
+  tiene, el sid corto. Sin esto, dos sesiones en la misma carpeta daban
+  fichas idénticas ("proyecto · local") y la segunda parecía la primera
+  repetida — y con el botón "Aplicar" al lado, la confusión ya no era
+  estética: se puede aplicar sobre la sesión equivocada.
 
 El cambio SSH COMPILA LIMPIO en Windows (Oscar, 2026-08-16, `Compiling
 michiclaude` → `Finished` en 34.86 s): la deuda de compilación de la pieza

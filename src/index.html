@@ -7824,6 +7824,17 @@ function renderRemotes(){
 // I18N como todo texto visible; aquí solo van los ids, en el orden en que
 // se muestran. Acordeón + filtro del lado del cliente — cero red, cero IA.
 const TIPS=["clear","compact","cache","attach","shots","ask","model","acomp"];
+// Copias del /clear aplicado DESDE una tarjeta (2026-08-17, pedido de Oscar):
+// tras pulsar "Aplicar" el camino a la conversación guardada tiene que estar
+// AHÍ. Mandarlo a Ajustes → registro de acciones es perderlo — lo vivió él
+// en la primera prueba del botón. Vive en memoria (la copia SIEMPRE queda
+// además en el registro, que es el archivo de verdad); clave rule|session.
+const tipCopies=new Map();
+// El enlace se pinta igual en la ficha caliente y en la tarjeta de intención,
+// y reusa la etiqueta del registro: es la MISMA acción, no un concepto nuevo.
+function cpLink(cp){
+  return cp?`<button class="lnk hnd-open" data-f="${String(cp.file).replace(/"/g,"")}" data-o="${String(cp.origin||"").replace(/"/g,"")}">${t("rem_log_copy")}</button>`:"";
+}
 function renderTips(){
   const q=($("tipFilter").value||"").toLowerCase();
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -7893,7 +7904,7 @@ function renderTips(){
         }<div class="int-ot">${tt}</div><div class="int-ob">${bb}</div>${extra||""
         }<div class="int-row"><code>${cmd}</code><button class="int-copy" data-cmd="${cmd}">${t("int_copy")}</button>${
           rly?`<button class="int-apply" data-cmd="${cmd}" data-pid="${rly.pid}" data-origin="${esc(rly.origin||"")}">${t("rly_apply")}</button>`:""
-        }</div></div>`;
+        }${cmd==="/clear"?cpLink(tipCopies.get(h.rule+"|"+h.session)):""}</div></div>`;
       live.push({born:c.born||0, html:`<div class="fnd tip int${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
       <button class="tip-x" aria-label="✕">✕</button>
       <div class="fnd-t">${t("int_t")} · <span class="int-pct${h.value>=85?" hot":""}">${Math.round(h.value)}%</span></div>
@@ -7945,14 +7956,23 @@ function renderTips(){
     const c=hot[id], h=c&&c.h;
     // la ficha disparada dice A QUÉ sesión aplicar el consejo: proyecto +
     // "local" — el coach solo mira esta máquina, y con el VPS abierto al
-    // lado la duda era real (Oscar, 2026-07-31)
-    const donde=h?[h.project||"", h.origin||t("src_local")]
+    // lado la duda era real (Oscar, 2026-07-31). Desde 2026-08-17 dice
+    // además QUÉ SESIÓN: con dos abiertas en la misma carpeta, "proyecto ·
+    // local" no distingue nada y la ficha de una parecía la de la otra
+    // repetida (Oscar). El título es el que Claude Code le pone a la
+    // conversación; si aún no lo tiene, el sid corto, que al menos es único.
+    // el título de Claude Code puede ser una frase entera: se recorta, que
+    // esta línea es una etiqueta, no un resumen
+    const ses=h?(h.title?"«"+esc(h.title.length>42?h.title.slice(0,41)+"…":h.title)+"»"
+      :(h.session?"#"+esc(h.session):"")):"";
+    const donde=h?[h.project||"", h.origin||t("src_local"), ses]
       .filter(Boolean).join(" · "):"";
     const cmd=h&&TIP_CMD[id]||"";
     const rly=cmd?relayFor(h):null;
+    const cp=h&&cmd==="/clear"?tipCopies.get(h.rule+"|"+h.session):null;
     const row=cmd?`<div class="int-row"><code>${cmd}</code><button class="int-copy" data-cmd="${cmd}">${t("int_copy")}</button>${
         rly?`<button class="int-apply" data-cmd="${cmd}" data-pid="${rly.pid}" data-origin="${esc(rly.origin||"")}">${t("rly_apply")}</button>`:""
-      }</div>`:"";
+      }${cpLink(cp)}</div>`:"";
     return `<div class="fnd tip${h&&!c.min?" open":""}" data-tip="${id}"${
         h?` data-ck="${esc(h.rule+"|"+h.session)}"`:""}>
       ${h?`<button class="tip-x" aria-label="✕">✕</button>`:""}
@@ -8020,6 +8040,10 @@ function renderTips(){
   // orden al relevo. El clic no pliega la tarjeta ni la marca leída.
   $("tipList").querySelectorAll(".int-apply").forEach(b=>
     b.addEventListener("click",e=>{ e.stopPropagation(); relayApply(b); }));
+  // "ver la copia" de un /clear aplicado desde la tarjeta: mismo visor que
+  // el registro de acciones. Tampoco pliega ni marca leída.
+  $("tipList").querySelectorAll(".hnd-open").forEach(b=>
+    b.addEventListener("click",e=>{ e.stopPropagation(); handView(b.dataset.f,b.dataset.o||""); }));
   // "Ahora no" = despachar, igual que el ✕. tipSeen impide que renazca en
   // esta sesión; si mañana la presión sube en OTRA sesión, esa trae la suya.
   $("tipList").querySelectorAll(".int-later").forEach(bt=>
@@ -10105,6 +10129,27 @@ function relayMark(cmd){
 // Traduce el veredicto del relevo. Los códigos vienen crudos del backend
 // (invariante #10) y rlyWhy ya sabe convertirlos; aquí solo se enmarca.
 function relayFail(code){ return t("rly_failed", rlyWhy(code)); }
+// Tras un /clear aplicado DESDE una tarjeta, el enlace a la conversación
+// guardada se pone en la propia fila (2026-08-17). El nombre de la copia lo
+// pone el registro de acciones —relay_inject lo anota ANTES de responder,
+// así que la acción más reciente es la nuestra—; se guarda además en
+// tipCopies para que un repintado no se lo lleve. Si algo falla, silencio:
+// la copia sigue en el registro y esto es un atajo, no la única puerta.
+async function relayCopyHint(btn, origin){
+  let a=null;
+  try{ a=((await invoke("get_action_log"))||[])[0]; }catch(_){ return; }
+  if(!a||a.kind!=="relay"||!a.ok||!a.file) return;
+  const cp={file:a.file, origin:a.origin||origin||""};
+  const ck=btn.closest(".tip")?.dataset.ck||"";
+  if(ck) tipCopies.set(ck,cp);
+  const row=btn.closest(".int-row");
+  if(!row||row.querySelector(".hnd-open")) return;
+  const b=document.createElement("button");
+  b.className="lnk hnd-open"; b.textContent=t("rem_log_copy");
+  b.dataset.f=cp.file; b.dataset.o=cp.origin;
+  b.addEventListener("click",e=>{ e.stopPropagation(); handView(cp.file,cp.origin); });
+  row.appendChild(b);
+}
 // El motivo del rechazo va a su propia línea dentro de la fila, NUNCA dentro
 // del botón: ahí lo estiraba hasta salirse del panel. Se crea al vuelo y se
 // borra sola; `.int-msg:empty` la esconde para no dejar un hueco.
@@ -10156,6 +10201,7 @@ function relayApply(btn){
       relayMark(cmd);
       flog("relevo: aplicado "+cmd+" en pid "+pid);
       remLogLoad();
+      if(cmd==="/clear") relayCopyHint(btn, btn.dataset.origin||"");
       setTimeout(()=>{ btn.textContent=label; },4000);
     }catch(err){
       // el botón recupera su etiqueta corta y el porqué baja a su línea

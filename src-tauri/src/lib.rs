@@ -4198,6 +4198,10 @@ fn coach_scan() -> Vec<CoachHit> {
                     // aditivo (2026-08-16): con el cwd la ficha caliente puede
                     // casar un relevo (relayFor) y ofrecer el botón "Aplicar"
                     scwd: st.scwd.clone(),
+                    // y el título dice DE QUÉ SESIÓN habla (2026-08-17): con
+                    // varias sesiones en la misma carpeta, "proyecto · local"
+                    // no distingue nada y la ficha parecía repetirse
+                    title: st.title.clone(),
                     ..Default::default()
                 });
             }
@@ -4209,6 +4213,7 @@ fn coach_scan() -> Vec<CoachHit> {
                     value: gap_min.max(0) as u64,
                     project: pname(st, &proj_name),
                     scwd: st.scwd.clone(), // aditivo, mismo motivo que "compact"
+                    title: st.title.clone(), // de qué sesión habla la ficha
                     ..Default::default()
                 });
             }
