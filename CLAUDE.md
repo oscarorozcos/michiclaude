@@ -216,7 +216,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
    VENTANA vive en la cabecera de "gasto por proyecto" (suma de esa
    lista, cambia con el selector); el pie queda solo con "Hoy"; con
    ventana de 1 día el total de cabecera se OCULTA (= "Hoy").
-9. No tocar `README.md`, `.github/workflows/release.yml` ni
+9. No tocar `README*.md`, `.github/workflows/release.yml` ni
    `app-icon.png` salvo petición explícita. (El token de este entorno no
    puede tocar workflows — eso lo hace Oscar desde la web.)
 10. UI multiidioma: diccionario `I18N` (8 idiomas, EN default,

@@ -1,99 +1,6 @@
-# Contribuir a MichiClaude · Contributing to MichiClaude
+# Contributing to MichiClaude · Contribuir a MichiClaude
 
-> 🇪🇸 Español abajo · 🇬🇧 English below
-
----
-
-# 🇪🇸 Español
-
-Gracias por el interés. MichiClaude es un proyecto de un solo autor, así que
-antes de invertir tu tiempo en código, **abre un issue** y comentemos la idea.
-Es la forma más rápida de evitar que escribas algo que no encaje con el diseño
-o que ya esté en camino.
-
-## Antes de abrir un Pull Request
-
-- **Habla primero.** Un issue con la propuesta ahorra trabajo a los dos. Los
-  PR grandes que llegan sin aviso suelen quedarse sin mergear.
-- **Un PR, un tema.** Nada de mezclar un arreglo de bug con un rediseño.
-- **Que compile.** `cd src-tauri && cargo check` limpio, y si tocaste el
-  frontend, que `npm run build` termine sin errores.
-- **Commits en español**, formato [Conventional Commits]
-  (`fix(coach): ...`, `feat(panel): ...`, `docs: ...`).
-
-## Reglas del proyecto que no se negocian
-
-Están explicadas a fondo en `CLAUDE.md` (sección "INVARIANTES"), pero las
-que más se rompen sin querer:
-
-- **Frontend vanilla.** HTML + CSS + JS a mano. Sin frameworks, sin
-  bundlers, sin dependencias npm de runtime.
-- **Cero telemetría.** La app no manda datos a ningún lado salvo a
-  `api.anthropic.com`. El token OAuth del usuario nunca se registra en logs,
-  nunca se muestra en pantalla y nunca viaja a otro dominio.
-- **Nunca inventar cifras.** Si un dato no se puede calcular, no se pinta.
-  Preferimos un hueco a un número bonito y falso.
-- **Todo texto visible pasa por `t()`.** La interfaz está en 8 idiomas.
-- **No toques los gifs de la mascota.** Son fan-art de Bongo Cat con una
-  licencia aparte (ver más abajo) y se recortan por CSS, no editando los
-  archivos.
-- **Dependencias de Rust nuevas:** solo si son imprescindibles, y con las
-  features mínimas.
-
-## Acuerdo de contribución (importante)
-
-MichiClaude se publica bajo **GPL-3.0**, y quiero conservar la posibilidad de
-ofrecerlo en el futuro también bajo otras condiciones (por ejemplo, una
-licencia comercial para quien quiera integrarlo en un producto cerrado). Para
-que eso siga siendo posible sin tener que localizar a cada persona que alguna
-vez aportó una línea, necesito un permiso explícito por tu parte.
-
-**Al abrir un Pull Request en este repositorio, declaras y aceptas lo
-siguiente:**
-
-1. **Conservas tu autoría.** No me cedes tu copyright: sigues siendo autor de
-   lo que escribiste y puedes reutilizarlo donde quieras.
-
-2. **Tu aporte entra bajo GPL-3.0**, la misma licencia del resto del proyecto.
-
-3. **Me concedes permiso para relicenciar.** Le otorgas a Oscar Orozco una
-   licencia perpetua, mundial, irrevocable, no exclusiva y libre de regalías
-   para usar, reproducir, modificar, distribuir y **sublicenciar tu aporte
-   bajo cualquier condición**, incluidas licencias propietarias o comerciales.
-   En cristiano: puedo vender una licencia comercial de MichiClaude sin tener
-   que pedirte permiso otra vez.
-
-4. **Concedes también los derechos de patente** que fueran necesarios para
-   usar tu aporte, en los mismos términos.
-
-5. **Garantizas el origen de lo que envías.** Que es obra tuya original o que
-   tienes derecho a aportarlo; que no incluye código, imágenes, sonidos,
-   fuentes tipográficas ni ningún otro material de terceros sin declarar
-   claramente en el PR su procedencia y su licencia; y que tu empleador o
-   cliente no tiene derechos sobre ese trabajo que lo impidan (si tienes
-   dudas, consúltalo antes de enviarlo).
-
-6. **Tu aporte se entrega "tal cual"**, sin garantías de ningún tipo.
-
-No hay que firmar nada ni instalar ningún bot: **abrir el Pull Request es la
-aceptación**. Si no estás de acuerdo con estas condiciones, no abras el PR —
-puedes reportar el problema en un issue y describir la solución con palabras,
-que también ayuda mucho.
-
-### Sobre material de terceros
-
-Si tu aporte incluye algo que no escribiste tú, **dilo en la descripción del
-PR** con su licencia. Es especialmente delicado con imágenes y sonidos: los
-gifs de la mascota son fan-art derivado del meme *Bongo Cat* y están fuera de
-la GPL (ver la EXCEPCIÓN DE ASSETS al final de [LICENSE](LICENSE)). No
-agregues arte nuevo sin haber hablado antes en un issue.
-
-## Reportar un problema
-
-Al abrir un issue ayuda muchísimo incluir: versión de MichiClaude, versión de
-Windows, qué esperabas que pasara y qué pasó. **Nunca pegues tu token OAuth,
-el contenido de `~/.claude/.credentials.json` ni rutas con datos privados** —
-si adjuntas un `quota_debug.json`, bórrale antes cualquier dato sensible.
+> 🇬🇧 English below · 🇪🇸 [Español más abajo](#-español)
 
 ---
 
@@ -121,9 +28,9 @@ are the ones most often broken by accident:
 
 - **Vanilla frontend.** Hand-written HTML + CSS + JS. No frameworks, no
   bundlers, no runtime npm dependencies.
-- **Zero telemetry.** The app sends data nowhere except `api.anthropic.com`.
-  The user's OAuth token is never logged, never displayed, and never sent to
-  any other domain.
+- **Zero telemetry.** The app sends no data about you anywhere. The user's
+  OAuth token is never logged, never displayed, and never sent to any domain
+  other than `api.anthropic.com`.
 - **Never invent numbers.** If a value can't be computed, don't render it.
   We'd rather show a gap than a pretty, wrong figure.
 - **All visible text goes through `t()`.** The UI ships in 8 languages.
@@ -188,5 +95,98 @@ version, what you expected and what actually happened. **Never paste your
 OAuth token, the contents of `~/.claude/.credentials.json`, or paths
 containing private data** — if you attach a `quota_debug.json`, scrub
 anything sensitive from it first.
+
+---
+
+# 🇪🇸 Español
+
+Gracias por el interés. MichiClaude es un proyecto de un solo autor, así que
+antes de invertir tu tiempo en código, **abre un issue** y comentemos la idea.
+Es la forma más rápida de evitar que escribas algo que no encaje con el diseño
+o que ya esté en camino.
+
+## Antes de abrir un Pull Request
+
+- **Habla primero.** Un issue con la propuesta ahorra trabajo a los dos. Los
+  PR grandes que llegan sin aviso suelen quedarse sin mergear.
+- **Un PR, un tema.** Nada de mezclar un arreglo de bug con un rediseño.
+- **Que compile.** `cd src-tauri && cargo check` limpio, y si tocaste el
+  frontend, que `npm run build` termine sin errores.
+- **Commits en español**, formato [Conventional Commits]
+  (`fix(coach): ...`, `feat(panel): ...`, `docs: ...`).
+
+## Reglas del proyecto que no se negocian
+
+Están explicadas a fondo en `CLAUDE.md` (sección "INVARIANTES"), pero las
+que más se rompen sin querer:
+
+- **Frontend vanilla.** HTML + CSS + JS a mano. Sin frameworks, sin
+  bundlers, sin dependencias npm de runtime.
+- **Cero telemetría.** La app no manda a ningún lado datos sobre ti. El token
+  OAuth del usuario nunca se registra en logs, nunca se muestra en pantalla y
+  nunca viaja a otro dominio que no sea `api.anthropic.com`.
+- **Nunca inventar cifras.** Si un dato no se puede calcular, no se pinta.
+  Preferimos un hueco a un número bonito y falso.
+- **Todo texto visible pasa por `t()`.** La interfaz está en 8 idiomas.
+- **No toques los gifs de la mascota.** Son fan-art de Bongo Cat con una
+  licencia aparte (ver más abajo) y se recortan por CSS, no editando los
+  archivos.
+- **Dependencias de Rust nuevas:** solo si son imprescindibles, y con las
+  features mínimas.
+
+## Acuerdo de contribución (importante)
+
+MichiClaude se publica bajo **GPL-3.0**, y quiero conservar la posibilidad de
+ofrecerlo en el futuro también bajo otras condiciones (por ejemplo, una
+licencia comercial para quien quiera integrarlo en un producto cerrado). Para
+que eso siga siendo posible sin tener que localizar a cada persona que alguna
+vez aportó una línea, necesito un permiso explícito por tu parte.
+
+**Al abrir un Pull Request en este repositorio, declaras y aceptas lo
+siguiente:**
+
+1. **Conservas tu autoría.** No me cedes tu copyright: sigues siendo autor de
+   lo que escribiste y puedes reutilizarlo donde quieras.
+
+2. **Tu aporte entra bajo GPL-3.0**, la misma licencia del resto del proyecto.
+
+3. **Me concedes permiso para relicenciar.** Le otorgas a Oscar Orozco una
+   licencia perpetua, mundial, irrevocable, no exclusiva y libre de regalías
+   para usar, reproducir, modificar, distribuir y **sublicenciar tu aporte
+   bajo cualquier condición**, incluidas licencias propietarias o comerciales.
+   En cristiano: puedo vender una licencia comercial de MichiClaude sin tener
+   que pedirte permiso otra vez.
+
+4. **Concedes también los derechos de patente** que fueran necesarios para
+   usar tu aporte, en los mismos términos.
+
+5. **Garantizas el origen de lo que envías.** Que es obra tuya original o que
+   tienes derecho a aportarlo; que no incluye código, imágenes, sonidos,
+   fuentes tipográficas ni ningún otro material de terceros sin declarar
+   claramente en el PR su procedencia y su licencia; y que tu empleador o
+   cliente no tiene derechos sobre ese trabajo que lo impidan (si tienes
+   dudas, consúltalo antes de enviarlo).
+
+6. **Tu aporte se entrega "tal cual"**, sin garantías de ningún tipo.
+
+No hay que firmar nada ni instalar ningún bot: **abrir el Pull Request es la
+aceptación**. Si no estás de acuerdo con estas condiciones, no abras el PR —
+puedes reportar el problema en un issue y describir la solución con palabras,
+que también ayuda mucho.
+
+### Sobre material de terceros
+
+Si tu aporte incluye algo que no escribiste tú, **dilo en la descripción del
+PR** con su licencia. Es especialmente delicado con imágenes y sonidos: los
+gifs de la mascota son fan-art derivado del meme *Bongo Cat* y están fuera de
+la GPL (ver la EXCEPCIÓN DE ASSETS al final de [LICENSE](LICENSE)). No
+agregues arte nuevo sin haber hablado antes en un issue.
+
+## Reportar un problema
+
+Al abrir un issue ayuda muchísimo incluir: versión de MichiClaude, versión de
+Windows, qué esperabas que pasara y qué pasó. **Nunca pegues tu token OAuth,
+el contenido de `~/.claude/.credentials.json` ni rutas con datos privados** —
+si adjuntas un `quota_debug.json`, bórrale antes cualquier dato sensible.
 
 [Conventional Commits]: https://www.conventionalcommits.org/
