@@ -1733,6 +1733,19 @@ coach) → nada, y el caso que importa — con el /clear simulado en el
 instante en que nació una sesión, descarta la recién nacida y elige la que
 acababa de morir. `py_compile` y `node --check` limpios.
 
+**VALIDADO EN VIVO el BOTÓN de la ficha (2026-08-16/17, Oscar):** la ficha
+de caché nació caliente con su `/clear` y el botón "Aplicar" — cuenta atrás
+("Aplicando en 4… (parar)"), comando aplicado en el pid 21048, copia
+`handoff-21048-1786924911.md` en disco y el visor enseñándola. Es el camino
+que faltaba entre "te aconsejo" y "lo hago yo", y es el que estrena la
+pieza nueva. Dos observaciones de esa prueba, ambas explicadas y NINGUNA
+por el código nuevo: (1) el botón NO saca globo — es la regla de diseño (el
+que pulsa está delante del panel), pero deja al usuario yendo a Ajustes a
+buscar la copia; (2) la ficha "volvió" al minuto porque era OTRA sesión del
+MISMO proyecto cruzando los 6 min (una tarjeta viva por regla: la nueva
+sustituye a la vieja) y la ficha no dice de QUÉ sesión habla. Las dos son
+mejoras de UI pendientes de decidir, anotadas aquí para no rediscutirlas.
+
 El cambio SSH COMPILA LIMPIO en Windows (Oscar, 2026-08-16, `Compiling
 michiclaude` → `Finished` en 34.86 s): la deuda de compilación de la pieza
 queda cerrada. PENDIENTE solo la validación en vivo de los caminos que

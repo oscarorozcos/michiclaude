@@ -3115,3 +3115,43 @@ estaba varios commits atrás y el `git pull` faltaba, no la fecha).
 QUÉ QUEDA: solo validación en vivo de los caminos que faltan (chat con
 sid, automático con copia, WSL, VPS). El de Windows/terminal ya está
 validado (entrada 3).
+
+## 2026-08-17 — el botón "Aplicar" de la ficha, validado en vivo: dos observaciones de UI (ninguna es un fallo del código nuevo)
+
+QUÉ: Oscar probó en Windows el camino que estrena la pieza: la ficha de
+caché nació caliente ("26 min de pausa con contexto grande"), su botón
+"Aplicar" corrió la cuenta atrás, el /clear se aplicó en el pid 21048 y la
+copia `handoff-21048-1786924911.md` quedó en disco y se vio en el visor.
+Funcionó de punta a punta. Dos observaciones suyas:
+
+1. NO salió globo. Es la REGLA DE DISEÑO (el botón manual del panel no
+   dispara globo: quien lo pulsa está delante). Y además el globo se
+   suprimiría solo al volver a enfocar el panel. PERO el usuario se quedó
+   sin camino corto a la copia: tuvo que ir a Ajustes → registro de
+   acciones. Mejora candidata: enlace "ver la copia" en la propia fila del
+   botón tras aplicar.
+2. La ficha "salió doble". No lo fue: a las 00:00:54 nació
+   `cache|7ba4ce66`, la leyó, y a las 00:02:59 nació `cache|f6395676` —
+   OTRA sesión del MISMO proyecto (C:\Users\oscar) cruzando los 6 min de
+   pausa; la "Ahora:" lo delata (26 min vs 6 min). La regla "una tarjeta
+   viva por regla" sustituye la vieja por la nueva, así que nunca hubo dos
+   a la vez: lo que se vio fue el post-it reencendiéndose. La causa de la
+   confusión es que la ficha se identifica por PROYECTO + origen, y con
+   varias sesiones en la misma carpeta eso no distingue nada. Mejora
+   candidata: que la ficha diga a qué sesión se refiere.
+
+POR QUÉ: las dos son de la UI del coach y PREEXISTEN a la pieza del globo;
+se anotan aquí porque salieron a la luz al haber por fin un botón que
+ACTÚA sobre la ficha — antes el consejo se quedaba en texto y daba igual
+de qué sesión hablara.
+
+CÓMO SE VERIFICÓ: flowLog de Oscar (`nace tarjeta cache|7ba4ce66` →
+`/clear aplicado a mano (18/3)` → `aplicado /clear en pid 21048` →
+`nace tarjeta cache|f6395676`), capturas del botón en cuenta atrás, del
+registro con "ver la copia", del visor y de la carpeta handoff con el .md.
+Las líneas del log salen de relayApply (index.html:10102 y :10157), lo que
+confirma que fue el BOTÓN y no un comando tecleado — por eso no hubo globo.
+
+QUÉ QUEDA: decidir las dos mejoras de UI (enlace a la copia tras aplicar;
+identificar la sesión en la ficha). Validación en vivo pendiente: chat con
+sid, automático con copia, WSL y VPS.
