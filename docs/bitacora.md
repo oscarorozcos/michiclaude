@@ -3180,8 +3180,8 @@ CÓMO SE VERIFICÓ: `node --check` y `py_compile` limpios; el coach del VPS
 devolvió el hit `press` con `title: "Analizar viabilidad de dos documentos
 .md para implementaci…"` — o sea, el campo está poblado y es legible, que
 era la duda; regresión de `--cleared-stdin` OK (sigue devolviendo jsonl y
-eligiendo por ventana de tiempo). `cargo check` PENDIENTE en Windows (dos
-líneas nuevas en los hits del coach).
+eligiendo por ventana de tiempo). **cargo check LIMPIO en Windows** (Oscar,
+2026-08-17: `Compiling michiclaude` → `Finished` en 26.42 s).
 
-QUÉ QUEDA: cargo check + ver las dos mejoras en vivo. Validación pendiente
-de siempre: chat con sid, automático con copia, WSL y VPS.
+QUÉ QUEDA: ver las dos mejoras en vivo. Validación pendiente de siempre:
+chat con sid, automático con copia, WSL y VPS.
