@@ -2279,6 +2279,7 @@ en:{
   hand_loading:"loading…",
   hand_you:"You",
   rem_log_copy_gone:"copy no longer exists",
+  tip_ago:n=>"measured "+n+" min ago",
   clr_balloon_user:p=>"/clear in "+p+" — the previous conversation is saved. Click to view it.",
   clr_balloon_auto:p=>"Michi applied /clear in "+p+" — the conversation was saved. Click to view it.",
   clr_gone:"That conversation is no longer on disk.",
@@ -2816,6 +2817,7 @@ es:{
   hand_loading:"cargando…",
   hand_you:"Tú",
   rem_log_copy_gone:"la copia ya no existe",
+  tip_ago:n=>"medido hace "+n+" min",
   clr_balloon_user:p=>"/clear en "+p+" — la conversación anterior quedó guardada. Clic para verla.",
   clr_balloon_auto:p=>"Michi aplicó /clear en "+p+" — la conversación quedó guardada. Clic para verla.",
   clr_gone:"Esa conversación ya no está en el disco.",
@@ -3353,6 +3355,7 @@ pt:{
   hand_loading:"carregando…",
   hand_you:"Você",
   rem_log_copy_gone:"a cópia não existe mais",
+  tip_ago:n=>"medido há "+n+" min",
   clr_balloon_user:p=>"/clear em "+p+" — a conversa anterior ficou guardada. Clique para vê-la.",
   clr_balloon_auto:p=>"Michi aplicou /clear em "+p+" — a conversa ficou guardada. Clique para vê-la.",
   clr_gone:"Essa conversa já não está no disco.",
@@ -3890,6 +3893,7 @@ fr:{
   hand_loading:"chargement…",
   hand_you:"Vous",
   rem_log_copy_gone:"la copie n'existe plus",
+  tip_ago:n=>"mesuré il y a "+n+" min",
   clr_balloon_user:p=>"/clear dans "+p+" — la conversation précédente est sauvegardée. Cliquez pour la voir.",
   clr_balloon_auto:p=>"Michi a appliqué /clear dans "+p+" — la conversation est sauvegardée. Cliquez pour la voir.",
   clr_gone:"Cette conversation n'est plus sur le disque.",
@@ -4427,6 +4431,7 @@ de:{
   hand_loading:"lädt…",
   hand_you:"Du",
   rem_log_copy_gone:"Kopie existiert nicht mehr",
+  tip_ago:n=>"vor "+n+" Min. gemessen",
   clr_balloon_user:p=>"/clear in "+p+" — das vorherige Gespräch wurde gesichert. Zum Ansehen klicken.",
   clr_balloon_auto:p=>"Michi hat /clear in "+p+" angewendet — das Gespräch wurde gesichert. Zum Ansehen klicken.",
   clr_gone:"Dieses Gespräch ist nicht mehr auf der Festplatte.",
@@ -4964,6 +4969,7 @@ ja:{
   hand_loading:"読み込み中…",
   hand_you:"あなた",
   rem_log_copy_gone:"コピーはもうありません",
+  tip_ago:n=>n+"分前に計測",
   clr_balloon_user:p=>p+" で /clear — 直前の会話は保存済みです。クリックで表示。",
   clr_balloon_auto:p=>"Michi が "+p+" で /clear を実行 — 会話は保存済みです。クリックで表示。",
   clr_gone:"その会話はもうディスクにありません。",
@@ -5501,6 +5507,7 @@ ko:{
   hand_loading:"불러오는 중…",
   hand_you:"나",
   rem_log_copy_gone:"사본이 더 이상 없습니다",
+  tip_ago:n=>n+"분 전 측정",
   clr_balloon_user:p=>p+"에서 /clear — 이전 대화가 저장되어 있습니다. 클릭하여 보기.",
   clr_balloon_auto:p=>"Michi가 "+p+"에서 /clear 적용 — 대화가 저장되었습니다. 클릭하여 보기.",
   clr_gone:"해당 대화는 더 이상 디스크에 없습니다.",
@@ -6038,6 +6045,7 @@ zh:{
   hand_loading:"加载中…",
   hand_you:"你",
   rem_log_copy_gone:"副本已不存在",
+  tip_ago:n=>n+" 分钟前测量",
   clr_balloon_user:p=>p+" 中执行了 /clear — 之前的对话已保存。点击查看。",
   clr_balloon_auto:p=>"Michi 在 "+p+" 中执行了 /clear — 对话已保存。点击查看。",
   clr_gone:"该对话已不在磁盘上。",
@@ -7967,6 +7975,11 @@ function renderTips(){
       :(h.session?"#"+esc(h.session):"")):"";
     const donde=h?[h.project||"", h.origin||t("src_local"), ses]
       .filter(Boolean).join(" · "):"";
+    // Cuánto hace que se MIDIÓ esto. Mientras la regla siga disparándose el
+    // dato se refresca solo y esto es 0; cuando la sesión revive (o se
+    // duerme), el número deja de moverse y la ficha lo dice en vez de fingir
+    // que es de ahora mismo.
+    const edad=(h&&c&&c.ts)?Math.floor((Date.now()-c.ts)/60000):0;
     const cmd=h&&TIP_CMD[id]||"";
     const rly=cmd?relayFor(h):null;
     const cp=h&&cmd==="/clear"?tipCopies.get(h.rule+"|"+h.session):null;
@@ -7977,7 +7990,8 @@ function renderTips(){
         h?` data-ck="${esc(h.rule+"|"+h.session)}"`:""}>
       ${h?`<button class="tip-x" aria-label="✕">✕</button>`:""}
       <div class="fnd-t">${t("tip_"+id+"_t")}</div>
-      ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value,esc(h.file||""))} — ${donde}</div>`:""}
+      ${h?`<div class="fnd-m">${t("tip_now_"+id,h.value,esc(h.file||""))} — ${donde}${
+        edad>=3?" · "+t("tip_ago",edad):""}</div>`:""}
       <div class="fnd-f">${withCmds(t("tip_"+id+"_b"))}${row}</div>
     </div>`;};
   for(const id of ids){ if(id in hot) live.push({born:hot[id].born||0, html:tipHtml(id)}); }
@@ -8360,8 +8374,28 @@ async function coachPoll(){
         // qué proyecto aplica)
         const i=cards.findIndex(c=>c.h.rule===h.rule);
         if(i>=0) cards.splice(i,1);
-        cards.push({h, born:Date.now()}); dirty=true;
+        cards.push({h, born:Date.now(), ts:Date.now()}); dirty=true;
       }
+    }
+    // Las fichas calientes miden algo VIVO (minutos de pausa, contexto,
+    // relecturas) y hasta 2026-08-17 nacían y se CONGELABAN: la de caché
+    // seguía diciendo "6 min de pausa" cuando ya llevabas veinte — o cuando
+    // habías vuelto a trabajar y esa pausa era historia. Con "Ahora:"
+    // delante, eso no es una foto vieja: es una mentira. Se refrescan con la
+    // medición nueva SIN RENACER (conservan born/min/v, como la de
+    // intención): poner al día un número no es un aviso nuevo y no debe
+    // reencender el post-it. `ts` = cuándo se midió por última vez; se
+    // persiste como mucho una vez por minuto, y cuando la regla deja de
+    // dispararse deja de moverse — que es justo la señal de que el dato
+    // envejeció (la ficha lo dirá con "medido hace X min").
+    // Fuera: `sum` y `acomp`, que SÍ son fotos de algo terminado.
+    const REFRESCA=new Set(["cache","compact","attach","shots"]);
+    for(const h of hits){
+      if(!REFRESCA.has(h.rule)) continue;
+      const c=cards.find(x=>x.h.rule===h.rule&&x.h.session===h.session);
+      if(!c) continue;                       // otra sesión, o despachada: no tocar
+      if(JSON.stringify(c.h)!==JSON.stringify(h)){ c.h=h; dirty=true; }
+      if(!c.ts||Date.now()-c.ts>60000){ c.ts=Date.now(); dirty=true; }
     }
     // la tarjeta de intención VIVA se refresca con la medición de cada
     // sondeo (%, pendientes, señales) sin renacer: conserva born/min/v — y

@@ -163,9 +163,25 @@ como las de Hallazgos:
 - Todo vive en `coachCards` (localStorage, tope 12): sobrevive sondeos y
   reinicios. `coachHits` queda SOLO para el simulador.
 - **Tope diario subido a 10** (5 se quedaba corto con varios proyectos) y
-  **una tarjeta viva por regla**: el "Ahora" es una foto del momento, la
-  medición más nueva reemplaza a la vieja (la ficha dice a qué proyecto
-  aplica). El recibo sigue exento del tope y es por sesión.
+  **una tarjeta viva por regla**: la medición más nueva reemplaza a la
+  vieja (la ficha dice a qué proyecto aplica). El recibo sigue exento del
+  tope y es por sesión.
+- **La ficha caliente NO se congela (2026-08-17).** `cache`, `compact`,
+  `attach` y `shots` miden algo VIVO, así que se REFRESCAN con la medición
+  de cada sondeo **sin renacer** (conservan `born`/`min`/`v`, igual que la
+  tarjeta de intención): actualizar un número no es un aviso nuevo y no
+  debe reencender el post-it. Solo se refresca la tarjeta de la MISMA
+  sesión (`rule`+`session`); la de otra no se pisa, y una despachada no
+  resucita. `sum` y `acomp` quedan FUERA: son fotos de algo terminado.
+  Cada tarjeta lleva `ts` (última medición, persistido como mucho una vez
+  por minuto) y cuando la regla deja de dispararse —la sesión revivió o se
+  durmió— la ficha lo dice: "medido hace X min" a partir de 3.
+  PORQUÉ: con "Ahora:" delante, un número fósil no es una foto vieja, es
+  una mentira. Lo cazó Oscar (2026-08-17): la ficha decía "6 min de pausa"
+  mientras él ya llevaba diez trabajando otra vez, y parecía que el aviso
+  había llegado tarde. La detección era exacta —nació a los 6 min y 0 s
+  del último turno, medido contra el .jsonl— pero el dato se quedaba
+  quieto. Autopsia en la bitácora.
 - Comparación con Hallazgos, para no confundirse: Hallazgos NO tiene tope
   diario porque es un REPORTE que se recalcula (máx. 12 tarjetas por
   escaneo, "Ignorar" despacha); Consejos es una COLA de momentos.

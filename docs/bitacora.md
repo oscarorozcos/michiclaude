@@ -3185,3 +3185,46 @@ eligiendo por ventana de tiempo). **cargo check LIMPIO en Windows** (Oscar,
 
 QUÉ QUEDA: ver las dos mejoras en vivo. Validación pendiente de siempre:
 chat con sid, automático con copia, WSL y VPS.
+
+## 2026-08-17 (3) — la ficha caliente dejaba de decir la verdad: se refresca y confiesa su edad
+
+QUÉ: las fichas `cache`, `compact`, `attach` y `shots` se refrescan con la
+medición de cada sondeo sin renacer (conservan born/min/v, como la de
+intención) y llevan `ts` (última medición); cuando su regla deja de
+dispararse, la ficha muestra "medido hace X min" a partir de 3. Clave
+`tip_ago` en los 8 idiomas. `sum` y `acomp` quedan fuera: son fotos de algo
+terminado.
+
+POR QUÉ: Oscar sospechó que la detección era LENTA ("me avisa mucho
+después"). Se midió y era lo contrario — la reconstrucción de la sesión
+4652b615 (chat de VS Code por SSH al VPS) contra su propio .jsonl:
+
+  00:31:04  último byte escrito → empieza la pausa
+  00:37:04  nace cache|4652b615   → 6 min y 0 s EXACTOS, el primer instante
+            en que la regla podía dispararse (el push de `done` salió a la
+            vez, por lo mismo)
+  00:40:38  vuelve a escribir (la pausa duró 9 min 34 s)
+
+Lo que fallaba no era el reloj: la tarjeta NACÍA Y SE CONGELABA. A las
+00:40, con Oscar ya trabajando otra vez, seguía diciendo "Ahora: 6 min de
+pausa" — un dato fósil con la palabra "Ahora" delante. De ahí la sensación
+de aviso tardío. El estado del coach en el VPS confirmó lo demás: 66.587
+tokens de contexto, 20 turnos, título "Qué es michiclaude" (la mejora de
+identificar la sesión, funcionando en vivo).
+
+Queda dicho también el techo REAL de latencia para sesiones remotas: 6 min
+de regla + hasta 3 de sondeo (compás del coach en reposo; con actividad son
+60 s, que es lo que pasó aquí). Y una limitación de fondo que NO se
+arregla con código: este consejo es forense, no preventivo — el caché
+caduca a los ~5 min y avisar antes no serviría, porque si hay pausa es que
+no estás delante. Su valor es a la vuelta: "¿sigue siendo el mismo tema?".
+
+CÓMO SE VERIFICÓ: reconstrucción del .jsonl real y del coach_state.json del
+VPS (arriba); `node --check` limpio; simulacro de la lógica de refresco —
+refresca el valor, conserva leída/plegada/born, y NO toca la tarjeta de
+otra sesión ni resucita una despachada. Sin cambios en Rust: no hace falta
+cargo check.
+
+QUÉ QUEDA: verlo en vivo (que el número de la ficha se mueva y aparezca
+"medido hace X min" al reanudar). Validación pendiente de siempre: /clear
+del chat, automático con copia, WSL y VPS.
