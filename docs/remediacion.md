@@ -727,7 +727,27 @@ superficie visible con el panel cerrado — ver "lo que falta" al final.
   pasar y lo publicaba en `user_cmd`; el panel lo tiraba. Ahora `rlyPoll` lo
   cuenta, una sola vez por (pid, momento), con sello en localStorage para
   que ni un sondeo repetido ni un reinicio lo dupliquen. NO va al registro
-  de acciones: ese es de lo que aplica MICHI, no tú.
+  de acciones DE RUST: ese es de lo que aplica MICHI, no tú.
+- **Pero SÍ se pinta en el registro** (2026-08-17, lo pidió Oscar al ver que
+  su `/clear` tecleado no salía con los demás): con etiqueta y verbo propios
+  —`rem_you_lab` "tú" · `rem_log_typed` "tecleaste"— para que la fila no
+  mienta sobre quién movió la mano. Tres etiquetas ahora: **auto** (lo
+  decidió Michi), **manual** (pulsaste el botón y lo tecleó Michi), **tú**
+  (lo escribiste en la terminal). El PORQUÉ no es cosmético: el globo
+  post-`/clear` era la ÚNICA puerta a esa conversación y por la regla única
+  no vuelve una vez cerrado; encima `clearedInfo` es UNA ranura que el
+  siguiente `/clear` pisa. Cerrar el globo sin clicar dejaba la
+  conversación en disco pero sin ningún botón que la pidiera.
+  Implementación EN EL FRONTEND a propósito: un `/clear` tuyo no deja copia
+  handoff y se recupera con `read_cleared(sid, cwd, ts, origin)`, señas que
+  no caben en `RemAction` — meterlas ahí obligaría a tocar el exportador
+  (invariante #1) sin ganar nada. Lista `clearedLog` en localStorage (tope
+  `CLEARED_LOG_MAX` = 10, es una puerta de rescate, no un historial); solo
+  entran los marcados `you:true`, marca EXPLÍCITA y no deducida de `file`
+  vacío —un automático cuyo nombre de copia no se pudo leer también llega
+  sin él y saldría duplicado—. `remLogLoad` fusiona por `ts` desc y el clic
+  usa la foto `remLogMine` que se PINTÓ, no `clearedLog()` releído: un
+  `/clear` nuevo se mete por delante y el índice abriría la de al lado.
 - **Desbloqueo progresivo** en `localStorage.relayDone`: `/compact` 2
   aplicaciones manuales, `/clear` 3 —una más porque borra memoria y no se
   deshace—. El marcador se enseña en Ajustes para que se vea acumular, en vez

@@ -3303,3 +3303,55 @@ el Windows de Oscar.
 QUÉ QUEDA: `cargo check` + la prueba en vivo del globo en el chat, que era
 justo el camino que la matriz daba por pendiente. Lo demás de la
 validación pasiva sigue igual.
+
+## 2026-08-17 (6) — el /clear que tecleas tú ya sale en el registro, con su propia etiqueta
+
+QUÉ: el "Registro de acciones" de Ajustes pinta ahora también los `/clear`
+que TECLEA el usuario, mezclados por fecha con los demás pero con etiqueta
+y verbo propios: **tú · tecleaste /clear en «proyecto · servidor»**, con su
+botón "ver la copia". Tres etiquetas en total — `auto` (lo decidió Michi),
+`manual` (pulsaste el botón y lo tecleó Michi), `tú` (lo escribiste en la
+terminal) —. Piezas: `clearedLog` en localStorage (tope 10) que
+`clearedRemember` alimenta solo con los marcados `you:true`, fusión por
+`ts` desc en `remLogLoad`, `clearedView(info)` acepta ahora una fila
+concreta, y dos claves nuevas por idioma (`rem_you_lab`, `rem_log_typed`,
+×8). Backend, exportador y `RemAction` SIN TOCAR.
+
+POR QUÉ: lo cazó Oscar mirando su propio registro tras un `/clear` a mano
+("no sale en el registro de abajo con los demás, ¿es normal?"). La primera
+respuesta fue "sí, es de diseño" — y lo era, está escrito en
+`remediacion.md` §relevo y en el comentario de `relayUserCmds`: el registro
+es de lo que aplica MICHI, no tú. Pero al revisar salió un agujero de
+verdad: el globo post-`/clear` era la ÚNICA puerta a esa conversación, y
+por la regla única de los globos no vuelve una vez cerrado; encima
+`clearedInfo` es UNA sola ranura que el siguiente `/clear` pisa. Cerrar el
+globo con la ✕ sin clicar, o encadenar dos `/clear`, dejaba la conversación
+viva en disco y sin ningún botón en toda la app que la pidiera. El registro
+era el sitio natural para rescatarla.
+
+Se descartó hacerlo en Rust (que era la lectura obvia de "meterlo en el
+registro"): un `/clear` tuyo no deja copia handoff y se recupera con
+`read_cleared(sid, cwd, ts, origin)` — señas que no caben en `RemAction` y
+que obligarían a campos nuevos + réplica en `meter-export.py` por el
+invariante #1, todo para pintar una fila. En el frontend los datos ya
+estaban ahí: son los mismos que `clearedRemember` recibe desde 2026-08-16.
+
+Dos trampas que se vieron antes de caer en ellas: (1) la marca de "esto lo
+tecleaste tú" es EXPLÍCITA (`you:true`) y no se deduce de `file` vacío — un
+automático cuyo nombre de copia no se pudo leer llega igual de vacío y
+habría salido dos veces, una por Rust y otra por la lista; (2) el clic usa
+la foto `remLogMine` que se PINTÓ, no `clearedLog()` releído, porque un
+`/clear` nuevo se mete por delante (unshift) y el índice abriría la
+conversación de al lado.
+
+CÓMO SE VERIFICÓ: sintaxis del JS embebido con `node --check` (bloque
+único, OK) y simulación del render fusionado con 4 acciones de Rust + 1
+`/clear` tecleado — sale exactamente la tabla del ejemplo, con la fila
+`tú` arriba por fecha y el `⚠ falló` intacto en la suya. Las 8 claves
+nuevas verificadas por conteo (9 apariciones = 8 diccionarios + 1 uso).
+Rust sin cambios, así que no hay `cargo check` que correr. NO probado en
+vivo todavía: falta que Oscar teclee un `/clear` y vea la fila nacer y su
+"ver la copia" abrir el visor.
+
+QUÉ QUEDA: la prueba en vivo de arriba, dentro de la validación pasiva que
+ya estaba abierta. No abre pendientes nuevos.

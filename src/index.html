@@ -2285,6 +2285,8 @@ en:{
   clr_gone:"That conversation is no longer on disk.",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
+  rem_you_lab:"you",
+  rem_log_typed:(cmd,proj)=>`typed ${cmd} in «${proj}»`,
   rem_fail_lab:"failed",
   rem_card_t:"Orphaned MCP processes",
   rem_card_m:(n,mb)=>`${n===1?"1 process":n+" processes"} · ${mb} MB of RAM retained`,
@@ -2823,6 +2825,8 @@ es:{
   clr_gone:"Esa conversación ya no está en el disco.",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
+  rem_you_lab:"tú",
+  rem_log_typed:(cmd,proj)=>`tecleaste ${cmd} en «${proj}»`,
   rem_fail_lab:"falló",
   rem_card_t:"Procesos MCP huérfanos",
   rem_card_m:(n,mb)=>`${n===1?"1 proceso":n+" procesos"} · ${mb} MB de RAM retenidos`,
@@ -3361,6 +3365,8 @@ pt:{
   clr_gone:"Essa conversa já não está no disco.",
   rem_auto_lab:"auto",
   rem_man_lab:"manual",
+  rem_you_lab:"você",
+  rem_log_typed:(cmd,proj)=>`digitou ${cmd} em «${proj}»`,
   rem_fail_lab:"falhou",
   rem_card_t:"Processos MCP órfãos",
   rem_card_m:(n,mb)=>`${n===1?"1 processo":n+" processos"} · ${mb} MB de RAM retidos`,
@@ -3899,6 +3905,8 @@ fr:{
   clr_gone:"Cette conversation n'est plus sur le disque.",
   rem_auto_lab:"auto",
   rem_man_lab:"manuel",
+  rem_you_lab:"vous",
+  rem_log_typed:(cmd,proj)=>`a tapé ${cmd} dans «${proj}»`,
   rem_fail_lab:"échec",
   rem_card_t:"Processus MCP orphelins",
   rem_card_m:(n,mb)=>`${n===1?"1 processus":n+" processus"} · ${mb} Mo de RAM retenus`,
@@ -4437,6 +4445,8 @@ de:{
   clr_gone:"Dieses Gespräch ist nicht mehr auf der Festplatte.",
   rem_auto_lab:"auto",
   rem_man_lab:"manuell",
+  rem_you_lab:"du",
+  rem_log_typed:(cmd,proj)=>`${cmd} in «${proj}» eingegeben`,
   rem_fail_lab:"fehlgeschlagen",
   rem_card_t:"Verwaiste MCP-Prozesse",
   rem_card_m:(n,mb)=>`${n===1?"1 Prozess":n+" Prozesse"} · ${mb} MB RAM belegt`,
@@ -4975,6 +4985,8 @@ ja:{
   clr_gone:"その会話はもうディスクにありません。",
   rem_auto_lab:"自動",
   rem_man_lab:"手動",
+  rem_you_lab:"自分",
+  rem_log_typed:(cmd,proj)=>`「${proj}」で ${cmd} を入力`,
   rem_fail_lab:"失敗",
   rem_card_t:"孤立した MCP プロセス",
   rem_card_m:(n,mb)=>`${n} プロセス · RAM ${mb} MB を占有`,
@@ -5513,6 +5525,8 @@ ko:{
   clr_gone:"해당 대화는 더 이상 디스크에 없습니다.",
   rem_auto_lab:"자동",
   rem_man_lab:"수동",
+  rem_you_lab:"직접",
+  rem_log_typed:(cmd,proj)=>`「${proj}」에 ${cmd} 입력`,
   rem_fail_lab:"실패",
   rem_card_t:"고아 MCP 프로세스",
   rem_card_m:(n,mb)=>`프로세스 ${n}개 · RAM ${mb} MB 점유`,
@@ -6051,6 +6065,8 @@ zh:{
   clr_gone:"该对话已不在磁盘上。",
   rem_auto_lab:"自动",
   rem_man_lab:"手动",
+  rem_you_lab:"你",
+  rem_log_typed:(cmd,proj)=>`在「${proj}」输入了 ${cmd}`,
   rem_fail_lab:"失败",
   rem_card_t:"孤立的 MCP 进程",
   rem_card_m:(n,mb)=>`${n} 个进程 · 占用 ${mb} MB 内存`,
@@ -9820,15 +9836,36 @@ async function prgDuLoad(){
 // Registro de acciones: la bitácora de TODO lo que Michi aplicó (auto o
 // manual). Se pinta al abrir Ajustes y tras cada acción; datos crudos del
 // backend + textos de t() — así el registro cambia de idioma con la app.
+// Foto de los /clear TUYOS tal como se pintaron (ver abajo).
+let remLogMine=[];
 async function remLogLoad(){
   const el=$("remLog"); if(!el||!invoke) return;
   try{
     const list=await invoke("get_action_log")||[];
-    if(!list.length){ el.innerHTML=t("rem_log_empty"); return; }
-    el.innerHTML=list.slice(0,15).map(a=>{
-      const d=new Date(a.ts*1000);
+    // Los /clear que TECLEASTE TÚ no están en el registro de Rust —ese es de
+    // lo que aplica MICHI (remediacion.md)— pero tienen que tener una
+    // puerta: el globo es la única y no vuelve. Se mezclan aquí por fecha
+    // con etiqueta y verbo PROPIOS ("tú · tecleaste"), para que la fila no
+    // mienta sobre quién movió la mano. Viven en el frontend a propósito:
+    // un /clear tuyo no deja copia handoff y se recupera con read_cleared,
+    // cuyas señas (sid/cwd/ts) no caben en RemAction — meterlas ahí
+    // obligaría a tocar el exportador (invariante #1) para nada.
+    remLogMine=clearedLog();
+    const mias=remLogMine.map((c,i)=>({ts:c.ts||0, idx:i, info:c}));
+    const filas=list.map(a=>({ts:a.ts, a})).concat(mias)
+      .sort((x,y)=>y.ts-x.ts).slice(0,15);
+    if(!filas.length){ el.innerHTML=t("rem_log_empty"); return; }
+    el.innerHTML=filas.map(f=>{
+      const d=new Date(f.ts*1000);
       const when=d.toLocaleDateString(undefined,{day:"2-digit",month:"2-digit"})+" "+
         d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+      if(f.info){
+        const lab=[f.info.proj||"", f.info.origin||""].filter(Boolean).join(" · ")||"—";
+        return `<div class="rem-l">${when} · ${t("rem_you_lab")} · ${
+          escapeHtml(t("rem_log_typed","/clear",lab))} <button class="lnk clr-open" data-i="${
+          f.idx}">${t("rem_log_copy")}</button></div>`;
+      }
+      const a=f.a;
       const what=a.kind==="zombie"?t("rem_log_zombie",a.d1)
         : a.kind==="relay"?t("rem_log_relay",a.d1,a.d2)
         : a.kind==="purge"?t("rem_log_purge",a.d1,a.d2)
@@ -9845,6 +9882,14 @@ async function remLogLoad(){
     }).join("");
     el.querySelectorAll(".hnd-open").forEach(b=>
       b.addEventListener("click",()=>handView(b.dataset.f,b.dataset.o||"")));
+    // El índice apunta a la foto que se PINTÓ (remLogMine), no a
+    // localStorage: un /clear tuyo nuevo se mete por delante y releer la
+    // lista al pulsar abriría la conversación de al lado. Ambas cosas se
+    // reasignan en la misma pasada, así que no se pueden descuadrar.
+    el.querySelectorAll(".clr-open").forEach(b=>
+      b.addEventListener("click",()=>{
+        const c=remLogMine[+b.dataset.i]; if(c) clearedView(c);
+      }));
   }catch(_){ el.innerHTML=""; }
 }
 // ---------- visor de copias del /clear (2026-08-13) ----------
@@ -9924,14 +9969,32 @@ $("handX").addEventListener("click",()=>{ $("handPop").hidden=true; });
 // panel NO pasa por aquí: quien lo pulsa está viendo el registro con su
 // "ver la copia". Diseño y porqués en remediacion.md — LEERLO antes de
 // tocar esto.
+// Cuántos /clear TUYOS se recuerdan. La ranura `clearedInfo` de arriba es
+// UNA y la pisa el siguiente, así que sin esta lista la conversación
+// quedaba inalcanzable en cuanto cerrabas el globo (que por la regla única
+// no vuelve) o llegaba otro /clear. Tope corto a propósito: es una puerta
+// de rescate, no un historial.
+const CLEARED_LOG_MAX=10;
+function clearedLog(){
+  try{ return JSON.parse(localStorage.getItem("clearedLog")||"[]"); }catch(_){ return []; }
+}
 function clearedRemember(info){
   try{ localStorage.setItem("clearedInfo", JSON.stringify(info)); }catch(_){}
+  // Solo los TECLEADOS por ti (`you`) entran en la lista: los que aplica
+  // Michi ya los anota Rust en el registro de acciones y se pintarían dos
+  // veces. La marca es explícita y no se deduce de `file`: un automático
+  // cuyo nombre de copia no se pudo leer también llega con file vacío.
+  if(info.you) try{
+    localStorage.setItem("clearedLog",
+      JSON.stringify([info].concat(clearedLog()).slice(0,CLEARED_LOG_MAX)));
+  }catch(_){}
   const label=[info.proj||"", info.origin||""].filter(Boolean).join(" · ")||"—";
   showBalloon(t(info.file?"clr_balloon_auto":"clr_balloon_user", label), "cleared");
 }
-async function clearedView(){
-  let info=null;
-  try{ info=JSON.parse(localStorage.getItem("clearedInfo")||"null"); }catch(_){}
+// Sin argumento abre la ÚLTIMA (el clic en el globo); con él, la fila que
+// se haya pulsado en el registro de acciones.
+async function clearedView(info){
+  if(!info) try{ info=JSON.parse(localStorage.getItem("clearedInfo")||"null"); }catch(_){}
   if(!info||!invoke) return;
   if(info.file) return handView(info.file, info.origin||"");
   const name=(info.sid?info.sid.slice(0,8):"clear")+".jsonl";
@@ -10144,7 +10207,7 @@ function relayUserCmds(){
     // cwd+momento en terminal) para que el visor lo encuentre al clic.
     if(r.user_cmd==="/clear")
       clearedRemember({sid:r.sid||"", cwd:r.cwd||"", ts:r.user_cmd_ts||0,
-        origin:r.origin||"", proj:r.project||"", file:""});
+        origin:r.origin||"", proj:r.project||"", file:"", you:true});
   }
   if(dirty){
     // solo las sesiones vivas: el sello no tiene por qué crecer para siempre
