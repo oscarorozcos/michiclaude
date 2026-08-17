@@ -484,7 +484,12 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
   `type_paste`); consejero `light` (motor del coach, réplicas; compuerta
   en el panel; `set_default_model` SOLO sesiones nuevas); medición
   `scan_ruteo` (réplicas; sin casar no se factura); registro visible y
-  globo. Etapa 6 (v2) con datos del Reporte.
+  globo. Etapa 6 (v2) con datos del Reporte. MODELO TOP: interruptor
+  propio (`RuteoCfg.top`, apagado): alias = ÚLTIMO de
+  `RELAY_MODEL_ALIASES` (`top_alias()`), viaja en la nota como `top`
+  solo encendido; Hook B → THINK al top con cuota <50 (`TOP_ROOM`);
+  guardián → peso ≥3 (`TOP_PESO`) al top y opus escalable. Modelo más
+  caro nuevo = AL FINAL de esa lista + LADDER + listas del relevo.
 - **MÉTRICAS Y REPORTE** — `docs/presion-y-rendimiento.md` (fases 1-2 y
   fila 18 `waste` hechas; fase 3 y lo DESCARTADO, en el doc). Reglas:
   `uturns` = mensajes HUMANOS (fuera meta, sidechain, tool_result,

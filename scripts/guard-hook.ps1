@@ -17,8 +17,10 @@ $STALE_S  = 600
 $INSIST_S = 600
 $TAIL     = 65536
 # La ESCALERA de familias, de barata a cara (replica de guard-hook.py).
-# Nunca se escala solo a la ultima (fable).
+# A la ultima (fable) SOLO con `top` en la nota (interruptor opt-in).
 $LADDER    = @('haiku','sonnet','opus','fable')
+$CHEAP     = @('haiku','sonnet')
+$TOP_PESO  = 3
 $relayDir  = Join-Path $env:USERPROFILE '.michiclaude\relevo'
 
 $michi = Join-Path $env:USERPROFILE '.michiclaude'
@@ -77,12 +79,39 @@ function Tier($model) {
     return $null
 }
 
-function Destino($tr, $peso) {
+function TopDe($st) {
+    # El alias del top SOLO si el interruptor esta encendido Y es un peldano
+    # por encima de opus; si no, $null (todo como antes).
+    if (-not ($st.PSObject.Properties.Name -contains 'top')) { return $null }
+    $t = $st.top
+    if (-not ($t -is [string]) -or -not ($t -match '^[A-Za-z]+$')) { return $null }
+    $t = $t.ToLower()
+    $k = [Array]::IndexOf($LADDER, $t)
+    if ($k -gt [Array]::IndexOf($LADDER, 'opus')) { return $t }
+    return $null
+}
+
+function Escalables($top) {
+    # Sin top, haiku/sonnet; con top, todo lo que quede por debajo de el.
+    if (-not $top) { return $CHEAP }
+    $k = [Array]::IndexOf($LADDER, $top)
+    return @($LADDER[0..($k - 1)])
+}
+
+function Umbral($tr) {
+    # haiku 1, sonnet 2, opus 3 (solo con top)
+    if ($tr -eq 'haiku') { return 1 }
+    if ($tr -eq 'sonnet') { return 2 }
+    return $TOP_PESO
+}
+
+function Destino($tr, $peso, $top) {
     $i = [Array]::IndexOf($LADDER, $tr)
     if ($i -lt 0) { return $null }
-    $top = $LADDER.Length - 2
-    if ($peso -lt 2) { $j = [Math]::Min($top, $i + 1) }
-    else { $j = [Math]::Min($top, [Math]::Max($i + 1, [Array]::IndexOf($LADDER, 'opus'))) }
+    $hi = $LADDER.Length - 2
+    if ($top -and $peso -ge $TOP_PESO) { $j = [Array]::IndexOf($LADDER, $top) }
+    elseif ($peso -lt 2) { $j = [Math]::Min($hi, $i + 1) }
+    else { $j = [Math]::Min($hi, [Math]::Max($i + 1, [Array]::IndexOf($LADDER, 'opus'))) }
     if ($j -gt $i) { return $LADDER[$j] }
     return $null
 }
@@ -178,10 +207,13 @@ try {
 
     # --- (a) el guardian ---
     $guardOn = (Tiene $st 'guard') -and [bool]$st.guard
-    if ($guardOn -and ($tr -eq 'haiku' -or $tr -eq 'sonnet')) {
+    $top = TopDe $st
+    if ($guardOn -and $tr -and ((Escalables $top) -contains $tr)) {
         $r = Senales $prompt; $sig = $r[0]; $peso = $r[1]
-        $umbral = 2; if ($tr -eq 'haiku') { $umbral = 1 }
-        if ($peso -ge $umbral) {
+        # haiku 1, sonnet 2, opus 3 (solo con top); sin peldano, sin freno
+        $dest = $null
+        if ($peso -ge (Umbral $tr)) { $dest = Destino $tr $peso $top }
+        if ($dest) {
             $sha = [System.Security.Cryptography.SHA1]::Create()
             $h = ([BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($prompt.Trim()))) -replace '-','').ToLower().Substring(0,16)
             $insiste = $false; $auto = $false
@@ -195,7 +227,6 @@ try {
                 $evn = 'insist'; if ($auto) { $evn = 'resent' }
                 $f = Fila $evn; $f['model'] = $tr; $f['sig'] = $sig; Apunta $f
             } else {
-                $dest = Destino $tr $peso; if (-not $dest) { $dest = 'opus' }
                 $escOk = $false; $escErr = ''; $reenvio = $false
                 $escOn = (Tiene $st 'esc') -and [bool]$st.esc
                 $rsOn = (Tiene $st 'rs') -and [bool]$st.rs

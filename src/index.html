@@ -1740,6 +1740,18 @@
         <span data-i18n="rt_rs_on"></span><input type="checkbox" id="rtRsChk">
       </label>
       <div class="cfg-note" style="margin-left:36px" data-i18n="rt_rs_hint"></div>
+      <!-- MODELO TOP (petición de Oscar 2026-08-17): el más caro e
+           inteligente del momento (hoy Fable; el alias lo pone Rust como
+           ÚLTIMO de la lista cerrada, así al salir uno nuevo el interruptor
+           lo sigue solo). Apagado = los hooks ni lo conocen (todo como
+           antes). Encendido = entra a la lógica igual que los demás:
+           subagentes de análisis con cuota SOBRADA (<50) y escalera del
+           guardián hasta él (peso ≥3, opus incluido). Viaja en la nota
+           como `top`. Interruptor PROPIO porque es el que más gasta. -->
+      <label class="cfg-row" style="cursor:pointer;margin-top:6px" id="rtTopRow">
+        <span id="rtTopLbl"></span><input type="checkbox" id="rtTopChk">
+      </label>
+      <div class="cfg-note" id="rtTopHint"></div>
       <!-- CONTEXTO INYECTADO: lo ÚNICO del sistema que gasta tokens (~60 por
            turno). Apagable aparte y AUTO-REPORTADO en el registro. -->
       <label class="cfg-row" style="cursor:pointer;margin-top:6px" id="rtCtxRow">
@@ -2421,6 +2433,9 @@ en:{
   rt_log_empty:"No decisions yet.",
   rt_rs_on:"…and resend it for me",
   rt_rs_hint:"After switching the session up, the relay resends your stopped prompt itself — you don't touch anything. Works in the VS Code chat and in terminals (there it confirms Claude Code's dialog and restores your default model right after). Your prompt text goes to that session's relay and is dropped right after; it never enters any log.",
+  rt_top_on:"Also use the top model ({m})",
+  rt_top_hint:"The most expensive and smartest model of the moment. Off (default): the routing never touches it, exactly as now. On: it joins the same rules as the others — deep-analysis subagents get it when your quota is comfortable (under 50%), and the guardian's ladder can climb up to it (three signals; sessions on Opus become escalable too). It is the model that spends the most: keep it off unless you want it.",
+  rt_why_top:"top model, quota is comfortable",
   rt_ev_esc_rs:(m,to)=>`guard stopped a heavy prompt on ${m}, switched the session to ${to} and resent it`,
   rt_ev_resent:to=>`resent by Michi on ${to}`,
   rt_rep_resent:n=>`${n} resent for you`,
@@ -3032,6 +3047,9 @@ es:{
   rt_log_empty:"Todavía sin decisiones.",
   rt_rs_on:"…y reenviarlo por mí",
   rt_rs_hint:"Tras subir la sesión, el relevo reenvía él tu prompt frenado — no tocas nada. Funciona en el chat de VS Code y en terminales (ahí confirma el diálogo de Claude Code y restaura tu modelo por defecto al instante). El texto de tu prompt va al relevo de esa sesión y se borra al instante; jamás entra a ningún registro.",
+  rt_top_on:"Usar también el modelo top ({m})",
+  rt_top_hint:"El modelo más caro e inteligente del momento. Apagado (por defecto): el ruteo ni lo toca, igual que ahora. Encendido: entra a las mismas reglas que los demás — los subagentes de análisis profundo lo reciben cuando la cuota va holgada (menos del 50%) y la escalera del guardián puede subir hasta él (tres señales; las sesiones en Opus también pasan a ser escalables). Es el que más gasta: déjalo apagado salvo que lo quieras.",
+  rt_why_top:"modelo top, cuota holgada",
   rt_ev_esc_rs:(m,to)=>`el guardián frenó un prompt pesado en ${m}, subió la sesión a ${to} y lo reenvió`,
   rt_ev_resent:to=>`reenviado por Michi en ${to}`,
   rt_rep_resent:n=>`${n} reenviados por ti`,
@@ -3643,6 +3661,9 @@ pt:{
   rt_log_empty:"Ainda sem decisões.",
   rt_rs_on:"…e reenviar por mim",
   rt_rs_hint:"Depois de subir a sessão, o relevo reenvia ele mesmo seu prompt travado — você não toca em nada. Funciona no chat do VS Code e em terminais (lá confirma o diálogo do Claude Code e restaura seu modelo padrão na hora). O texto do seu prompt vai ao relevo dessa sessão e é apagado na hora; nunca entra em nenhum registro.",
+  rt_top_on:"Usar também o modelo top ({m})",
+  rt_top_hint:"O modelo mais caro e inteligente do momento. Desligado (padrão): o roteamento nem toca nele, como agora. Ligado: entra nas mesmas regras que os outros — os subagentes de análise profunda o recebem quando a cota está folgada (abaixo de 50%) e a escada do guardião pode subir até ele (três sinais; sessões em Opus também passam a ser escaláveis). É o que mais gasta: deixe desligado a menos que o queira.",
+  rt_why_top:"modelo top, cota folgada",
   rt_ev_esc_rs:(m,to)=>`o guardião travou um prompt pesado em ${m}, subiu a sessão para ${to} e o reenviou`,
   rt_ev_resent:to=>`reenviado pelo Michi em ${to}`,
   rt_rep_resent:n=>`${n} reenviados por você`,
@@ -4254,6 +4275,9 @@ fr:{
   rt_log_empty:"Pas encore de décisions.",
   rt_rs_on:"…et le renvoyer à ma place",
   rt_rs_hint:"Après avoir monté la session, le relais renvoie lui-même votre prompt bloqué — vous ne touchez à rien. Fonctionne dans le chat VS Code et dans les terminaux (là, il confirme la boîte de dialogue de Claude Code et restaure aussitôt votre modèle par défaut). Le texte de votre prompt va au relais de cette session et est effacé aussitôt ; il n’entre jamais dans aucun journal.",
+  rt_top_on:"Utiliser aussi le modèle top ({m})",
+  rt_top_hint:"Le modèle le plus cher et le plus intelligent du moment. Désactivé (par défaut) : le routage n’y touche pas, comme maintenant. Activé : il entre dans les mêmes règles que les autres — les sous-agents d’analyse profonde le reçoivent quand le quota est confortable (moins de 50 %) et l’échelle du gardien peut monter jusqu’à lui (trois signaux ; les sessions sur Opus deviennent aussi escaladables). C’est celui qui dépense le plus : laissez-le désactivé sauf si vous le voulez.",
+  rt_why_top:"modèle top, quota confortable",
   rt_ev_esc_rs:(m,to)=>`le garde-fou a bloqué un prompt lourd sur ${m}, a monté la session vers ${to} et l’a renvoyé`,
   rt_ev_resent:to=>`renvoyé par Michi sur ${to}`,
   rt_rep_resent:n=>`${n} renvoyés pour vous`,
@@ -4865,6 +4889,9 @@ de:{
   rt_log_empty:"Noch keine Entscheidungen.",
   rt_rs_on:"…und ihn für mich erneut senden",
   rt_rs_hint:"Nach dem Hochstufen sendet die Ablösung deinen gestoppten Prompt selbst erneut – du rührst nichts an. Funktioniert im VS-Code-Chat und in Terminals (dort bestätigt sie den Dialog von Claude Code und stellt dein Standardmodell sofort wieder her). Der Prompt-Text geht an die Ablösung dieser Sitzung und wird sofort verworfen; er landet nie in einem Protokoll.",
+  rt_top_on:"Auch das Top-Modell nutzen ({m})",
+  rt_top_hint:"Das teuerste und klügste Modell des Moments. Aus (Standard): das Routing fasst es nicht an, wie bisher. An: es folgt denselben Regeln wie die anderen – Subagenten für tiefe Analyse bekommen es bei entspanntem Kontingent (unter 50 %), und die Leiter des Wächters kann bis zu ihm hinaufsteigen (drei Signale; auch Sitzungen auf Opus werden eskalierbar). Es verbraucht am meisten: lass es aus, wenn du es nicht willst.",
+  rt_why_top:"Top-Modell, Kontingent entspannt",
   rt_ev_esc_rs:(m,to)=>`Wächter stoppte einen schweren Prompt auf ${m}, stufte die Sitzung auf ${to} hoch und sendete ihn erneut`,
   rt_ev_resent:to=>`von Michi auf ${to} erneut gesendet`,
   rt_rep_resent:n=>`${n} für dich erneut gesendet`,
@@ -5476,6 +5503,9 @@ ja:{
   rt_log_empty:"まだ判断はありません。",
   rt_rs_on:"…そして私の代わりに再送する",
   rt_rs_hint:"セッションを上げたあと、リレーが止めたプロンプトを自分で再送します — あなたは何も触りません。VS Code チャットとターミナルの両方で動きます(ターミナルでは Claude Code のダイアログを確定し、既定モデルをすぐ元に戻します)。プロンプトの文面はそのセッションのリレーに渡され、すぐに破棄されます。記録には一切残りません。",
+  rt_top_on:"最上位モデルも使う({m})",
+  rt_top_hint:"今もっとも高価で賢いモデルです。オフ(既定):ルーティングは一切触れません(今まで通り)。オン:他と同じルールに加わります — 深い分析のサブエージェントはクォータに余裕がある(50%未満)ときにこのモデルを受け取り、ガーディアンのはしごもここまで上がれます(シグナル3つ。Opus のセッションもエスカレーション対象になります)。いちばん消費するモデルなので、必要でなければオフのままに。",
+  rt_why_top:"最上位モデル、クォータに余裕",
   rt_ev_esc_rs:(m,to)=>`ガードが ${m} 上の重いプロンプトを止め、セッションを ${to} に上げて再送しました`,
   rt_ev_resent:to=>`Michi が ${to} で再送`,
   rt_rep_resent:n=>`うち ${n} 件を代わりに再送`,
@@ -6087,6 +6117,9 @@ ko:{
   rt_log_empty:"아직 결정이 없습니다.",
   rt_rs_on:"…그리고 나 대신 다시 보내기",
   rt_rs_hint:"세션을 올린 뒤 릴레이가 막힌 프롬프트를 스스로 다시 보냅니다 — 아무것도 건드리지 않아도 됩니다. VS Code 채팅과 터미널 모두에서 동작합니다(터미널에서는 Claude Code의 대화상자를 확인하고 기본 모델을 즉시 되돌립니다). 프롬프트 텍스트는 해당 세션의 릴레이로 전달되고 즉시 삭제되며, 어떤 기록에도 남지 않습니다.",
+  rt_top_on:"최상위 모델도 사용({m})",
+  rt_top_hint:"현재 가장 비싸고 똑똑한 모델입니다. 끔(기본): 라우팅이 전혀 건드리지 않습니다(지금과 동일). 켬: 다른 모델과 같은 규칙에 들어갑니다 — 심층 분석 서브에이전트는 할당량이 여유로울 때(50% 미만) 이 모델을 받고, 가디언의 사다리도 여기까지 올라갈 수 있습니다(신호 3개; Opus 세션도 에스컬레이션 대상이 됩니다). 가장 많이 소비하는 모델이니 원하지 않으면 꺼 두세요.",
+  rt_why_top:"최상위 모델, 할당량 여유",
   rt_ev_esc_rs:(m,to)=>`가드가 ${m}의 무거운 프롬프트를 막고 세션을 ${to}로 올린 뒤 다시 보냈습니다`,
   rt_ev_resent:to=>`Michi가 ${to}에서 재전송`,
   rt_rep_resent:n=>`그중 ${n}건을 대신 재전송`,
@@ -6698,6 +6731,9 @@ zh:{
   rt_log_empty:"还没有决定。",
   rt_rs_on:"…并替我重发",
   rt_rs_hint:"升级会话后,中继会自己重发被拦下的提示——你什么都不用碰。在 VS Code 聊天和终端中都有效(终端里会确认 Claude Code 的对话框并立即恢复你的默认模型)。提示文本会交给该会话的中继并立即丢弃,绝不进入任何记录。",
+  rt_top_on:"也使用顶级模型({m})",
+  rt_top_hint:"当前最贵、最聪明的模型。关闭(默认):路由完全不碰它,与现在一样。开启:它进入与其他模型相同的规则——深度分析子代理在配额宽裕(低于 50%)时会用到它,守卫的阶梯也能升到它(三个信号;Opus 会话也可被升级)。它是最费配额的模型:除非需要,否则保持关闭。",
+  rt_why_top:"顶级模型,配额宽裕",
   rt_ev_esc_rs:(m,to)=>`守卫拦下了 ${m} 上的重提示,把会话升到 ${to} 并重发了它`,
   rt_ev_resent:to=>`由 Michi 在 ${to} 上重发`,
   rt_rep_resent:n=>`其中 ${n} 次替你重发`,
@@ -6839,7 +6875,7 @@ function applyI18n(){
   if(!$("tab-tips").hidden) renderTips();
   // la lista de relevos también: sus filas se arman con t() y el aviso de
   // "ninguna sesión" pisa el data-i18n de arriba
-  if(!$("tab-prefs").hidden) rlyRows();
+  if(!$("tab-prefs").hidden){ rlyRows(); rtFlagsUi(); }   // la casilla del top lleva el nombre del modelo
 }
 
 // Traducción de códigos de error del backend (ERR_*)
@@ -11601,15 +11637,21 @@ async function rtFlagsUi(){
   try{
     const c=await invoke("get_ruteo_cfg");
     $("rtGuardChk").checked=!!c.guard; $("rtCtxChk").checked=!!c.ctx; $("rtEscChk").checked=!!c.esc; $("rtRsChk").checked=!!c.rs;
-    $("rtGuardChk").disabled=!c.on; $("rtCtxChk").disabled=!c.on;
+    $("rtTopChk").checked=!!c.top;
+    // el nombre del top lo pone Rust (último de la lista cerrada): la
+    // casilla dice el modelo REAL y sigue sola cuando salga uno más caro
+    const topName=c.top_alias?prettyModel(c.top_alias):"";
+    $("rtTopLbl").textContent=t("rt_top_on").replace("{m}",topName);
+    $("rtTopHint").textContent=t("rt_top_hint");
+    $("rtGuardChk").disabled=!c.on; $("rtCtxChk").disabled=!c.on; $("rtTopChk").disabled=!c.on;
     $("rtEscChk").disabled=!c.on||!c.guard;   // escalar exige el guardián
     $("rtRsChk").disabled=!c.on||!c.guard||!c.esc;   // reenviar exige escalar
   }catch(_){}
 }
 async function rtFlagsSave(){
   try{
-    await invoke("set_ruteo_flags",{guard:$("rtGuardChk").checked, ctx:$("rtCtxChk").checked, esc:$("rtEscChk").checked, rs:$("rtRsChk").checked});
-    flog("ruteo: guard="+$("rtGuardChk").checked+" ctx="+$("rtCtxChk").checked+" esc="+$("rtEscChk").checked+" rs="+$("rtRsChk").checked);
+    await invoke("set_ruteo_flags",{guard:$("rtGuardChk").checked, ctx:$("rtCtxChk").checked, esc:$("rtEscChk").checked, rs:$("rtRsChk").checked, top:$("rtTopChk").checked});
+    flog("ruteo: guard="+$("rtGuardChk").checked+" ctx="+$("rtCtxChk").checked+" esc="+$("rtEscChk").checked+" rs="+$("rtRsChk").checked+" top="+$("rtTopChk").checked);
     $("rtEscChk").disabled=!$("rtGuardChk").checked;
     $("rtRsChk").disabled=!$("rtGuardChk").checked||!$("rtEscChk").checked;
     // la nota re-empujada al instante para que las tres máquinas lo sepan
@@ -11621,6 +11663,7 @@ $("rtGuardChk").addEventListener("change",rtFlagsSave);
 $("rtCtxChk").addEventListener("change",rtFlagsSave);
 $("rtEscChk").addEventListener("change",rtFlagsSave);
 $("rtRsChk").addEventListener("change",rtFlagsSave);
+$("rtTopChk").addEventListener("change",rtFlagsSave);
 
 // El registro del ruteo: latido (hoy) + últimas decisiones de las tres
 // máquinas. Es la respuesta a "¿está vivo? ¿qué decidió? ¿se queda siempre
@@ -11639,7 +11682,7 @@ function rtRowTxt(r){
   if(r.ev==="route") return t("rt_ev_route", r.type||"?", rtModelName(r.after));
   if(r.ev==="skip"){
     const why={explicit:t("rt_why_explicit"),bypass:t("rt_why_bypass"),
-      "think-comfort":t("rt_why_comfort")}[r.why]||r.why;
+      "think-comfort":t("rt_why_comfort"),"think-top":t("rt_why_top")}[r.why]||r.why;
     return t("rt_ev_skip", r.type||"?", why);
   }
   if(r.ev==="block") return t("rt_ev_block", rtModelName(r.model), (r.sig||[]).join(", "));

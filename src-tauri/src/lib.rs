@@ -7605,6 +7605,24 @@ struct RuteoCfg {
     /// el prompt frenado (mensaje JSON atómico). Exige `esc`. Nace apagado.
     #[serde(default)]
     rs: bool,
+    /// El modelo TOP (el más caro e inteligente del momento, hoy fable):
+    /// con esto encendido entra a la lógica de los hooks igual que los
+    /// demás — el Hook B lo da a los subagentes de análisis con cuota
+    /// SOBRADA y el guardián escala hasta él (opus incluido) con peso ≥3.
+    /// Viaja en la nota como `top: "<alias>"`; apagado = sin campo = todo
+    /// como antes. Nace apagado. Interruptor propio a propósito: es el
+    /// modelo que más gasta.
+    #[serde(default)]
+    top: bool,
+}
+
+/// El alias del modelo TOP del momento: el ÚLTIMO de la lista cerrada del
+/// relevo (ordenada de barato a caro). Cuando salga uno más caro se añade
+/// AL FINAL de esa lista (y en LADDER de los dos guard-hook y en las listas
+/// del relevo/SETMODEL) y esto lo sigue solo — sin buscar en tablas de
+/// precios, que un alias sin versión no sabe cobrar.
+fn top_alias() -> &'static str {
+    RELAY_MODEL_ALIASES[RELAY_MODEL_ALIASES.len() - 1]
 }
 
 fn ruteo_cfg() -> RuteoCfg {
@@ -8033,6 +8051,11 @@ async fn save_router_state(state: String) -> Result<(), String> {
         // escalar SOLO tiene sentido con el guardián encendido
         v["esc"] = serde_json::Value::Bool(cfg.esc && cfg.guard);
         v["rs"] = serde_json::Value::Bool(cfg.rs && cfg.esc && cfg.guard);
+        // el modelo TOP: SOLO con su interruptor; apagado no se escribe el
+        // campo (los hooks lo tratan como "no existe", igual que antes)
+        if cfg.top {
+            v["top"] = serde_json::Value::String(top_alias().to_string());
+        }
         let compact = v.to_string();
         let dir = michi_dir();
         let _ = fs::create_dir_all(&dir);
@@ -8061,16 +8084,26 @@ async fn save_router_state(state: String) -> Result<(), String> {
     .map_err(|e| e.to_string())?
 }
 
+/// La config más el alias del top (para que la UI ponga el nombre real del
+/// modelo en la casilla sin listas propias).
 #[tauri::command]
-fn get_ruteo_cfg() -> RuteoCfg {
-    ruteo_cfg()
+fn get_ruteo_cfg() -> serde_json::Value {
+    let mut v = serde_json::to_value(ruteo_cfg()).unwrap_or(serde_json::Value::Null);
+    v["top_alias"] = serde_json::Value::String(top_alias().to_string());
+    v
 }
 
 /// Las banderas del guardián y del contexto inyectado. No tocan
 /// settings.json: viajan en la nota del siguiente ciclo (el panel la
 /// re-empuja al instante desde el interruptor).
 #[tauri::command]
-fn set_ruteo_flags(guard: bool, ctx: bool, esc: Option<bool>, rs: Option<bool>) -> RuteoCfg {
+fn set_ruteo_flags(
+    guard: bool,
+    ctx: bool,
+    esc: Option<bool>,
+    rs: Option<bool>,
+    top: Option<bool>,
+) -> RuteoCfg {
     let mut c = ruteo_cfg();
     c.guard = guard;
     c.ctx = ctx;
@@ -8079,6 +8112,9 @@ fn set_ruteo_flags(guard: bool, ctx: bool, esc: Option<bool>, rs: Option<bool>) 
     }
     if let Some(r) = rs {
         c.rs = r;
+    }
+    if let Some(t) = top {
+        c.top = t;
     }
     ruteo_cfg_write(&c);
     c

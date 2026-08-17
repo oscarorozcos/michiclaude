@@ -11,6 +11,9 @@ señales ESTRUCTURALES pesadas —bloque de código, varias rutas de archivo,
 imperativo largo; nada de keywords, así vale en cualquier idioma— y la
 sesión va en un modelo barato, BLOQUEA el prompt ANTES de gastar un token
 y dice cómo seguir: `/model opus` y reenviar, o anteponer `~`.
+Con el interruptor del modelo TOP (`top` en la nota, opt-in) la escalera
+llega al último peldaño: con peso ≥3 el destino es el top, y opus pasa a
+ser "escalable" (solo con peso ≥3). Sin `top`, todo idéntico a antes.
 
 Reglas duras:
   - Lee la nota ~/.michiclaude/router_state.json; ausente, >10 min de
@@ -36,12 +39,14 @@ import time
 
 STALE_S = 600
 INSIST_S = 600
-CHEAP = ("haiku", "sonnet")           # tiers desde los que se escala
+CHEAP = ("haiku", "sonnet")           # tiers desde los que se escala (sin top)
+TOP_PESO = 3                          # peso desde el que se sube al top
 TAIL = 65536
 # La ESCALERA de familias, de barata a cara. Es la ÚNICA lista de modelos
 # del hook: se reconoce por nombre (subcadena), un modelo desconocido no
 # es de ninguna familia y el guardián no actúa. Añadir una familia nueva =
-# una palabra aquí (y en el .ps1). Nunca se escala solo a la última.
+# una palabra aquí (y en el .ps1, y al FINAL de la lista cerrada del relevo
+# y de RELAY_MODEL_ALIASES en lib.rs). A la última SOLO con `top`.
 LADDER = ("haiku", "sonnet", "opus", "fable")
 RELAY_DIR = os.path.join(os.path.expanduser("~"), ".michiclaude", "relevo")
 
@@ -139,16 +144,44 @@ def codigo_pelado(prompt):
     return False
 
 
-def destino(tr, peso):
+def top_de(st):
+    """El alias del modelo top SOLO si el interruptor está encendido Y es
+    un peldaño de la escalera por encima de opus; si no, None (todo como
+    antes). Un alias desconocido se ignora: no se escala a ciegas."""
+    t = st.get("top")
+    if not (isinstance(t, str) and t.isalpha()):
+        return None
+    t = t.lower()
+    return t if t in LADDER and LADDER.index(t) > LADDER.index("opus") else None
+
+
+def escalables(top):
+    """Desde qué tiers se escala: sin top, haiku/sonnet; con top, todo lo
+    que quede por debajo de él (opus incluido)."""
+    return tuple(LADDER[:LADDER.index(top)]) if top else CHEAP
+
+
+def umbral(tr):
+    """Peso mínimo para frenar: haiku 1, sonnet 2, opus 3 (solo con top)."""
+    return {"haiku": 1, "sonnet": 2}.get(tr, TOP_PESO)
+
+
+def destino(tr, peso, top=None):
     """A qué peldaño subir: una señal = un peldaño; código o dos señales =
-    a «opus» (o el peldaño más alto permitido si opus no está). Jamás al
-    último peldaño (fable): ese lo elige el usuario."""
+    a «opus» (o el peldaño más alto permitido si opus no está). Al último
+    peldaño (el top) SOLO con su interruptor y peso ≥3: sin él, ese lo
+    elige el usuario."""
     try:
         i = LADDER.index(tr)
     except ValueError:
         return None
-    top = len(LADDER) - 2                     # índice máximo automático
-    j = min(top, i + 1) if peso < 2 else min(top, max(i + 1, LADDER.index("opus")))
+    hi = len(LADDER) - 2                      # índice máximo automático
+    if top and peso >= TOP_PESO:
+        j = LADDER.index(top)
+    elif peso < 2:
+        j = min(hi, i + 1)
+    else:
+        j = min(hi, max(i + 1, LADDER.index("opus")))
     return LADDER[j] if j > i else None
 
 
@@ -258,11 +291,16 @@ def main():
 
     salida = {}
     # --- (a) el guardián ---
-    if st.get("guard") and tr in CHEAP:
+    top = top_de(st)
+    if st.get("guard") and tr in escalables(top):
         sig, peso = senales(prompt)
-        # con haiku basta una señal; con sonnet hace falta peso ≥2
-        umbral = 1 if tr == "haiku" else 2
-        if peso >= umbral:
+        # con haiku basta una señal; con sonnet hace falta peso ≥2; opus
+        # (solo con top) exige 3
+        dest = None
+        if peso >= umbral(tr):
+            dest = destino(tr, peso, top)
+        # sin peldaño al que subir (p. ej. ya arriba) no hay freno
+        if dest:
             h = hashlib.sha1(prompt.strip().encode("utf-8")).hexdigest()[:16]
             insiste = False
             auto = False
@@ -279,7 +317,6 @@ def main():
                 # relevo por orden nuestra (5c) — se anota lo que fue
                 apunta(dict(base, ev="resent" if auto else "insist", model=tr, sig=sig))
             else:
-                dest = destino(tr, peso) or "opus"
                 # ESCALAR SOLO (bandera `esc` en la nota): el relevo de esta
                 # sesión teclea `/model <dest>`; el usuario solo reenvía —
                 # o, con `rs` (5c) y relevo de chat, lo reenvía el relevo.

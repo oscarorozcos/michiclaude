@@ -3864,3 +3864,32 @@ recortado del bloque de IA antes de condensarlo. Sin cambios de código.
 QUÉ QUEDA: nada nuevo. Margen ~4k para las próximas jornadas; si vuelve a
 rozar, el siguiente candidato es el detalle CSS del gatito (Ventanas), que
 podría vivir en un `docs/widget-gatito.md` con puntero.
+
+## 2026-08-17 (20) — el interruptor del modelo TOP: fable (y el que venga) entra al ruteo solo si Oscar lo enciende
+
+QUÉ: casilla propia en Ajustes → ruteo («Usar también el modelo top
+(Fable)»), `RuteoCfg.top` en `ruteo.json`, campo `top: "<alias>"` en la
+nota (solo encendido), Hook B da el top a subagentes de análisis con cuota
+sobrada (<50, `TOP_ROOM`) y el guardián escala hasta él con peso ≥3
+(`TOP_PESO`) — opus pasa a ser escalable con umbral 3. Réplicas .py/.ps1
+tocadas a la par; `rt_why_top` y textos en 8 idiomas; `get_ruteo_cfg`
+devuelve `top_alias` para pintar el nombre real. Docs: ruteo-inteligente
+§11 «El interruptor del modelo top», remediacion.md (la frase «JAMÁS a
+fable solo» lleva la salvedad), CLAUDE.md (puntero).
+POR QUÉ: Oscar (2026-08-17): el ruteo funcionaba en sus tres piezas pero
+sin el modelo más caro; quiere un interruptor EXCLUSIVO para «el más caro
+e inteligente del momento» (hoy fable; mañana otro) — apagado = como
+está, encendido = entra a la lógica igual que los demás. Decisiones: el
+alias NO se configura ni se busca en tablas de precios (un alias sin
+versión no se sabe cobrar; `price_table("opus")` daría 75 > 50 y elegiría
+mal): es el ÚLTIMO de la lista cerrada del relevo, que ya es la escalera
+de barato a caro — un modelo nuevo se añade AL FINAL y todo lo sigue.
+Umbrales conservadores a propósito: al top solo con cuota SOBRADA (no
+«holgada» a secas) y con TRES señales, porque es el que más gasta.
+CÓMO SE VERIFICÓ: matriz sintética 29/29 de los dos .py (detalle en el
+doc); .ps1 a ojo (sin pwsh aquí), ASCII puro comprobado; sintaxis del
+index.html con node. NO verificado: `cargo check` (sin toolchain en el
+VPS) ni la casilla en vivo — quedan para el Windows de Oscar.
+QUÉ QUEDA: en Windows: `cargo check`, encender la casilla, ver `top` en
+la nota y una fila `think-top` real en el registro; se suma a la
+validación pasiva del ruteo.

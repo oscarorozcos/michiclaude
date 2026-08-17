@@ -11,6 +11,9 @@ MichiClaude deja en ~/.michiclaude/router_state.json:
 
   - exploración/búsqueda  -> haiku   (siempre: el error de subir es barato)
   - análisis profundo     -> sonnet SOLO si la cuota aprieta (>=70%)
+                             -> el modelo TOP (`top` en la nota, opt-in) si
+                                la cuota va holgada (<50%) y el padre no va ya
+                                en él; entre medias hereda el del padre
   - lo demás (implementación) -> sonnet
 
 Reglas duras (del diseño, no opcionales):
@@ -30,8 +33,12 @@ import time
 
 STALE_S = 600          # estado con más de 10 min = viejo (regla del diseño)
 PRESSURE = 70          # % de cuota desde el que el análisis baja a sonnet
+TOP_ROOM = 50          # % de cuota por DEBAJO del cual el análisis sube al top
 MODEL_LIGHT = "haiku"
 MODEL_MID = "sonnet"
+# El modelo TOP (el más caro e inteligente del momento) NO vive aquí: llega
+# en la nota como `top` (alias, p. ej. "fable") SOLO con su interruptor
+# encendido en MichiClaude. Sin campo = el hook ni lo conoce (como antes).
 
 # Clases por NOMBRE del tipo de subagente (subcadenas, en minúsculas).
 # Señales estructurales, no keywords del prompt: funcionan igual en
@@ -106,12 +113,32 @@ def clase(tipo):
     return "work"
 
 
-def presion(st):
-    """¿Aprieta la cuota? Con el peor de los dos números que haya; sin
-    ninguno, no hay presión (no inventar cifras — invariante #8)."""
+def peor(st):
+    """El peor de los dos números que haya; None si no hay ninguno (no
+    inventar cifras — invariante #8)."""
     vals = [v for v in (st.get("week_pct"), st.get("session_pct"))
             if isinstance(v, (int, float))]
-    return bool(vals) and max(vals) >= PRESSURE
+    return max(vals) if vals else None
+
+
+def presion(st):
+    """¿Aprieta la cuota?"""
+    p = peor(st)
+    return p is not None and p >= PRESSURE
+
+
+def holgura(st):
+    """¿Sobra cuota para el modelo top? Sin cifras NO hay holgura: subir
+    al más caro exige saber que se puede."""
+    p = peor(st)
+    return p is not None and p < TOP_ROOM
+
+
+def top_de(st):
+    """El alias del modelo top si el interruptor está encendido; si no,
+    None. Solo un alias corto de letras: cualquier otra cosa se ignora."""
+    t = st.get("top")
+    return t.lower() if isinstance(t, str) and t.isalpha() and 0 < len(t) <= 16 else None
 
 
 def main():
@@ -149,8 +176,14 @@ def main():
     if c == "light":
         modelo, why = MODEL_LIGHT, "light"
     elif c == "think":
+        top = top_de(st)
         if presion(st):
             modelo, why = MODEL_MID, "think-pressure"
+        elif top and holgura(st) and top not in base["parent"].lower():
+            # interruptor del top encendido y cuota SOBRADA: el análisis
+            # va al mejor modelo (si el padre ya va en él, no hay nada que
+            # cambiar y se hereda como siempre)
+            modelo, why = top, "think-top"
         else:
             # cuota holgada: el análisis se queda con el modelo del padre
             apunta(dict(base, ev="skip", why="think-comfort"))

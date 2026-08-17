@@ -601,6 +601,50 @@ VALIDADO EN VIVO (VPS, `claude -p --resume`): bloqueo real SIN gastar
 (assistant turns siguió en 1), insistencia pasa, `~` pasa, Opus nunca
 bloquea, ctx citado LITERAL por Claude con la cuota real. Matriz 24/24.
 
+**El interruptor del modelo TOP (2026-08-17 (20), petición de Oscar).**
+El ruteo nunca tocaba el modelo más caro (hoy fable): el guardián no
+escalaba a él y el Hook B no lo daba a nadie. Oscar pidió un interruptor
+PROPIO para ese modelo (y para el que venga más caro después): apagado =
+todo como antes; encendido = «entra a la lógica igual que los demás».
+Cómo quedó (reglas VIGENTES):
+
+- `RuteoCfg.top` (`ruteo.json`, nace apagado, casilla en Ajustes bajo el
+  ruteo, deshabilitada sin ruteo). El ALIAS del top NO se configura: es el
+  ÚLTIMO de `RELAY_MODEL_ALIASES` (lista cerrada del relevo, ordenada de
+  barato a caro; `top_alias()` en lib.rs) — la casilla lo pinta con
+  `prettyModel` (`get_ruteo_cfg` devuelve `top_alias`). Cuando salga un
+  modelo más caro: añadirlo AL FINAL de esa lista, de `LADDER` en los dos
+  guard-hook y de las listas del relevo (michi-relevo.py, relevo/main.rs,
+  MODEL_CHOICES) — y el interruptor lo sigue solo. NO se busca en tablas
+  de precios (un alias sin versión no se sabe cobrar).
+- Viaja en la nota como `top: "<alias>"` SOLO con el interruptor
+  encendido; apagado NO se escribe el campo (los hooks lo tratan como
+  inexistente — un hook viejo tampoco lo mira). Llega a local/WSL/SSH en
+  el mismo empuje que las demás banderas.
+- Hook B (réplicas .py/.ps1): subagente THINK, sin presión (<70) Y con
+  cuota SOBRADA (`TOP_ROOM` = 50, peor de sesión/semana; SIN cifras no hay
+  holgura) Y padre que no vaya ya en el top → nace en el top
+  (`route/think-top`); entre 50 y 70 hereda como siempre; LIGHT y WORK
+  ni se enteran. En el Reporte cuenta como «subieron» (es un upgrade y se
+  dice; invariante #8).
+- Guardián (réplicas): con `top` la escalera llega al último peldaño —
+  peso ≥3 (`TOP_PESO`) = destino top desde cualquier tier de abajo — y
+  opus pasa a ser ESCALABLE con umbral 3 (haiku 1 / sonnet 2 siguen
+  igual). Sin `top`, opus nunca frena y a fable no se sube. Alias que no
+  sea peldaño por ENCIMA de opus = como sin top (no se escala a ciegas).
+  Sin peldaño al que subir no hay freno (antes caía a «opus» por
+  defecto; el caso no se daba y ahora no puede darse).
+- La lista blanca del relevo ya aceptaba `/model fable`: no cambia.
+- Verificado con matriz sintética 29/29 de los dos .py (HOME temporal;
+  Hook B: sin top hereda / top+20 → fable / top+60 hereda / top+75 →
+  sonnet / padre fable hereda / alias raro, booleano o mayúsculas / sin
+  cifras NO sube; guardián: sin top opus nunca frena y sonnet peso 4 →
+  opus jamás fable; con top opus peso 4 → fable, opus peso 2 pasa,
+  sonnet peso 2 → opus, peso 3 → fable, fable nunca frena, top=opus o
+  desconocido = como sin top, guard OFF nada, insistencia pasa). Los
+  .ps1 revisados a ojo (sin pwsh en el VPS); `cargo check` y la casilla
+  en vivo quedan para el Windows de Oscar.
+
 **Etapa 6 — v2 opcionales.**
 Análisis histórico en frío con el modelo local (espera el veredicto de
 análisis local v1) y embeddings ONNX en el bloqueo solo si el beta

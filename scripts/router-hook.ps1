@@ -8,6 +8,9 @@
 # nota de %USERPROFILE%\.michiclaude\router_state.json.
 #   - exploracion/busqueda -> haiku (siempre)
 #   - analisis profundo    -> sonnet SOLO si la cuota aprieta (>=70%)
+#                          -> el modelo TOP (`top` en la nota, opt-in) si la
+#                             cuota va holgada (<50%) y el padre no va ya en
+#                             el; entre medias hereda el del padre
 #   - lo demas (implementacion) -> sonnet
 # Estado ausente o >10 min de viejo = salir sin tocar nada (fail-quiet).
 # `model` explicito en el input = se respeta. Se devuelve el objeto
@@ -17,6 +20,7 @@ $ErrorActionPreference = 'Stop'
 
 $STALE_S     = 600
 $PRESSURE    = 70
+$TOP_ROOM    = 50
 $MODEL_LIGHT = 'haiku'
 $MODEL_MID   = 'sonnet'
 $LIGHT_WORDS = @('explore','search','scout','locate','lookup','grep')
@@ -74,13 +78,32 @@ function Clase($tipo) {
     return 'work'
 }
 
-function Presion($st) {
-    # El peor de los dos numeros que haya; sin ninguno, no hay presion.
+function Peor($st) {
+    # El peor de los dos numeros que haya; $null si no hay ninguno.
     $vals = @()
     if ($st.PSObject.Properties.Name -contains 'week_pct' -and $null -ne $st.week_pct) { $vals += [double]$st.week_pct }
     if ($st.PSObject.Properties.Name -contains 'session_pct' -and $null -ne $st.session_pct) { $vals += [double]$st.session_pct }
-    if ($vals.Count -eq 0) { return $false }
-    return (($vals | Measure-Object -Maximum).Maximum -ge $PRESSURE)
+    if ($vals.Count -eq 0) { return $null }
+    return ($vals | Measure-Object -Maximum).Maximum
+}
+
+function Presion($st) {
+    $p = Peor $st
+    return ($null -ne $p -and $p -ge $PRESSURE)
+}
+
+function Holgura($st) {
+    # Sin cifras NO hay holgura: subir al mas caro exige saber que se puede.
+    $p = Peor $st
+    return ($null -ne $p -and $p -lt $TOP_ROOM)
+}
+
+function TopDe($st) {
+    # El alias del modelo top si el interruptor esta encendido; si no, $null.
+    if (-not ($st.PSObject.Properties.Name -contains 'top')) { return $null }
+    $t = $st.top
+    if ($t -is [string] -and $t.Length -gt 0 -and $t.Length -le 16 -and $t -match '^[A-Za-z]+$') { return $t }
+    return $null
 }
 
 try {
@@ -120,7 +143,13 @@ try {
     if ($c -eq 'light') {
         $modelo = $MODEL_LIGHT; $why = 'light'
     } elseif ($c -eq 'think') {
+        $top = TopDe $st
         if (Presion $st) { $modelo = $MODEL_MID; $why = 'think-pressure' }
+        elseif ($top -and (Holgura $st) -and -not ('' + $parent).ToLower().Contains($top.ToLower())) {
+            # interruptor del top encendido y cuota SOBRADA: el analisis va
+            # al mejor modelo (si el padre ya va en el, se hereda como siempre)
+            $modelo = $top; $why = 'think-top'
+        }
         else {
             # cuota holgada: el analisis se queda con el modelo del padre
             Apunta (Fila 'skip' 'think-comfort' $null); exit 0

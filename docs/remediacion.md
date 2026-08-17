@@ -1371,7 +1371,10 @@ guardián). Con eso entra, con estas cadenas:
 - Quien lo pide es el guardián (guard-hook), NUNCA el panel a ciegas:
   solo tras frenar un prompt pesado en haiku/sonnet, y sube al peldaño
   de la escalera (haiku→sonnet con una señal, →opus con dos o código;
-  JAMÁS a fable solo). El hook deja la orden en `<pid>.cmd` y SALE sin
+  JAMÁS a fable solo — SALVO con el interruptor «modelo top» del ruteo,
+  2026-08-17 (20): entonces con peso ≥3 el destino es el top y opus pasa
+  a ser escalable; ver ruteo-inteligente.md §11 «El interruptor del
+  modelo top»). El hook deja la orden en `<pid>.cmd` y SALE sin
   esperar el acuse: el relevo solo queda libre cuando Claude Code emite
   el `result` del bloqueo, y ese result espera al hook (abrazo mortal
   medido: ERR_RELAY_BUSY durante toda la espera).
