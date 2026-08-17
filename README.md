@@ -625,6 +625,23 @@ git tag v0.1.0 && git push origin v0.1.0
 - [ ] Lectura incremental de `.jsonl` por offset (hoy: escaneo completo por refresco)
 - [ ] Precios de modelos configurables (JSON externo)
 
+## Contribuir
+
+Se aceptan aportes, pero **abre un issue antes de escribir código**: es un
+proyecto de un solo autor con reglas de diseño bastante cerradas (frontend
+vanilla sin dependencias, cero telemetría, nunca pintar una cifra que no se
+pueda calcular) y sería una lástima que trabajaras en algo que no encaja.
+
+Léete **[CONTRIBUTING.md](CONTRIBUTING.md)** antes del primer PR. Contiene el
+acuerdo de contribución: al abrir un Pull Request conservas tu autoría y tu
+aporte entra bajo GPL-3.0, pero das permiso para relicenciarlo — así el
+proyecto puede ofrecerse en el futuro también bajo una licencia comercial sin
+tener que localizar a cada persona que aportó una línea. También se te pide
+declarar el origen de cualquier material de terceros que incluyas
+(especialmente imágenes y sonidos, por lo que se explica abajo).
+
+Reportar un fallo o proponer una idea en un issue no requiere nada de esto.
+
 ## Licencia
 
 **Código: [GPL-3.0](LICENSE)** — úsalo, modifícalo y compártelo libremente;
