@@ -7217,7 +7217,7 @@ fn wsl_verdict_py(_distro: &str, _script: &str, _op: &str) -> Result<String, Str
 fn wsl_upload_script(distro: &str, name: &str, body: &str) -> Result<(), String> {
     use std::io::Write;
     use std::os::windows::process::CommandExt;
-    if ![RELEVO_NAME, WRAP_NAME].contains(&name) {
+    if ![RELEVO_NAME, WRAP_NAME, ROUTER_NAME].contains(&name) {
         return Err("FAIL".to_string());
     }
     let sh = format!(
@@ -7468,6 +7468,428 @@ async fn set_term_relay(on: bool) -> Result<Vec<ChatRelayRow>, String> {
             out.push(ChatRelayRow { name: wsl_label(&d), state });
         }
         Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+// ---------------------------------------------------------------------------
+// RUTEO INTELIGENTE — etapas 1 y 2 (docs/ruteo-inteligente.md §11; etapa 0
+// validada 2026-08-14 en los dos mundos). Dos piezas:
+//
+//   1) La «nota del refri»: `save_router_state` deja el estado GRUESO de la
+//      cuota (% redondeados, horas al reset) en ~/.michiclaude de esta
+//      máquina, de cada home WSL con Claude y de cada servidor SSH. La
+//      escribe el ciclo del panel — el ÚNICO llamador del endpoint — tras
+//      cada lectura buena; los hooks solo LEEN y >10 min de viejo lo tratan
+//      como ausente (fail-quiet: sin MichiClaude corriendo, el ruteo se
+//      apaga solo).
+//   2) El Hook B: PreToolUse sobre `Task|Agent` (matcher DOBLE obligatorio,
+//      regla de la etapa 0) que impone el modelo del subagente vía
+//      `updatedInput` con el objeto COMPLETO. El script viaja EMBEBIDO
+//      (patrón meter-export.py): router-hook.ps1 aquí, router-hook.py en
+//      WSL y SSH — editarlo en el servidor no tiene efecto, se recompila.
+//
+// Reglas duras que esto respeta (§10.3): NADA teclea /model (la lista
+// blanca del relevo sigue en 2); instalar hooks es opt-in y el apagado
+// deja los settings.json como estaban (respaldo `.michi-backup` + escritura
+// atómica, MANUAL si el archivo no parsea); el log de decisiones es JSON
+// plano (ruteo_log.jsonl de cada máquina), NUNCA SQLite; y el motor es
+// LOCAL-only — el exportador no participa, así que no hay réplica que
+// mantener (invariante #1 no aplica; documentado a propósito).
+// ---------------------------------------------------------------------------
+
+/// ~/.michiclaude de ESTA máquina: donde viven el hook, la nota y el log.
+fn michi_dir() -> PathBuf {
+    dirs::home_dir().unwrap_or_default().join(".michiclaude")
+}
+
+const ROUTER_NAME: &str = "router-hook.py";
+const ROUTER_HOOK_PATH: &str = "~/.michiclaude/router-hook.py";
+const ROUTER_HOOK_PY: &str = include_str!("../../scripts/router-hook.py");
+const ROUTER_HOOK_PS1: &str = include_str!("../../scripts/router-hook.ps1");
+/// La huella que identifica NUESTRA entrada en settings.json. Quitar solo
+/// lo que la lleve; todo lo demás es del usuario y no se toca.
+const RUTEO_MARK: &str = "router-hook";
+
+fn ruteo_cfg_on() -> bool {
+    fs::read_to_string(app_data_dir().join("ruteo.json"))
+        .ok()
+        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+        .and_then(|v| v.get("on").and_then(|b| b.as_bool()))
+        .unwrap_or(false)
+}
+
+fn ruteo_cfg_save(on: bool) {
+    let _ = fs::create_dir_all(app_data_dir());
+    let _ = fs::write(app_data_dir().join("ruteo.json"), format!("{{\"on\":{on}}}"));
+}
+
+fn ruteo_local_hook_path() -> PathBuf {
+    if cfg!(windows) {
+        michi_dir().join("router-hook.ps1")
+    } else {
+        michi_dir().join("router-hook.py")
+    }
+}
+
+/// El comando que queda registrado en settings.json. PowerShell en Windows
+/// nativo, python3 en el resto — la cobertura que validó la etapa 0.
+fn ruteo_local_cmd() -> String {
+    let p = ruteo_local_hook_path();
+    if cfg!(windows) {
+        format!(
+            "powershell -NoProfile -ExecutionPolicy Bypass -File \"{}\"",
+            p.display()
+        )
+    } else {
+        format!("python3 {}", p.display())
+    }
+}
+
+fn ruteo_entry_is_ours(e: &serde_json::Value) -> bool {
+    e.get("hooks")
+        .and_then(|h| h.as_array())
+        .map(|arr| {
+            arr.iter().any(|h| {
+                h.get("command")
+                    .and_then(|c| c.as_str())
+                    .map(|c| c.contains(RUTEO_MARK))
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false)
+}
+
+/// Escritura con las mismas reglas de respeto que el wrapper del chat:
+/// respaldo `.michi-backup` UNA vez antes del primer toque, y tmp+rename
+/// para no dejar nunca un settings.json a medias.
+fn ruteo_write_settings(sf: &PathBuf, raw: &str, data: &serde_json::Value) -> bool {
+    if !raw.is_empty() {
+        let bak = PathBuf::from(format!("{}.michi-backup", sf.to_string_lossy()));
+        if !bak.is_file() {
+            let _ = fs::write(&bak, raw);
+        }
+    }
+    if let Some(d) = sf.parent() {
+        let _ = fs::create_dir_all(d);
+    }
+    let Ok(txt) = serde_json::to_string_pretty(data) else {
+        return false;
+    };
+    let tmp = PathBuf::from(format!("{}.michi.tmp", sf.to_string_lossy()));
+    fs::write(&tmp, txt).is_ok() && fs::rename(&tmp, sf).is_ok()
+}
+
+/// El alta/baja/estado del hook en ESTA máquina. Misma lógica que el guion
+/// RUTEO_PY de los servidores (los dos lados en sincronía a propósito):
+/// archivo que no parsea = MANUAL y no se toca; encender escribe el hook
+/// fresco SIEMPRE (embebido, como el exportador); apagar quita SOLO nuestra
+/// entrada, poda las ramas vacías y borra el script.
+fn ruteo_local(op: &str) -> String {
+    let sf = claude_dir().join("settings.json");
+    let raw = fs::read_to_string(&sf).unwrap_or_default();
+    let mut data: serde_json::Value = if raw.trim().is_empty() {
+        serde_json::json!({})
+    } else {
+        match serde_json::from_str(&raw) {
+            Ok(v) => v,
+            Err(_) => return "MANUAL".into(),
+        }
+    };
+    if !data.is_object() {
+        return "MANUAL".into();
+    }
+    let has = data
+        .get("hooks")
+        .and_then(|h| h.get("PreToolUse"))
+        .and_then(|p| p.as_array())
+        .map(|arr| arr.iter().any(ruteo_entry_is_ours))
+        .unwrap_or(false);
+    match op {
+        "status" => (if has { "ON" } else { "OFF" }).to_string(),
+        "on" => {
+            if fs::create_dir_all(michi_dir()).is_err() {
+                return "FAIL".into();
+            }
+            let body = if cfg!(windows) {
+                ROUTER_HOOK_PS1.to_string()
+            } else {
+                ROUTER_HOOK_PY.replace("\r\n", "\n")
+            };
+            if fs::write(ruteo_local_hook_path(), body).is_err() {
+                return "FAIL".into();
+            }
+            if !has {
+                let Some(obj) = data.as_object_mut() else {
+                    return "MANUAL".into();
+                };
+                let hooks = obj.entry("hooks").or_insert(serde_json::json!({}));
+                let Some(hobj) = hooks.as_object_mut() else {
+                    return "MANUAL".into();
+                };
+                let pre = hobj.entry("PreToolUse").or_insert(serde_json::json!([]));
+                let Some(parr) = pre.as_array_mut() else {
+                    return "MANUAL".into();
+                };
+                parr.push(serde_json::json!({
+                    "matcher": "Task|Agent",
+                    "hooks": [{ "type": "command", "command": ruteo_local_cmd(), "timeout": 10 }]
+                }));
+                if !ruteo_write_settings(&sf, &raw, &data) {
+                    return "FAIL".into();
+                }
+            }
+            "ON".into()
+        }
+        "off" => {
+            if has {
+                if let Some(parr) = data
+                    .get_mut("hooks")
+                    .and_then(|h| h.get_mut("PreToolUse"))
+                    .and_then(|p| p.as_array_mut())
+                {
+                    parr.retain(|e| !ruteo_entry_is_ours(e));
+                }
+                let pre_empty = data
+                    .get("hooks")
+                    .and_then(|h| h.get("PreToolUse"))
+                    .and_then(|p| p.as_array())
+                    .map(|a| a.is_empty())
+                    .unwrap_or(false);
+                if pre_empty {
+                    if let Some(h) = data.get_mut("hooks").and_then(|h| h.as_object_mut()) {
+                        h.remove("PreToolUse");
+                    }
+                }
+                let hooks_empty = data
+                    .get("hooks")
+                    .and_then(|h| h.as_object())
+                    .map(|o| o.is_empty())
+                    .unwrap_or(false);
+                if hooks_empty {
+                    if let Some(obj) = data.as_object_mut() {
+                        obj.remove("hooks");
+                    }
+                }
+                if !ruteo_write_settings(&sf, &raw, &data) {
+                    return "FAIL".into();
+                }
+            }
+            let _ = fs::remove_file(ruteo_local_hook_path());
+            "OFF".into()
+        }
+        _ => "BADOP".into(),
+    }
+}
+
+/// Guion que corre EN el servidor o la distro (por STDIN, como CHAT_WRAP_PY).
+/// Registra/quita el hook en el settings.json de allá con las MISMAS reglas
+/// que `ruteo_local`. Encender exige el hook ya subido (NOHOOK si no está,
+/// igual que NOWRAP en el chat). El comando usa `sys.executable`: el python
+/// absoluto que YA verificó el alta del servidor.
+const RUTEO_PY: &str = r##"
+import json, os, sys
+
+op = sys.argv[1] if len(sys.argv) > 1 else "status"
+# una operacion desconocida jamas cae en la rama de apagar (mordida del
+# 2026-08-10 en el wrapper del chat): se falla a la cara
+if op not in ("status", "on", "off"):
+    print("BADOP"); sys.exit(0)
+
+home = os.path.expanduser("~")
+cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(home, ".claude")
+sf = os.path.join(cfg, "settings.json")
+hook = os.path.join(home, ".michiclaude", "router-hook.py")
+MARK = "router-hook"
+
+raw = ""
+data = {}
+if os.path.isfile(sf):
+    try:
+        raw = open(sf, encoding="utf-8").read()
+        data = json.loads(raw) if raw.strip() else {}
+    except Exception:
+        print("MANUAL"); sys.exit(0)
+if not isinstance(data, dict):
+    print("MANUAL"); sys.exit(0)
+
+def nuestro(e):
+    hs = e.get("hooks") if isinstance(e, dict) else None
+    return isinstance(hs, list) and any(
+        isinstance(h, dict) and MARK in str(h.get("command", "")) for h in hs)
+
+pre = data.get("hooks", {}).get("PreToolUse") if isinstance(data.get("hooks"), dict) else None
+tiene = isinstance(pre, list) and any(nuestro(e) for e in pre)
+
+if op == "status":
+    print("ON" if tiene else "OFF"); sys.exit(0)
+
+def escribe():
+    if raw and not os.path.isfile(sf + ".michi-backup"):
+        open(sf + ".michi-backup", "w", encoding="utf-8").write(raw)
+    os.makedirs(cfg, exist_ok=True)
+    tmp = sf + ".michi.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    os.replace(tmp, sf)
+
+if op == "on":
+    if not os.path.isfile(hook):
+        print("NOHOOK"); sys.exit(0)
+    if not tiene:
+        h = data.setdefault("hooks", {})
+        if not isinstance(h, dict):
+            print("MANUAL"); sys.exit(0)
+        p = h.setdefault("PreToolUse", [])
+        if not isinstance(p, list):
+            print("MANUAL"); sys.exit(0)
+        p.append({"matcher": "Task|Agent", "hooks": [
+            {"type": "command", "command": "%s %s" % (sys.executable, hook), "timeout": 10}]})
+        escribe()
+    print("ON"); sys.exit(0)
+
+# off: quitar SOLO lo nuestro, podar ramas vacias y llevarse el script
+if tiene:
+    data["hooks"]["PreToolUse"] = [e for e in pre if not nuestro(e)]
+    if not data["hooks"]["PreToolUse"]:
+        del data["hooks"]["PreToolUse"]
+    if not data["hooks"]:
+        del data["hooks"]
+    escribe()
+try:
+    os.remove(hook)
+except OSError:
+    pass
+print("OFF")
+"##;
+
+#[tauri::command]
+async fn get_ruteo() -> Result<Vec<ChatRelayRow>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        // esta máquina primero (nombre vacío = la traduce el panel), luego
+        // servidores y WSL — el mismo orden que el wrapper del chat
+        let mut out = Vec::new();
+        out.push(ChatRelayRow { name: String::new(), state: ruteo_local("status") });
+        for r in load_remotes() {
+            let state = remote_verdict_py(&r.host, &remote_python(&r), RUTEO_PY, "status")
+                .unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: r.name.clone(), state });
+        }
+        for d in wsl_distros() {
+            let state = wsl_verdict_py(&d, RUTEO_PY, "status").unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: wsl_label(&d), state });
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn set_ruteo(on: bool) -> Result<Vec<ChatRelayRow>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let op = if on { "on" } else { "off" };
+        // el interruptor manda sobre la nota: apagado = no se escribe estado
+        // en ningún lado y los hooks (si quedara alguno) se apagan solos a
+        // los 10 min por estado viejo
+        ruteo_cfg_save(on);
+        let mut out = Vec::new();
+        out.push(ChatRelayRow { name: String::new(), state: ruteo_local(op) });
+        for r in load_remotes() {
+            if on {
+                // el hook fresco ANTES de registrar: una entrada que apunte
+                // a un archivo ausente muere en silencio en cada subagente
+                let _ = upload_script(&r.host, ROUTER_HOOK_PATH, ROUTER_HOOK_PY);
+            }
+            let state = remote_verdict_py(&r.host, &remote_python(&r), RUTEO_PY, op)
+                .unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: r.name.clone(), state });
+        }
+        for d in wsl_distros() {
+            if on {
+                let _ = wsl_upload_script(&d, ROUTER_NAME, ROUTER_HOOK_PY);
+            }
+            let state = wsl_verdict_py(&d, RUTEO_PY, op).unwrap_or_else(|e| e);
+            out.push(ChatRelayRow { name: wsl_label(&d), state });
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Deja la nota en UN servidor. Fallar es gratis: el hook de allá verá el
+/// estado viejo y no actuará (fail-quiet del diseño).
+fn upload_state(host: &str, json: &str) -> Result<(), String> {
+    use std::io::Write;
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+        .arg(host)
+        .arg(
+            "mkdir -p ~/.michiclaude && cat > ~/.michiclaude/router_state.json.tmp \
+             && mv ~/.michiclaude/router_state.json.tmp ~/.michiclaude/router_state.json",
+        )
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let mut child = cmd.spawn().map_err(|e| e.to_string())?;
+    if let Some(mut si) = child.stdin.take() {
+        let _ = si.write_all(json.as_bytes());
+    }
+    let st = child.wait().map_err(|e| e.to_string())?;
+    if st.success() {
+        Ok(())
+    } else {
+        Err("ERR_STATE_UPLOAD".into())
+    }
+}
+
+/// La «nota del refri» (etapa 1). La llama el ciclo del panel tras cada
+/// lectura BUENA de cuota — nunca el simulador (guard en el frontend, como
+/// logQuota). Con el interruptor apagado no escribe nada: sin hooks no hay
+/// lector, y escribir estado sería regar un archivo huérfano en 3 máquinas.
+#[tauri::command]
+async fn save_router_state(state: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if !ruteo_cfg_on() {
+            return Ok(());
+        }
+        // se re-parsea para no propagar basura a tres máquinas
+        let v: serde_json::Value =
+            serde_json::from_str(&state).map_err(|_| "ERR_BAD_STATE".to_string())?;
+        if !v.is_object() {
+            return Err("ERR_BAD_STATE".into());
+        }
+        let compact = v.to_string();
+        let dir = michi_dir();
+        let _ = fs::create_dir_all(&dir);
+        let tmp = dir.join("router_state.json.tmp");
+        if fs::write(&tmp, &compact).is_ok() {
+            let _ = fs::rename(&tmp, dir.join("router_state.json"));
+        }
+        // WSL: cada home con Claude, por \\wsl.localhost (fs puro; esas
+        // rutas ya se leen en cada escaneo, no se despierta nada nuevo)
+        for (_d, cdir) in wsl_claude_dirs() {
+            if let Some(h) = cdir.parent() {
+                let md = h.join(".michiclaude");
+                let _ = fs::create_dir_all(&md);
+                let tmp = md.join("router_state.json.tmp");
+                if fs::write(&tmp, &compact).is_ok() {
+                    let _ = fs::rename(&tmp, md.join("router_state.json"));
+                }
+            }
+        }
+        for r in load_remotes() {
+            let _ = upload_state(&r.host, &compact);
+        }
+        Ok(())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -8231,7 +8653,10 @@ pub fn run() {
             chat_relay_status,
             set_chat_relay,
             term_relay_status,
-            set_term_relay
+            set_term_relay,
+            get_ruteo,
+            set_ruteo,
+            save_router_state
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),

@@ -540,21 +540,19 @@ presion-y-rendimiento §"Qué queda vivo".
       A LA VISTA, una vez por sesión, cualquier toque para; el AUTOMÁTICO
       espera el veredicto del análisis (`aiPending`); michi.exe viaja en
       el instalador SIN tocar el workflow (invariante #9).
-- [ ] RUTEO INTELIGENTE (etapas 0-6, decidido 2026-08-13): EN CURSO —
-      DESBLOQUEADO 2026-08-17 al cerrar las pruebas en vivo del relevo
-      (bitácora). La validación PASIVA de embeddings sigue abierta pero NO
-      frena: el ruteo no toca `ai_emb_*`. Plan y auditoría en
-      `docs/ruteo-inteligente.md` §10-11 — LEERLO antes de arrancar.
-      ETAPA 0 HECHA Y VALIDADA (2026-08-14, VPS; experimento en
-      `scripts/ruteo-etapa0/`, autopsia en bitácora): un `PreToolUse`
-      SÍ impone el modelo del subagente vía `updatedInput` — A/B real
-      haiku vs sonnet en el `agent-*.jsonl`. Reglas que salieron: matcher
-      `Task|Agent` OBLIGATORIO (el nombre de la herramienta no es estable
-      entre builds), el input NO trae `model` y `updatedInput` lo AÑADE
-      (por eso se devuelve el objeto COMPLETO), y basta `updatedInput`
-      sin `permissionDecision`. CERRADA en los DOS mundos (Linux/VPS y
-      Windows nativo; WSL = mismo caso). Los `.ps1` van en ASCII PURO:
-      PowerShell 5.1 lee sin BOM como ANSI y una tilde no compila.
+- [ ] RUTEO INTELIGENTE (etapas 0-6; TODAS las reglas vigentes en
+      `docs/ruteo-inteligente.md` §10-11 — LEERLO antes de tocar).
+      ETAPAS 0-2 HECHAS (0: 2026-08-14, dos mundos; 1-2: 2026-08-17,
+      VALIDADAS EN VIVO en el VPS con A/B real en el `agent-*.jsonl`,
+      autopsias en bitácora): nota `router_state.json` a local+WSL+SSH
+      (interruptor apagado = no se escribe; >10 min = ausente) y Hook B
+      embebido (`router-hook.py`/`.ps1` RÉPLICAS, guion RUTEO_PY con
+      respaldo y merge atómico). Exploración→haiku, implementación→
+      sonnet, análisis solo baja con cuota ≥70; `model` explícito se
+      respeta; log `ruteo_log.jsonl` por máquina; el motor es LOCAL-only
+      (el exportador NO participa: invariante #1 no aplica, a propósito).
+      FALTA: cargo check en Windows, primera corrida del `.ps1`,
+      interruptor de Ajustes en vivo; luego etapas 3-6.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO: rastrear otras herramientas, BD de historial,
   modo equipo.

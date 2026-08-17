@@ -3415,3 +3415,57 @@ camino ntfy con la PC apagada, el aviso de hallazgos naciendo natural y el
 primer `via:emb` en sesión real al 80%. Ninguna frena al ruteo: no tocan
 `ai_emb_*` ni el relevo. Siguiente paso, etapa 1 de
 `docs/ruteo-inteligente.md` §10-11.
+
+## 2026-08-17 (9) — ruteo inteligente, etapas 1 y 2: el Hook B existe y ya ruteó un subagente de verdad
+
+QUÉ: las dos primeras etapas construibles del ruteo
+(docs/ruteo-inteligente.md §11). (1) La «nota del refri»:
+`pushRouterState()` en el frontend (junto a logQuota, mismo guard
+simRunning) manda el estado GRUESO de la cuota (% a múltiplos de 5, horas
+al reset) a `save_router_state` (Rust), que lo deja en `~/.michiclaude/`
+de esta máquina, de cada home WSL (\\wsl.localhost, fs puro) y de cada
+servidor SSH — solo con el interruptor encendido. (2) El Hook B:
+`scripts/router-hook.py` y `router-hook.ps1` (réplicas exactas, embebidos
+con include_str!), un PreToolUse sobre `Task|Agent` que impone el modelo
+del subagente vía updatedInput con el objeto COMPLETO: exploración→haiku
+siempre, implementación→sonnet, análisis→sonnet solo con el peor bucket
+≥70; `model` explícito se respeta, prompt con `~` es escotilla, estado
+ausente o >10 min = silencio absoluto. Decisiones a `ruteo_log.jsonl`
+(JSON plano, rota a .1 en 512 KB). El alta/baja: guion `RUTEO_PY` por
+STDIN en SSH/WSL y `ruteo_local()` en Windows, misma lógica — respaldo
+`.michi-backup` una vez, merge atómico, MANUAL si el settings no parsea,
+NOHOOK sin script, BADOP para op desconocida. Interruptor en Ajustes
+(claves `rt_*` ×8 idiomas) con una fila por máquina, patrón del wrapper
+del chat. Comandos nuevos: `get_ruteo`, `set_ruteo`, `save_router_state`
+(los tres async+spawn_blocking, invariante 10ter).
+
+POR QUÉ: es el PRÓXIMO GRANDE decidido el 2026-08-13, desbloqueado esta
+misma jornada al cerrar las pruebas del relevo. El orden (nota primero,
+hook después) es el del §11; el motor quedó LOCAL-only a propósito
+(§10.3c): los hooks viven donde corre Claude Code y el exportador no
+participa, así que el invariante #1 no obliga réplica — documentado para
+no morder después.
+
+CÓMO SE VERIFICÓ: (a) matriz sintética del router-hook.py con HOME falso,
+16/16 (clases, presión por sesión/semana/null, explícito, bypass, estado
+viejo, basura, objeto completo conservado, log y rotación). (b) El guion
+RUTEO_PY extraído DEL lib.rs (se probó lo embebido, no una copia): alta
+sobre un settings con hook AJENO que quedó intacto, idempotencia, baja
+que poda, MANUAL con JSON roto, BADOP, python absoluto en el command.
+(c) EN VIVO en el VPS, ciclo completo real: alta sobre el settings.json
+de Oscar (con respaldo), nota fresca a mano, sesión headless `claude -p`
+padre en Sonnet lanzando un subagente Explore → el agent-*.jsonl dice
+`claude-haiku-4-5-20251001` y el log anota route/light/haiku; control SIN
+nota 27 líneas después: el mismo subagente hereda `claude-sonnet-5` y el
+log NI CRECE; baja final y settings.json IDÉNTICO al de antes (diff
+semántico). (d) node --check del script embebido del panel, claves rt_*
+9/9 (8 diccionarios + 1 uso), .ps1 verificado ASCII PURO. NO verificado:
+`cargo check` (el VPS no tiene toolchain — pendiente en el Windows de
+Oscar) y la primera corrida real del .ps1 (aquí no hay PowerShell, como
+en la etapa 0).
+
+QUÉ QUEDA: cargo check + `npm run build` en Windows, la prueba en vivo
+del lado Windows (interruptor de Ajustes, .ps1 ruteando, nota viajando a
+WSL y al VPS desde la app real) y las etapas 3-6 (medición en Reporte,
+gatito consejero, Hook A). Reflejado en CLAUDE.md §pendientes y en el
+§11 del doc.

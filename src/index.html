@@ -1693,6 +1693,23 @@
     </div>
   </div>
 
+  <!-- RUTEO INTELIGENTE (docs/ruteo-inteligente.md etapas 1-2): el Hook B.
+       Opt-in APAGADO — es la primera escritura en el ~/.claude de cada
+       máquina (settings.json con respaldo y escritura atómica; apagar deja
+       todo como estaba). El hook no piensa: lee router_state.json (>10 min
+       de viejo = no hace nada) y solo toca SUBAGENTES, jamás la sesión
+       principal. Una fila por máquina, como el wrapper del chat. -->
+  <div class="sect">
+    <div class="eyebrow" data-i18n="rt_label"></div>
+    <div class="cfg-form">
+      <label class="cfg-row" style="cursor:pointer">
+        <span data-i18n="rt_on"></span><input type="checkbox" id="rtChk">
+      </label>
+      <div class="cfg-note" id="rtMsg" hidden></div>
+      <div class="cfg-note" data-i18n="rt_hint"></div>
+    </div>
+  </div>
+
   <div class="sect">
     <div class="eyebrow" data-i18n="prices_label"></div>
     <div class="cfg-form">
@@ -2335,6 +2352,11 @@ en:{
   rly_term_manual:"the ~/.bashrc block was edited by hand (left untouched)",
   rly_term_norelay:"the relay (michi-relevo.py) is not there",
   rly_term_nopy:"no python3 in that distro",
+  rt_label:"Smart subagent routing (beta)",
+  rt_on:"Route subagents to the right model (here, SSH and WSL)",
+  rt_hint:"Installs a hook in each machine's ~/.claude (with a backup): exploration subagents start on Haiku, implementation on Sonnet, and deep analysis only steps down when your quota is tight. Your main session is never touched, an explicit model is respected, and if MichiClaude isn't running the hook does nothing. Every decision is logged to ~/.michiclaude/ruteo_log.jsonl.",
+  rt_restart:"applies to Claude Code sessions started from now on.",
+  rt_nohook:"the hook didn't reach that machine",
   rem_log_relay:(cmd,proj)=>`applied ${cmd} in «${proj}»`,
   pill_layer_label:"On-screen position",
   pill_layer_top:"Always on top (recommended)",
@@ -2875,6 +2897,11 @@ es:{
   rly_term_manual:"el bloque de ~/.bashrc está editado a mano (no se toca)",
   rly_term_norelay:"el relevo (michi-relevo.py) no está ahí",
   rly_term_nopy:"esa distro no tiene python3",
+  rt_label:"Ruteo inteligente de subagentes (beta)",
+  rt_on:"Rutear los subagentes al modelo justo (aquí, SSH y WSL)",
+  rt_hint:"Instala un hook en el ~/.claude de cada máquina (con respaldo): los subagentes de exploración nacen en Haiku, los de implementación en Sonnet y los de análisis solo bajan si la cuota aprieta. Tu sesión principal no se toca, un modelo explícito se respeta, y si MichiClaude no está corriendo el hook no hace nada. Cada decisión queda en ~/.michiclaude/ruteo_log.jsonl.",
+  rt_restart:"aplica en las sesiones de Claude Code que arranquen desde ahora.",
+  rt_nohook:"el hook no llegó a esa máquina",
   rem_log_relay:(cmd,proj)=>`aplicó ${cmd} en «${proj}»`,
   pill_layer_label:"Posición en pantalla",
   pill_layer_top:"Siempre al frente (recomendado)",
@@ -3415,6 +3442,11 @@ pt:{
   rly_term_manual:"o bloco do ~/.bashrc foi editado à mão (não se mexe)",
   rly_term_norelay:"o revezamento (michi-relevo.py) não está lá",
   rly_term_nopy:"essa distro não tem python3",
+  rt_label:"Roteamento inteligente de subagentes (beta)",
+  rt_on:"Rotear os subagentes para o modelo certo (aqui, SSH e WSL)",
+  rt_hint:"Instala um hook no ~/.claude de cada máquina (com backup): subagentes de exploração nascem no Haiku, os de implementação no Sonnet e os de análise só descem se a cota apertar. Sua sessão principal não é tocada, um modelo explícito é respeitado e, se o MichiClaude não estiver rodando, o hook não faz nada. Cada decisão fica em ~/.michiclaude/ruteo_log.jsonl.",
+  rt_restart:"vale para as sessões do Claude Code iniciadas a partir de agora.",
+  rt_nohook:"o hook não chegou àquela máquina",
   rem_log_relay:(cmd,proj)=>`aplicou ${cmd} em «${proj}»`,
   pill_layer_label:"Posição na tela",
   pill_layer_top:"Sempre à frente (recomendado)",
@@ -3955,6 +3987,11 @@ fr:{
   rly_term_manual:"le bloc de ~/.bashrc a été modifié à la main (non touché)",
   rly_term_norelay:"le relais (michi-relevo.py) n’est pas là",
   rly_term_nopy:"cette distro n’a pas python3",
+  rt_label:"Routage intelligent des sous-agents (bêta)",
+  rt_on:"Router les sous-agents vers le bon modèle (ici, SSH et WSL)",
+  rt_hint:"Installe un hook dans le ~/.claude de chaque machine (avec sauvegarde) : les sous-agents d’exploration naissent sur Haiku, ceux d’implémentation sur Sonnet, et l’analyse ne descend que si le quota est serré. Votre session principale n’est jamais touchée, un modèle explicite est respecté, et si MichiClaude ne tourne pas, le hook ne fait rien. Chaque décision est consignée dans ~/.michiclaude/ruteo_log.jsonl.",
+  rt_restart:"s’applique aux sessions Claude Code lancées à partir de maintenant.",
+  rt_nohook:"le hook n’est pas arrivé sur cette machine",
   rem_log_relay:(cmd,proj)=>`a appliqué ${cmd} dans «${proj}»`,
   pill_layer_label:"Position à l'écran",
   pill_layer_top:"Toujours devant (recommandé)",
@@ -4495,6 +4532,11 @@ de:{
   rly_term_manual:"der Block in ~/.bashrc wurde von Hand geändert (bleibt unangetastet)",
   rly_term_norelay:"die Ablösung (michi-relevo.py) fehlt dort",
   rly_term_nopy:"diese Distro hat kein python3",
+  rt_label:"Intelligentes Subagenten-Routing (Beta)",
+  rt_on:"Subagenten zum passenden Modell leiten (hier, SSH und WSL)",
+  rt_hint:"Installiert einen Hook im ~/.claude jeder Maschine (mit Backup): Erkundungs-Subagenten starten auf Haiku, Implementierung auf Sonnet, und Tiefenanalyse steigt nur ab, wenn das Kontingent knapp ist. Die Hauptsitzung bleibt unberührt, ein explizites Modell wird respektiert, und läuft MichiClaude nicht, tut der Hook nichts. Jede Entscheidung landet in ~/.michiclaude/ruteo_log.jsonl.",
+  rt_restart:"gilt für Claude-Code-Sitzungen, die ab jetzt starten.",
+  rt_nohook:"der Hook ist auf der Maschine nicht angekommen",
   rem_log_relay:(cmd,proj)=>`${cmd} in «${proj}» angewendet`,
   pill_layer_label:"Bildschirmposition",
   pill_layer_top:"Immer im Vordergrund (empfohlen)",
@@ -5035,6 +5077,11 @@ ja:{
   rly_term_manual:"~/.bashrc のブロックが手で編集されています（変更しません）",
   rly_term_norelay:"リレー（michi-relevo.py）がそこにありません",
   rly_term_nopy:"そのディストロに python3 がありません",
+  rt_label:"サブエージェントのスマートルーティング(ベータ)",
+  rt_on:"サブエージェントを適切なモデルへ振り分ける(このPC・SSH・WSL)",
+  rt_hint:"各マシンの ~/.claude にフックを設置します(バックアップ付き)。探索系サブエージェントは Haiku、実装は Sonnet で起動し、深い分析は残量が少ないときだけ下げます。メインセッションには一切触れず、明示されたモデルは尊重します。MichiClaude が動いていなければフックは何もしません。すべての判断は ~/.michiclaude/ruteo_log.jsonl に記録されます。",
+  rt_restart:"これ以降に起動する Claude Code のセッションから有効です。",
+  rt_nohook:"フックがそのマシンに届いていません",
   rem_log_relay:(cmd,proj)=>`「${proj}」で ${cmd} を適用`,
   pill_layer_label:"画面上の位置",
   pill_layer_top:"常に最前面（推奨）",
@@ -5575,6 +5622,11 @@ ko:{
   rly_term_manual:"~/.bashrc 블록이 수동으로 편집됨 (건드리지 않음)",
   rly_term_norelay:"릴레이(michi-relevo.py)가 거기에 없습니다",
   rly_term_nopy:"해당 배포판에 python3가 없습니다",
+  rt_label:"서브에이전트 스마트 라우팅(베타)",
+  rt_on:"서브에이전트를 알맞은 모델로 보내기 (이 PC, SSH, WSL)",
+  rt_hint:"각 머신의 ~/.claude에 훅을 설치합니다(백업 포함). 탐색 서브에이전트는 Haiku, 구현은 Sonnet으로 시작하고, 심층 분석은 쿼터가 빠듯할 때만 내려갑니다. 메인 세션은 건드리지 않고, 명시된 모델은 존중하며, MichiClaude가 꺼져 있으면 훅은 아무것도 하지 않습니다. 모든 결정은 ~/.michiclaude/ruteo_log.jsonl에 기록됩니다.",
+  rt_restart:"지금부터 시작하는 Claude Code 세션에 적용됩니다.",
+  rt_nohook:"훅이 해당 머신에 도착하지 않았습니다",
   rem_log_relay:(cmd,proj)=>`「${proj}」에 ${cmd} 적용`,
   pill_layer_label:"화면 위치",
   pill_layer_top:"항상 위 (권장)",
@@ -6115,6 +6167,11 @@ zh:{
   rly_term_manual:"~/.bashrc 中的区块被手动改过（不去动它）",
   rly_term_norelay:"接力脚本（michi-relevo.py）不在那里",
   rly_term_nopy:"该发行版没有 python3",
+  rt_label:"子代理智能路由(测试版)",
+  rt_on:"把子代理分配到合适的模型(本机、SSH 和 WSL)",
+  rt_hint:"在每台机器的 ~/.claude 安装一个钩子(带备份):探索类子代理用 Haiku 启动,实现类用 Sonnet,深度分析只在额度吃紧时才降级。主会话绝不改动,显式指定的模型会被尊重;MichiClaude 没在运行时钩子什么也不做。每个决定都记录在 ~/.michiclaude/ruteo_log.jsonl。",
+  rt_restart:"对从现在起启动的 Claude Code 会话生效。",
+  rt_nohook:"钩子未送达该机器",
   rem_log_relay:(cmd,proj)=>`在「${proj}」应用了 ${cmd}`,
   pill_layer_label:"屏幕位置",
   pill_layer_top:"始终置顶（推荐）",
@@ -6871,6 +6928,27 @@ function logQuota(data){
       s:ses?ses.pct:null, sr:ses?ep(ses.resets):null,
       w:wk?wk.pct:null,  wr:wk?ep(wk.resets):null,
     }).catch(()=>{});
+  }catch(_){}
+}
+
+// ---- la «nota del refri» del ruteo (etapa 1) ----
+// Estado GRUESO para los hooks del ruteo: % redondeados a 5 y horas al
+// reset. La deja cada lectura BUENA del endpoint — nunca el simulador,
+// como logQuota — y Rust no escribe nada con el interruptor apagado.
+// Redondear grueso es a propósito: la nota no debe cambiar en cada ciclo
+// sin necesidad (diseño §5.1).
+function pushRouterState(data){
+  if(!invoke || simRunning) return;
+  try{
+    const bs=parseQuota(data);
+    const ses=bs.find(b=>b.kind==="session");
+    const wk=bs.find(b=>b.kind==="weekly_all");
+    if(!ses && !wk) return;
+    const r5=p=>p==null?null:Math.round(p/5)*5;
+    const hrs=r=>r?Math.max(0,Math.round((new Date(r)-Date.now())/3.6e6)):null;
+    invoke("save_router_state",{state:JSON.stringify({v:1,ts:Math.floor(Date.now()/1000),
+      session_pct:ses?r5(ses.pct):null, session_reset_h:ses?hrs(ses.resets):null,
+      week_pct:wk?r5(wk.pct):null, week_reset_h:wk?hrs(wk.resets):null})}).catch(()=>{});
   }catch(_){}
 }
 
@@ -7684,7 +7762,7 @@ async function refresh(){
   try{
     const [quota, local] = await Promise.allSettled([invoke("get_quota"), invoke("get_local_stats",statsArgs())]);
     if(quota.status==="fulfilled"){
-      renderQuota(quota.value); logQuota(quota.value);
+      renderQuota(quota.value); logQuota(quota.value); pushRouterState(quota.value);
       $("liveDot").classList.remove("err");
       lastSync=Date.now(); fails=0; rateLimited=false; hadQuota=true; lastErrCode=null;
     }else{
@@ -9279,7 +9357,7 @@ function showTab(name){
                                                   // haber terminado después de cargar el panel
     remUi(); remLogLoad(); remZombieRows();       // remediación: estado + registro frescos
     prgLoad(); prgDuLoad();                       // purga del archivo + disco de servidores
-    rlyPoll().then(rlyRows); rlyAliasUi(); rlyChatUi(); rlyTermUi(); } // relevo: sesiones, atajo, chat y terminales SSH
+    rlyPoll().then(rlyRows); rlyAliasUi(); rlyChatUi(); rlyTermUi(); rtUi(); } // relevo: sesiones, atajo, chat, terminales y ruteo
   document.querySelector(".panel").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
@@ -10639,6 +10717,49 @@ $("rlyTermChk").addEventListener("change",async ()=>{
     $("rlyTermChk").checked=!on;
     $("rlyTermMsg").textContent=String(e);
     flog("relevo: alias bashrc ERROR "+e);
+  }
+});
+
+// ---------- el ruteo inteligente de subagentes (Hook B) ----------
+// docs/ruteo-inteligente.md etapas 1-2. Misma coreografía que el wrapper
+// del chat: un interruptor, una fila por máquina, veredictos de una
+// palabra traducidos aquí (invariante #10). El hook solo actúa con la
+// nota router_state.json fresca — la deja pushRouterState en cada ciclo
+// bueno de cuota, así que cerrar MichiClaude apaga el ruteo solo.
+function rtStateTxt(st){
+  return {ON:"✓",OFF:"—",MANUAL:t("rly_chat_manual"),NOPYTHON:t("rly_term_nopy"),
+    NOHOOK:t("rt_nohook"),FAIL:t("rly_chat_fail")}[st]||st;
+}
+function rtRows(rows){
+  // nombre vacío = esta máquina: lo traduce el panel (invariante #10)
+  return rows.map(r=>(r.name||t("src_local"))+" "+rtStateTxt(r.state)).join(" · ");
+}
+async function rtUi(){
+  if(!invoke) return;
+  try{
+    const rows=await invoke("get_ruteo");
+    $("rtChk").checked=rows.some(r=>r.state==="ON");
+    $("rtMsg").hidden=false;
+    $("rtMsg").textContent=rtRows(rows);
+  }catch(_){}
+}
+$("rtChk").addEventListener("change",async ()=>{
+  const on=$("rtChk").checked;
+  $("rtMsg").hidden=false; $("rtMsg").textContent="…";
+  try{
+    const rows=await invoke("set_ruteo",{on});
+    flog("ruteo: interruptor → "+(on?"on":"off")+" ["+rtRows(rows)+"]");
+    // Claude Code fotografía los hooks al ARRANCAR: sin sesión nueva
+    // parecería que el interruptor no hizo nada
+    $("rtMsg").textContent=rtRows(rows)+(on?" — "+t("rt_restart"):"");
+    if(on && rows.every(r=>r.state!=="ON")) $("rtChk").checked=false;
+    // la nota fresca YA, sin esperar al próximo ciclo (hasta 3 min en los
+    // que los hooks recién puestos se quedarían callados por estado viejo)
+    if(on && lastQuotaData) pushRouterState(lastQuotaData);
+  }catch(e){
+    $("rtChk").checked=!on;
+    $("rtMsg").textContent=String(e);
+    flog("ruteo: interruptor ERROR "+e);
   }
 });
 

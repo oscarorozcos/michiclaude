@@ -452,12 +452,26 @@ Los dos mundos cubiertos: Linux (VPS por SSH; WSL es el mismo caso —
 mismo script, mismo `~/.claude`) y Windows nativo. Los tres hechos de
 arriba se repitieron IDÉNTICOS en ambos.
 
-**Etapa 1 — La nota del refri (`router_state.json`).**
+**Etapa 1 — La nota del refri (`router_state.json`). HECHA (2026-08-17).**
 El ciclo del panel (único llamador del endpoint) escribe el estado
 grueso: bucket redondeado, horas al reset, modo del proyecto, cooldown.
 Los hooks solo LEEN; >10 min de viejo = no hacer nada (fail-quiet).
 
-**Etapa 2 — Hook B, el ahorrador silencioso (subagentes).**
+Cómo quedó: `pushRouterState()` (frontend, junto a `logQuota`, mismo
+guard `simRunning` — el simulador JAMÁS alimenta a los hooks) manda a
+`save_router_state` (Rust, async+spawn_blocking por el SSH) el JSON
+`{v, ts, session_pct, session_reset_h, week_pct, week_reset_h}` con los
+% redondeados a 5 (la nota no debe cambiar en cada ciclo sin necesidad,
+§5.1). Destinos: `~/.michiclaude/` local, cada home WSL con Claude (por
+`\\wsl.localhost`, fs puro) y cada servidor SSH (`upload_state`, fallar
+es gratis). Con el interruptor apagado (`ruteo.json` en APPDATA) NO se
+escribe nada: sin hooks no hay lector, y a los 10 min cualquier hook
+huérfano se apaga solo. El modo del proyecto y el cooldown quedaron
+para la etapa 4 (son del gatito consejero): la nota es ADITIVA, añadir
+campos no rompe a los hooks viejos.
+
+**Etapa 2 — Hook B, el ahorrador silencioso (subagentes). HECHA Y
+VALIDADA EN VIVO (2026-08-17, VPS; falta el lado Windows, abajo).**
 REGLA DURA que salió de la etapa 0 (2026-08-14): el `.ps1` va en ASCII
 PURO. Windows PowerShell 5.1 lee los archivos sin BOM como ANSI, y un
 guion largo se vuelve `â€"` cuyo `"` cierra la cadena a media línea —
@@ -469,6 +483,41 @@ opt-in "Activar ruteo" + botón "Quitar hooks" que deja todo como
 estaba; escritura atómica en settings del usuario. Log de decisiones en
 JSON plano (patrón quota_history.json — NUNCA SQLite). Exploración →
 Haiku; implementación → Sonnet; análisis → según cuota.
+
+Cómo quedó (reglas VIGENTES del Hook B):
+
+- `scripts/router-hook.py` (Linux/WSL/SSH) y `scripts/router-hook.ps1`
+  (Windows nativo), RÉPLICAS EXACTAS — tocar uno = tocar el otro, como
+  el exportador. Embebidos en el exe; editar el .py en el servidor no
+  tiene efecto (se re-sube al encender).
+- Clase por NOMBRE del `subagent_type` (subcadenas, nunca keywords del
+  prompt — §4.5): LIGHT (`explore/search/scout/locate/lookup/grep`) →
+  haiku SIEMPRE; THINK (`plan/review/audit/analy/research/judge/verify/
+  architect/security`) → sonnet SOLO con presión (peor bucket ≥70,
+  `PRESSURE`); resto (implementación) → sonnet. `model` explícito en el
+  input SE RESPETA; prompt que empieza por `~` = escotilla; estado
+  ausente/viejo = silencio total (ni una línea de log).
+- El alta/baja la hace el guion `RUTEO_PY` (Rust, por STDIN como
+  CHAT_WRAP_PY) en SSH/WSL y `ruteo_local()` en Windows — misma lógica
+  los dos lados: respaldo `.michi-backup` una vez, merge atómico
+  (tmp+rename), MANUAL si el settings no parsea, NOHOOK si el script no
+  llegó, BADOP para op desconocida (mordida del wrapper 2026-08-10).
+  Apagar quita SOLO nuestra entrada (huella `router-hook` en el
+  command), poda ramas vacías y borra el script. `ruteo_log.jsonl`
+  rota a `.1` al pasar de 512 KB.
+- Interruptor en Ajustes (claves `rt_*`, 8 idiomas): una fila por
+  máquina con veredicto traducido (patrón del wrapper del chat) y el
+  recordatorio de que los hooks se fotografían al ARRANCAR Claude Code.
+
+VALIDADO EN VIVO (VPS, sesión headless `claude -p`, 2026-08-17): con
+nota fresca, padre en Sonnet + subagente Explore → el `agent-*.jsonl`
+REAL dice `claude-haiku-4-5-20251001` y el log anota
+`route/light/haiku`; SIN nota, el mismo subagente hereda
+`claude-sonnet-5` y el log NI CRECE; `off` deja el settings.json
+IDÉNTICO byte a byte (con un hook ajeno de por medio en el banco de
+pruebas, intacto). Matriz sintética 16/16 del .py y del guion. FALTA:
+`cargo check` en el Windows de Oscar (el VPS no tiene toolchain),
+primera corrida real del `.ps1` y el interruptor de Ajustes en vivo.
 
 **Etapa 3 — La medición (pestaña Reporte).**
 Cruce del log de decisiones × JSONL reales × quota_history.json:
