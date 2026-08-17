@@ -551,13 +551,13 @@ presion-y-rendimiento §"Qué queda vivo".
       racha de turnos ligeros que se reinicia con código; compuerta en el
       panel: modelo caro + gauge ≥70 + sin 3 «no») → tarjeta →
       `set_default_model` (SOLO sesiones nuevas, lista cerrada). ESCALAR
-      SOLO (5b, Oscar 2026-08-17; interruptor `esc`, apagado, exige
-      guardián): al frenar, el hook deja `/model <peldaño>` al relevo SIN
-      esperar acuse (abrazo mortal medido) y el usuario reenvía; el relevo
-      espera ≤8 s SOLO para /model; globo del gatito. 5c `rs` (apagado,
-      exige esc): el relevo de CHAT reenvía el prompt (`then`, sin eco,
-      jamás persistido); terminal sigue "reenvía tú". Validados en vivo.
-      FALTA: cargo check 5b/5c (lib.rs y relevo/), .ps1, consejero, WSL.
+      SOLO (5b, `esc`, apagado, exige guardián): al frenar, el hook deja
+      `/model <peldaño>` al relevo SIN esperar acuse (abrazo mortal
+      medido); el relevo espera ≤8 s SOLO para /model; globo del gatito.
+      5c `rs` (exige esc): el relevo de CHAT reenvía el prompt (`then`,
+      sin eco, jamás persistido); terminal sigue "reenvía tú". Validados
+      en vivo. FALTA: cargo check 5b/5c (lib.rs y relevo/), .ps1,
+      consejero, WSL.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito. NO:
   rastrear otras herramientas, BD de historial, modo equipo.
 
