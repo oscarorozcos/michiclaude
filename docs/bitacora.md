@@ -3663,3 +3663,20 @@ contexto inyectado, sugirió «/model sonnet te sale mucho más barato».
 CÓMO SE VERIFICÓ: capturas de Oscar + log del VPS y acuse del relevo
 (esc-… ok a los 8 s). node --check del JS. QUÉ QUEDA: cargo check de
 5b en Windows (lib.rs y relevo/), consejero en vivo, WSL, etapa 6.
+
+## 2026-08-17 (14) — 5b cerrada con el globo a tiempo; el segundo /model era de Oscar
+
+QUÉ: segunda prueba en vivo de Oscar tras el sondeo de 12 s: freno
+17:17:48 → `/model opus` del relevo 17:17:56 (8 s, acuse esc-…068006) →
+globo del gatito «casi instantáneo» (palabras de Oscar). En el chat
+salieron DOS `/model opus`: el transcript enseña el segundo a las
+17:18:36, 40 s después, sin ninguna orden nueva en el log ni en el
+relevo — lo tecleó Oscar (como en la prueba anterior). Inofensivo. Un
+solo hook registrado, un solo escalate, un solo acuse. Cerrada la
+validación en vivo de la etapa 5b (chat Remote-SSH). Nota de método:
+`/clear` en la misma ventana vale como "conversación nueva" (mismo
+relevo, sesión nueva de Claude).
+
+QUÉ QUEDA: cargo check de src-tauri con la 5b lo hizo `npm run dev`
+(arrancó y la nota llegó con `esc`); relevo/ `cargo check` limpio en
+Windows. Pendientes: consejero en vivo (cuota ≥70), WSL, etapa 6.
