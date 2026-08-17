@@ -38,6 +38,12 @@ STALE_S = 600
 INSIST_S = 600
 CHEAP = ("haiku", "sonnet")           # tiers desde los que se escala
 TAIL = 65536
+# La ESCALERA de familias, de barata a cara. Es la ÚNICA lista de modelos
+# del hook: se reconoce por nombre (subcadena), un modelo desconocido no
+# es de ninguna familia y el guardián no actúa. Añadir una familia nueva =
+# una palabra aquí (y en el .ps1). Nunca se escala solo a la última.
+LADDER = ("haiku", "sonnet", "opus", "fable")
+RELAY_DIR = os.path.join(os.path.expanduser("~"), ".michiclaude", "relevo")
 
 MICHI = os.path.join(os.path.expanduser("~"), ".michiclaude")
 STATE = os.path.join(MICHI, "router_state.json")
@@ -133,6 +139,66 @@ def codigo_pelado(prompt):
     return False
 
 
+def destino(tr, peso):
+    """A qué peldaño subir: una señal = un peldaño; código o dos señales =
+    a «opus» (o el peldaño más alto permitido si opus no está). Jamás al
+    último peldaño (fable): ese lo elige el usuario."""
+    try:
+        i = LADDER.index(tr)
+    except ValueError:
+        return None
+    top = len(LADDER) - 2                     # índice máximo automático
+    j = min(top, i + 1) if peso < 2 else min(top, max(i + 1, LADDER.index("opus")))
+    return LADDER[j] if j > i else None
+
+
+def relevo_de(sid, cwd):
+    """El relevo de ESTA sesión: por sid exacto; si el relevo aún no lo
+    conoce, por cwd SOLO si es único. Fail-closed: en la duda, ninguno."""
+    try:
+        names = [n for n in os.listdir(RELAY_DIR) if n.endswith(".json")]
+    except OSError:
+        return None
+    por_cwd = []
+    for n in names:
+        try:
+            with open(os.path.join(RELAY_DIR, n), "r", encoding="utf-8") as fh:
+                st = json.load(fh)
+        except Exception:
+            continue
+        if not st.get("alive"):
+            continue
+        if sid and st.get("sid") == sid:
+            return st
+        if cwd and str(st.get("cwd") or "").replace("\\", "/").rstrip("/") == cwd.replace("\\", "/").rstrip("/"):
+            por_cwd.append(st)
+    return por_cwd[0] if len(por_cwd) == 1 else None
+
+
+def escalar(sid, cwd, alias):
+    """Le deja al relevo de la sesión la orden `/model <alias>` y SALE sin
+    esperar el acuse: el relevo solo queda libre cuando Claude Code emite el
+    `result` del bloqueo, y ese result espera a que ESTE hook termine —
+    esperar aquí era un abrazo mortal (medido 2026-08-17: ERR_RELAY_BUSY
+    durante toda la espera). El relevo teclea en cuanto pueda; el acuse
+    queda en su estado y el panel lo lee. Devuelve (escrito, err)."""
+    st = relevo_de(sid, cwd)
+    if not st or not st.get("pid"):
+        return False, "NORELAY"
+    pid = st.get("pid")
+    rid = "esc-%d" % int(time.time() * 1000)
+    body = json.dumps({"id": rid, "op": "inject", "text": "/model " + alias, "export": False})
+    path = os.path.join(RELAY_DIR, "%s.cmd" % pid)
+    try:
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(body)
+        os.replace(tmp, path)
+    except OSError:
+        return False, "WRITE"
+    return True, rid
+
+
 def senales(prompt):
     """Señales estructurales, no de vocabulario. Devuelve la lista y un
     peso: fence de código = 2 (fuerte); ≥2 rutas = 1; traza de error = 1;
@@ -205,13 +271,29 @@ def main():
                         json.dump({"h": h, "tier": tr, "ts": time.time()}, fh)
                 except Exception:
                     pass
-                apunta(dict(base, ev="block", model=tr, sig=sig))
+                dest = destino(tr, peso) or "opus"
+                # ESCALAR SOLO (bandera `esc` en la nota): el relevo de esta
+                # sesión teclea `/model <dest>`; el usuario solo reenvía.
+                # Sin relevo o sin acuse, se cae al freno de siempre.
+                esc_ok, esc_err = (False, "")
+                if st.get("esc"):
+                    esc_ok, esc_err = escalar(base["sid"], base["cwd"], dest)
+                    apunta(dict(base, ev="escalate", model=tr, to=dest,
+                                ok=esc_ok, err=esc_err, sig=sig))
+                else:
+                    apunta(dict(base, ev="block", model=tr, sig=sig, to=dest))
                 # el texto lo lee el USUARIO en su terminal, no Claude: va
                 # bilingüe corto (el hook no tiene el diccionario del panel)
-                razon = ("MichiClaude: this looks complex and you're on %s. "
-                         "Run /model opus and resend, or prefix ~ to send as is. "
-                         "/ Esto se ve complejo y vas en %s: /model opus y reenvia, "
-                         "o antepon ~ para mandarlo tal cual." % (tr, tr))
+                if esc_ok:
+                    razon = ("MichiClaude: this looked complex for %s, so I'm switching "
+                             "this session to %s. Give it ~10 s and resend (Up + Enter). "
+                             "/ Esto se veia complejo para %s: estoy subiendo la sesion a %s. "
+                             "Dale ~10 s y reenvialo (flecha arriba + Enter)." % (tr, dest, tr, dest))
+                else:
+                    razon = ("MichiClaude: this looks complex and you're on %s. "
+                             "Run /model %s and resend, or prefix ~ to send as is. "
+                             "/ Esto se ve complejo y vas en %s: /model %s y reenvia, "
+                             "o antepon ~ para mandarlo tal cual." % (tr, dest, tr, dest))
                 salida = {"decision": "block", "reason": razon}
                 sys.stdout.write(json.dumps(salida, ensure_ascii=False))
                 return

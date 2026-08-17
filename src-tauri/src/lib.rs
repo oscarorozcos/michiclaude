@@ -6367,6 +6367,16 @@ async fn get_relays(remote: bool) -> Result<Vec<Relay>, String> {
 /// propósito: aquí para no escribir nunca una orden que no se pueda cumplir,
 /// y allí porque es el límite duro — el relevo no se fía de quien le escriba.
 const RELAY_ALLOWED: [&str; 2] = ["/compact", "/clear"];
+/// `/model <alias>` (2026-08-17, ruteo etapa 5b): la ÚNICA entrada con
+/// argumento, alias de lista cerrada — misma función en los tres lados.
+const RELAY_MODEL_ALIASES: [&str; 4] = ["haiku", "sonnet", "opus", "fable"];
+fn relay_allowed(text: &str) -> bool {
+    if RELAY_ALLOWED.contains(&text) {
+        return true;
+    }
+    let parts: Vec<&str> = text.split_whitespace().collect();
+    parts.len() == 2 && parts[0] == "/model" && RELAY_MODEL_ALIASES.contains(&parts[1])
+}
 
 /// Escritura atómica en el canal del relevo. El temporal AÑADE `.tmp` al
 /// nombre ENTERO: con `with_extension`, `<pid>.cmd` y `<pid>.json`
@@ -6468,7 +6478,7 @@ async fn relay_inject(
     export: Option<bool>,
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
-        if !RELAY_ALLOWED.contains(&text.as_str()) {
+        if !relay_allowed(&text) {
             return Err("ERR_RELAY_BADCMD".to_string());
         }
         // La red de seguridad (/export verificado antes) solo acompaña a
@@ -7587,6 +7597,10 @@ struct RuteoCfg {
     guard: bool,
     #[serde(default)]
     ctx: bool,
+    /// Escalar solo (etapa 5b): al frenar, el relevo de la sesión teclea
+    /// `/model <peldaño>` y el usuario solo reenvía. Nace apagado.
+    #[serde(default)]
+    esc: bool,
 }
 
 fn ruteo_cfg() -> RuteoCfg {
@@ -8012,6 +8026,8 @@ async fn save_router_state(state: String) -> Result<(), String> {
         // no toca settings.json y llega a las tres máquinas en un ciclo
         v["guard"] = serde_json::Value::Bool(cfg.guard);
         v["ctx"] = serde_json::Value::Bool(cfg.ctx);
+        // escalar SOLO tiene sentido con el guardián encendido
+        v["esc"] = serde_json::Value::Bool(cfg.esc && cfg.guard);
         let compact = v.to_string();
         let dir = michi_dir();
         let _ = fs::create_dir_all(&dir);
@@ -8049,10 +8065,13 @@ fn get_ruteo_cfg() -> RuteoCfg {
 /// settings.json: viajan en la nota del siguiente ciclo (el panel la
 /// re-empuja al instante desde el interruptor).
 #[tauri::command]
-fn set_ruteo_flags(guard: bool, ctx: bool) -> RuteoCfg {
+fn set_ruteo_flags(guard: bool, ctx: bool, esc: Option<bool>) -> RuteoCfg {
     let mut c = ruteo_cfg();
     c.guard = guard;
     c.ctx = ctx;
+    if let Some(e) = esc {
+        c.esc = e;
+    }
     ruteo_cfg_write(&c);
     c
 }
@@ -8082,6 +8101,12 @@ struct RuteoRow {
     cwd: String,
     #[serde(default)]
     sid: String,
+    /// "block"/"escalate": el peldaño destino; "escalate": si la orden se
+    /// pudo dejar al relevo (`ok`) — el tecleo real lo confirma su acuse.
+    #[serde(default)]
+    to: String,
+    #[serde(default)]
+    ok: bool,
 }
 
 /// Últimas filas de UN cuaderno (texto ya leído). Se lee la cola: el
@@ -8187,6 +8212,8 @@ struct RuteoReport {
     #[serde(default)]
     skip: u64,
     #[serde(default)]
+    esc: u64,
+    #[serde(default)]
     estimated: bool,
 }
 
@@ -8271,6 +8298,14 @@ fn scan_ruteo(projects: &PathBuf, michi: &PathBuf, days: u32, end: i64) -> Ruteo
         let ev = r["ev"].as_str().unwrap_or("");
         match ev {
             "block" => out.blocks += 1,
+            // una escalada es un freno que además subió la sesión: cuenta
+            // en las dos casillas (blocks = veces que el guardián actuó)
+            "escalate" => {
+                out.blocks += 1;
+                if r["ok"].as_bool().unwrap_or(false) {
+                    out.esc += 1;
+                }
+            }
             "insist" => out.insist += 1,
             "ctx" => out.ctx += 1,
             "skip" => out.skip += 1,

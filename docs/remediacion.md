@@ -33,7 +33,8 @@ Los prompts para generar las maquetas con otra IA están guardados en
       crate APARTE `relevo/` (la app no gana deps, invariante #4);
       canal por ARCHIVOS `%APPDATA%\<app>\relevo\<pid>.json|.cmd`
       (tmp+rename con `.tmp` sobre el nombre ENTERO); viva = estado
-      <15 s; LISTA BLANCA (/compact, /clear) comprobada en LOS DOS lados; R2 se INFIERE del silencio de la PTY (en el chat es CERTEZA:
+      <15 s; LISTA BLANCA (/compact, /clear, y desde 2026-08-17 `/model
+      <alias>` de lista cerrada — ver §"La ÚNICA ampliación") comprobada en LOS DOS lados; R2 se INFIERE del silencio de la PTY (en el chat es CERTEZA:
       entra un `user`, sale un `result`). **ConPTY negocia `win32-input-mode`** — las
       teclas llegan como `ESC[…_`; los avisos del terminal (foco, cursor)
       NO son teclas; UNA fuente de verdad para "hay texto"; un Enter no
@@ -1348,6 +1349,46 @@ alcance que nadie ha pedido.
 sección de abajo es exactamente ese candidato hecho realidad — y la
 lista blanca del CANAL sigue siendo de 2: el /export no se puede pedir
 desde fuera, lo genera el relevo como parte del /clear con red.)
+
+### La ÚNICA ampliación con argumento: `/model <alias>` (2026-08-17)
+
+Oscar la pidió con estas palabras tras ver al guardián del ruteo frenar
+su prompt: «después del stop me gustaría que fuera automático eso que
+hice yo manual» (cambiar a Opus y reenviar). Analizado contra la regla
+de arriba: `/model` (a) no libera un recurso pero EVITA el error caro
+(una respuesta mala de un modelo chico y su retrabajo), (b) no destruye
+nada — es reversible con un `/model` de vuelta y solo afecta al modelo
+de esa sesión, (c) su efecto es verificable (el transcript dice el
+modelo del turno siguiente). Y viene de una decisión explícita del
+usuario (interruptor «Escalar solo», apagado por defecto, que exige el
+guardián). Con eso entra, con estas cadenas:
+
+- Sigue siendo lista cerrada: `allowed(text)` acepta los dos exactos de
+  siempre y `/model <alias>` con `alias ∈ {haiku, sonnet, opus, fable}`.
+  Nada más: ni `/model` a secas, ni un id con fecha, ni texto extra.
+  Misma función en las TRES piezas (michi-relevo.py, relevo/main.rs,
+  lib.rs) — se prueba en las tres.
+- Quien lo pide es el guardián (guard-hook), NUNCA el panel a ciegas:
+  solo tras frenar un prompt pesado en haiku/sonnet, y sube al peldaño
+  de la escalera (haiku→sonnet con una señal, →opus con dos o código;
+  JAMÁS a fable solo). El hook deja la orden en `<pid>.cmd` y SALE sin
+  esperar el acuse: el relevo solo queda libre cuando Claude Code emite
+  el `result` del bloqueo, y ese result espera al hook (abrazo mortal
+  medido: ERR_RELAY_BUSY durante toda la espera).
+- El relevo, para `/model` y SOLO para él, no rechaza por BUSY/NOISY/
+  COOLDOWN: espera hasta 8 s a quedar libre (modo chat: bucle en hilo;
+  modo terminal: orden PENDIENTE que el bucle de la PTY reintenta, para
+  no congelar la pantalla). /compact y /clear conservan su "ahora o
+  nunca" — van con countdown y candados del panel.
+- El usuario reenvía él (↑ + Enter): el hook NO guarda el texto del
+  prompt (regla de privacidad del ruteo) y un prompt multilínea
+  tecleado se enviaría al primer salto de línea. El mensaje del freno lo
+  dice: "estoy subiendo la sesión a X — dale ~10 s y reenvía"; el globo
+  del gatito lo repite (el chat de VS Code no pinta el motivo del hook).
+- Validado en vivo (VPS, protocolo del chat `stream-json` con el relevo
+  real): freno → el relevo teclea `/model opus` (acuse a los 8 s) →
+  «Set model to Opus 5 for this session only» → el reenvío corrió en
+  `claude-opus-5`. Autopsia completa en la bitácora 2026-08-17 (12).
 
 ## El auto-/clear con red (/export verificado) — 2026-08-09
 

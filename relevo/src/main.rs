@@ -54,6 +54,18 @@ const STATE_V: u32 = 2;
 /// Los ÚNICOS textos que el relevo acepta inyectar. Lista cerrada a
 /// propósito: es el límite duro de lo que puede pasarle a la sesión.
 const ALLOWED: [&str; 2] = ["/compact", "/clear"];
+/// ÚNICA ampliación con argumento (2026-08-17, ruteo etapa 5b — el guardián
+/// escala solo): `/model <alias>` con alias de LISTA CERRADA. Nada más.
+const MODEL_ALIASES: [&str; 4] = ["haiku", "sonnet", "opus", "fable"];
+
+/// ¿Puede este relevo teclear ese texto? Los dos exactos, o `/model <alias>`.
+fn allowed(text: &str) -> bool {
+    if ALLOWED.contains(&text) {
+        return true;
+    }
+    let parts: Vec<&str> = text.split_whitespace().collect();
+    parts.len() == 2 && parts[0] == "/model" && MODEL_ALIASES.contains(&parts[1])
+}
 
 // --- Reglas anti-choque (R1-R5 de docs/remediacion.md) -------------------
 // R3: ventana de calma. Ni una tecla en este tiempo.
@@ -1171,7 +1183,7 @@ fn attend(raw: &str, sh: &Arc<Shared>, sp: &Arc<Speaker>) -> Option<serde_json::
     let export = v["export"].as_bool().unwrap_or(false) && text == "/clear";
 
     // Lista blanca: es el límite duro de lo que el relevo puede teclear.
-    if !ALLOWED.contains(&text.as_str()) {
+    if !allowed(&text) {
         return Some(ack_json(&id, &text, false, "ERR_RELAY_BADCMD", None));
     }
     if !sh.ready() {
@@ -1868,7 +1880,7 @@ fn cmd_inject(args: &[String]) {
             std::process::exit(2)
         }
     };
-    if !ALLOWED.contains(&text.as_str()) {
+    if !allowed(&text) {
         eprintln!("michi: solo puedo aplicar {}", ALLOWED.join(" o "));
         std::process::exit(2);
     }

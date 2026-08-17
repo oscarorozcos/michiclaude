@@ -462,8 +462,8 @@ copias de Oscar (si se pierde: llave nueva + instalar a mano UNA vez).
 FOTO COMPLETA: bitácora §"cierre 2026-08-08/09"; métricas:
 presion-y-rendimiento §"Qué queda vivo".
 
-- [ ] HUB + RANGOS DE FECHA: NO hacer sin una SEGUNDA máquina con
-      MichiClaude. Diseño: `docs/hub-modo-equipo.md` §"Rangos de fecha".
+- [ ] HUB + RANGOS DE FECHA: NO sin una SEGUNDA máquina con MichiClaude
+      (`docs/hub-modo-equipo.md` §"Rangos de fecha").
 
 - [x] REDISEÑO UX/UI del panel: HECHO Y VALIDADO (2026-08-05; bitácora
       §"Ronda de rediseño UX/UI", tag `pre-rediseno-20260805`). VIGENTE:
@@ -477,9 +477,8 @@ presion-y-rendimiento §"Qué queda vivo".
 - [ ] VALIDACIÓN PASIVA (con el uso): alarmas reales (umbral, 100%,
       ventana nueva), camino ntfy completo (PC apagada) y el aviso de
       hallazgos naciendo natural. CERRADO el bloque del relevo
-      (2026-08-17): auto-/compact y auto-/clear 4/4 (terminal y chat; el
-      chat copia ÉL el jsonl sin /export — remediacion.md §"La copia SIN
-      /export en el chat"), globo post-/clear y rescate por el REGISTRO.
+      (2026-08-17: auto-/compact y auto-/clear 4/4, globo y registro
+      post-/clear; el chat copia ÉL el jsonl — remediacion.md).
 - [x] PURGA DEL ARCHIVO (2026-08-15; reglas COMPLETAS en remediacion.md
       §"Purga del archivo" — LEERLO; aquí solo lo que no se puede
       olvidar): el archivador MUEVE (≥365d), la purga BORRA
@@ -499,8 +498,7 @@ presion-y-rendimiento §"Qué queda vivo".
       el 2B) parten la sesión en tramos y CALCULAN el ahorro por
       frontera; capa ADITIVA sobre el hallazgo (fndKey intacto,
       fail-quiet); local/WSL primero, VPS manda `umsgs` por SSH y el
-      Windows embebe (el modelo no va al VPS). DESBLOQUEADA 2026-08-17,
-      APARCADA detrás del ruteo.
+      Windows embebe (el modelo no va al VPS). APARCADA tras el ruteo.
 - [ ] Capturas del README (Oscar).
 - [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
       LEERLO antes de tocar). CERRADO HASTA DONDE ESTÁ (Oscar,
@@ -526,8 +524,9 @@ presion-y-rendimiento §"Qué queda vivo".
       TODAS las reglas duras viven en `docs/remediacion.md` §"REGLAS
       VIGENTES" — LEERLO ANTES de tocar cualquier cosa del relevo, los
       automáticos o la remediación; aquí solo lo transversal:
-      crate APARTE `relevo/` (la app no gana deps); LISTA BLANCA de 2
-      comandos (/compact, /clear) comprobada en LOS DOS lados; /clear
+      crate APARTE `relevo/` (la app no gana deps); LISTA BLANCA
+      (/compact, /clear + `/model <alias>` de lista cerrada, 2026-08-17 —
+      remediacion.md §"La ÚNICA ampliación") en LOS DOS lados; /clear
       automático SOLO con copia `/export` VERIFICADA en disco
       (fail-closed) y por dos razones — Boundary (hecho) o análisis
       local `tema_nuevo` (inferencia, `relayClearAi` OFF, `topen==0`);
@@ -540,7 +539,7 @@ presion-y-rendimiento §"Qué queda vivo".
       ETAPAS 0-5 HECHAS (0-2 validadas en vivo VPS+Windows; 3-5 el
       2026-08-17, la 5 ADELANTADA por Oscar: es el error caro). Piezas:
       nota `router_state.json` (local+WSL+SSH; apagado = no se escribe;
-      >10 min = ausente; lleva `guard`/`ctx`); Hook B `router-hook.py/
+      >10 min = ausente; lleva `guard`/`ctx`/`esc`); Hook B `router-hook.py/
       .ps1` (exploración→haiku, implementación→sonnet, análisis baja solo
       con cuota ≥70; anota `parent`); Hook A `guard-hook.py/.ps1`
       (UserPromptSubmit: frena prompt pesado en haiku/sonnet ANTES de
@@ -551,12 +550,14 @@ presion-y-rendimiento §"Qué queda vivo".
       factura) en Reporte; consejero `light` (motor del coach, réplicas:
       racha de turnos ligeros que se reinicia con código; compuerta en el
       panel: modelo caro + gauge ≥70 + sin 3 «no») → tarjeta →
-      `set_default_model` (SOLO sesiones nuevas, lista cerrada). NADA
-      teclea `/model`. FALTA: cargo check en Windows de lo del 08-17,
-      guardián y consejero en vivo (plan: bitácora 08-17 (11)); etapa 6.
-- APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
-  gamificación ligera. NO: rastrear otras herramientas, BD de historial,
-  modo equipo.
+      `set_default_model` (SOLO sesiones nuevas, lista cerrada). ESCALAR
+      SOLO (5b, Oscar 2026-08-17; interruptor `esc`, apagado, exige
+      guardián): al frenar, el hook deja `/model <peldaño>` al relevo SIN
+      esperar acuse (abrazo mortal medido) y el usuario reenvía; el relevo
+      espera ≤8 s SOLO para /model; globo del gatito. Validado en vivo
+      (chat → opus). FALTA: cargo check 5b, .ps1, consejero, WSL; etapa 6.
+- APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito. NO:
+  rastrear otras herramientas, BD de historial, modo equipo.
 
 ## Consumo de recursos (medido en release)
 

@@ -3576,3 +3576,70 @@ QUÉ QUEDA — PLAN DE PRUEBAS PARA OSCAR (Windows), en orden:
    → `route/light/haiku` en el log de la distro).
 Etapa 6 (v2: análisis en frío con modelo local, embeddings en el
 guardián) sigue en su sitio, después de la validación pasiva.
+
+## 2026-08-17 (12) — el guardián escala solo: `/model <alias>` entra a la lista blanca del relevo
+
+QUÉ: la etapa 5b del ruteo, pedida por Oscar tras probar el guardián en
+su chat («después del stop me gustaría que fuera automático eso que hice
+yo manual»). Con el interruptor «Escalar solo» (`esc`, apagado, exige el
+guardián), al frenar un prompt pesado en haiku/sonnet el hook le deja al
+RELEVO de esa sesión la orden `/model <peldaño>` (escalera haiku→sonnet
+con una señal, →opus con dos o código; JAMÁS a fable solo) y el usuario
+solo reenvía (↑ + Enter). Piezas: `allowed()` en las TRES piezas del
+relevo (michi-relevo.py, relevo/main.rs, lib.rs `relay_allowed`) —
+`/model <alias>` con alias de lista cerrada, la ÚNICA entrada con
+argumento; `destino()`/`relevo_de()`/`escalar()` en guard-hook.py/.ps1;
+el relevo espera ≤8 s a quedar libre SOLO para /model (chat: espera en
+attend, que corre en hilo; terminal: orden PENDIENTE reintentada por el
+bucle de la PTY, para no congelar la pantalla); nota con `esc`; filas
+`escalate` en registro y Reporte (`esc` en scan_ruteo, réplicas); globo
+del gatito `rtEscBalloon` al compás del coach (el chat de VS Code NO
+pinta el motivo del hook — el gatito lo dice); textos del freno «estoy
+subiendo la sesión a X — dale ~10 s y reenvía». Reglas en
+remediacion.md §"La ÚNICA ampliación con argumento".
+
+POR QUÉ: la mitad B del miedo de Oscar («estoy en lo básico pidiendo
+cosas complejas») ya estaba cubierta por el freno; lo que faltaba era
+que el remedio no costara tres gestos. Y se decidió NO reenviar el
+prompt por él: el hook tendría que guardar su texto (regla de
+privacidad) y un multilínea inyectado se manda al primer salto de línea.
+
+AUTOPSIAS de la jornada, tres mordidas seguidas antes de que saliera:
+(1) `esc:true` puesto a mano en la nota desaparecía: la app de Windows la
+riega cada ciclo con SUS banderas — correcto, y por eso la bandera vive
+en ruteo.json y viaja en la nota; en la prueba hubo que "regarla" a la
+par. (2) ERR_RELAY_BUSY con la orden escrita 0.2 s tras el bloqueo: el
+relevo del chat marca busy al entrar el mensaje y solo lo suelta con el
+`result` del bloqueo… que Claude Code emite DESPUÉS de que el hook
+termine. El hook esperaba el acuse → abrazo mortal de 8 s. Arreglo: el
+hook deja la orden y SALE; el relevo espera él (≤8 s). (3) Con eso el
+acuse llegó a los 8 s — y el reenvío de prueba a los 6 s corrió aún en
+sonnet: el texto del freno pasó de "espera un segundo" a "dale ~10 s".
+De regalo, dos hechos medidos que valen oro: un prompt bloqueado SÍ
+produce `result` (`UserPromptSubmit operation blocked by hook: …`, con
+el motivo dentro — la extensión decide no pintarlo), y `/model opus`
+como mensaje `user` en stream-json cambia el modelo de la sesión («Set
+model to Opus 5 for this session only», el turno siguiente en opus-5).
+
+CÓMO SE VERIFICÓ: allowed() 11/11 (incluye `/model opus; rm -rf` y
+`/model` a secas → NO); destino() 8/8; matriz del guardián 24/24; y EN
+VIVO en el VPS con el relevo REAL en modo chat (`michi-relevo.py wrap`
++ stream-json, `--replay-user-messages`): USER prompt pesado en Sonnet
+→ RESULT blocked («…I'm switching this session to opus…») → USER
+`/model opus` (tecleado por el relevo, acuse ok a los 8 s) → RESULT «Set
+model to Opus 5» → USER reenvío → ASSIST `claude-opus-5`. Sin `esc` en
+la nota: freno de siempre, sin intento. Datos reales del día ya cuentan
+2 escaladas ok en `--ruteo`. NO verificado: `cargo check` de lo de hoy
+(RuteoCfg.esc, set_ruteo_flags(esc: Option), RuteoRow.to/ok, esc en
+RuteoReport, relay_allowed; y `relevo/` con allowed()), el `.ps1` en
+Windows, y el globo en la app viva.
+
+QUÉ QUEDA (para Oscar, en orden): (1) `git pull` + `cargo check` en
+src-tauri Y `cargo build --release` en relevo/ (el michi.exe también
+cambió). (2) `npm run dev` → Ajustes → encender «Escalar solo» (bajo el
+guardián). (3) En el chat del VPS, sesión Sonnet: «hola», luego el
+prompt del `def suma` → freno; a los ~10 s ↑ + Enter → la respuesta debe
+venir en Opus, el gatito debe haber sacado el globo «Frené tu prompt…
+subí la sesión a Opus», y el registro: «el guardián frenó… y subió la
+sesión a Opus». (4) Reporte: fila «N de esos se escalaron solos».
+Pendientes anteriores intactos (consejero en vivo, WSL, etapa 6).

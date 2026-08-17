@@ -1725,6 +1725,14 @@
         <span data-i18n="rt_guard_on"></span><input type="checkbox" id="rtGuardChk">
       </label>
       <div class="cfg-note" data-i18n="rt_guard_hint"></div>
+      <!-- ESCALAR SOLO (etapa 5b, decisión de Oscar 2026-08-17): al frenar,
+           el relevo de esa sesión teclea `/model <peldaño>` y el usuario solo
+           reenvía. Única entrada con argumento de la lista blanca del relevo
+           (alias de lista cerrada). Nace apagado; exige el guardián. -->
+      <label class="cfg-row" style="cursor:pointer;margin-left:18px" id="rtEscRow">
+        <span data-i18n="rt_esc_on"></span><input type="checkbox" id="rtEscChk">
+      </label>
+      <div class="cfg-note" style="margin-left:18px" data-i18n="rt_esc_hint"></div>
       <!-- CONTEXTO INYECTADO: lo ÚNICO del sistema que gasta tokens (~60 por
            turno). Apagable aparte y AUTO-REPORTADO en el registro. -->
       <label class="cfg-row" style="cursor:pointer;margin-top:6px" id="rtCtxRow">
@@ -2404,6 +2412,13 @@ en:{
   rt_ev_bypass:"~ sent as is",
   rt_ev_ctx:"context injected (~60 tok)",
   rt_log_empty:"No decisions yet.",
+  rt_esc_on:"Escalate by itself: when it stops a prompt, switch that session up and let me just resend",
+  rt_esc_hint:"Instead of just stopping, MichiClaude asks the relay of that session to type /model for the next step up (Haiku → Sonnet, or → Opus when it looks heavy; never Fable on its own). You only resend (Up + Enter). Needs the relay in that session; without it, it just stops as usual. Uses more quota — the quota you meant to spend.",
+  rt_ev_esc:(m,to)=>`guard stopped a heavy prompt on ${m} and switched the session to ${to}`,
+  rt_ev_esc_fail:(m,to)=>`guard stopped a heavy prompt on ${m}; couldn't switch to ${to} (no relay)`,
+  rt_rep_esc:n=>`${n} of those were escalated by themselves (the session was switched up, you only resent)`,
+  rt_balloon_esc:(m,to,w)=>`I stopped your prompt: it looked heavy for ${m}, so I switched the session to ${to}. Give it ~10 s and resend it (Up + Enter) · ${w}`,
+  rt_balloon_block:(m,to,w)=>`I stopped your prompt: it looked heavy for ${m}. Run /model ${to} and resend, or prefix ~ · ${w}`,
   lgt_t:"Consultation session on an expensive model",
   lgt_m:m=>`${m} session · quota is tight`,
   lgt_q:"Should the NEXT session start on Sonnet?",
@@ -3002,6 +3017,13 @@ es:{
   rt_ev_bypass:"~ enviado tal cual",
   rt_ev_ctx:"contexto inyectado (~60 tok)",
   rt_log_empty:"Todavía sin decisiones.",
+  rt_esc_on:"Escalar solo: al frenar un prompt, subir esa sesión y que yo solo reenvíe",
+  rt_esc_hint:"En vez de solo frenar, MichiClaude le pide al relevo de esa sesión que teclee /model al peldaño siguiente (Haiku → Sonnet, o → Opus si se ve pesado; nunca Fable por su cuenta). Tú solo reenvías (↑ y Enter). Necesita el relevo en esa sesión; sin él, frena como siempre. Gasta más cuota — la que querías gastar.",
+  rt_ev_esc:(m,to)=>`el guardián frenó un prompt pesado en ${m} y subió la sesión a ${to}`,
+  rt_ev_esc_fail:(m,to)=>`el guardián frenó un prompt pesado en ${m}; no pudo subir a ${to} (sin relevo)`,
+  rt_rep_esc:n=>`${n} de esos se escalaron solos (la sesión subió y tú solo reenviaste)`,
+  rt_balloon_esc:(m,to,w)=>`Frené tu prompt: se veía pesado para ${m}, así que subí la sesión a ${to}. Dale ~10 s y reenvíalo (↑ y Enter) · ${w}`,
+  rt_balloon_block:(m,to,w)=>`Frené tu prompt: se veía pesado para ${m}. /model ${to} y reenvía, o antepón ~ · ${w}`,
   lgt_t:"Sesión de consulta en un modelo caro",
   lgt_m:m=>`sesión en ${m} · cuota apretada`,
   lgt_q:"¿La SIGUIENTE sesión arranca en Sonnet?",
@@ -3600,6 +3622,13 @@ pt:{
   rt_ev_bypass:"~ enviado assim mesmo",
   rt_ev_ctx:"contexto injetado (~60 tok)",
   rt_log_empty:"Ainda sem decisões.",
+  rt_esc_on:"Escalar sozinho: ao travar um prompt, subir essa sessão e eu só reenvio",
+  rt_esc_hint:"Em vez de só travar, o MichiClaude pede ao relevo dessa sessão que digite /model para o degrau seguinte (Haiku → Sonnet, ou → Opus se parecer pesado; nunca Fable por conta própria). Você só reenvia (↑ e Enter). Precisa do relevo nessa sessão; sem ele, trava como sempre. Gasta mais cota — a que você queria gastar.",
+  rt_ev_esc:(m,to)=>`o guardião travou um prompt pesado em ${m} e subiu a sessão para ${to}`,
+  rt_ev_esc_fail:(m,to)=>`o guardião travou um prompt pesado em ${m}; não conseguiu subir para ${to} (sem relevo)`,
+  rt_rep_esc:n=>`${n} desses escalaram sozinhos (a sessão subiu e você só reenviou)`,
+  rt_balloon_esc:(m,to,w)=>`Travei seu prompt: parecia pesado para ${m}, então subi a sessão para ${to}. Espere ~10 s e reenvie (↑ e Enter) · ${w}`,
+  rt_balloon_block:(m,to,w)=>`Travei seu prompt: parecia pesado para ${m}. /model ${to} e reenvie, ou prefixe ~ · ${w}`,
   lgt_t:"Sessão de consulta num modelo caro",
   lgt_m:m=>`sessão em ${m} · cota apertada`,
   lgt_q:"A PRÓXIMA sessão começa no Sonnet?",
@@ -4198,6 +4227,13 @@ fr:{
   rt_ev_bypass:"~ envoyé tel quel",
   rt_ev_ctx:"contexte injecté (~60 tok)",
   rt_log_empty:"Pas encore de décisions.",
+  rt_esc_on:"Escalader seul : quand un prompt est bloqué, monter cette session et je n’ai qu’à renvoyer",
+  rt_esc_hint:"Au lieu de seulement bloquer, MichiClaude demande au relais de cette session de taper /model vers le palier supérieur (Haiku → Sonnet, ou → Opus si ça semble lourd ; jamais Fable tout seul). Vous ne faites que renvoyer (↑ et Entrée). Nécessite le relais dans cette session ; sans lui, ça bloque comme d’habitude. Consomme plus de quota — celui que vous vouliez dépenser.",
+  rt_ev_esc:(m,to)=>`le garde-fou a bloqué un prompt lourd sur ${m} et a monté la session vers ${to}`,
+  rt_ev_esc_fail:(m,to)=>`le garde-fou a bloqué un prompt lourd sur ${m} ; impossible de monter vers ${to} (pas de relais)`,
+  rt_rep_esc:n=>`${n} d’entre eux ont été escaladés seuls (la session est montée, vous n’avez fait que renvoyer)`,
+  rt_balloon_esc:(m,to,w)=>`J’ai bloqué votre prompt : il semblait lourd pour ${m}, j’ai donc monté la session vers ${to}. Attendez ~10 s et renvoyez-le (↑ et Entrée) · ${w}`,
+  rt_balloon_block:(m,to,w)=>`J’ai bloqué votre prompt : il semblait lourd pour ${m}. /model ${to} et renvoyez, ou préfixez ~ · ${w}`,
   lgt_t:"Session de consultation sur un modèle cher",
   lgt_m:m=>`session sur ${m} · quota serré`,
   lgt_q:"La PROCHAINE session démarre-t-elle sur Sonnet ?",
@@ -4796,6 +4832,13 @@ de:{
   rt_ev_bypass:"~ unverändert gesendet",
   rt_ev_ctx:"Kontext eingefügt (~60 Tok)",
   rt_log_empty:"Noch keine Entscheidungen.",
+  rt_esc_on:"Selbst eskalieren: beim Stoppen die Sitzung hochstufen, ich sende nur erneut",
+  rt_esc_hint:"Statt nur zu stoppen, bittet MichiClaude die Ablösung dieser Sitzung, /model für die nächste Stufe zu tippen (Haiku → Sonnet, oder → Opus, wenn es schwer wirkt; nie Fable von allein). Du sendest nur erneut (↑ und Enter). Braucht die Ablösung in dieser Sitzung; ohne sie wird wie gewohnt gestoppt. Verbraucht mehr Kontingent – das, das du ausgeben wolltest.",
+  rt_ev_esc:(m,to)=>`Wächter stoppte einen schweren Prompt auf ${m} und stufte die Sitzung auf ${to} hoch`,
+  rt_ev_esc_fail:(m,to)=>`Wächter stoppte einen schweren Prompt auf ${m}; konnte nicht auf ${to} hochstufen (keine Ablösung)`,
+  rt_rep_esc:n=>`${n} davon wurden selbst eskaliert (Sitzung hochgestuft, du hast nur erneut gesendet)`,
+  rt_balloon_esc:(m,to,w)=>`Ich habe deinen Prompt gestoppt: er wirkte schwer für ${m}, also habe ich die Sitzung auf ${to} hochgestuft. Gib ihm ~10 s und sende erneut (↑ und Enter) · ${w}`,
+  rt_balloon_block:(m,to,w)=>`Ich habe deinen Prompt gestoppt: er wirkte schwer für ${m}. /model ${to} und erneut senden, oder ~ voranstellen · ${w}`,
   lgt_t:"Frage-Sitzung auf einem teuren Modell",
   lgt_m:m=>`Sitzung auf ${m} · Kontingent knapp`,
   lgt_q:"Soll die NÄCHSTE Sitzung auf Sonnet starten?",
@@ -5394,6 +5437,13 @@ ja:{
   rt_ev_bypass:"~ そのまま送信",
   rt_ev_ctx:"コンテキスト注入(約60トークン)",
   rt_log_empty:"まだ判断はありません。",
+  rt_esc_on:"自動で引き上げ: プロンプトを止めたらそのセッションを上げ、私は再送するだけ",
+  rt_esc_hint:"止めるだけでなく、そのセッションのリレーに次の段への /model を入力させます(Haiku → Sonnet、重そうなら → Opus。Fable へは自動で上げません)。あなたは再送するだけ(↑ と Enter)。そのセッションにリレーが必要で、なければ従来どおり止めるだけです。残量は多く使います — 使うつもりだった分です。",
+  rt_ev_esc:(m,to)=>`ガードが ${m} 上の重いプロンプトを止め、セッションを ${to} に上げました`,
+  rt_ev_esc_fail:(m,to)=>`ガードが ${m} 上の重いプロンプトを止めました。${to} へ上げられず(リレーなし)`,
+  rt_rep_esc:n=>`うち ${n} 件は自動で引き上げ(セッションが上がり、あなたは再送のみ)`,
+  rt_balloon_esc:(m,to,w)=>`プロンプトを止めました: ${m} には重そうだったので、セッションを ${to} に上げました。約10秒待って再送してください(↑ と Enter) · ${w}`,
+  rt_balloon_block:(m,to,w)=>`プロンプトを止めました: ${m} には重そうです。/model ${to} で再送するか、先頭に ~ を付けてください · ${w}`,
   lgt_t:"高価なモデルでの質問セッション",
   lgt_m:m=>`${m} のセッション · 残量が少ない`,
   lgt_q:"次のセッションは Sonnet で始めますか?",
@@ -5992,6 +6042,13 @@ ko:{
   rt_ev_bypass:"~ 그대로 전송",
   rt_ev_ctx:"컨텍스트 주입(약 60토큰)",
   rt_log_empty:"아직 결정이 없습니다.",
+  rt_esc_on:"자동 에스컬레이션: 프롬프트를 막으면 그 세션을 올리고 나는 다시 보내기만",
+  rt_esc_hint:"막기만 하는 대신, 그 세션의 릴레이에 다음 단계로 /model을 입력하게 합니다(Haiku → Sonnet, 무거워 보이면 → Opus, Fable로는 자동으로 올리지 않음). 당신은 다시 보내기만 하면 됩니다(↑ 와 Enter). 그 세션에 릴레이가 필요하며, 없으면 평소처럼 막기만 합니다. 쿼터를 더 씁니다 — 쓰려던 만큼입니다.",
+  rt_ev_esc:(m,to)=>`가드가 ${m}의 무거운 프롬프트를 막고 세션을 ${to}로 올렸습니다`,
+  rt_ev_esc_fail:(m,to)=>`가드가 ${m}의 무거운 프롬프트를 막았습니다. ${to}로 올리지 못함(릴레이 없음)`,
+  rt_rep_esc:n=>`그중 ${n}건은 자동 에스컬레이션(세션이 올라갔고 당신은 재전송만)`,
+  rt_balloon_esc:(m,to,w)=>`프롬프트를 막았습니다: ${m}에는 무거워 보여 세션을 ${to}로 올렸습니다. 약 10초 뒤 다시 보내세요(↑ 와 Enter) · ${w}`,
+  rt_balloon_block:(m,to,w)=>`프롬프트를 막았습니다: ${m}에는 무거워 보입니다. /model ${to} 후 다시 보내거나 앞에 ~를 붙이세요 · ${w}`,
   lgt_t:"비싼 모델에서의 질문 세션",
   lgt_m:m=>`${m} 세션 · 쿼터 빠듯`,
   lgt_q:"다음 세션은 Sonnet으로 시작할까요?",
@@ -6590,6 +6647,13 @@ zh:{
   rt_ev_bypass:"~ 原样发送",
   rt_ev_ctx:"已注入上下文(约 60 tok)",
   rt_log_empty:"还没有决定。",
+  rt_esc_on:"自动升级:拦下提示时把该会话升级,我只需重发",
+  rt_esc_hint:"不只是拦下,MichiClaude 会让该会话的中继输入 /model 到上一档(Haiku → Sonnet;看起来重则 → Opus;绝不自动到 Fable)。你只需重发(↑ 和 Enter)。需要该会话有中继;没有则照常只拦下。会多花额度——你本来就想花的那部分。",
+  rt_ev_esc:(m,to)=>`守卫拦下了 ${m} 上的重提示,并把会话升到 ${to}`,
+  rt_ev_esc_fail:(m,to)=>`守卫拦下了 ${m} 上的重提示;无法升到 ${to}(无中继)`,
+  rt_rep_esc:n=>`其中 ${n} 次自动升级(会话已升级,你只需重发)`,
+  rt_balloon_esc:(m,to,w)=>`我拦下了你的提示:对 ${m} 来说太重,所以把会话升到了 ${to}。等约 10 秒后重发(↑ 和 Enter) · ${w}`,
+  rt_balloon_block:(m,to,w)=>`我拦下了你的提示:对 ${m} 来说太重。/model ${to} 后重发,或在开头加 ~ · ${w}`,
   lgt_t:"在昂贵模型上的咨询会话",
   lgt_m:m=>`${m} 会话 · 额度吃紧`,
   lgt_q:"下一个会话改用 Sonnet 开始吗?",
@@ -7609,6 +7673,8 @@ function balloonMeta(kind){
   if(kind==="break")  return {sev:"danger", icon:"bolt", sub:""};
   if(kind==="zzz")    return {sev:"danger", icon:"week", sub:""};
   if(kind==="budget") return {sev:"warn",   icon:"warn", sub:""};
+  if(kind==="escalate") return {sev:"ok",   icon:"ok",   sub:""};   // subí la sesión: reenvía
+  if(kind==="guard")    return {sev:"warn", icon:"warn", sub:""};   // frené: tú decides
   // (el globo del día de hallazgos se ELIMINÓ el 2026-08-04 — su trabajo lo
   // hace el post-it/campana, que ahora enciende al cierre de cada sesión)
   return {sev:"ok", icon:"ok", sub:""};      // sesión/semana restablecidas
@@ -8995,9 +9061,35 @@ function lightErr(code){
   return {MANUAL:t("rly_chat_manual"),NOSRV:t("rly_chat_fail"),FAIL:t("rly_chat_fail"),
     NOCWD:t("lgt_nocwd"),BADMODEL:"?"}[code.replace(/^Error: /,"")]||code;
 }
+// ---- el globo de la escalada (ruteo etapa 5b) ----
+// El chat de VS Code no pinta el motivo del bloqueo (medido 2026-08-17): el
+// prompt se queda en gris y en silencio. El gatito lo dice: "frené tu prompt
+// y subí la sesión a Opus — reenvíalo". Se lee el registro al compás del
+// coach (sesión activa = 10-60 s), y solo se anuncia una escalada MÁS
+// NUEVA que la última vista (rtEscSeen). Regla única de globos: se queda
+// hasta ✕ o abrir el panel; nunca al celular (proyecto = dato privado).
+async function rtEscBalloon(){
+  try{
+    const rows=await invoke("get_ruteo_log")||[];
+    const last=+(localStorage.getItem("rtEscSeen")||0);
+    const es=rows.filter(r=>(r.ev==="escalate"||r.ev==="block")&&r.ts>last)
+      .sort((a,b)=>b.ts-a.ts);
+    if(!es.length) return;
+    localStorage.setItem("rtEscSeen",String(es[0].ts));
+    const r=es[0];
+    if(Date.now()/1000-r.ts>300) return;      // viejo: ya pasó, no molestar
+    const where=rtWhere(r);
+    const body=r.ev==="escalate"&&r.ok
+      ? t("rt_balloon_esc", rtModelName(r.model), rtModelName(r.to), where)
+      : t("rt_balloon_block", rtModelName(r.model), rtModelName(r.to||"opus"), where);
+    showBalloon(body, r.ev==="escalate"&&r.ok?"escalate":"guard");
+    if(!$("tab-prefs").hidden) rtLogLoad();
+  }catch(_){}
+}
 async function coachPoll(){
   if(!invoke) return;
   if(simFnd){ coachSched(); return; }   // simulación en curso: no la pises
+  rtEscBalloon();
   try{
     // las sesiones con relevo, al mismo compás: la tarjeta de intención dice
     // si ESTA sesión tiene relevo, y para eso la lista tiene que estar puesta
@@ -9525,7 +9617,7 @@ function renderRepRuteo(rows){
   const el=$("repRuteo"); if(!el) return;
   if(rows===null){ el.innerHTML=`<div class="rp-empty">${t("fnd_err")}</div>`; return; }
   const s={routed:0,haiku:0,sonnet:0,matched:0,up:0,tok:0,cost:0,cost_base:0,saved:0,
-    blocks:0,insist:0,ctx:0,ctx_tok:0,skip:0,estimated:false};
+    blocks:0,insist:0,ctx:0,ctx_tok:0,skip:0,esc:0,estimated:false};
   for(const r of rows){ for(const k in s){ if(k==="estimated") s.estimated=s.estimated||!!r.estimated; else s[k]+=(+r[k]||0); } }
   if(!s.routed && !s.blocks && !s.ctx){
     el.innerHTML=`<div class="rp-empty">${escapeHtml(t("rt_rep_none"))}</div>`; return;
@@ -9541,6 +9633,7 @@ function renderRepRuteo(rows){
   }
   if(s.routed>s.matched) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_unmatched",s.routed-s.matched))}</span></div>`);
   if(s.blocks) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_blocks",s.blocks,s.insist))}</span></div>`);
+  if(s.esc) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_esc",s.esc))}</span></div>`);
   if(s.skip) rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(t("rt_rep_skip",s.skip))}</span></div>`);
   // autoconsumo: lo ÚNICO que gasta el sistema, dicho en su propia fila
   rowsHtml.push(`<div class="wst-row"><span class="wl">${escapeHtml(s.ctx?t("rt_rep_ctx",s.ctx,repFmtN(s.ctx_tok)):t("rt_rep_ctx0"))}</span></div>`);
@@ -11438,14 +11531,16 @@ async function rtFlagsUi(){
   if(!invoke) return;
   try{
     const c=await invoke("get_ruteo_cfg");
-    $("rtGuardChk").checked=!!c.guard; $("rtCtxChk").checked=!!c.ctx;
+    $("rtGuardChk").checked=!!c.guard; $("rtCtxChk").checked=!!c.ctx; $("rtEscChk").checked=!!c.esc;
     $("rtGuardChk").disabled=!c.on; $("rtCtxChk").disabled=!c.on;
+    $("rtEscChk").disabled=!c.on||!c.guard;   // escalar exige el guardián
   }catch(_){}
 }
 async function rtFlagsSave(){
   try{
-    await invoke("set_ruteo_flags",{guard:$("rtGuardChk").checked, ctx:$("rtCtxChk").checked});
-    flog("ruteo: guard="+$("rtGuardChk").checked+" ctx="+$("rtCtxChk").checked);
+    await invoke("set_ruteo_flags",{guard:$("rtGuardChk").checked, ctx:$("rtCtxChk").checked, esc:$("rtEscChk").checked});
+    flog("ruteo: guard="+$("rtGuardChk").checked+" ctx="+$("rtCtxChk").checked+" esc="+$("rtEscChk").checked);
+    $("rtEscChk").disabled=!$("rtGuardChk").checked;
     // la nota re-empujada al instante para que las tres máquinas lo sepan
     // ya, no en el próximo ciclo
     if(lastQuotaData) pushRouterState(lastQuotaData);
@@ -11453,6 +11548,7 @@ async function rtFlagsSave(){
 }
 $("rtGuardChk").addEventListener("change",rtFlagsSave);
 $("rtCtxChk").addEventListener("change",rtFlagsSave);
+$("rtEscChk").addEventListener("change",rtFlagsSave);
 
 // El registro del ruteo: latido (hoy) + últimas decisiones de las tres
 // máquinas. Es la respuesta a "¿está vivo? ¿qué decidió? ¿se queda siempre
@@ -11475,6 +11571,8 @@ function rtRowTxt(r){
     return t("rt_ev_skip", r.type||"?", why);
   }
   if(r.ev==="block") return t("rt_ev_block", rtModelName(r.model), (r.sig||[]).join(", "));
+  if(r.ev==="escalate") return r.ok ? t("rt_ev_esc", rtModelName(r.model), rtModelName(r.to))
+                                    : t("rt_ev_esc_fail", rtModelName(r.model), rtModelName(r.to));
   if(r.ev==="insist") return t("rt_ev_insist", rtModelName(r.model));
   if(r.ev==="bypass") return t("rt_ev_bypass");
   if(r.ev==="ctx") return t("rt_ev_ctx");
@@ -11486,7 +11584,7 @@ function rtRender(rows){
   const hoy=rows.filter(r=>r.ts>=day);
   const routed=hoy.filter(r=>r.ev==="route");
   const h=routed.filter(r=>r.after==="haiku").length, sn=routed.filter(r=>r.after==="sonnet").length;
-  const b=hoy.filter(r=>r.ev==="block").length;
+  const b=hoy.filter(r=>r.ev==="block"||r.ev==="escalate").length;
   if(!routed.length && !b) beat.textContent=t("rt_beat_none");
   else{
     const last=hoy[0];

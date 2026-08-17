@@ -42,6 +42,31 @@ import uuid
 # decide por este número; uno viejo ignoraría la marca y borraría sin copia)
 STATE_V = 2
 ALLOWED = ("/compact", "/clear")
+# ÚNICA ampliación con argumento (2026-08-17, ruteo etapa 5b — el guardián
+# escala solo): `/model <alias>` con alias de LISTA CERRADA. Nada más pasa:
+# ni texto libre, ni un modelo con id raro. Sigue siendo una lista.
+MODEL_ALIASES = ("haiku", "sonnet", "opus", "fable")
+# Un `/model` llega en el instante en que el guardián FRENA un prompt: el
+# relevo aún ve el turno "en curso" (el result del bloqueo llega un pelo
+# después). Para ese comando —y SOLO para ese, que no destruye nada— se
+# espera a que el relevo quede libre en vez de rechazar (medido 2026-08-17:
+# ERR_RELAY_BUSY con la orden escrita 0.2 s después del bloqueo).
+MODEL_WAIT_S = 8.0
+MODEL_TICK_S = 0.2
+
+
+def is_model_cmd(text):
+    return text.split()[:1] == ["/model"]
+
+
+def allowed(text):
+    """¿Es un comando que este relevo puede teclear? Los dos exactos, o
+    `/model <alias>` con el alias en la lista cerrada."""
+    if text in ALLOWED:
+        return True
+    parts = text.split()
+    return len(parts) == 2 and parts[0] == "/model" and parts[1] in MODEL_ALIASES
+
 CALM_MS = 8_000       # R3: calma de teclado
 QUIET_MS = 2_000      # R2: silencio de la PTY ("Claude generando" se INFIERE)
 COOLDOWN_MS = 15_000  # tras inyectar
@@ -421,6 +446,7 @@ def run_relevo(extra):
     # secuencia /export+/clear en curso: el relevo está ocupado (corre en su
     # hilo para que este bucle siga bombeando pantalla y estado)
     hand = {"on": False}
+    pend = {"cmd": None}   # /model a la espera de que el relevo quede libre
     prune_handoffs()
     d = state_dir()
     state_path = os.path.join(d, f"{pid}.json")
@@ -550,9 +576,15 @@ def run_relevo(extra):
         text = (v.get("text") or "").strip()
         # la red solo acompaña a /clear: /compact no destruye nada
         export = bool(v.get("export")) and text == "/clear"
-        if text not in ALLOWED:
+        if not allowed(text):
             return ack_row(rid, text, False, "ERR_RELAY_BADCMD")
         w = why_not()
+        if w and is_model_cmd(text):
+            # /model: no se rechaza, se deja PENDIENTE y el bucle de la PTY
+            # lo reintenta en cada vuelta hasta MODEL_WAIT_S (esperar aquí
+            # dentro congelaría la pantalla: este attend corre en el bucle)
+            pend["cmd"] = (rid, text, time.time() + MODEL_WAIT_S)
+            return None
         if w:
             return ack_row(rid, text, False, w)
         if export:
@@ -598,6 +630,23 @@ def run_relevo(extra):
                 else:
                     last_out = now_ms()
                     os.write(1, tm.feed(data))
+            # un /model pendiente (guardián): se teclea en cuanto haya calma
+            if pend["cmd"]:
+                prid, ptext, pfin = pend["cmd"]
+                pw = why_not()
+                if not pw:
+                    pend["cmd"] = None
+                    try:
+                        type_line(ptext)
+                        inject_at = now_ms()
+                        last_ack = ack_row(prid, ptext, True, "")
+                    except OSError:
+                        last_ack = ack_row(prid, ptext, False, "ERR_RELAY_WRITE")
+                    last_state = 0.0
+                elif time.time() > pfin:
+                    pend["cmd"] = None
+                    last_ack = ack_row(prid, ptext, False, pw)
+                    last_state = 0.0
             # órdenes del panel (o de `inject`): el buzón se borra al leer
             if os.path.exists(cmd_path):
                 try:
@@ -874,9 +923,15 @@ def run_wrap(args):
         rid = v.get("id") or ""
         text = (v.get("text") or "").strip()
         export = bool(v.get("export")) and text == "/clear"
-        if text not in ALLOWED:
+        if not allowed(text):
             return ack_row(rid, text, False, "ERR_RELAY_BADCMD")
         w = why_not()
+        if w and is_model_cmd(text):
+            # /model: esperar a que el relevo quede libre (ver MODEL_WAIT_S)
+            fin = time.time() + MODEL_WAIT_S
+            while w and time.time() < fin:
+                time.sleep(MODEL_TICK_S)
+                w = why_not()
         if w:
             return ack_row(rid, text, False, w)
         if export:

@@ -16,6 +16,10 @@ $ErrorActionPreference = 'Stop'
 $STALE_S  = 600
 $INSIST_S = 600
 $TAIL     = 65536
+# La ESCALERA de familias, de barata a cara (replica de guard-hook.py).
+# Nunca se escala solo a la ultima (fable).
+$LADDER    = @('haiku','sonnet','opus','fable')
+$relayDir  = Join-Path $env:USERPROFILE '.michiclaude\relevo'
 
 $michi = Join-Path $env:USERPROFILE '.michiclaude'
 $state = Join-Path $michi 'router_state.json'
@@ -71,6 +75,49 @@ function Tier($model) {
     $m = ('' + $model).ToLower()
     foreach ($t in @('haiku','sonnet','opus','fable','mythos')) { if ($m.Contains($t)) { return $t } }
     return $null
+}
+
+function Destino($tr, $peso) {
+    $i = [Array]::IndexOf($LADDER, $tr)
+    if ($i -lt 0) { return $null }
+    $top = $LADDER.Length - 2
+    if ($peso -lt 2) { $j = [Math]::Min($top, $i + 1) }
+    else { $j = [Math]::Min($top, [Math]::Max($i + 1, [Array]::IndexOf($LADDER, 'opus'))) }
+    if ($j -gt $i) { return $LADDER[$j] }
+    return $null
+}
+
+function RelevoDe($sid, $cwd) {
+    # El relevo de ESTA sesion: por sid exacto; si no, por cwd SOLO si es
+    # unico. Fail-closed: en la duda, ninguno.
+    if (-not (Test-Path $relayDir)) { return $null }
+    $porCwd = @()
+    $c2 = ('' + $cwd).Replace('\', '/').TrimEnd('/')
+    foreach ($f in Get-ChildItem -Path $relayDir -Filter '*.json' -ErrorAction SilentlyContinue) {
+        try { $st = Get-Content -Path $f.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { continue }
+        if (-not (Tiene $st 'alive') -or -not [bool]$st.alive) { continue }
+        if ($sid -and (Tiene $st 'sid') -and $st.sid -eq $sid) { return $st }
+        if ($c2 -and (Tiene $st 'cwd') -and (('' + $st.cwd).Replace('\', '/').TrimEnd('/') -eq $c2)) { $porCwd += $st }
+    }
+    if ($porCwd.Count -eq 1) { return $porCwd[0] }
+    return $null
+}
+
+function Escalar($sid, $cwd, $alias) {
+    # Deja la orden /model al relevo y SALE sin esperar el acuse (el relevo
+    # solo queda libre tras el result del bloqueo, que espera a este hook).
+    $st = RelevoDe $sid $cwd
+    if ($null -eq $st -or -not (Tiene $st 'pid')) { return ,@($false, 'NORELAY') }
+    $pid2 = $st.pid
+    $rid = 'esc-' + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    $body = @{ id = $rid; op = 'inject'; text = ('/model ' + $alias); export = $false } | ConvertTo-Json -Compress
+    $path = Join-Path $relayDir ($pid2.ToString() + '.cmd')
+    try {
+        $tmp = $path + '.tmp'
+        [System.IO.File]::WriteAllText($tmp, $body, (New-Object System.Text.UTF8Encoding($false)))
+        Move-Item -Path $tmp -Destination $path -Force
+    } catch { return ,@($false, 'WRITE') }
+    return ,@($true, $rid)
 }
 
 function CodigoPelado($prompt) {
@@ -144,8 +191,22 @@ try {
                     if (-not (Test-Path $michi)) { New-Item -ItemType Directory -Path $michi -Force | Out-Null }
                     Set-Content -Path $last -Value (@{ h = $h; tier = $tr; ts = $ts } | ConvertTo-Json -Compress) -Encoding UTF8
                 } catch { }
-                $f = Fila 'block'; $f['model'] = $tr; $f['sig'] = $sig; Apunta $f
-                $razon = "MichiClaude: this looks complex and you're on $tr. Run /model opus and resend, or prefix ~ to send as is. / Esto se ve complejo y vas en ${tr}: /model opus y reenvia, o antepon ~ para mandarlo tal cual."
+                $dest = Destino $tr $peso; if (-not $dest) { $dest = 'opus' }
+                $escOk = $false; $escErr = ''
+                $escOn = (Tiene $st 'esc') -and [bool]$st.esc
+                if ($escOn) {
+                    # ESCALAR SOLO: el relevo de esta sesion teclea /model; el
+                    # usuario solo reenvia. Sin relevo/acuse, freno de siempre.
+                    $r2 = Escalar $sid $cwd $dest; $escOk = $r2[0]; $escErr = $r2[1]
+                    $f = Fila 'escalate'; $f['model'] = $tr; $f['to'] = $dest; $f['ok'] = $escOk; $f['err'] = $escErr; $f['sig'] = $sig; Apunta $f
+                } else {
+                    $f = Fila 'block'; $f['model'] = $tr; $f['sig'] = $sig; $f['to'] = $dest; Apunta $f
+                }
+                if ($escOk) {
+                    $razon = "MichiClaude: this looked complex for $tr, so I'm switching this session to $dest. Give it ~10 s and resend (Up + Enter). / Esto se veia complejo para ${tr}: estoy subiendo la sesion a $dest. Dale ~10 s y reenvialo (flecha arriba + Enter)."
+                } else {
+                    $razon = "MichiClaude: this looks complex and you're on $tr. Run /model $dest and resend, or prefix ~ to send as is. / Esto se ve complejo y vas en ${tr}: /model $dest y reenvia, o antepon ~ para mandarlo tal cual."
+                }
                 [Console]::Out.Write((@{ decision = 'block'; reason = $razon } | ConvertTo-Json -Compress))
                 exit 0
             }
