@@ -3469,3 +3469,29 @@ del lado Windows (interruptor de Ajustes, .ps1 ruteando, nota viajando a
 WSL y al VPS desde la app real) y las etapas 3-6 (medición en Reporte,
 gatito consejero, Hook A). Reflejado en CLAUDE.md §pendientes y en el
 §11 del doc.
+
+## 2026-08-17 (10) — el ruteo, cerrado en el lado Windows: la etapa 2 queda validada en producción
+
+QUÉ: cierre de la validación de las etapas 1-2 con la app REAL en el
+Windows de Oscar. Sin cambios de código: solo CLAUDE.md y esta entrada.
+
+CÓMO SE VERIFICÓ: (1) `cargo check` limpio en Windows (con `Checking` de
+9.2 s — no fue el empate de hora del binario). (2) Interruptor de Ajustes
+en modo dev: `local ✓ · VPS-EU ✓ · WSL: Ubuntu ✓` y el recordatorio de
+sesiones nuevas. (3) Sesión nueva de Claude Code v2.1.233, padre clavado
+en Sonnet, «lanza un subagente Explore que solo diga OK»: el
+`ruteo_log.jsonl` de Windows anota `route/light/haiku` — primera corrida
+real del `.ps1`, la pieza que el VPS no podía probar. (4) Verificado
+DESDE el VPS que la app de Windows hizo su parte por SSH sola: hook
+subido a las 03:14 (la hora del interruptor), entrada `Task|Agent` en el
+settings.json de acá, y `router_state.json` con 17 s de edad y cuota
+REAL (sesión 35, semana 25) — el ciclo de 3 min riega la nota solo.
+Matiz de honestidad: el log de Windows prueba que el hook DECIDIÓ haiku;
+que Claude Code OBEDECE el updatedInput en Windows lo probó la etapa 0
+en esa misma máquina (A/B del 2026-08-14) — por eso se cierra sin
+re-mirar el agent-*.jsonl, y el comando para el triple candado quedó
+dicho en el chat.
+
+QUÉ QUEDA: etapa 3 (medición en la pestaña Reporte: log de decisiones ×
+JSONL reales × quota_history), luego 4-6. La validación del día a día
+del ruteo es pasiva desde hoy: Oscar trabaja normal y el log acumula.

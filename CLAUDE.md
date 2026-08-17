@@ -551,8 +551,10 @@ presion-y-rendimiento §"Qué queda vivo".
       sonnet, análisis solo baja con cuota ≥70; `model` explícito se
       respeta; log `ruteo_log.jsonl` por máquina; el motor es LOCAL-only
       (el exportador NO participa: invariante #1 no aplica, a propósito).
-      FALTA: cargo check en Windows, primera corrida del `.ps1`,
-      interruptor de Ajustes en vivo; luego etapas 3-6.
+      CERRADO también el lado Windows (2026-08-17): cargo check limpio,
+      interruptor ✓ en las 3 máquinas y el `.ps1` ruteando
+      (route/light/haiku); la app subió hook+nota al VPS sola (nota de
+      17 s con cuota real). SIGUE: etapa 3 (medición en Reporte), 4-6.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO: rastrear otras herramientas, BD de historial,
   modo equipo.
