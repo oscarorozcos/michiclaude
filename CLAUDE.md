@@ -550,9 +550,9 @@ presion-y-rendimiento §"Qué queda vivo".
       racha de turnos ligeros que se reinicia con código; compuerta en el
       panel: modelo caro + gauge ≥70 + sin 3 «no») → tarjeta →
       `set_default_model` (SOLO sesiones nuevas, lista cerrada). ESCALAR
-      SOLO (5b, `esc`, apagado, exige guardián): al frenar, el hook deja
-      `/model <peldaño>` al relevo SIN esperar acuse (abrazo mortal
-      medido); el relevo espera ≤8 s SOLO para /model; globo del gatito.
+      SOLO (5b, `esc`, exige guardián): al frenar, el hook deja `/model
+      <peldaño>` al relevo SIN esperar acuse (abrazo mortal medido); el
+      relevo espera ≤20 s SOLO para /model; globo del gatito.
       5c `rs` (exige esc): el relevo reenvía el prompt (`then`, jamás
       persistido) — chat: mensaje JSON; terminal: `type_model` (Enter al
       diálogo + RESTAURAR el default que /model guarda) y `type_paste`.
