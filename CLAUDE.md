@@ -8,6 +8,8 @@ decisión vieja; al cerrar la jornada, entrada con SU PLANTILLA (cabecera
 del archivo). `docs/README.md` = índice de docs + "dónde mirar cuando
 algo falla" (rastro por área). REGLA DURA: este archivo bajo 40k —
 Claude Code corta lo que sobre (pasó con 118.8k: dos tercios sin leerse).
+Al podar: lo cerrado que aún cuenta su historia se MUEVE a la bitácora
+(entrada "poda"), aquí queda la regla y el puntero al doc.
 
 ## Qué es esta app
 
@@ -33,6 +35,7 @@ src/pill.html pcard.html cat.html card.html notif.html   # ventanas del widget
 src-tauri/src/main.rs   # Entry point (windows_subsystem = "windows")
 src-tauri/src/lib.rs    # Backend: comandos, tray, ventanas, Win32
 scripts/meter-export.py # Exportador remoto (VPS vía SSH; solo stdlib)
+relevo/                 # crate APARTE (michi.exe): relevo y automáticos
 docs/                   # README.md (índice) + bitacora.md + diseños + img/
 .github/workflows/release.yml  # compila y publica instalador en tags v*
 ```
@@ -47,14 +50,12 @@ SSH, solo vive en memoria). NUNCA llamar a la API con token vencido
 `anthropic-beta: oauth-2025-04-20`. Endpoint NO oficial: el frontend extrae
 buckets recursiva y dinámicamente (`extractBuckets()` busca
 `utilization`/`resets_at`) y pinta los que existan. El endpoint NO envía el
-plan (verificado con quota_debug.json real). Respuesta cruda a
-`quota_debug.json` para diagnóstico.
+plan. Respuesta cruda a `quota_debug.json` para diagnóstico.
 
 **B) Detalle local — `get_local_stats` (Rust):** parsea
-`~/.claude/projects/**/*.jsonl`. "**/*" incluye
-`<sesión>/subagents/agent-*.jsonl` vía `project_jsonls()` (2026-08-04):
-Claude Code v2.1.221+ pone ahí los transcripts de subagentes — sin entrar
-ahí ni el costo ni el detector los ven.
+`~/.claude/projects/**/*.jsonl`; `project_jsonls()` INCLUYE
+`<sesión>/subagents/agent-*.jsonl` (transcripts de subagentes desde
+Claude Code v2.1.221 — sin entrar ahí ni el costo ni el detector los ven).
 Dedup por `message.id + requestId` (los duplicados TAMBIÉN cruzan
 archivos: la dedup global es imprescindible). Tokens "de trabajo" =
 input + output + cache_write; **cache_read excluido** (infla ~100×) salvo
@@ -76,9 +77,9 @@ a "costo estimado", no toast. La sección de Ajustes informa de AMBAS
 cosas (`ctx_count` = modelos con techo): si una fuente deja de publicarlo,
 el número baja a la vista.
 `price_key()` unifica PUNTO→GUIÓN entre dígitos (OpenRouter escribe
-`claude-opus-4.8`, el resto `claude-opus-4-8`): sin eso la 3.ª fuente
-casaba 6 de 14, ocho modelos sin precio ni techo EN SILENCIO. Auditadas
-coinciden al céntimo; el techo discrepante es sonnet-4-5 (200k / 1M beta).
+`claude-opus-4.8`, el resto `claude-opus-4-8`); sin eso ocho modelos
+quedaban sin precio ni techo EN SILENCIO. Techo discrepante conocido:
+sonnet-4-5 (200k / 1M beta).
 
 **C) Remotas (dentro de `get_local_stats`):** `remotes.json` en
 `%APPDATA%\com.oscarorozco.michiclaude\`; por fuente, `ssh -o BatchMode=yes
@@ -95,11 +96,10 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 
 - **Panel** (`main`, 446x660): sin decoraciones, transparente,
   alwaysOnTop, skipTaskbar. Clic en tray abre/enfoca; SOLO el ✕ (y el
-  menú del tray) ocultan — NO se cierra al perder foco (Oscar 2026-08-14;
-  antes era flyout y estorbaba). Se arrastra del encabezado. SIN borde
-  perimetral ni rendija (Oscar 2026-08-14): body padding 0 y `.panel`
-  sin outline/ring — la "línea de la orilla" era el propio borde
-  --stroke; el panel es solo fondo. Pestañas
+  menú del tray) ocultan — NO se cierra al perder foco (decisión de
+  Oscar; no volver al flyout). Se arrastra del encabezado. SIN borde
+  perimetral ni rendija: body padding 0 y `.panel` sin outline/ring — el
+  panel es solo fondo. Pestañas
   (Principal · Fuentes de datos · Hallazgos · Consejos · Reporte ·
   Ajustes), con encabezado sticky en `.p-top` (el padding superior vive
   AHÍ, no en `.panel`: si no, rendija al scroll).
@@ -116,8 +116,9 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   `toggle_pill_card()` elige pose (abajo si cabe; si no, `body.up` invierte). Cabecera del detalle = geometría IDÉNTICA a la cápsula (el margen de 6 px
   las alinea; sin él el halo del box-shadow se corta en recto); con el
   detalle abierto esconde números. Es funcional: el gatito abre
-  panel y el asa arrastra vía `drag_pill_from_card`. SIN tooltips. El hover
-  para desplegar se probó y se DEVOLVIÓ a clic: no reintroducir. El % en color: acento en "todo bien", ÁMBAR y ROJO se
+  panel y el asa arrastra vía `drag_pill_from_card`. SIN tooltips. Hover
+  para desplegar: probado y DEVUELTO a clic, no reintroducir. El % en
+  color: acento en "todo bien", ÁMBAR y ROJO se
   conservan. Los tamaños se definen en `ensure_widget_windows`, NO en el
   json. Indicadores: campana roja (hallazgos) y foco ámbar (consejos), SVG inline
   (la CSP no permite fuentes externas).
@@ -184,24 +185,22 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 1. `get_quota` y `get_local_stats`: no cambiar firmas (`days: Option<u32>`,
    clamp 1..90); no eliminar dedup ni exclusión de cache_read. Campo nuevo
    en LocalStats → replicar en `meter-export.py` y `#[serde(default)]`
-   (ExportRow.origin y Finding.ts ya mordieron por esto). AMPLIACIÓN
-   ADITIVA 2026-08-05: `get_local_stats` acepta además `end: Option<i64>`
-   (epoch) y el exportador `--end EPOCH` — mueven el FINAL de la ventana
-   al pasado, que es como se sirve un rango de fechas: [end-days, end].
-   Sin ese argumento todo se comporta EXACTAMENTE igual que antes
-   (verificado con regresión byte a byte). NO añadir un camino paralelo
-   por fechas: el motor solo entiende ancho + final.
+   (ExportRow.origin y Finding.ts ya mordieron por esto). Ampliación
+   aditiva: `get_local_stats` acepta además `end: Option<i64>` (epoch) y
+   el exportador `--end EPOCH` — mueven el FINAL de la ventana al pasado
+   ([end-days, end], así se sirve un rango de fechas); sin él, idéntico a
+   antes. NO añadir un camino paralelo por fechas: el motor solo entiende
+   ancho + final.
 2. `demo()` del frontend existe SOLO para abrir index.html suelto en un
    navegador. PROHIBIDO que datos de demo lleguen a la app real.
 3. Seguridad: el token nunca se loggea/muestra/viaja a otro dominio que
    api.anthropic.com. CSP restrictiva. Sin telemetría. MATIZ OBLIGATORIO:
    `security` lleva `"dangerousDisableAssetCspModification": ["style-src"]`
-   y NO se puede quitar sin romper la app COMPILADA: Tauri inyecta nonces
-   al compilar y el estándar CSP ignora `'unsafe-inline'` cuando hay
-   nonce — en release se bloqueaban todos los estilos al vuelo (barras,
-   tendencia, globos) mientras dev se veía perfecto. `script-src` intacto.
-   AL DIAGNOSTICAR: si algo se ve bien con `npm run dev` y mal con `npm
-   run build`, sospechar de la CSP ANTES que del código.
+   y NO se puede quitar sin romper la app COMPILADA (Tauri inyecta nonces
+   al compilar y CSP ignora `'unsafe-inline'` con nonce — en release se
+   bloqueaban los estilos al vuelo mientras dev se veía perfecto).
+   `script-src` intacto. AL DIAGNOSTICAR: si algo se ve bien con `npm run
+   dev` y mal con `npm run build`, sospechar de la CSP ANTES que del código.
 4. Frontend vanilla: sin frameworks, bundlers ni deps npm de runtime.
    Deps Rust nuevas: solo imprescindibles, features mínimas.
 5. Porcentajes SIEMPRE redondeados a entero en UI (`Math.round`).
@@ -237,6 +236,14 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
     persistido. `color-scheme` en body para controles nativos. Texto
     SOBRE el acento usa `--accent-ink` (tinta oscura en tema oscuro,
     blanco en claro) — nunca blanco fijo sobre acento claro (~2:1).
+12. Rediseño del panel (VIGENTE, detalle en bitácora §"Ronda de rediseño
+    UX/UI"): tipografía EMBEBIDA (`src/fonts/`, OFL, sin CDN — una fuente
+    remota rompe CSP y privacidad); `.sect` es TARJETA con fondo; toda
+    tarjeta con fondo redefine `--txt-mut`/`--txt-dim`, no repinta hijos;
+    filas con elementos de dos líneas: FLEX antes que grid; panel a 446
+    px; nada de `color-mix()` (WebView2); al MOVER un bloque de pestaña,
+    buscar qué init dependía de abrir la vieja. El widget conserva su
+    estética propia.
 
 ## Reglas de comportamiento — no regresionar
 
@@ -261,6 +268,14 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
 - Presupuesto semanal: contra la suma de los últimos 7 días de la serie
   diaria, no la ventana elegida.
 - Autostart solo en release, una vez (marker); apagado se respeta.
+- Auto-updater: comandos propios Rust (`check_update`/`install_update`/
+  `open_releases`), sin API JS del plugin (inv. #4). Check al arrancar
+  (8 s) y cada 12 h; guarda `v===updVer` (el globo cerrado NO vuelve).
+  `createUpdaterArtifacts: true` OBLIGATORIO (sin él no hay .sig ni
+  latest.json); iconos COMMITEADOS; al re-etiquetar borrar release+tag y
+  el tag SIEMPRE tras `git pull`. Fallo al instalar → botón a
+  `RELEASES_URL`. Llave pública en tauri.conf.json, privada en secretos +
+  copias de Oscar (si se pierde: llave nueva + instalar a mano UNA vez).
 
 ## Analizador de fugas (pestaña Hallazgos)
 
@@ -306,113 +321,110 @@ si tiene >5 min. Precarga a los 15 s.
 **Avisos (sin globo):** post-it rojo / campana / contador encienden con
 hallazgos NO VISTOS. Pasada ligera 1d compartida `fndPass()`: al NACER UN
 RECIBO (cierre local; freno 15 min `fndEventLast`, marcado ANTES) y cada
-3 h de respaldo (20 h era mucho para los nacidos en el VPS). "LEÍDO" =
-CLIC en la tarjeta, estilo Gmail: abrir pestaña o post-it NO marca;
-contador y post-it descuentan al clicar cada tarjeta (plegar/desplegar
-marca; Ignorar apaga la suya; restaurar ignorados revive las no leídas).
-TRAMPA DEL VIGILANTE (4 mordidas): nada nace visto por mirar la pestaña.
-Hallazgos NUNCA al celular (privacidad ntfy). El interruptor de Ajustes
-apaga SOLO el widget; los contadores de pestaña quedan. Re-armar en
-pruebas: borrar fndSeen y fndAutoLast.
+3 h de respaldo. "LEÍDO" = CLIC en la tarjeta, estilo Gmail: abrir
+pestaña o post-it NO marca; contador y post-it descuentan al clicar cada
+tarjeta (plegar/desplegar marca; Ignorar apaga la suya; restaurar
+ignorados revive las no leídas). TRAMPA DEL VIGILANTE (4 mordidas): nada
+nace visto por mirar la pestaña. Hallazgos NUNCA al celular (privacidad
+ntfy). El interruptor de Ajustes apaga SOLO el widget; los contadores de
+pestaña quedan. Re-armar en pruebas: borrar fndSeen y fndAutoLast.
 
 ## Coach (pestaña Consejos)
 
 Diseño en `docs/consejos-coach.md` — LEERLO antes de tocar. Fichas
 curadas (sin IA ni red, `tip_<id>_*` ×8) + motor de sesión activa:
-`get_coach` (Rust, incremental por offset, sesiones tocadas en 30 min). Desde 2026-08-05 MULTI-FUENTE: local + WSL + cada
-servidor SSH — el exportador replica el motor bajo `--coach` (invariante
-#1; estado incremental en `~/.cache/michiclaude/coach_state.json` del
-servidor, reconstruible; subagentes fuera, plano como en Rust) y
-`get_coach` fusiona poniendo `origin` (vacío = local; el panel lo enseña
-en fichas, recibos y pushes). Regla `press` (manómetro): un hit por sesión con
-contexto y quieta <10 min (`PRESS_QUIET_MAX`), `value` = tokens de
-contexto crudos, campos aditivos `quiet` + señales del clasificador
-`topen/ttotal` (último TodoWrite), `cont` (Jaccard % archivos, últimos 10 vs 10
-previos del rastro `trail` tope 20) y `gclean` (commit sin ediciones
-después); NO es ficha ni aviso: coachPoll la aparta (como
-done/ask), elige la más fresca y emitPill la monta como `press` en
-quota:update (umbrales 60/85). EL TECHO NO ES CONSTANTE: el hit trae
-`full` = techo del modelo de esa sesión; `pressFull()/pressPct()` son el
-ÚNICO sitio que divide. Sale de `ctx_for()` (ver Arquitectura; `[1m]` manda y se mira ANTES de
-price_key, que lo recorta; en la duda 200k). Y
-si lo MEDIDO supera a la tabla, manda lo medido: `ctx_full` sube al
-siguiente escalón de `CTX_LADDER` (devolver lo visto a secas dejaría el
-manómetro clavado en 100%). Autopsia en la bitácora. Arco en la pastilla y BOMBILLA en el gatito;
-número+proyecto en pcard y en la ficha de la bombilla. Nunca viaja a ntfy ni al hub. El motor manda HECHOS crudos: el veredicto
-Alive/Boundary/Uncertain vive UNA vez en JS (`intentVerdict`, reina =
-topen>0). Con presión ≥80 (`INTENT_PCT`)
-coachPoll sintetiza el hit LOCAL `intent` → tarjeta de intención en
-Consejos (exenta del tope diario, una por sesión vía tipSeen, se refresca
-sin renacer, ✕/"Ahora no" no resucitan): dos
-opciones en llano con comando al lado, insignia "Recomendado" solo con
-veredicto (unsure = sin insignia), advertencia si hay pendientes, botón
-"Copiar comando" → `plugin:clipboard-manager|write_text` invocado
-directo (capability `clipboard-manager:allow-write-text`, sin wrapper
-npm). Exportador viejo: ignora --coach → cero hits, se
-degrada solo (validado en vivo, sondeo ~80 ms). ANÁLISIS LOCAL (IA),
-`docs/analisis-local.md` — LEERLO: con veredicto unsure, `ai_intent`
-(llama-server BAJO DEMANDA en 127.0.0.1, gramática por
-`response_format`, se MATA al terminar) pinta insignia PROPIA punteada; JAMÁS toca compuertas del
-automático; evidencia = `title`+`msgs` del press (3 mensajes humanos ×300
-chars; `user_turn_text` = ÚNICO filtro, el bool lo envuelve, réplica en
-exportador); `msgs` NO se persiste (solo `c.ai`); UNA invocación por
-sesión aunque falle; AUTOMÁTICO POR INFERENCIA: `relayClearAi` (OFF, bajo
-relayClear) = 2.ª razón del auto-/clear (`unsure`+`tema_nuevo`, `topen==0`,
-30 s), resto IGUAL, red incluida, espera el veredicto; fail-quiet; interruptor nace OFF; Probar = la misma
-tubería. ETAPA 2 HECHA (2026-08-13):
-peldaño de EMBEDDINGS (`ai_emb_verdict`, EmbeddingGemma-300M q8_0
-~319 MB, GGUF OFICIAL ggml-org — los e5 comunitarios están ROTOS, banco
-en bitácora) ANTES del 2B — coseno tema↔reciente SIN prefijos (calibrado:
-separan mejor), <0.45 clear·tema_nuevo / >0.65 compact·tema_cruzado /
-banda media al 2B; fail-quiet total (sin GGUF = v1 exacta) con rastro
-PROPIO `emb_debug.txt` + `emb_server.log`; `via`/`sim` al flowLog y al
-botón Probar, tarjeta solo {rec,reason}. DESCARGA GUIADA `ai_setup`: URLs y SHA-256 en 9 CONSTANTES
-(original + ESPEJO `modelos-v1` por archivo — PRERELEASE y tag sin `v`,
-o rompe updater/workflow; `ai_fetch` cae al espejo por fallo de red O de
-huella; REEMPLAZAR un binario = constantes juntas + release `modelos-v2`;
-AÑADIR un asset nuevo al v1 está bien, detalle en el doc); única conexión
-fuera de api.anthropic.com, opt-in y anunciada; respeta rutas manuales. Regla `acomp`:
-`compact_boundary` con trigger≠manual y <30 min → ficha con los preTokens
-(los manuales no avisan: los hiciste tú; los INYECTADOS por el relevo
-entran como manual y se auditan solos). TODO `compact_boundary` —de quien
-sea— pone `last_ctx = 0`: el contexto se vació y hasta el próximo turno no
-hay medida (`press` exige >0 y no sale, invariante #8); sin eso el
-manómetro mentía 10 min y el automático inyectaba un /compact redundante.
-`ctx_seen` intacto. La auto-compactación de Claude Code (~94% de su
-ventana) NO se toca ni se sugiere apagar: es la red cuando MichiClaude no
+`get_coach` (Rust, incremental por offset, sesiones tocadas en 30 min),
+MULTI-FUENTE: local + WSL + cada servidor SSH — el exportador replica el
+motor bajo `--coach` (invariante #1; estado incremental en
+`~/.cache/michiclaude/coach_state.json` del servidor, reconstruible;
+subagentes fuera, plano como en Rust) y `get_coach` fusiona poniendo
+`origin` (vacío = local; el panel lo enseña en fichas, recibos y pushes).
+Exportador viejo ignora --coach → cero hits, se degrada solo.
+
+**Regla `press` (manómetro):** un hit por sesión con contexto y quieta
+<10 min (`PRESS_QUIET_MAX`), `value` = tokens de contexto crudos, campos
+aditivos `quiet` + señales del clasificador `topen/ttotal` (último
+TodoWrite), `cont` (Jaccard % archivos, últimos 10 vs 10 previos del
+rastro `trail` tope 20) y `gclean` (commit sin ediciones después); NO es
+ficha ni aviso: coachPoll la aparta (como done/ask), elige la más fresca
+y emitPill la monta como `press` en quota:update (umbrales 60/85). EL
+TECHO NO ES CONSTANTE: el hit trae `full` = techo del modelo de esa
+sesión; `pressFull()/pressPct()` son el ÚNICO sitio que divide. Sale de
+`ctx_for()` (`[1m]` manda y se mira ANTES de price_key, que lo recorta;
+en la duda 200k). Si lo MEDIDO supera a la tabla, manda lo medido:
+`ctx_full` sube al siguiente escalón de `CTX_LADDER` (devolver lo visto a
+secas dejaría el manómetro clavado en 100%). Arco en la pastilla y
+BOMBILLA en el gatito; número+proyecto en pcard y en la ficha de la
+bombilla. Nunca viaja a ntfy ni al hub. El motor manda HECHOS crudos: el
+veredicto Alive/Boundary/Uncertain vive UNA vez en JS (`intentVerdict`,
+reina = topen>0).
+
+**Intención:** con presión ≥80 (`INTENT_PCT`) coachPoll sintetiza el hit
+LOCAL `intent` → tarjeta de intención en Consejos (exenta del tope
+diario, una por sesión vía tipSeen, se refresca sin renacer, ✕/"Ahora
+no" no resucitan): dos opciones en llano con comando al lado, insignia
+"Recomendado" solo con veredicto (unsure = sin insignia), advertencia si
+hay pendientes, botón "Copiar comando" → `plugin:clipboard-manager|
+write_text` invocado directo (capability
+`clipboard-manager:allow-write-text`, sin wrapper npm).
+
+**Análisis local (IA)** — TODAS las reglas en `docs/analisis-local.md`,
+LEERLO (llama-server bajo demanda que se MATA al terminar; embeddings
+`ai_emb_verdict` ANTES del 2B con umbrales `EMB_NEW`/`EMB_CROSS`
+constantes hasta tener muestra real; descarga guiada `ai_setup` con
+espejo `modelos-v1` — única conexión fuera de api.anthropic.com, opt-in).
+Lo que no puede olvidarse: con veredicto unsure `ai_intent` pinta
+insignia PROPIA punteada y JAMÁS toca compuertas del automático; `msgs`
+NO se persiste (solo `c.ai`); UNA invocación por sesión aunque falle;
+`relayClearAi` (OFF) = 2.ª razón del auto-/clear (`unsure`+`tema_nuevo`,
+`topen==0`, 30 s), resto IGUAL y espera el veredicto; fail-quiet total
+(sin GGUF = v1 exacta) con rastro `emb_debug.txt` + `emb_server.log`;
+Probar = la misma tubería.
+
+**Regla `acomp`:** `compact_boundary` con trigger≠manual y <30 min →
+ficha con los preTokens (los manuales no avisan; los INYECTADOS por el
+relevo entran como manual y se auditan solos). TODO `compact_boundary`
+—de quien sea— pone `last_ctx = 0`: el contexto se vació y hasta el
+próximo turno no hay medida (`press` exige >0 y no sale, invariante #8);
+sin eso el manómetro mentía 10 min y el automático inyectaba un /compact
+redundante. `ctx_seen` intacto. La auto-compactación de Claude Code
+(~94%) NO se toca ni se sugiere apagar: es la red cuando MichiClaude no
 está, y apagarla desactiva su `precomputeCompactionEnabled`. Entramos al
-80% (`INTENT_PCT`): se gana por diseño, no por carrera. Y la compactación
-NO lleva `usage`: no se puede facturar, solo se ve en cuota.
-Reglas: ctx ≥60% del techo (`COACH_CTX_PCT`×`ctx_full`, antes 120k
-fijos; el ⚠ "ctx" de `coach_leaks` usa el MISMO umbral) → compact;
-pausa≥6 min con ctx≥30k → cache; mismo
-archivo+RANGO leído ≥3 → attach (SOLO texto; imágenes → `shots` ≥10, ficha
-propia; ambos hits llevan `file`, la línea "Ahora:" dice QUÉ leyó Claude —
-2026-08-15); `ask` (tool_use sin tool_result ≥3 min) y
-`done` (quieta 5 min, 5+ turnos) son SOLO push, no fichas; `sum` (quieta 10 min) = recibo con
-título AI, min/comandos/archivos, `· ~$X` y ⚠ de `coach_leaks()` (kinds
-attach/compact/cache; ctx y cache EXCLUYENTES; cerrar con ctx≥30k es fuga
-al cierre). Anti-spam: tope diario 10 (`tipDay`, sum EXENTO), una tarjeta viva por
-regla, `tipSeen` se marca al ENTRAR al almacén. La ficha CALIENTE se REFRESCA
-cada sondeo sin renacer (misma sesión, conserva born/min/v) y lleva `ts`
-("medido hace X min" si la regla calla); `sum`/`acomp` NO: son fotos. Almacén `coachCards` (tope 12): ✕, contraer recordado (`min`), leído (`v`)
-apaga el aviso sin despachar, caducidad 24 h (TIP_TTL). "LEÍDO" = CLIC en
-la tarjeta (regla Gmail, ver Hallazgos); el ✕ además la despacha. Las
-vivas (recibos y fichas calientes) van en UNA corriente por `born` desc —
-la más reciente arriba—; las frías del catálogo, abajo. PENDIENTE FANTASMA
-(blindado): un turno nuevo del hilo principal LIMPIA pending_tool; los
-tool_use de subagentes no lo tocan. El nombre del proyecto va RESUELTO desde Rust (`pname`, cwd real). Aviso
+80% (`INTENT_PCT`): se gana por diseño, no por carrera. La compactación
+NO lleva `usage`: no se factura, solo se ve en cuota.
+
+**Reglas:** ctx ≥60% del techo (`COACH_CTX_PCT`×`ctx_full`; el ⚠ "ctx"
+de `coach_leaks` usa el MISMO umbral) → compact; pausa≥6 min con ctx≥30k
+→ cache; mismo archivo+RANGO leído ≥3 → attach (SOLO texto; imágenes →
+`shots` ≥10, ficha propia; ambos hits llevan `file`, la línea "Ahora:"
+dice QUÉ leyó Claude); `ask` (tool_use sin tool_result ≥3 min) y `done`
+(quieta 5 min, 5+ turnos) son SOLO push, no fichas; `sum` (quieta 10
+min) = recibo con título AI, min/comandos/archivos, `· ~$X` y ⚠ de
+`coach_leaks()` (kinds attach/compact/cache; ctx y cache EXCLUYENTES;
+cerrar con ctx≥30k es fuga al cierre). Anti-spam: tope diario 10
+(`tipDay`, sum EXENTO), una tarjeta viva por regla, `tipSeen` se marca
+al ENTRAR al almacén. La ficha CALIENTE se REFRESCA cada sondeo sin
+renacer (misma sesión, conserva born/min/v) y lleva `ts` ("medido hace X
+min" si la regla calla); `sum`/`acomp` NO: son fotos. Almacén
+`coachCards` (tope 12): ✕, contraer recordado (`min`), leído (`v`) apaga
+el aviso sin despachar, caducidad 24 h (TIP_TTL). "LEÍDO" = CLIC en la
+tarjeta (regla Gmail); el ✕ además la despacha. Las vivas (recibos y
+fichas calientes) van en UNA corriente por `born` desc; las frías del
+catálogo, abajo. PENDIENTE FANTASMA (blindado): un turno nuevo del hilo
+principal LIMPIA pending_tool; los tool_use de subagentes no lo tocan.
+El nombre del proyecto va RESUELTO desde Rust (`pname`, cwd real). Aviso
 en widget: post-it turquesa / foco ámbar, campo `coach` en quota:update,
-mismo interruptor. El recibo NO manda push (su push fue el "terminó"). Depurar "no llegó X": PRIMERO `coach_debug.json` y la bitácora `flowLog`
-(📜 en dev). coachHits queda SOLO
-para el simulador. COMPÁS ADAPTATIVO (2026-08-13): `coachPoll` se
-auto-agenda (`coachSched`) — 3 min en reposo, 60 s con sesión activa,
-20 s ≥55%, 10 s ≥70% o salto ≥15k tok entre sondeos (rampa) — porque el
-fijo de 3 min perdía las rampas (pico de 197k invisible, autopsia en
-bitácora). NO tocar la cadencia de CUOTA (3 min, 429): el coach no habla
-con la API. Y `relayAutoCheck` exige `rly.ready` ANTES de arrancar la
-cuenta: con Claude generando, el rechazo quemaba el reintento de 10 min
-y el auto-compact del ~94% ganaba la carrera.
+mismo interruptor. El recibo NO manda push (su push fue el "terminó").
+Depurar "no llegó X": PRIMERO `coach_debug.json` y la bitácora `flowLog`
+(📜 en dev). coachHits queda SOLO para el simulador.
+
+**Compás adaptativo:** `coachPoll` se auto-agenda (`coachSched`) — 3 min
+en reposo, 60 s con sesión activa, 20 s ≥55%, 10 s ≥70% o salto ≥15k tok
+entre sondeos (rampa); el fijo de 3 min perdía las rampas. NO tocar la
+cadencia de CUOTA (3 min, 429): el coach no habla con la API.
+`relayAutoCheck` exige `rly.ready` ANTES de arrancar la cuenta (si no,
+el rechazo con Claude generando quemaba el reintento de 10 min y el
+auto-compact del ~94% ganaba la carrera).
 
 ## Avisos al celular (ntfy)
 
@@ -445,111 +457,78 @@ al guardar escribe en TODOS los servidores, al traer gana el primero;
 los servidores se FUSIONAN por host; NO viajan posición del widget,
 identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 
-## Auto-updater
+## Bloques cerrados — reglas duras viven en su doc (LEERLO antes de tocar)
 
-PROBADO DE PUNTA A PUNTA (2026-08-12; autopsias de los 3 releases en la
-bitácora). Comandos propios Rust (`check_update`/`install_update`/
-`open_releases`), sin API JS del plugin (inv. #4). Check al arrancar (8 s)
-y cada 12 h; guarda `v===updVer` (el globo cerrado NO vuelve). REGLAS:
-`createUpdaterArtifacts: true` OBLIGATORIO (sin él no hay .sig ni
-latest.json); iconos COMMITEADOS; al re-etiquetar borrar release+tag y el
-tag SIEMPRE tras `git pull`. Fallo al instalar → botón a `RELEASES_URL`
-(constante Rust). Llave pública en tauri.conf.json, privada en secretos +
-copias de Oscar (si se pierde: llave nueva + instalar a mano UNA vez).
+- **REMEDIACIÓN, relevo y automáticos** — `docs/remediacion.md` §"REGLAS
+  VIGENTES" y §"Purga del archivo". Transversal: crate APARTE `relevo/`
+  (la app no gana deps); LISTA BLANCA (/compact, /clear + `/model <alias>`
+  de lista cerrada) en LOS DOS lados; /clear automático SOLO con copia
+  `/export` VERIFICADA en disco (fail-closed) y por dos razones —
+  Boundary o análisis local `tema_nuevo` (`relayClearAi` OFF,
+  `topen==0`); cuenta atrás 15 s (30 por inferencia) que DICE el comando,
+  widget A LA VISTA, una vez por sesión, cualquier toque para; el
+  AUTOMÁTICO espera el veredicto del análisis (`aiPending`); michi.exe
+  viaja en el instalador SIN tocar el workflow (invariante #9). Purga: el
+  archivador MUEVE (≥365d), la purga BORRA solo lo archivado, allowlist
+  canónica (JAMÁS `~/.claude`) y el VPS SOLO INFORMA (`--du`) — nunca se
+  borra por SSH.
+- **RUTEO INTELIGENTE** — `docs/ruteo-inteligente.md` §10-11 y
+  remediacion.md §"La ÚNICA ampliación". Resumen: nota `router_state.json`
+  (local+WSL+SSH; apagado = no se escribe; >10 min = ausente; banderas
+  guard/ctx/esc/rs); Hook B (subagentes → haiku/sonnet, `parent`
+  anotado); Hook A guardián (UserPromptSubmit: frena prompt pesado en
+  haiku/sonnet, insistencia, `~`, JAMÁS el texto al log); escalar solo por
+  el RELEVO (`/model <alias>`; el hook NO espera acuse; terminal:
+  `type_model` = Enter al diálogo + RESTAURAR el default que la TUI
+  guarda) y reenviar (`then`, jamás persistido; chat JSON / terminal
+  `type_paste`); consejero `light` (motor del coach, réplicas; compuerta
+  en el panel; `set_default_model` SOLO sesiones nuevas); medición
+  `scan_ruteo` (réplicas; sin casar no se factura); registro visible y
+  globo. Etapa 6 (v2) con datos del Reporte.
+- **MÉTRICAS Y REPORTE** — `docs/presion-y-rendimiento.md` (fases 1-2 y
+  fila 18 `waste` hechas; fase 3 y lo DESCARTADO, en el doc). Reglas:
+  `uturns` = mensajes HUMANOS (fuera meta, sidechain, tool_result,
+  comandos locales, `<ide_…` y resúmenes isCompactSummary;
+  `is_user_turn` réplica exacta Rust/Python); 0 turnos = "sin datos",
+  NUNCA dividir (inv. #8); `quota_history.json` 90 días solo lecturas
+  BUENAS, nunca simulador, local; marcas de arreglo `fndHist`/`fndMarks`
+  (solo hallazgos de estado; visto ≥3 días + desaparecido ≥2 =
+  arreglado); pestaña Reporte (`rep_tab`): nunca pintar con uturns=0;
+  mínimo 20 fotos de cuota o "juntando datos"; "1M tok ≈ $X" con la
+  tarifa REAL del periodo; el $ pegado a su dato (.as-money); caché POR
+  PERIODO y render PROGRESIVO.
+- **INTEGRIDAD DE LAS FUENTES** (los .jsonl no son nuestros; un limpiador
+  los recorta y el panel diría "bajó el consumo") —
+  `docs/adr-multiharness-y-persistencia.md` §"LAS 4 PIEZAS": (1) DETECTOR
+  sobre el caché de escaneo (archivo que ENCOGIÓ o DESAPARECIÓ) →
+  `integrity.json` local, no viaja; réplica en el exportador (inv. #1);
+  guardas: solo raíces LEÍBLES (WSL apagado ≠ borrado) y solo si no
+  existe (envejecer ≠ borrarse). (2) NO CONCLUYENTE: hecho en el tramo
+  comparado → "no comparable", nunca una mejora. (3) `daily_history.json`
+  (serie FUSIONADA, 400 d): RESPALDO, NO JEFE — manda lo vivo. (4) Las
+  marcas congelan su "antes" (`m.b`) al nacer. NADA de SQLite (inv. #4).
+- **Retención de logs:** Claude Code borra a los 30 días:
+  `cleanupPeriodDays: 365` (VPS y Windows).
 
 ## Estado / pendientes
 
-FOTO COMPLETA: bitácora §"cierre 2026-08-08/09"; métricas:
-presion-y-rendimiento §"Qué queda vivo".
+FOTO COMPLETA: bitácora §"cierre 2026-08-08/09" y §"2026-08-17 (18)".
 
+- [ ] VALIDACIÓN PASIVA (con el uso): alarmas reales (umbral, 100%,
+      ventana nueva), camino ntfy completo (PC apagada), aviso de
+      hallazgos naciendo natural, ruteo (consejero en vivo con cuota ≥70,
+      WSL, terminal nativo ConPTY) y análisis local (primer `via:emb` en
+      sesión REAL al 80% y muestra natural antes de afinar umbrales;
+      cualquier rareza de clear/compact se revisa con flowLog +
+      emb_debug.txt).
 - [ ] HUB + RANGOS DE FECHA: NO sin una SEGUNDA máquina con MichiClaude
       (`docs/hub-modo-equipo.md` §"Rangos de fecha").
-
-- [x] REDISEÑO UX/UI del panel: HECHO Y VALIDADO (2026-08-05; bitácora
-      §"Ronda de rediseño UX/UI", tag `pre-rediseno-20260805`). VIGENTE:
-      tipografía EMBEBIDA (`src/fonts/`, OFL, sin CDN — una fuente remota
-      rompe CSP y privacidad); `.sect` es TARJETA con fondo; toda tarjeta
-      con fondo redefine `--txt-mut`/`--txt-dim`, no repinta hijos; filas
-      con elementos de dos líneas: FLEX antes que grid; panel a 446 px;
-      nada de `color-mix()` (WebView2); al MOVER un bloque de pestaña,
-      buscar qué init dependía de abrir la vieja. El widget conserva su
-      estética propia (armonizarlo sería otra ronda).
-- [ ] VALIDACIÓN PASIVA (con el uso): alarmas reales (umbral, 100%,
-      ventana nueva), camino ntfy completo (PC apagada) y el aviso de
-      hallazgos naciendo natural. CERRADO el bloque del relevo
-      (2026-08-17: auto-/compact y auto-/clear 4/4, globo y registro
-      post-/clear; el chat copia ÉL el jsonl — remediacion.md).
-- [x] PURGA DEL ARCHIVO (2026-08-15; reglas COMPLETAS en remediacion.md
-      §"Purga del archivo" — LEERLO; aquí solo lo que no se puede
-      olvidar): el archivador MUEVE (≥365d), la purga BORRA
-      solo lo archivado, allowlist canónica (JAMÁS `~/.claude`) y el VPS
-      SOLO INFORMA (`--du`) — nunca se borra por SSH.
-- [ ] ANÁLISIS LOCAL: v1 validada en vivo (5/5 tema_nuevo) y ETAPA 2
-      OPERATIVA (2026-08-13, ver §Coach y analisis-local.md §"Etapa 2 —
-      HECHA"): EmbeddingGemma descargado y Probar en el Windows de Oscar
-      dio "embeddings 0.36" — el número CLAVADO con el banco del VPS.
-      EN VALIDACIÓN PASIVA con el uso diario (Oscar, desde 2026-08-13):
-      falta el primer `via:emb` en sesión REAL al 80% y la muestra
-      natural antes de afinar umbrales (EMB_NEW/EMB_CROSS constantes a
-      propósito); cualquier rareza de clear/compact que Oscar vea, se
-      revisa con flowLog + emb_debug.txt.
-      ETAPA 3 DISEÑADA (2026-08-16, analisis-local.md §"Etapa 3" —
-      LEERLO antes de tocar): TEMAS sobre `inflate` — embeddings (nunca
-      el 2B) parten la sesión en tramos y CALCULAN el ahorro por
-      frontera; capa ADITIVA sobre el hallazgo (fndKey intacto,
+- [ ] ANÁLISIS LOCAL ETAPA 3 (diseñada, APARCADA; analisis-local.md
+      §"Etapa 3" — LEERLO antes de tocar): TEMAS sobre `inflate` —
+      embeddings (nunca el 2B) parten la sesión en tramos y CALCULAN el
+      ahorro por frontera; capa ADITIVA sobre el hallazgo (fndKey intacto,
       fail-quiet); local/WSL primero, VPS manda `umsgs` por SSH y el
-      Windows embebe (el modelo no va al VPS). APARCADA tras el ruteo.
-- [ ] MÉTRICAS Y REPORTE EJECUTIVO (`docs/presion-y-rendimiento.md` —
-      LEERLO antes de tocar). CERRADO HASTA DONDE ESTÁ (Oscar,
-      2026-08-07): fases 1 y 2 hechas. FILA 18 (% de desperdicio
-      estructural) HECHA 2026-08-14: `waste` en las 3 piezas (§fórmula
-      del doc), tarjeta en Reporte; cargo check limpio (2026-08-16). Qué existe: (a) TURNOS ÚTILES `uturns`
-      en LocalStats/proyectos/daily (mensajes HUMANOS: fuera meta,
-      sidechain, tool_result, comandos locales, inyecciones `<ide_…` y
-      resúmenes de compactación isCompactSummary — 2026-08-14, caché v3;
-      `is_user_turn` réplica exacta Rust/Python, invariante #1); 0 turnos
-      = "sin datos", NUNCA dividir (invariante #8). (b) HISTÓRICO DE
-      CUOTA `quota_history.json` (90 días, una foto por ciclo; solo
-      lecturas BUENAS, nunca simulador; local, no viaja). (c) MARCAS DE
-      ARREGLO (`fndHist`/`fndMarks`, solo hallazgos de estado; visto ≥3
-      días + desaparecido ≥2 = arreglado). FASE 2 = pestaña Reporte
-      (`rep_tab`). REGLAS: nunca pintar con uturns=0; mínimo 20 fotos de
-      cuota o "juntando datos"; "1M tok ≈ $X" con la tarifa REAL del
-      periodo, jamás fija; el $ pegado a su dato de tokens (.as-money);
-      caché POR PERIODO y render PROGRESIVO. Fase 3 y lo DESCARTADO, en
-      el doc.
-- [x] REMEDIACIÓN — 4 ETAPAS COMPLETAS Y VALIDADAS EN VIVO (2026-08-07/10):
-      zombies+archivado, relevo (terminal/chat/SSH/WSL), automáticos.
-      TODAS las reglas duras viven en `docs/remediacion.md` §"REGLAS
-      VIGENTES" — LEERLO ANTES de tocar cualquier cosa del relevo, los
-      automáticos o la remediación; aquí solo lo transversal:
-      crate APARTE `relevo/` (la app no gana deps); LISTA BLANCA
-      (/compact, /clear + `/model <alias>` de lista cerrada, 2026-08-17 —
-      remediacion.md §"La ÚNICA ampliación") en LOS DOS lados; /clear
-      automático SOLO con copia `/export` VERIFICADA en disco
-      (fail-closed) y por dos razones — Boundary (hecho) o análisis
-      local `tema_nuevo` (inferencia, `relayClearAi` OFF, `topen==0`);
-      cuenta atrás 15 s (30 por inferencia) que DICE el comando, widget
-      A LA VISTA, una vez por sesión, cualquier toque para; el AUTOMÁTICO
-      espera el veredicto del análisis (`aiPending`); michi.exe viaja en
-      el instalador SIN tocar el workflow (invariante #9).
-- [x] RUTEO INTELIGENTE — CERRADO 2026-08-17 (etapas 0-5c; TODAS las
-      reglas vigentes en `docs/ruteo-inteligente.md` §10-11 y
-      remediacion.md §"La ÚNICA ampliación" — LEERLO antes de tocar).
-      Resumen: nota `router_state.json` (local+WSL+SSH; apagado = no se
-      escribe; >10 min = ausente; banderas guard/ctx/esc/rs); Hook B
-      (subagentes → haiku/sonnet, `parent` anotado); Hook A guardián
-      (UserPromptSubmit: frena prompt pesado en haiku/sonnet, insistencia,
-      `~`, JAMÁS el texto al log); escalar solo por el RELEVO (`/model
-      <alias>` = ÚNICA ampliación de la lista blanca; el hook NO espera
-      acuse; terminal: `type_model` = Enter al diálogo + RESTAURAR el
-      default que la TUI guarda) y reenviar (`then`, jamás persistido;
-      chat JSON / terminal `type_paste`); consejero `light` (motor del
-      coach, réplicas; compuerta en el panel; `set_default_model` SOLO
-      sesiones nuevas); medición `scan_ruteo` (réplicas; sin casar no se
-      factura); registro visible y globo. Cargo check limpio en Windows.
-      VALIDACIÓN PASIVA: consejero en vivo (cuota ≥70), WSL, terminal de
-      Windows nativo (ConPTY). Etapa 6 (v2) con datos del Reporte.
+      Windows embebe (el modelo no va al VPS).
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito. NO:
   rastrear otras herramientas, BD de historial, modo equipo.
 
@@ -557,25 +536,6 @@ presion-y-rendimiento §"Qué queda vivo".
 
 Instalador 5.8 MB · exe 21.7 MB · RAM **276 MB** (~9 procesos WebView2,
 ~57 MB por ventana: por eso los pares de widget se crean y destruyen).
-
-## Integridad de las fuentes (los .jsonl no son nuestros)
-
-Un limpiador o el usuario los recortan y el panel diría "bajó el
-consumo". 4 piezas; diseño y validación en
-`docs/adr-multiharness-y-persistencia.md` §"LAS 4 PIEZAS" — LEERLO:
-(1) DETECTOR sobre el caché de escaneo (archivo que ENCOGIÓ o
-DESAPARECIÓ) → `integrity.json` local, no viaja; réplica en el
-exportador (inv. #1), Rust pone el origen; guardas: solo raíces LEÍBLES
-(WSL apagado ≠ borrado) y solo si no existe (envejecer ≠ borrarse).
-(2) NO CONCLUYENTE: hecho en el tramo comparado o día del cuadernito que
-ya no se ve → "no comparable", nunca una mejora. (3)
-`daily_history.json` (serie FUSIONADA, 400 d): RESPALDO, NO JEFE — manda
-lo vivo, si no un arreglo retroactivo quedaría fosilizado. (4) Las
-marcas congelan su "antes" (`m.b`) al nacer. NADA de SQLite (inv. #4).
-
-## Retención de logs
-
-Claude Code borra a los 30 días: `cleanupPeriodDays: 365` (VPS y Windows).
 
 ## Comandos
 

@@ -3802,3 +3802,65 @@ corrida del Hook B en WSL, la terminal de Windows nativo (michi.exe
 por ConPTY: misma coreografía, sin probar aquí), y en unos días decidir
 la etapa 6 con los datos del Reporte. Cualquier rareza: registro del
 ruteo en Ajustes, `ruteo_log.jsonl` de la máquina y flowLog.
+
+## 2026-08-17 (19) — poda a fondo de CLAUDE.md: de 39.5k a 36.0k, solo reglas
+
+QUÉ: CLAUDE.md rozó el techo de 40k cinco veces en la jornada (cada
+cierre obligaba a limar 100-500 bytes). Poda estructural: se quitó la
+NARRATIVA (fechas de cuándo se decidió, "autopsia en la bitácora",
+"validado en vivo", "pico de 197k invisible", cifras de la anécdota) y se
+dejó la REGLA con su puntero al doc. Cambios de forma:
+- Los `[x]` de "Estado / pendientes" (rediseño, purga, remediación,
+  ruteo, métricas) dejaron de narrar su historia: pasan a una sección
+  nueva "Bloques cerrados — reglas duras viven en su doc" (solo lo
+  transversal que no puede olvidarse + LEERLO) o a un invariante (#12 =
+  reglas vigentes del rediseño). "Integridad de las fuentes" y
+  "Retención de logs" se plegaron ahí también.
+- "Estado / pendientes" queda con lo VIVO: validación pasiva (ahora
+  incluye ruteo y análisis local en una sola viñeta), hub+rangos, Etapa 3
+  del análisis local, apuesta #2.
+- Auto-updater pasó a una viñeta de "Reglas de comportamiento".
+- El bloque de IA del coach se condensó a lo que `analisis-local.md` NO
+  dice explícitamente (una invocación por sesión, `emb_debug.txt`,
+  `topen==0`); el resto (llama-server, espejo `modelos-v1`, e5 rotos,
+  9 constantes SHA-256, `response_format`) ya vive en ese doc — verificado
+  con grep antes de recortar.
+- `relevo/` entra al árbol de Arquitectura (faltaba).
+- Nueva instrucción en la cabecera: al podar, lo cerrado que aún cuenta su
+  historia se MUEVE a la bitácora (entrada "poda").
+
+QUÉ SALIÓ (para el grep del futuro — todo está en las entradas de su día):
+- Fuentes de datos: la fecha del hallazgo de subagentes (2026-08-04) y la
+  cifra "la 3.ª fuente casaba 6 de 14" de `price_key()`; "verificado con
+  quota_debug.json real" del plan que no llega.
+- Ventanas: "(Oscar 2026-08-14; antes era flyout y estorbaba)" y "la
+  'línea de la orilla' era el propio borde --stroke".
+- Invariante #1: la fecha 2026-08-05 y "verificado con regresión byte a
+  byte" de `end:`.
+- Coach: "(2026-08-05) multi-fuente", "validado en vivo, sondeo ~80 ms"
+  del exportador viejo, "ETAPA 2 HECHA (2026-08-13)", "banco en bitácora"
+  de los e5, "Autopsia en la bitácora" del CTX_LADDER, la fecha 2026-08-15
+  del attach/shots, "(2026-08-13)" del compás y "pico de 197k invisible".
+- Hallazgos: "(20 h era mucho para los nacidos en el VPS)".
+- Auto-updater: "PROBADO DE PUNTA A PUNTA (2026-08-12; autopsias de los
+  3 releases en la bitácora)".
+- Rediseño: fecha, tag `pre-rediseno-20260805` (sigue en la entrada
+  "Ronda de rediseño UX/UI").
+- Métricas: "CERRADO HASTA DONDE ESTÁ (Oscar 2026-08-07)", "FILA 18 HECHA
+  2026-08-14", "cargo check limpio (2026-08-16)", "caché v3".
+- Remediación/ruteo: "4 ETAPAS COMPLETAS Y VALIDADAS EN VIVO
+  (2026-08-07/10)", "CERRADO 2026-08-17 (etapas 0-5c)", "Cargo check
+  limpio en Windows", los ejemplos de validación por etapa.
+- Análisis local: "v1 validada en vivo (5/5 tema_nuevo)", "Probar en el
+  Windows de Oscar dio 'embeddings 0.36' — clavado con el banco del VPS",
+  "EN VALIDACIÓN PASIVA desde 2026-08-13".
+- Purga: "(2026-08-15)".
+
+CÓMO SE VERIFICÓ: `wc -c` 39459 → 35956; diff leído sección por sección
+comprobando que cada regla, umbral, constante y "NO hacer" siga (solo
+salió narrativa); grep en `docs/analisis-local.md` de cada término
+recortado del bloque de IA antes de condensarlo. Sin cambios de código.
+
+QUÉ QUEDA: nada nuevo. Margen ~4k para las próximas jornadas; si vuelve a
+rozar, el siguiente candidato es el detalle CSS del gatito (Ventanas), que
+podría vivir en un `docs/widget-gatito.md` con puntero.
