@@ -484,8 +484,7 @@ presion-y-rendimiento §"Qué queda vivo".
       hallazgos naciendo natural. CERRADO el bloque del relevo
       (2026-08-17): auto-/compact y auto-/clear 4/4 (terminal y chat; el
       chat copia ÉL el jsonl sin /export — remediacion.md §"La copia SIN
-      /export en el chat"), globo post-/clear (3 caminos) y el rescate por
-      el REGISTRO (fila «tú» + "ver la copia").
+      /export en el chat"), globo post-/clear y rescate por el REGISTRO.
 - [x] PURGA DEL ARCHIVO (2026-08-15; reglas COMPLETAS en remediacion.md
       §"Purga del archivo" — LEERLO; aquí solo lo que no se puede
       olvidar): el archivador MUEVE (≥365d), la purga BORRA
