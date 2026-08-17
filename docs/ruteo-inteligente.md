@@ -519,13 +519,31 @@ pruebas, intacto). Matriz sintética 16/16 del .py y del guion. FALTA:
 `cargo check` en el Windows de Oscar (el VPS no tiene toolchain),
 primera corrida real del `.ps1` y el interruptor de Ajustes en vivo.
 
-**Etapa 3 — La medición (pestaña Reporte).**
+**Etapa 3 — La medición (pestaña Reporte). HECHA (2026-08-17).**
 Cruce del log de decisiones × JSONL reales × quota_history.json:
 "N subagentes redirigidos, X tokens ahorrados, el ruteo costó Y".
 Incluye el AUTOCONSUMO del propio sistema (invariante #8: correlación
 honesta, jamás un % sin base). Con esto el Hook B ya es demo publicable.
 
-**Etapa 4 — El gatito consejero (cambios de sesión con histéresis).**
+Cómo quedó (reglas VIGENTES): `scan_ruteo` en Rust y en el exportador
+(`--ruteo --days N [--end E]`, precios por stdin) — RÉPLICAS. Cada fila
+`route` busca su `agent-*.jsonl` (mismo sid en cualquier proyecto, nacido
+en [ts−5, ts+180] s, misma familia de modelo, sin reutilizar) y suma sus
+tokens; ahorro = tokens × (tarifa del PADRE − tarifa del impuesto). El
+padre lo trae la fila (`parent`, lo anota el Hook B desde el transcript)
+y las filas viejas caen al transcript madre con tolerancia +5 s (el hook
+anota segundos enteros y el transcript milisegundos — mordió). SIN
+padre o SIN transcript casado NO se factura (se cuenta como "sin casar").
+Contexto inyectado = autoconsumo estimado (60 tok/evento) con «~».
+`get_ruteo_report(days,end)` = local + WSL (fs) + SSH (una fila por
+origen; exportador viejo → sin fila). Tarjeta `repRuteo` en Reporte:
+ahorrado, ruteados/casados, costó/habría costado, "SUBIERON" en contra
+(padre Haiku + implementación → Sonnet es un upgrade y se dice), frenos
+del guardián, autoconsumo. Verificado con datos reales del VPS (4/4
+casados, un caso a mano al céntimo).
+
+**Etapa 4 — El gatito consejero (cambios de sesión con histéresis).
+HECHA (2026-08-17; falta la primera tarjeta en vivo).**
 Perfil conductual colgado del escaneo del coach (NO segunda pasada de
 JSONL): contador de turnos ligeros que se REINICIA con cada turno de
 código (regla de sesión mixta). Sugerir bajar SOLO con 8-10 ligeros
@@ -534,11 +552,54 @@ consecutivos + cuota apretada; subir sin cooldown; memoria de rechazo
 Botones → settings.json atómico → "aplica desde tu PRÓXIMA sesión"
 (honestidad literal). Push ntfy al reset SOLO informa. Textos por t().
 
-**Etapa 5 — Hook A, el guardián (lo más delicado, al final).**
+Cómo quedó (reglas VIGENTES): en el motor del coach (Rust y exportador,
+réplicas) `light` = turnos HUMANOS consecutivos sin Edit/Write y con
+salida <1500 tok (`COACH_LIGHT_OUT`); se juzga el turno ANTERIOR al
+llegar el siguiente humano; racha a 0 con cualquier edición o salida
+larga; hit `light` UNA vez por racha al llegar a 8 (`COACH_LIGHT_MIN`),
+con `model` (campo aditivo de CoachHit), turns, scwd, title. El motor
+NO mira la cuota: la compuerta vive en `coachPoll` (modelo opus/fable/
+mythos Y peor gauge ≥70 `LIGHT_QUOTA_PCT` Y sin 3 «no» en el proyecto
+en 30 días — `lightNo` en localStorage; sin lectura de cuota no se
+aconseja). Tarjeta `light` en Consejos con tres botones; `set_default_
+model(scope,model,cwd,origin)`: "project" → `.claude/settings.local.
+json` del scwd, "user" → settings.json de esa máquina (local/WSL/SSH,
+guion SETMODEL_PY con parámetros en base64, modelo de LISTA CERRADA,
+respaldo + atómico). "Hasta el reset" guarda `lightRevert`; al cambio
+de ventana semanal (`trackResets`) nace la tarjeta `lightrev` con
+"Volver a X" / "Seguir en Sonnet". NADA de esto teclea `/model` (lista
+blanca del relevo intacta): solo cambia el DEFAULT de sesiones nuevas,
+y la tarjeta lo dice literal. Validado con sesión sintética y contra
+las sesiones reales del VPS (una sesión de 378 turnos con ediciones da
+light=0: no molesta en sesión mixta).
+
+**Etapa 5 — Hook A, el guardián. HECHA Y VALIDADA EN VIVO (2026-08-17,
+VPS; se adelantó a la 3-4 a petición de Oscar: es el error CARO).**
 (a) Bloqueo de escalada: señales estructurales (bloque de código, rutas,
 imperativo largo — nada de keywords), exit 2 con mensaje, prefijo `~` de
 bypass. (b) Contexto inyectado (~60 tok/turno): apagable por separado y
 AUTO-REPORTADO como consumo propio — hooks_noise no le hace lista blanca.
+
+Cómo quedó (reglas VIGENTES): `scripts/guard-hook.py` / `.ps1`
+(RÉPLICAS, embebidos) en `UserPromptSubmit`, instalados JUNTO al Hook B
+por el mismo alta (RUTEO_PY / ruteo_local gestionan los dos; ON = ambos).
+Se gobierna con las banderas `guard` y `ctx` que viajan DENTRO de la
+nota (ruteo.json → save_router_state): apagarlas no toca settings.json.
+Modelo de la sesión: cola de 64 KB del `transcript_path` (0.4 ms) →
+respaldo `model` de settings.json → si no, NO se adivina (turno 1 de una
+sesión nueva pasa siempre). Solo actúa en haiku/sonnet. Señales y pesos:
+≥2 fences de código = 2; ≥2 rutas = 1; traza de error = 1; "largo" = ≥60
+palabras O ≥300 caracteres sin «?» final = 1 (por caracteres porque
+japonés/chino no separan palabras — mordió en pruebas). Umbral: haiku 1,
+sonnet 2. Bloqueo = JSON `{decision:"block", reason}` bilingüe (el hook
+no tiene el diccionario del panel). Insistencia: el MISMO prompt (sha1)
+en <10 min con el mismo tier PASA (`guard_last.json`); `~` = escotilla;
+comandos `/` ni se miran. Al log SOLO señales/conteos/plen — JAMÁS el
+texto del prompt. `ctx` inyecta `additionalContext` (modelo + cuota
+gruesa, en inglés: lo lee Claude) y anota `ev:ctx` para el autoconsumo.
+VALIDADO EN VIVO (VPS, `claude -p --resume`): bloqueo real SIN gastar
+(assistant turns siguió en 1), insistencia pasa, `~` pasa, Opus nunca
+bloquea, ctx citado LITERAL por Claude con la cuota real. Matriz 24/24.
 
 **Etapa 6 — v2 opcionales.**
 Análisis histórico en frío con el modelo local (espera el veredicto de

@@ -3495,3 +3495,84 @@ dicho en el chat.
 QUÉ QUEDA: etapa 3 (medición en la pestaña Reporte: log de decisiones ×
 JSONL reales × quota_history), luego 4-6. La validación del día a día
 del ruteo es pasiva desde hoy: Oscar trabaja normal y el log acumula.
+
+## 2026-08-17 (11) — ruteo etapas 3, 4 y 5 de un tirón: guardián, registro visible, medición y consejero
+
+QUÉ: en una sesión, a petición de Oscar ("haz todos los puntos, pruébalos
+2-3 veces de maneras distintas, no rompas nada"), cuatro piezas:
+(1) REGISTRO VISIBLE del ruteo en Ajustes: latido del día (N ruteados,
+→Haiku/→Sonnet, frenos, último dónde) + últimas 15 decisiones de las
+tres máquinas con su porqué (`get_ruteo_log`). (2) GUARDIÁN (Hook A,
+etapa 5, ADELANTADA): `guard-hook.py/.ps1` en UserPromptSubmit —
+prompt pesado en haiku/sonnet = bloqueo ANTES de gastar; interruptores
+"guardián" y "contexto inyectado" en Ajustes, banderas dentro de la
+nota. UN alta para los dos hooks. (3) MEDICIÓN (etapa 3): `scan_ruteo`
+Rust+exportador, tarjeta en Reporte, el Hook B anota `parent`.
+(4) CONSEJERO (etapa 4): racha `light` en el motor del coach (réplicas),
+compuerta en el panel, tarjeta con botones, `set_default_model` a
+local/WSL/SSH, tarjeta de vuelta al reset. Detalle de reglas en
+docs/ruteo-inteligente.md §11 (etapas 3, 4, 5 marcadas HECHAS).
+
+POR QUÉ: la pregunta de Oscar tras ver el ruteo funcionar por detrás —
+"¿cómo VEO yo que funciona, que no falla, que no se queda en el caro?" —
+no tenía respuesta en la app: el log era un jsonl por terminal. Y su
+preocupación ("¿estoy en lo caro para algo sencillo, o en lo básico
+pidiendo cosas complejas?") partió el plan en dos mitades con costo
+distinto: la B (error CARO) es el guardián, que se adelantó a las etapas
+3-4; la A (error barato) es el consejero, que aconseja solo por patrón
+sostenido y hacia la SIGUIENTE sesión (§4.1: cambiar a media sesión tira
+el caché y sale más caro que la pregunta).
+
+AUTOPSIAS de la jornada (mordidas antes de salir): (a) el "largo" del
+guardián contaba palabras: 313 caracteres de japonés eran 33 "palabras"
+y no disparaba — ahora ≥60 palabras O ≥300 caracteres. (b) `parse_file`
+del exportador compara con datetime, no epoch: `RUTEO_EPOCH`. (c) El
+hook anota `ts` en segundos enteros y el transcript lleva milisegundos:
+el padre "del mismo turno" iba 0.4 s DESPUÉS y no casaba — tolerancia +5
+s y, mejor, el Hook B ya anota `parent`. (d) En el turno 1 de una sesión
+`--model sonnet` no está en ningún archivo: el guardián NO adivina y deja
+pasar (diseño); del turno 2 en adelante bloquea. (e) `[ordered]@{}+$base`
+en PowerShell 5.1 es resbaloso: filas construidas explícitas.
+
+CÓMO SE VERIFICÓ (todo en el VPS, con datos reales donde los había):
+guardián: matriz 24/24 con HOME falso (idiomas es/ja, insistencia,
+escotilla, opus/fable nunca, fallback settings, ctx on/off, privacidad
+del log) + EN VIVO con `claude -p --resume` en sesión Sonnet: bloqueo
+real sin gastar (assistant turns siguió en 1), insistencia pasó, `~`
+pasó, Opus no bloqueó, y con ctx ON Claude citó LITERAL el contexto con
+la cuota real (25 % semana, 50 % sesión). Instalador v2 (dos hooks): alta
+con hooks AJENOS en ambos eventos intactos, alta a medias repuesta sin
+duplicar, off deja solo lo ajeno + `{}` en poda total, MANUAL/BADOP.
+Registro: render con filas reales en es/en/ja. Medición: `--ruteo --days
+1` sobre el log real → 4/4 casados, 51k tok, $0.28→$0.12 (ahorro $0.15),
+un subagente a mano al céntimo (9.3k tok: $0.012 haiku vs $0.059 opus);
+ventanas 1/7, `--end` ayer = 0, precios por stdin; tarjeta con la salida
+real + 4 casos límite. Consejero: sesión sintética (3 código + 10
+preguntas → hit 9; edición reinicia; salida >1500 reinicia; no re-emite);
+`--coach` REAL: mi sesión de 378 turnos y 11 archivos editados da
+light=0 (no molesta en sesión mixta); guion SETMODEL 8 casos (cwd hostil
+en b64 → NOCWD, no ejecuta); b64 Rust-réplica vs estándar 800 casos;
+compuerta 9/9 (presión, tier, sin lectura, 3 «no» = manual por
+proyecto). NO verificado: `cargo check` (VPS sin toolchain), los `.ps1`
+en Windows, y las tarjetas en la app viva. Todo el JS con node --check.
+
+QUÉ QUEDA — PLAN DE PRUEBAS PARA OSCAR (Windows), en orden:
+1. `git pull` + `cargo check` (src-tauri) — si algo no compila, pegar el
+   error tal cual: son ~900 líneas nuevas de Rust escritas sin compilador.
+2. `npm run dev` → Ajustes → tarjeta del ruteo: latido y registro deben
+   pintar las decisiones de hoy (VPS + Windows). Encender "Guardián".
+3. Sesión NUEVA de Claude Code en Windows, `/model sonnet`, un prompt
+   trivial primero (turno 1) y luego pegar un prompt con un bloque de
+   código y dos rutas: debe FRENAR con el mensaje bilingüe. Reenviarlo
+   igual: pasa. Otro pesado con `~` delante: pasa. Comprobar en el
+   registro de Ajustes: «el guardián frenó…», «insististe…», «~ enviado».
+4. Reporte → tarjeta "Ruteo inteligente": ahorrado, casados, autoconsumo.
+5. Consejero: en una sesión Opus/Fable con cuota ≥70 hacer 9 preguntas
+   seguidas sin tocar código → tarjeta en Consejos con tres botones;
+   pulsar "Sí, solo este proyecto" y comprobar `.claude/settings.local.
+   json` del proyecto con `"model":"sonnet"` (respaldo `.michi-backup` al
+   lado si existía). Con cuota <70 la tarjeta NO debe salir (compuerta).
+6. WSL: la corrida pendiente del Hook B (una sesión con subagente Explore
+   → `route/light/haiku` en el log de la distro).
+Etapa 6 (v2: análisis en frío con modelo local, embeddings en el
+guardián) sigue en su sitio, después de la validación pasiva.

@@ -447,20 +447,15 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 
 ## Auto-updater
 
-PROBADO DE PUNTA A PUNTA (2026-08-12): v0.1.0 instalada desde Releases
-detectó, descargó, verificó firma e instaló la v0.1.1 sola. Comandos
-propios Rust (`check_update`/`install_update`/`open_releases`), sin API
-JS del plugin (invariante #4). Franja en cabecera + globo persistente.
-Check al arrancar (8 s) Y cada 12 h (una app de bandeja vive semanas sin
-reiniciar); la guarda `v===updVer` evita re-anunciar lo ya anunciado —
-el globo cerrado NO vuelve. `createUpdaterArtifacts: true` en el bundle
-es OBLIGATORIO: sin él no hay .sig ni latest.json (mordió en el release
-#2). Los iconos van COMMITEADOS (el runner parte de un clon limpio;
-mordió en el #1). Al RE-etiquetar: borrar release+tag, y el tag SIEMPRE
-tras `git pull` (el #3 salió con la versión vieja por saltárselo). Fallo al instalar → "descárgala a mano" con botón a `RELEASES_URL`,
-CONSTANTE en Rust y que jamás sale de un archivo descargado. Llave
-pública en tauri.conf.json, privada en secretos del repo y copias de
-Oscar (si se pierde: llave nueva + instalar a mano UNA vez). Firma el workflow.
+PROBADO DE PUNTA A PUNTA (2026-08-12; autopsias de los 3 releases en la
+bitácora). Comandos propios Rust (`check_update`/`install_update`/
+`open_releases`), sin API JS del plugin (inv. #4). Check al arrancar (8 s)
+y cada 12 h; guarda `v===updVer` (el globo cerrado NO vuelve). REGLAS:
+`createUpdaterArtifacts: true` OBLIGATORIO (sin él no hay .sig ni
+latest.json); iconos COMMITEADOS; al re-etiquetar borrar release+tag y el
+tag SIEMPRE tras `git pull`. Fallo al instalar → botón a `RELEASES_URL`
+(constante Rust). Llave pública en tauri.conf.json, privada en secretos +
+copias de Oscar (si se pierde: llave nueva + instalar a mano UNA vez).
 
 ## Estado / pendientes
 
@@ -542,29 +537,32 @@ presion-y-rendimiento §"Qué queda vivo".
       el instalador SIN tocar el workflow (invariante #9).
 - [ ] RUTEO INTELIGENTE (etapas 0-6; TODAS las reglas vigentes en
       `docs/ruteo-inteligente.md` §10-11 — LEERLO antes de tocar).
-      ETAPAS 0-2 HECHAS (0: 2026-08-14, dos mundos; 1-2: 2026-08-17,
-      VALIDADAS EN VIVO en el VPS con A/B real en el `agent-*.jsonl`,
-      autopsias en bitácora): nota `router_state.json` a local+WSL+SSH
-      (interruptor apagado = no se escribe; >10 min = ausente) y Hook B
-      embebido (`router-hook.py`/`.ps1` RÉPLICAS, guion RUTEO_PY con
-      respaldo y merge atómico). Exploración→haiku, implementación→
-      sonnet, análisis solo baja con cuota ≥70; `model` explícito se
-      respeta; log `ruteo_log.jsonl` por máquina; el motor es LOCAL-only
-      (el exportador NO participa: invariante #1 no aplica, a propósito).
-      CERRADO también el lado Windows (2026-08-17): cargo check limpio,
-      interruptor ✓ en las 3 máquinas y el `.ps1` ruteando
-      (route/light/haiku); la app subió hook+nota al VPS sola (nota de
-      17 s con cuota real). SIGUE: etapa 3 (medición en Reporte), 4-6.
+      ETAPAS 0-5 HECHAS (0-2 validadas en vivo VPS+Windows; 3-5 el
+      2026-08-17, la 5 ADELANTADA por Oscar: es el error caro). Piezas:
+      nota `router_state.json` (local+WSL+SSH; apagado = no se escribe;
+      >10 min = ausente; lleva `guard`/`ctx`); Hook B `router-hook.py/
+      .ps1` (exploración→haiku, implementación→sonnet, análisis baja solo
+      con cuota ≥70; anota `parent`); Hook A `guard-hook.py/.ps1`
+      (UserPromptSubmit: frena prompt pesado en haiku/sonnet ANTES de
+      gastar; insistencia pasa; `~` escotilla; JAMÁS el texto al log); UN
+      alta para los dos hooks (respaldo+atómico); registro visible en
+      Ajustes; medición `scan_ruteo` (Rust+exportador `--ruteo`, réplicas:
+      agent-*.jsonl reales × tarifa padre−impuesto; sin casar no se
+      factura) en Reporte; consejero `light` (motor del coach, réplicas:
+      racha de turnos ligeros que se reinicia con código; compuerta en el
+      panel: modelo caro + gauge ≥70 + sin 3 «no») → tarjeta →
+      `set_default_model` (SOLO sesiones nuevas, lista cerrada). NADA
+      teclea `/model`. FALTA: cargo check en Windows de lo del 08-17,
+      guardián y consejero en vivo (plan: bitácora 08-17 (11)); etapa 6.
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito y
   gamificación ligera. NO: rastrear otras herramientas, BD de historial,
   modo equipo.
 
 ## Consumo de recursos (medido en release)
 
-Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**
-(`WorkingSetPrivate`; WorkingSet64 infla a 695). El peso son los ~9
-procesos WebView2 (piso ~57 MB por ventana): de ahí que los pares de
-widget se creen y destruyan.
+Instalador 5.8 MB · exe 21.7 MB · RAM privada real **276 MB**. El peso
+son los ~9 procesos WebView2 (~57 MB por ventana): por eso los pares de
+widget se crean y destruyen.
 
 ## Integridad de las fuentes (los .jsonl no son nuestros)
 
