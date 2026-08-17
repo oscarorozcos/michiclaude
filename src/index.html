@@ -298,6 +298,7 @@
   .int-ot{font-size:12.5px;font-weight:600;color:var(--txt)}
   .int-ob{font-size:11.5px;color:var(--txt-mut);line-height:1.5;margin-top:3px}
   .int-warn{font-size:11px;color:var(--warn);line-height:1.5;margin-top:5px}
+  .int-warn.ok{color:var(--ok)}
   .int-row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
   .int-copy{margin-left:auto;font-size:11px;font-weight:600;font-family:var(--font);
     color:var(--txt);background:transparent;border:1px solid var(--stroke-soft);
@@ -2403,6 +2404,25 @@ en:{
   rt_ev_bypass:"~ sent as is",
   rt_ev_ctx:"context injected (~60 tok)",
   rt_log_empty:"No decisions yet.",
+  lgt_t:"Consultation session on an expensive model",
+  lgt_m:m=>`${m} session · quota is tight`,
+  lgt_q:"Should the NEXT session start on Sonnet?",
+  lgt_b:"This session has been questions without touching code for a while, and your quota is tight. Switching mid-session throws the cache away and costs more than it saves — but the next session starts fresh, and Sonnet handles Q&A just as well. It only applies to new sessions; this one stays as it is.",
+  lgt_ev_turns:(n,t)=>`${n} light turns in a row (of ${t})`,
+  lgt_ev_model:m=>`model: ${m}`,
+  lgt_ev_quota:q=>`quota at ${q}%`,
+  lgt_yes_proj:"Yes, only this project",
+  lgt_yes_reset:"Yes, until the weekly reset",
+  lgt_no:"No",
+  lgt_applied_project:m=>`Done: this project starts on ${m} from your NEXT session (.claude/settings.local.json). This one is unchanged.`,
+  lgt_applied_user:m=>`Done: new sessions on this machine start on ${m} (~/.claude/settings.json). This one is unchanged.`,
+  lgt_fail:"Couldn't apply",
+  lgt_nocwd:"the session's folder is unknown",
+  lgt_rev_t:"Weekly quota is back",
+  lgt_rev_m:m=>`you lowered the default until the reset · was ${m}`,
+  lgt_rev_b:"The week reset. Go back to the previous default model, or keep Sonnet? Applies to new sessions.",
+  lgt_rev_yes:m=>`Back to ${m}`,
+  lgt_rev_no:"Keep Sonnet",
   rt_rep_t:"Smart routing", rt_rep_q:"measured against the real transcripts",
   rt_rep_none:"No routing activity in this period. Turn it on under Settings → Smart subagent routing.",
   rt_rep_saved:"saved",
@@ -2982,6 +3002,25 @@ es:{
   rt_ev_bypass:"~ enviado tal cual",
   rt_ev_ctx:"contexto inyectado (~60 tok)",
   rt_log_empty:"Todavía sin decisiones.",
+  lgt_t:"Sesión de consulta en un modelo caro",
+  lgt_m:m=>`sesión en ${m} · cuota apretada`,
+  lgt_q:"¿La SIGUIENTE sesión arranca en Sonnet?",
+  lgt_b:"Esta sesión lleva un rato de preguntas sin tocar código y tu cuota va apretada. Cambiar a media sesión tira el caché y cuesta más de lo que ahorra — pero la próxima arranca de cero, y para consultas Sonnet rinde igual. Solo aplica a sesiones nuevas; esta se queda como está.",
+  lgt_ev_turns:(n,t)=>`${n} turnos ligeros seguidos (de ${t})`,
+  lgt_ev_model:m=>`modelo: ${m}`,
+  lgt_ev_quota:q=>`cuota al ${q}%`,
+  lgt_yes_proj:"Sí, solo este proyecto",
+  lgt_yes_reset:"Sí, hasta el reset semanal",
+  lgt_no:"No",
+  lgt_applied_project:m=>`Hecho: este proyecto arranca en ${m} desde tu PRÓXIMA sesión (.claude/settings.local.json). Esta no cambia.`,
+  lgt_applied_user:m=>`Hecho: las sesiones nuevas de esta máquina arrancan en ${m} (~/.claude/settings.json). Esta no cambia.`,
+  lgt_fail:"No se pudo aplicar",
+  lgt_nocwd:"no se conoce la carpeta de la sesión",
+  lgt_rev_t:"Volvió la cuota semanal",
+  lgt_rev_m:m=>`bajaste el modelo por defecto hasta el reset · antes ${m}`,
+  lgt_rev_b:"La semana se restableció. ¿Volvemos al modelo por defecto de antes, o te quedas en Sonnet? Aplica a sesiones nuevas.",
+  lgt_rev_yes:m=>`Volver a ${m}`,
+  lgt_rev_no:"Seguir en Sonnet",
   rt_rep_t:"Ruteo inteligente", rt_rep_q:"medido contra los transcripts reales",
   rt_rep_none:"Sin actividad de ruteo en este periodo. Se enciende en Ajustes → Ruteo inteligente de subagentes.",
   rt_rep_saved:"ahorrado",
@@ -3561,6 +3600,25 @@ pt:{
   rt_ev_bypass:"~ enviado assim mesmo",
   rt_ev_ctx:"contexto injetado (~60 tok)",
   rt_log_empty:"Ainda sem decisões.",
+  lgt_t:"Sessão de consulta num modelo caro",
+  lgt_m:m=>`sessão em ${m} · cota apertada`,
+  lgt_q:"A PRÓXIMA sessão começa no Sonnet?",
+  lgt_b:"Esta sessão já leva um tempo de perguntas sem tocar código e sua cota está apertada. Trocar no meio joga o cache fora e custa mais do que economiza — mas a próxima começa do zero, e para consultas o Sonnet rende igual. Só vale para sessões novas; esta fica como está.",
+  lgt_ev_turns:(n,t)=>`${n} turnos leves seguidos (de ${t})`,
+  lgt_ev_model:m=>`modelo: ${m}`,
+  lgt_ev_quota:q=>`cota em ${q}%`,
+  lgt_yes_proj:"Sim, só este projeto",
+  lgt_yes_reset:"Sim, até o reset semanal",
+  lgt_no:"Não",
+  lgt_applied_project:m=>`Feito: este projeto começa no ${m} a partir da sua PRÓXIMA sessão (.claude/settings.local.json). Esta não muda.`,
+  lgt_applied_user:m=>`Feito: sessões novas nesta máquina começam no ${m} (~/.claude/settings.json). Esta não muda.`,
+  lgt_fail:"Não foi possível aplicar",
+  lgt_nocwd:"a pasta da sessão é desconhecida",
+  lgt_rev_t:"A cota semanal voltou",
+  lgt_rev_m:m=>`você baixou o modelo padrão até o reset · antes ${m}`,
+  lgt_rev_b:"A semana foi restabelecida. Voltar ao modelo padrão anterior ou ficar no Sonnet? Vale para sessões novas.",
+  lgt_rev_yes:m=>`Voltar ao ${m}`,
+  lgt_rev_no:"Ficar no Sonnet",
   rt_rep_t:"Roteamento inteligente", rt_rep_q:"medido contra os transcripts reais",
   rt_rep_none:"Sem atividade de roteamento neste período. Liga-se em Ajustes → Roteamento inteligente de subagentes.",
   rt_rep_saved:"economizado",
@@ -4140,6 +4198,25 @@ fr:{
   rt_ev_bypass:"~ envoyé tel quel",
   rt_ev_ctx:"contexte injecté (~60 tok)",
   rt_log_empty:"Pas encore de décisions.",
+  lgt_t:"Session de consultation sur un modèle cher",
+  lgt_m:m=>`session sur ${m} · quota serré`,
+  lgt_q:"La PROCHAINE session démarre-t-elle sur Sonnet ?",
+  lgt_b:"Cette session enchaîne les questions sans toucher au code, et votre quota est serré. Changer en cours de session jette le cache et coûte plus qu’il n’économise — mais la prochaine repart de zéro, et pour des questions Sonnet fait aussi bien. Ne s’applique qu’aux nouvelles sessions ; celle-ci ne change pas.",
+  lgt_ev_turns:(n,t)=>`${n} tours légers d’affilée (sur ${t})`,
+  lgt_ev_model:m=>`modèle : ${m}`,
+  lgt_ev_quota:q=>`quota à ${q} %`,
+  lgt_yes_proj:"Oui, ce projet seulement",
+  lgt_yes_reset:"Oui, jusqu’au reset hebdo",
+  lgt_no:"Non",
+  lgt_applied_project:m=>`Fait : ce projet démarre sur ${m} dès votre PROCHAINE session (.claude/settings.local.json). Celle-ci ne change pas.`,
+  lgt_applied_user:m=>`Fait : les nouvelles sessions de cette machine démarrent sur ${m} (~/.claude/settings.json). Celle-ci ne change pas.`,
+  lgt_fail:"Impossible d’appliquer",
+  lgt_nocwd:"dossier de la session inconnu",
+  lgt_rev_t:"Le quota hebdo est revenu",
+  lgt_rev_m:m=>`vous aviez baissé le modèle par défaut jusqu’au reset · avant : ${m}`,
+  lgt_rev_b:"La semaine est réinitialisée. Revenir au modèle par défaut précédent, ou rester sur Sonnet ? S’applique aux nouvelles sessions.",
+  lgt_rev_yes:m=>`Revenir à ${m}`,
+  lgt_rev_no:"Rester sur Sonnet",
   rt_rep_t:"Routage intelligent", rt_rep_q:"mesuré sur les transcriptions réelles",
   rt_rep_none:"Aucune activité de routage sur cette période. À activer dans Réglages → Routage intelligent des sous-agents.",
   rt_rep_saved:"économisé",
@@ -4719,6 +4796,25 @@ de:{
   rt_ev_bypass:"~ unverändert gesendet",
   rt_ev_ctx:"Kontext eingefügt (~60 Tok)",
   rt_log_empty:"Noch keine Entscheidungen.",
+  lgt_t:"Frage-Sitzung auf einem teuren Modell",
+  lgt_m:m=>`Sitzung auf ${m} · Kontingent knapp`,
+  lgt_q:"Soll die NÄCHSTE Sitzung auf Sonnet starten?",
+  lgt_b:"Diese Sitzung besteht seit einer Weile aus Fragen ohne Code-Änderungen, und dein Kontingent ist knapp. Mitten in der Sitzung zu wechseln wirft den Cache weg und kostet mehr, als es spart – aber die nächste startet frisch, und für Fragen leistet Sonnet dasselbe. Gilt nur für neue Sitzungen; diese bleibt, wie sie ist.",
+  lgt_ev_turns:(n,t)=>`${n} leichte Züge in Folge (von ${t})`,
+  lgt_ev_model:m=>`Modell: ${m}`,
+  lgt_ev_quota:q=>`Kontingent bei ${q} %`,
+  lgt_yes_proj:"Ja, nur dieses Projekt",
+  lgt_yes_reset:"Ja, bis zum Wochen-Reset",
+  lgt_no:"Nein",
+  lgt_applied_project:m=>`Erledigt: dieses Projekt startet ab deiner NÄCHSTEN Sitzung auf ${m} (.claude/settings.local.json). Diese bleibt unverändert.`,
+  lgt_applied_user:m=>`Erledigt: neue Sitzungen auf dieser Maschine starten auf ${m} (~/.claude/settings.json). Diese bleibt unverändert.`,
+  lgt_fail:"Konnte nicht angewendet werden",
+  lgt_nocwd:"Ordner der Sitzung unbekannt",
+  lgt_rev_t:"Wochenkontingent ist zurück",
+  lgt_rev_m:m=>`du hattest das Standardmodell bis zum Reset gesenkt · vorher ${m}`,
+  lgt_rev_b:"Die Woche wurde zurückgesetzt. Zum vorherigen Standardmodell zurück oder bei Sonnet bleiben? Gilt für neue Sitzungen.",
+  lgt_rev_yes:m=>`Zurück zu ${m}`,
+  lgt_rev_no:"Bei Sonnet bleiben",
   rt_rep_t:"Intelligentes Routing", rt_rep_q:"gemessen an den echten Transkripten",
   rt_rep_none:"Keine Routing-Aktivität in diesem Zeitraum. Einschalten unter Einstellungen → Intelligentes Subagenten-Routing.",
   rt_rep_saved:"gespart",
@@ -5298,6 +5394,25 @@ ja:{
   rt_ev_bypass:"~ そのまま送信",
   rt_ev_ctx:"コンテキスト注入(約60トークン)",
   rt_log_empty:"まだ判断はありません。",
+  lgt_t:"高価なモデルでの質問セッション",
+  lgt_m:m=>`${m} のセッション · 残量が少ない`,
+  lgt_q:"次のセッションは Sonnet で始めますか?",
+  lgt_b:"このセッションはしばらくコードに触れない質問が続いていて、残量も少なめです。途中で切り替えるとキャッシュを捨てるため節約より高くつきますが、次のセッションはゼロから始まり、質問なら Sonnet でも十分です。新しいセッションにのみ適用され、このセッションは変わりません。",
+  lgt_ev_turns:(n,t)=>`軽いターンが ${n} 回連続(全 ${t} 回中)`,
+  lgt_ev_model:m=>`モデル: ${m}`,
+  lgt_ev_quota:q=>`残量 ${q}%`,
+  lgt_yes_proj:"はい、このプロジェクトだけ",
+  lgt_yes_reset:"はい、週次リセットまで",
+  lgt_no:"いいえ",
+  lgt_applied_project:m=>`完了: このプロジェクトは次のセッションから ${m} で始まります(.claude/settings.local.json)。このセッションは変わりません。`,
+  lgt_applied_user:m=>`完了: このマシンの新しいセッションは ${m} で始まります(~/.claude/settings.json)。このセッションは変わりません。`,
+  lgt_fail:"適用できませんでした",
+  lgt_nocwd:"セッションのフォルダが不明です",
+  lgt_rev_t:"週次残量が回復しました",
+  lgt_rev_m:m=>`リセットまで既定モデルを下げていました · 以前は ${m}`,
+  lgt_rev_b:"週がリセットされました。以前の既定モデルに戻しますか、それとも Sonnet のままにしますか? 新しいセッションに適用されます。",
+  lgt_rev_yes:m=>`${m} に戻す`,
+  lgt_rev_no:"Sonnet のまま",
   rt_rep_t:"スマートルーティング", rt_rep_q:"実際のトランスクリプトで計測",
   rt_rep_none:"この期間にルーティングの活動はありません。設定 → サブエージェントのスマートルーティングでオンにできます。",
   rt_rep_saved:"節約",
@@ -5877,6 +5992,25 @@ ko:{
   rt_ev_bypass:"~ 그대로 전송",
   rt_ev_ctx:"컨텍스트 주입(약 60토큰)",
   rt_log_empty:"아직 결정이 없습니다.",
+  lgt_t:"비싼 모델에서의 질문 세션",
+  lgt_m:m=>`${m} 세션 · 쿼터 빠듯`,
+  lgt_q:"다음 세션은 Sonnet으로 시작할까요?",
+  lgt_b:"이 세션은 한동안 코드를 건드리지 않는 질문이 이어졌고 쿼터도 빠듯합니다. 세션 중간에 바꾸면 캐시를 버려 절약보다 비용이 크지만, 다음 세션은 새로 시작하며 질문에는 Sonnet도 충분합니다. 새 세션에만 적용되고 이 세션은 그대로입니다.",
+  lgt_ev_turns:(n,t)=>`가벼운 턴 ${n}회 연속(총 ${t}회 중)`,
+  lgt_ev_model:m=>`모델: ${m}`,
+  lgt_ev_quota:q=>`쿼터 ${q}%`,
+  lgt_yes_proj:"네, 이 프로젝트만",
+  lgt_yes_reset:"네, 주간 리셋까지",
+  lgt_no:"아니요",
+  lgt_applied_project:m=>`완료: 이 프로젝트는 다음 세션부터 ${m}으로 시작합니다(.claude/settings.local.json). 이 세션은 변경되지 않습니다.`,
+  lgt_applied_user:m=>`완료: 이 머신의 새 세션은 ${m}으로 시작합니다(~/.claude/settings.json). 이 세션은 변경되지 않습니다.`,
+  lgt_fail:"적용할 수 없었습니다",
+  lgt_nocwd:"세션 폴더를 알 수 없음",
+  lgt_rev_t:"주간 쿼터가 돌아왔습니다",
+  lgt_rev_m:m=>`리셋까지 기본 모델을 낮췄었습니다 · 이전 ${m}`,
+  lgt_rev_b:"주간 리셋이 되었습니다. 이전 기본 모델로 돌아갈까요, Sonnet을 유지할까요? 새 세션에 적용됩니다.",
+  lgt_rev_yes:m=>`${m}으로 돌아가기`,
+  lgt_rev_no:"Sonnet 유지",
   rt_rep_t:"스마트 라우팅", rt_rep_q:"실제 트랜스크립트로 측정",
   rt_rep_none:"이 기간에 라우팅 활동이 없습니다. 설정 → 서브에이전트 스마트 라우팅에서 켤 수 있습니다.",
   rt_rep_saved:"절약",
@@ -6456,6 +6590,25 @@ zh:{
   rt_ev_bypass:"~ 原样发送",
   rt_ev_ctx:"已注入上下文(约 60 tok)",
   rt_log_empty:"还没有决定。",
+  lgt_t:"在昂贵模型上的咨询会话",
+  lgt_m:m=>`${m} 会话 · 额度吃紧`,
+  lgt_q:"下一个会话改用 Sonnet 开始吗?",
+  lgt_b:"这个会话已经有一阵子只提问、不碰代码,而你的额度吃紧。会话中途切换会丢掉缓存,花的比省的多——但下一个会话从零开始,问答用 Sonnet 一样好。只对新会话生效;当前会话保持不变。",
+  lgt_ev_turns:(n,t)=>`连续 ${n} 个轻量轮次(共 ${t})`,
+  lgt_ev_model:m=>`模型:${m}`,
+  lgt_ev_quota:q=>`额度 ${q}%`,
+  lgt_yes_proj:"是,仅此项目",
+  lgt_yes_reset:"是,直到每周重置",
+  lgt_no:"否",
+  lgt_applied_project:m=>`已完成:此项目从你的下一个会话起使用 ${m}(.claude/settings.local.json)。当前会话不变。`,
+  lgt_applied_user:m=>`已完成:本机的新会话使用 ${m}(~/.claude/settings.json)。当前会话不变。`,
+  lgt_fail:"无法应用",
+  lgt_nocwd:"不知道会话所在文件夹",
+  lgt_rev_t:"每周额度已恢复",
+  lgt_rev_m:m=>`你曾把默认模型降到重置为止 · 之前是 ${m}`,
+  lgt_rev_b:"本周已重置。回到之前的默认模型,还是继续用 Sonnet?对新会话生效。",
+  lgt_rev_yes:m=>`回到 ${m}`,
+  lgt_rev_no:"继续用 Sonnet",
   rt_rep_t:"智能路由", rt_rep_q:"按真实转录测量",
   rt_rep_none:"本时段没有路由活动。可在设置 → 子代理智能路由中开启。",
   rt_rep_saved:"节省",
@@ -7403,6 +7556,21 @@ function trackResets(ses, wk){
         localStorage.removeItem("ackLastToast:week");
       }
       localStorage.removeItem("hit:week");
+      // consejero de modelo (etapa 4): si bajaste "hasta el reset", ahora
+      // es el momento de ofrecer volver — como tarjeta en Consejos, que es
+      // donde se contesta (ntfy solo INFORMA, regla del §10.3f)
+      try{
+        const rv=JSON.parse(localStorage.getItem("lightRevert")||"null");
+        if(rv&&rv.prev){
+          const cards=coachCardsStore();
+          if(!cards.some(c=>c.h.rule==="lightrev")){
+            cards.push({h:{rule:"lightrev",session:"wk"+Math.floor(Date.now()/1000),
+              value:0,project:"",origin:rv.origin||"",model:rv.prev}, born:Date.now()});
+            saveCoachCards(cards); renderTips(); renderTipsDot();
+            flog("light: reset semanal — tarjeta para volver a "+rv.prev);
+          }
+        }
+      }catch(_){}
       localStorage.removeItem("notifW");
     }
     if(wk.pct>=100){
@@ -8321,6 +8489,57 @@ function renderTips(){
     </div>`});
     }catch(_){/* una tarjeta malformada no tumba a las demás */}
   }
+  // TARJETA DEL CONSEJERO DE MODELO (ruteo-inteligente.md etapa 4): una
+  // sesión con N turnos de CONSULTA seguidos, en un modelo caro y con la
+  // cuota apretada. Sugiere que la SIGUIENTE sesión arranque en Sonnet —
+  // nunca la actual: la plataforma no lo permite y cambiar a media sesión
+  // tira el caché (§4.1). Botones: este proyecto / hasta el reset / no.
+  // Honestidad literal al aplicar: "aplica desde tu próxima sesión".
+  const lights=q?[]:cards.filter(c=>c.h.rule==="light");
+  for(const c of lights){
+    try{
+      const h=c.h;
+      const donde=[h.project||"",h.origin||t("src_local")].filter(Boolean).join(" · ");
+      const fam=lightFam(h.model);
+      const famName=fam?fam.charAt(0).toUpperCase()+fam.slice(1):"—";
+      const q2=lightQuota();
+      const ev=[t("lgt_ev_turns",h.value||0,h.turns||0), t("lgt_ev_model",famName)];
+      if(q2!=null) ev.push(t("lgt_ev_quota",q2));
+      const done=c.applied?`<div class="int-warn ok">${esc(t("lgt_applied_"+c.applied,c.appliedTo||"Sonnet"))}</div>`:"";
+      live.push({born:c.born||0, html:`<div class="fnd tip int${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
+      <button class="tip-x" aria-label="✕">✕</button>
+      <div class="fnd-t">${t("lgt_t")}</div>
+      <div class="fnd-m"><span>${esc(t("lgt_m",famName))} — ${esc(donde)}</span></div>
+      <div class="fnd-f"><div class="int-q">${t("lgt_q")}</div><div class="int-ev">${esc(t("int_ev"))}: ${esc(ev.join(" · "))}</div>
+        <div class="int-ob">${esc(t("lgt_b"))}</div>${done}
+        <div class="int-row lgt-row" data-cwd="${esc(h.scwd||"")}" data-origin="${esc(h.origin||"")}">
+          <button class="int-copy lgt-go" data-scope="project">${t("lgt_yes_proj")}</button>
+          <button class="int-copy lgt-go" data-scope="user">${t("lgt_yes_reset")}</button>
+        </div>
+        <div class="int-later lgt-no">${t("lgt_no")}</div></div>
+    </div>`});
+    }catch(_){/* una tarjeta malformada no tumba a las demás */}
+  }
+  // La VUELTA tras el reset semanal: bajaste "hasta el reset" y la cuota
+  // ya se restableció — un botón para volver al modelo de antes (o dejarlo).
+  const revs=q?[]:cards.filter(c=>c.h.rule==="lightrev");
+  for(const c of revs){
+    try{
+      const h=c.h, fam=lightFam(h.model)||"opus";
+      const famName=fam.charAt(0).toUpperCase()+fam.slice(1);
+      const done=c.applied?`<div class="int-warn ok">${esc(t("lgt_applied_user",famName))}</div>`:"";
+      live.push({born:c.born||0, html:`<div class="fnd tip int${c.min?"":" open"}" data-ck="${esc(h.rule+"|"+h.session)}">
+      <button class="tip-x" aria-label="✕">✕</button>
+      <div class="fnd-t">${t("lgt_rev_t")}</div>
+      <div class="fnd-m"><span>${esc(t("lgt_rev_m",famName))}${h.origin?" — "+esc(h.origin):""}</span></div>
+      <div class="fnd-f"><div class="int-ob">${esc(t("lgt_rev_b"))}</div>${done}
+        <div class="int-row lgt-row" data-cwd="" data-origin="${esc(h.origin||"")}">
+          <button class="int-copy lgt-rev" data-model="${esc(fam)}">${t("lgt_rev_yes",famName)}</button>
+        </div>
+        <div class="int-later lgt-rev-no">${t("lgt_rev_no")}</div></div>
+    </div>`});
+    }catch(_){}
+  }
   // TARJETA DE ZOMBIES (docs/remediacion.md etapa 2): procesos MCP
   // huérfanos detectados y aún sin permiso automático (o automático
   // apagado). Enseña la evidencia (qué proceso, cuánto lleva, cuánta RAM)
@@ -8461,6 +8680,71 @@ function renderTips(){
       flog("intent: ahora no "+k);
       if(simFnd) coachHits=coachHits.filter(h=>h.rule+"|"+h.session!==k);
       else saveCoachCards(coachCardsStore().filter(c=>c.h.rule+"|"+c.h.session!==k));
+      renderTips(); renderTipsDot();
+      if(lastPillArgs) emitPill(...lastPillArgs);
+    }));
+  // Consejero de modelo: "Sí, este proyecto" / "Sí, hasta el reset" →
+  // set_default_model (escritura atómica con respaldo, en la máquina de la
+  // sesión) y la tarjeta lo dice con honestidad literal: aplica desde la
+  // PRÓXIMA sesión. "No" = despachar + memoria de rechazo (3 en un proyecto
+  // = ese proyecto en modo manual 30 días).
+  $("tipList").querySelectorAll(".lgt-go").forEach(b=>
+    b.addEventListener("click",async e=>{
+      e.stopPropagation();
+      const row=b.closest(".lgt-row"), tip=b.closest(".tip"), k=tip?.dataset.ck;
+      const scope=b.dataset.scope, cwd=row?.dataset.cwd||"", origin=row?.dataset.origin||"";
+      b.disabled=true; b.textContent="…";
+      try{
+        const r=await invoke("set_default_model",{scope, model:"sonnet", cwd, origin});
+        flog("light: set_default_model "+scope+" → "+r+" ("+origin+" "+cwd+")");
+        if(r!=="OK") throw new Error(r);
+        const a=coachCardsStore(); const c=a.find(x=>x.h.rule+"|"+x.h.session===k);
+        if(c){ c.applied=scope; c.appliedTo="Sonnet"; c.v=true; saveCoachCards(a); }
+        // "hasta el reset": recordar para ofrecer volver cuando la semana
+        // se restablezca (trackResets → tarjeta lightRevert)
+        if(scope==="user"){
+          const prev=lightFam(c?.h?.model||"")||"opus";
+          localStorage.setItem("lightRevert",JSON.stringify({prev, origin, at:Date.now()}));
+        }
+        renderTips(); renderTipsDot();
+      }catch(err){
+        b.disabled=false; b.textContent=t("lgt_fail")+" ("+lightErr(String(err))+")";
+        flog("light: ERROR "+err);
+      }
+    }));
+  $("tipList").querySelectorAll(".lgt-no").forEach(bt=>
+    bt.addEventListener("click",e=>{
+      e.stopPropagation();
+      const tip=bt.closest(".tip"), k=tip?.dataset.ck;
+      const a=coachCardsStore(); const c=a.find(x=>x.h.rule+"|"+x.h.session===k);
+      if(c) lightRefuse(c.h);
+      flog("light: no "+k);
+      saveCoachCards(a.filter(x=>x.h.rule+"|"+x.h.session!==k));
+      renderTips(); renderTipsDot();
+      if(lastPillArgs) emitPill(...lastPillArgs);
+    }));
+  $("tipList").querySelectorAll(".lgt-rev").forEach(b=>
+    b.addEventListener("click",async e=>{
+      e.stopPropagation();
+      const row=b.closest(".lgt-row"), tip=b.closest(".tip"), k=tip?.dataset.ck;
+      const origin=row?.dataset.origin||"", model=b.dataset.model||"opus";
+      b.disabled=true; b.textContent="…";
+      try{
+        const r=await invoke("set_default_model",{scope:"user", model, cwd:"", origin});
+        flog("light: volver a "+model+" → "+r);
+        if(r!=="OK") throw new Error(r);
+        localStorage.removeItem("lightRevert");
+        const a=coachCardsStore(); const c=a.find(x=>x.h.rule+"|"+x.h.session===k);
+        if(c){ c.applied="user"; c.v=true; saveCoachCards(a); }
+        renderTips(); renderTipsDot();
+      }catch(err){ b.disabled=false; b.textContent=t("lgt_fail")+" ("+lightErr(String(err))+")"; }
+    }));
+  $("tipList").querySelectorAll(".lgt-rev-no").forEach(bt=>
+    bt.addEventListener("click",e=>{
+      e.stopPropagation();
+      const k=bt.closest(".tip")?.dataset.ck;
+      localStorage.removeItem("lightRevert");
+      saveCoachCards(coachCardsStore().filter(c=>c.h.rule+"|"+c.h.session!==k));
       renderTips(); renderTipsDot();
       if(lastPillArgs) emitPill(...lastPillArgs);
     }));
@@ -8684,6 +8968,33 @@ function coachSched(){
   clearTimeout(coachTimer);
   coachTimer=setTimeout(coachPoll,ms);
 }
+// ---- consejero de modelo (etapa 4): compuertas y memoria de rechazo ----
+const LIGHT_QUOTA_PCT=70;   // "cuota apretada": el peor de sesión/semana
+function lightFam(m){ m=String(m||"").toLowerCase(); for(const f of ["haiku","sonnet","opus","fable","mythos"]) if(m.includes(f)) return f; return ""; }
+function lightQuota(){
+  // el peor de los dos gauges; sin lectura buena, null (no se aconseja a ciegas)
+  const s=lastPill&&lastPill.session?lastPill.session.pct:null;
+  const w=weeklyAllPct;
+  if(s==null&&w==null) return null;
+  return Math.max(s??0,w??0);
+}
+function lightKey(h){ return (h.origin||"")+"|"+(h.scwd||h.project||""); }
+function lightRefuse(h){
+  let m={}; try{ m=JSON.parse(localStorage.getItem("lightNo")||"{}"); }catch(_){ m={}; }
+  const k=lightKey(h), e=m[k]||{n:0,at:0};
+  e.n++; e.at=Date.now(); m[k]=e;
+  localStorage.setItem("lightNo",JSON.stringify(m));
+}
+function lightManual(h){
+  let m={}; try{ m=JSON.parse(localStorage.getItem("lightNo")||"{}"); }catch(_){ return false; }
+  const e=m[lightKey(h)]; if(!e) return false;
+  if(Date.now()-e.at>30*86400000) return false;   // 30 días y se perdona
+  return e.n>=3;
+}
+function lightErr(code){
+  return {MANUAL:t("rly_chat_manual"),NOSRV:t("rly_chat_fail"),FAIL:t("rly_chat_fail"),
+    NOCWD:t("lgt_nocwd"),BADMODEL:"?"}[code.replace(/^Error: /,"")]||code;
+}
 async function coachPoll(){
   if(!invoke) return;
   if(simFnd){ coachSched(); return; }   // simulación en curso: no la pises
@@ -8738,6 +9049,16 @@ async function coachPoll(){
     }
     ntfyDone(all.filter(h=>h.rule==="done"));
     ntfyAsk(all.filter(h=>h.rule==="ask"));
+    // CONSEJERO DE MODELO (etapa 4): el motor manda el HECHO (racha de
+    // turnos ligeros); la compuerta vive aquí, que es donde están los
+    // gauges: solo con modelo caro Y cuota apretada Y sin 3 "no" previos en
+    // ese proyecto. Sin presión, ni molestar (regla 2 del §4).
+    for(let i=hits.length-1;i>=0;i--){
+      const h=hits[i]; if(h.rule!=="light") continue;
+      const fam=lightFam(h.model||""), q2=lightQuota();
+      const ok=(fam==="opus"||fam==="fable"||fam==="mythos") && q2!=null && q2>=LIGHT_QUOTA_PCT && !lightManual(h);
+      if(!ok){ hits.splice(i,1); flog("light: hecho sin compuerta ("+fam+", cuota "+q2+") "+h.session); }
+    }
     const seen=tipSeenSet();
     let day={}; try{ day=JSON.parse(localStorage.getItem("tipDay")||"{}"); }catch(_){ day={}; }
     const hoy=new Date().toISOString().slice(0,10);

@@ -1133,6 +1133,10 @@ COACH_DONE_QUIET = 5
 COACH_DONE_TURNS = 5
 COACH_ASK_QUIET = 3
 PRESS_QUIET_MAX = 10  # manómetro: sesión "bajo los dedos" (réplica del Rust)
+# turnos ligeros seguidos que hacen "sesión de consulta" (§4: 8-10) y tope
+# de salida por turno para llamarlo ligero. MISMOS valores que en lib.rs.
+COACH_LIGHT_MIN = 8
+COACH_LIGHT_OUT = 1500
 
 
 def coach_state_path():
@@ -1162,7 +1166,12 @@ def _coach_default():
             # contexto máximo visto: evidencia que corrige a la tabla
             "ctx_seen": 0,
             # último compact_boundary AUTOMÁTICO (los manuales los hiciste tú)
-            "acomp_ts": 0, "acomp_pre": 0, "acomp_done": 0}
+            "acomp_ts": 0, "acomp_pre": 0, "acomp_done": 0,
+            # turnos LIGEROS consecutivos (ruteo etapa 4): réplica de Rust —
+            # sin Edit/Write y salida corta; la racha se reinicia con cada
+            # turno de código (regla de sesión mixta)
+            "light": 0, "light_told": False, "cur_edit": False, "cur_out": 0,
+            "seen_user": False}
 
 
 def coach_leaks(st):
@@ -1277,6 +1286,17 @@ def coach_scan(projects_dir):
                         if utxt is not None:
                             st["umsgs"] = (st.get("umsgs", [])
                                            + [utxt[:300]])[-3:]
+                            # turnos ligeros: al llegar un humano se juzga el
+                            # ANTERIOR (lo ocurrido desde el último humano)
+                            if st["seen_user"]:
+                                if not st["cur_edit"] and st["cur_out"] < COACH_LIGHT_OUT:
+                                    st["light"] += 1
+                                else:
+                                    st["light"] = 0
+                                    st["light_told"] = False
+                            st["seen_user"] = True
+                            st["cur_edit"] = False
+                            st["cur_out"] = 0
                         usage = msg.get("usage")
                         side = bool(v.get("isSidechain"))
                         if isinstance(usage, dict) and not side:
@@ -1297,6 +1317,7 @@ def coach_scan(projects_dir):
                                 if ctx > st.get("ctx_seen", 0):
                                     st["ctx_seen"] = ctx
                             st["turns"] += 1
+                            st["cur_out"] += usage.get("output_tokens") or 0
                             # el modelo del ÚLTIMO turno decide el techo del
                             # manómetro; se guarda el id crudo y no el techo ya
                             # resuelto, para que una tabla nueva lo corrija
@@ -1346,6 +1367,7 @@ def coach_scan(projects_dir):
                                         edits.add(inp["file_path"])
                                         st["trail"].append(inp["file_path"])
                                     st["commit_clean"] = False
+                                    st["cur_edit"] = True
                                 elif name == "TodoWrite":
                                     # la señal REINA: la lista de tareas
                                     td = inp.get("todos")
@@ -1417,6 +1439,13 @@ def coach_scan(projects_dir):
                         scwd=st.get("scwd", ""),
                         title=st.get("title", ""),
                         msgs=st.get("umsgs", []))
+                # racha de turnos ligeros (ruteo etapa 4): hecho crudo, una
+                # vez por racha; si la cuota aprieta lo decide el panel
+                if st["light"] >= COACH_LIGHT_MIN and not st["light_told"]:
+                    st["light_told"] = True
+                    hit("light", st["light"], turns=st["turns"],
+                        model=st.get("model", ""), scwd=st.get("scwd", ""),
+                        title=st.get("title", ""))
                 # auto-compact reciente y sin avisar (30 min: no revivir
                 # compactaciones viejas si el estado se reconstruye de cero)
                 if (st["acomp_ts"] and st["acomp_ts"] != st["acomp_done"]

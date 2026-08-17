@@ -3706,6 +3706,11 @@ const COACH_ASK_QUIET: i64 = 3;
 // estos minutos. No es ficha ni aviso: el frontend lo aparta (como done/ask)
 // y solo lo dibuja en el widget; sin compuertas anti-spam.
 const PRESS_QUIET_MAX: i64 = 10;
+/// Turnos ligeros seguidos que hacen "sesión de consulta" (§4: 8-10) y
+/// tope de salida por turno para llamarlo ligero. MISMOS valores que
+/// COACH_LIGHT_* en meter-export.py (invariante #1).
+const COACH_LIGHT_MIN: u64 = 8;
+const COACH_LIGHT_OUT: u64 = 1500;
 
 #[derive(Default)]
 struct CoachSess {
@@ -3756,6 +3761,17 @@ struct CoachSess {
     acomp_ts: i64,
     acomp_pre: u64,     // tokens que llevaba la sesión al compactarse
     acomp_done: i64,
+    // Turnos LIGEROS consecutivos (ruteo-inteligente.md etapa 4): un turno
+    // humano sin Edit/Write y con salida corta. La racha se REINICIA con
+    // cada turno de código (regla de sesión mixta, §4.1): una pregunta
+    // suelta entre ediciones no es señal de nada. `cur_*` acumulan lo
+    // ocurrido desde el último turno humano; `light_told` = la racha ya
+    // se avisó (una vez por racha).
+    light: u64,
+    light_told: bool,
+    cur_edit: bool,
+    cur_out: u64,
+    seen_user: bool,
 }
 
 /// Una fuga detectada al CIERRE de la sesión (mini-auditoría del coach):
@@ -3856,6 +3872,9 @@ struct CoachHit {
     /// capturado — para que la ficha diga QUÉ leyó Claude. Aditivo: un
     /// exportador viejo no lo manda y la ficha lo omite.
     file: String,
+    /// "light": el modelo en que va la sesión (id crudo) — la ficha dice
+    /// "esta sesión va en Opus" y solo aconseja bajar si es caro. Aditivo.
+    model: String,
 }
 
 /// Nombre sin ruta (barras de Windows normalizadas).
@@ -4041,6 +4060,19 @@ fn coach_scan() -> Vec<CoachHit> {
                             let cut = st.umsgs.len() - 3;
                             st.umsgs.drain(..cut);
                         }
+                        // turnos ligeros: al llegar un turno humano se juzga
+                        // el ANTERIOR (lo que pasó desde el último humano)
+                        if st.seen_user {
+                            if !st.cur_edit && st.cur_out < COACH_LIGHT_OUT {
+                                st.light += 1;
+                            } else {
+                                st.light = 0;
+                                st.light_told = false;
+                            }
+                        }
+                        st.seen_user = true;
+                        st.cur_edit = false;
+                        st.cur_out = 0;
                     }
                     let usage = &v["message"]["usage"];
                     if usage.is_object() && !v["isSidechain"].as_bool().unwrap_or(false) {
@@ -4077,6 +4109,7 @@ fn coach_scan() -> Vec<CoachHit> {
                             }
                         }
                         st.turns += 1;
+                        st.cur_out += usage["output_tokens"].as_u64().unwrap_or(0);
                         // costo MEDIDO del turno, con la misma tarifa que el
                         // resto del panel (tabla descargada → embebida)
                         let model = v["message"]["model"].as_str().unwrap_or("unknown");
@@ -4153,6 +4186,7 @@ fn coach_scan() -> Vec<CoachHit> {
                                         st.trail.push(p.to_string());
                                     }
                                     st.commit_clean = false;
+                                    st.cur_edit = true;
                                 }
                                 // la señal REINA del clasificador: la propia
                                 // lista de tareas que Claude Code mantiene
@@ -4284,6 +4318,23 @@ fn coach_scan() -> Vec<CoachHit> {
                     scwd: st.scwd.clone(),
                     title: st.title.clone(),
                     msgs: st.umsgs.clone(),
+                    ..Default::default()
+                });
+            }
+            // Racha de turnos ligeros (etapa 4 del ruteo): HECHO crudo, una
+            // vez por racha. Si además la cuota aprieta lo decide el panel
+            // (él tiene los gauges); aquí no hay compuertas de cuota.
+            if st.light >= COACH_LIGHT_MIN && !st.light_told {
+                st.light_told = true;
+                hits.push(CoachHit {
+                    rule: "light".into(),
+                    session: sid.clone(),
+                    value: st.light,
+                    project: pname(st, &proj_name),
+                    turns: st.turns,
+                    model: st.model.clone(),
+                    scwd: st.scwd.clone(),
+                    title: st.title.clone(),
                     ..Default::default()
                 });
             }
@@ -8403,6 +8454,137 @@ async fn get_ruteo_report(days: Option<u32>, end: Option<i64>) -> Result<Vec<Rut
     .map_err(|e| e.to_string())?
 }
 
+// ---------- el consejero de modelo (etapa 4): cambiar el modelo por defecto ----------
+// El botón de la tarjeta "light". Escribe `model` en el settings.json del
+// USUARIO (scope "user") o en `.claude/settings.local.json` del PROYECTO
+// (scope "project" — local, Claude Code lo ignora en git) de la máquina de la
+// sesión: local, distro WSL o servidor SSH. Reglas de siempre: respaldo
+// `.michi-backup` una vez, escritura atómica, MANUAL si no parsea. Modelo de
+// LISTA CERRADA (nunca texto libre del panel al disco). Y honestidad: solo
+// aplica a sesiones NUEVAS — lo dice la tarjeta, no este código.
+
+const MODEL_CHOICES: [&str; 4] = ["haiku", "sonnet", "opus", "fable"];
+
+/// Guion (por STDIN) para SSH/WSL: mismos pasos que `set_model_local`. Los
+/// parámetros van EMBEBIDOS en base64 (solo [A-Za-z0-9+/=]): ni shell ni
+/// código Python interpretan nada del panel.
+const SETMODEL_PY: &str = r##"
+import base64, json, os, sys
+try:
+    P = json.loads(base64.b64decode("__B64__").decode("utf-8"))
+except Exception:
+    print("FAIL"); sys.exit(0)
+model = P.get("model") or ""
+scope = P.get("scope") or ""
+cwd = P.get("cwd") or ""
+if model not in ("haiku", "sonnet", "opus", "fable"):
+    print("BADMODEL"); sys.exit(0)
+if scope == "user":
+    cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+    sf = os.path.join(cfg, "settings.json")
+elif scope == "project":
+    if not cwd or not os.path.isdir(cwd):
+        print("NOCWD"); sys.exit(0)
+    sf = os.path.join(cwd, ".claude", "settings.local.json")
+else:
+    print("BADOP"); sys.exit(0)
+raw = ""
+data = {}
+if os.path.isfile(sf):
+    try:
+        raw = open(sf, encoding="utf-8").read()
+        data = json.loads(raw) if raw.strip() else {}
+    except Exception:
+        print("MANUAL"); sys.exit(0)
+if not isinstance(data, dict):
+    print("MANUAL"); sys.exit(0)
+data["model"] = model
+if raw and not os.path.isfile(sf + ".michi-backup"):
+    open(sf + ".michi-backup", "w", encoding="utf-8").write(raw)
+os.makedirs(os.path.dirname(sf), exist_ok=True)
+tmp = sf + ".michi.tmp"
+with open(tmp, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+    f.write("\n")
+os.replace(tmp, sf)
+print("OK")
+"##;
+
+fn set_model_local(sf: &PathBuf, model: &str) -> String {
+    let raw = fs::read_to_string(sf).unwrap_or_default();
+    let mut data: serde_json::Value = if raw.trim().is_empty() {
+        serde_json::json!({})
+    } else {
+        match serde_json::from_str(&raw) {
+            Ok(v) => v,
+            Err(_) => return "MANUAL".into(),
+        }
+    };
+    let Some(obj) = data.as_object_mut() else {
+        return "MANUAL".into();
+    };
+    obj.insert("model".into(), serde_json::Value::String(model.to_string()));
+    if ruteo_write_settings(sf, &raw, &data) {
+        "OK".into()
+    } else {
+        "FAIL".into()
+    }
+}
+
+/// b64 estándar a mano (sin crate nuevo: invariante #4).
+fn b64(bytes: &[u8]) -> String {
+    const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::new();
+    for ch in bytes.chunks(3) {
+        let b = [ch[0], *ch.get(1).unwrap_or(&0), *ch.get(2).unwrap_or(&0)];
+        let n = ((b[0] as u32) << 16) | ((b[1] as u32) << 8) | b[2] as u32;
+        out.push(T[(n >> 18) as usize & 63] as char);
+        out.push(T[(n >> 12) as usize & 63] as char);
+        out.push(if ch.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });
+        out.push(if ch.len() > 2 { T[n as usize & 63] as char } else { '=' });
+    }
+    out
+}
+
+/// `origin`: "" = esta máquina; "wsl-<distro>" = esa distro; otro = el
+/// nombre de un servidor de remotes.json. `cwd` solo cuenta con scope
+/// "project" (viene del `scwd` de la sesión, tal como lo vio el motor de
+/// esa máquina — por eso es válido allá y no aquí).
+#[tauri::command]
+async fn set_default_model(scope: String, model: String, cwd: String, origin: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if !MODEL_CHOICES.contains(&model.as_str()) {
+            return Ok("BADMODEL".to_string());
+        }
+        if scope != "user" && scope != "project" {
+            return Ok("BADOP".to_string());
+        }
+        if origin.is_empty() {
+            let sf = if scope == "user" {
+                claude_dir().join("settings.json")
+            } else {
+                let p = PathBuf::from(&cwd);
+                if cwd.is_empty() || !p.is_dir() {
+                    return Ok("NOCWD".to_string());
+                }
+                p.join(".claude").join("settings.local.json")
+            };
+            return Ok(set_model_local(&sf, &model));
+        }
+        let params = serde_json::json!({"model": model, "scope": scope, "cwd": cwd}).to_string();
+        let script = SETMODEL_PY.replace("__B64__", &b64(params.as_bytes()));
+        if let Some(distro) = origin.strip_prefix("wsl-") {
+            return Ok(wsl_verdict_py(distro, &script, "on").unwrap_or_else(|e| e));
+        }
+        let Some(r) = load_remotes().into_iter().find(|r| r.name == origin) else {
+            return Ok("NOSRV".to_string());
+        };
+        Ok(remote_verdict_py(&r.host, &remote_python(&r), &script, "on").unwrap_or_else(|e| e))
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
 /// Un proceso MCP huérfano detectado. `start` (epoch de arranque) es la
 /// mitad del anti-reciclaje de PID: para cerrar hay que devolverlo y
 /// que siga coincidiendo.
@@ -9168,7 +9350,8 @@ pub fn run() {
             get_ruteo_cfg,
             set_ruteo_flags,
             get_ruteo_log,
-            get_ruteo_report
+            get_ruteo_report,
+            set_default_model
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_panel" => show_main_panel(app),
