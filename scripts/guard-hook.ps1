@@ -73,9 +73,24 @@ function Tier($model) {
     return $null
 }
 
+function CodigoPelado($prompt) {
+    # codigo SIN fences: el chat de VS Code se come los ``` (mordio 2026-08-17)
+    $heads = 0; $prevOpen = $false
+    foreach ($ln in ($prompt -split "`r?`n")) {
+        if ($ln.Trim() -eq '') { continue }
+        $t = $ln.Trim()
+        if ($ln -match '^\s*(def |fn |function |class |import |from \S+ import|const |let |var |public |private |#include|SELECT |async def |return |if \(|for \(|while \()' -or $t -eq '{' -or $t -eq '}' -or $t -eq '};' -or $t -eq ');') { $heads++ }
+        elseif ($prevOpen -and ($ln.StartsWith('    ') -or $ln.StartsWith("`t"))) { $heads++ }
+        $r = $ln.TrimEnd()
+        $prevOpen = ($r.EndsWith(':') -or $r.EndsWith('{') -or $r.EndsWith('(') -or $r.EndsWith('=>'))
+        if ($heads -ge 2) { return $true }
+    }
+    return $false
+}
+
 function Senales($prompt) {
     $sig = @(); $peso = 0
-    if ([regex]::Matches($prompt, '```').Count -ge 2) { $sig += 'code'; $peso += 2 }
+    if (([regex]::Matches($prompt, '```').Count -ge 2) -or (CodigoPelado $prompt)) { $sig += 'code'; $peso += 2 }
     $paths = [regex]::Matches($prompt, '(?:[A-Za-z]:\\|\.{0,2}/|~/)?(?:[\w.\-]+[\\/]){1,}[\w.\-]+\.[A-Za-z0-9]{1,6}\b') | ForEach-Object { $_.Value } | Sort-Object -Unique
     if (@($paths).Count -ge 2) { $sig += 'paths'; $peso += 1 }
     if ($prompt -match '(Traceback \(most recent|\bat [\w$.<>]+ \([^)]+:\d+:\d+\)|panicked at|error\[E\d+\]|Exception in thread)') { $sig += 'trace'; $peso += 1 }

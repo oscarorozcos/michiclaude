@@ -7596,10 +7596,6 @@ fn ruteo_cfg() -> RuteoCfg {
         .unwrap_or_default()
 }
 
-fn ruteo_cfg_on() -> bool {
-    ruteo_cfg().on
-}
-
 fn ruteo_cfg_write(c: &RuteoCfg) {
     let _ = fs::create_dir_all(app_data_dir());
     if let Ok(txt) = serde_json::to_string(c) {

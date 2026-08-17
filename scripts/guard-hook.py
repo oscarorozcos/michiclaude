@@ -49,6 +49,11 @@ LOG_MAX = 512 * 1024
 RE_PATH = re.compile(r'(?:[A-Za-z]:\\|\.{0,2}/|~/)?(?:[\w.\-]+[\\/]){1,}[\w.\-]+\.[A-Za-z0-9]{1,6}\b')
 RE_FENCE = re.compile(r'```')
 RE_ERR = re.compile(r'(Traceback \(most recent|\bat [\w$.<>]+ \([^)]+:\d+:\d+\)|panicked at|error\[E\d+\]|Exception in thread)')
+# código SIN fences: el chat de VS Code se come los ``` al enviar (mordió
+# 2026-08-17: el prompt llegó con el código pelado y no bloqueó). Se cuenta
+# por FORMA de las líneas: cabeceras de código, llaves solas, o una línea
+# indentada tras otra que termina en ":" o "{".
+RE_CODEHEAD = re.compile(r'^\s*(def |fn |function |class |import |from \S+ import|const |let |var |public |private |#include|SELECT |async def |return |if \(|for \(|while \()')
 
 
 def apunta(fila):
@@ -109,13 +114,32 @@ def tier(model):
     return None
 
 
+def codigo_pelado(prompt):
+    """≥2 líneas con forma de código, o una cabecera seguida de línea
+    indentada. Estructural: no depende de que las fences sobrevivan."""
+    lines = prompt.splitlines()
+    heads = 0
+    prev_open = False
+    for ln in lines:
+        if not ln.strip():
+            continue
+        if RE_CODEHEAD.match(ln) or ln.strip() in ("{", "}", "};", ");"):
+            heads += 1
+        elif prev_open and (ln.startswith("    ") or ln.startswith("\t")):
+            heads += 1
+        prev_open = ln.rstrip().endswith((":", "{", "(", "=>"))
+        if heads >= 2:
+            return True
+    return False
+
+
 def senales(prompt):
     """Señales estructurales, no de vocabulario. Devuelve la lista y un
     peso: fence de código = 2 (fuerte); ≥2 rutas = 1; traza de error = 1;
     imperativo largo (≥60 palabras y no termina en «?») = 1."""
     sig = []
     peso = 0
-    if len(RE_FENCE.findall(prompt)) >= 2:
+    if len(RE_FENCE.findall(prompt)) >= 2 or codigo_pelado(prompt):
         sig.append("code"); peso += 2
     paths = set(RE_PATH.findall(prompt))
     if len(paths) >= 2:
