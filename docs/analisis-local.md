@@ -369,7 +369,50 @@ inferencia se validó de punta a punta (terminal y chat, mismo día):
 - PENDIENTE de la etapa 2: verla decidir en vivo (primer `via:emb` real)
   y revisar umbrales tras unos días de muestra.
 
-## Etapa 3 — TEMAS en los hallazgos `inflate` (DISEÑO 2026-08-16, sin implementar)
+## Etapa 3 — TEMAS en los hallazgos `inflate` — HECHA (2026-08-17)
+
+> El diseño de abajo se implementó ENTERO el 2026-08-17 con dos cambios
+> ganados al construir y probar, que son ahora REGLAS VIGENTES:
+>
+> 1. **La evidencia se recoge en la pasada que ya existe**, no reabriendo
+>    los .jsonl: `SessFindings.umsgs` se llena junto al detector de pegado
+>    (mismo `user_turn_text`, dedup PROPIO — el `seen` compartido es de
+>    otros detectores y colarse ahí los apagaría). Medido antes de
+>    decidirlo (VPS, 9 días): 551 mensajes humanos = 0.17 MB. Así los TRES
+>    modos comparten UN camino: local y WSL llenan `umsgs`/`crs` en el
+>    escaneo, el exportador los manda por SSH con las MISMAS constantes
+>    (`topic_sample` es réplica exacta) y el modelo corre SIEMPRE en la
+>    máquina del panel. Ventaja extra: una sesión reanudada (que copia
+>    líneas a otro archivo) se resuelve sola con el dedup por uuid.
+> 2. **El ahorro usa el MÁXIMO CORRIDO del `cache_read` en las fronteras**,
+>    no el valor del instante. Lo cazó la prueba con datos reales: en una
+>    sesión con rupturas de caché, AÑADIR una frontera BAJABA el ahorro
+>    ($38.06 → $14.23), que es imposible. Una ruptura hace caer el
+>    `cache_read` aunque la conversación siga entera; lo que suelta un
+>    `/clear` es todo lo anterior y eso no encoge porque el proveedor
+>    reescriba su caché. Se conserva el tope por turno (`min` con su
+>    propio `cache_read`): no se puede "ahorrar" más de lo que ese turno
+>    leyó. Verificado con 1200 combinaciones de cortes sobre las sesiones
+>    reales del VPS: monotonía y tope, 0 fallos.
+>
+> **Interruptor: el del análisis local, sin casilla nueva** (como decía el
+> diseño). Sin ese opt-in no se embebe nada; el texto de la casilla lo dice
+> ahora en los 8 idiomas. Y `topics:true` lo pide SOLO la pasada COMPLETA
+> de Hallazgos: la ligera de 1 día y el Reporte no arrancan ningún modelo.
+>
+> **Cómo se probó** (el VPS no tiene toolchain de Rust NI el GGUF): banco
+> del algoritmo portado línea por línea a Python con vectores de similitud
+> conocida — 22/22 (tres temas nítidos, tema único, outlier que no corta,
+> mensajes cortos que no votan, tramo corto que se funde, primer mensaje
+> corto, muestreo, bordes); ahorro con fixture a mano y con datos reales;
+> render del panel 22/22 incluido el ESCAPADO de las etiquetas (son texto
+> del usuario). Y REGRESIÓN del exportador con ventana congelada
+> (`--end`): hallazgos y `waste` IDÉNTICOS byte a byte sin las claves
+> nuevas — el hallazgo determinista no se movió. FALTA: `cargo check` en
+> el Windows de Oscar y la primera tarjeta con temas REALES (ahí vive el
+> modelo).
+
+### Diseño (2026-08-16), tal como se aprobó
 
 ### El problema que Oscar señaló
 

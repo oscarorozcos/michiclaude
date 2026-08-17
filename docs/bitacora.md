@@ -3939,3 +3939,47 @@ cuota ≥70 — validación pasiva.
 QUÉ QUEDA: primera bajada en vivo; ver que en terminal la coreografía del
 `/model` (diálogo + restaurar default) sirve igual para bajar que para
 subir.
+
+## 2026-08-17 (23) — TEMAS en los hallazgos `inflate`: la tarjeta deja de suponer y demuestra (etapa 3 del análisis local)
+
+QUÉ: implementada ENTERA la etapa 3. `Finding` gana `topics`
+(tramos + ahorro + sim_min + sampled) y, solo de transporte,
+`umsgs`/`crs`/`usampled`. Motor nuevo en lib.rs: `ai_emb_start` +
+`ai_emb_vecs` (extraídos de `ai_emb_sim`, que ahora los usa: UN server
+para cientos de mensajes en vez de uno por medida), `topic_split` con
+confirmación de frontera, `topic_saved`, caché `inflate_topics.json` y
+`topics_for_inflates`. El exportador recoge la misma evidencia
+(`topic_sample` réplica exacta). Panel: resumen pegado al costo, chips de
+tramos y consejo que SUSTITUYE al genérico, 7 claves ×8 idiomas.
+POR QUÉ: Oscar (2026-08-16) «me gustaría que fuera más inteligente aparte
+de contar o suponer» — la ficha decía "un /clear al cambiar de tema" sin
+saber si hubo cambio de tema, y a una sesión de UN tema el consejo
+correcto es /compact.
+DECISIONES: (a) interruptor = el del análisis local, SIN casilla nueva
+(sin ese modelo la capa no puede correr; una segunda casilla que depende
+de la primera confunde) — el texto de la casilla lo dice ahora en 8
+idiomas; (b) la evidencia se recoge en la pasada QUE YA EXISTE en vez de
+reabrir los .jsonl como decía el diseño: se midió primero (551 mensajes
+humanos = 0.17 MB en 9 días), unifica los tres modos en UN camino y
+resuelve gratis las sesiones reanudadas (dedup por uuid).
+DOS BUGS CAZADOS PROBANDO (los dos con datos reales, ninguno por lectura):
+1. El ahorro no era monótono: en una sesión con rupturas de caché, AÑADIR
+   una frontera lo bajaba de $38.06 a $14.23. Causa: se tomaba el
+   `cache_read` del instante de la frontera y una ruptura lo hace caer
+   aunque la conversación siga entera. Arreglo: MÁXIMO CORRIDO,
+   conservando el tope por turno. 1200 combinaciones de cortes sobre las
+   sesiones del VPS: 0 fallos.
+2. El centro del primer tramo salía de un mensaje que NO vota si el
+   primero era corto ("dale"). Arreglo: lo define el primero que vota.
+CÓMO SE VERIFICÓ (el VPS no tiene toolchain de Rust NI el GGUF): banco del
+algoritmo portado línea por línea a Python con vectores de similitud
+CONOCIDA, 22/22; render del panel 22/22 con el ESCAPADO de las etiquetas
+(son texto del usuario: se probó con `<img onerror>` y `<script>`);
+exportador corrido de verdad contra los logs del VPS (7 inflates, umsgs y
+crs correctos, ordinales crecientes, recorte a 300 chars); y REGRESIÓN con
+ventana congelada (`--end`): hallazgos y `waste` IDÉNTICOS byte a byte sin
+las claves nuevas.
+QUÉ QUEDA: `cargo check` en el Windows de Oscar y la primera tarjeta con
+temas REALES (el modelo de embeddings vive ahí). Umbrales
+`TOPIC_NEW`/`TOPIC_HOLD`/`TOPIC_MIN_MSGS` son constantes A PROPÓSITO hasta
+tener muestra real, como los de la etapa 2.

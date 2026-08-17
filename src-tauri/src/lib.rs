@@ -291,6 +291,50 @@ struct LocalStats {
 /// nada: reread (file/count/session), inflate (session/turns), mech (count),
 /// mcp_unused (server). `origin` lo pone QUIEN LEE con el nombre que el
 /// usuario dio al servidor — igual que en ExportRow.
+/// Un mensaje HUMANO de la sesión: evidencia de los TEMAS (etapa 3). Viaja
+/// del escaneo (local/WSL) o del exportador (SSH) al motor de embeddings y
+/// SE TIRA antes de devolver el hallazgo — nunca se persiste (regla 4 de la
+/// etapa). `turn` = su ordinal entre los mensajes humanos de la sesión.
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct UMsg {
+    #[serde(default)]
+    turn: u64,
+    #[serde(default)]
+    ts: i64,
+    #[serde(default)]
+    text: String,
+}
+
+/// Un tramo de tema: del mensaje humano `from` al `to`, con una etiqueta que
+/// es el PRIMER mensaje del tramo recortado (no la escribe el modelo).
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct TopicSeg {
+    from: u64,
+    to: u64,
+    label: String,
+}
+
+/// Lo que la capa semántica añade a un `inflate`. Esto SÍ se persiste
+/// (tramos y ahorro); los textos crudos no.
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct TopicSplit {
+    #[serde(default)]
+    segs: Vec<TopicSeg>,
+    /// $ que se habrían ahorrado con un /clear en cada frontera. CALCULADO
+    /// (ver topic_saved), nunca supuesto; 0 = no se pudo calcular y la UI
+    /// no enseña cifra (invariante #8).
+    #[serde(default)]
+    saved: f64,
+    #[serde(default)]
+    sim_min: f32,
+    /// la sesión traía más de TOPIC_MAX_MSGS mensajes y se muestreó: la
+    /// tarjeta lo DICE en vez de aparentar que los vio todos
+    #[serde(default)]
+    sampled: bool,
+    #[serde(default)]
+    msgs: u64,
+}
+
 #[derive(Serialize, Deserialize, Clone, Default)]
 struct Finding {
     kind: String,
@@ -320,6 +364,23 @@ struct Finding {
     /// y se van abajo. serde(default): un exportador viejo manda 0.
     #[serde(default)]
     ts: i64,
+    /// TEMAS (etapa 3): capa ADITIVA sobre `inflate`. None = sin análisis
+    /// local, sin GGUF o cualquier fallo → la tarjeta de siempre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    topics: Option<TopicSplit>,
+    /// Evidencia de TRANSPORTE (regla 4): la llena el escaneo local/WSL o el
+    /// exportador por SSH, la consume el motor de embeddings y se vacía
+    /// antes de devolver. `skip_serializing` para que NO pueda llegar al
+    /// panel ni acabar en localStorage aunque alguien olvide vaciarla.
+    #[serde(default, skip_serializing)]
+    umsgs: Vec<UMsg>,
+    /// (epoch, cache_read, modelo) de cada turno del hilo principal: con
+    /// esto se CALCULA el ahorro por frontera. Transporte, como `umsgs`.
+    #[serde(default, skip_serializing)]
+    crs: Vec<(i64, u64, String)>,
+    /// los mensajes venían muestreados (más de TOPIC_MAX_MSGS)
+    #[serde(default, skip_serializing)]
+    usampled: bool,
 }
 
 /// % de desperdicio estructural (docs/presion-y-rendimiento.md §fórmula):
@@ -2867,6 +2928,11 @@ struct SessFindings {
     ac: (u64, u64, i64),
     /// pegotes de la ventana: (n, chars sumados, último epoch) — detector 12
     pb: (u64, u64, i64),
+    /// TEMAS (etapa 3): mensajes HUMANOS de la sesión (epoch, texto
+    /// recortado). Se recogen en ESTA pasada —no se reabren los archivos—
+    /// y solo sobreviven los de las sesiones que acaben siendo `inflate`.
+    /// Medido antes de escribirlo (VPS, 9 días): 551 mensajes = 0.17 MB.
+    umsgs: Vec<(i64, String)>,
 }
 
 /// Corre los detectores sobre las fuentes locales (este PC + WSL) en la
@@ -2888,6 +2954,9 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
     let mut mcp_used: HashSet<String> = HashSet::new();
     let mut skills_used: HashSet<String> = HashSet::new();
     let mut seen: HashSet<String> = HashSet::new();
+    // dedup propio de los mensajes humanos (etapa 3): las reanudaciones
+    // copian líneas viejas al archivo nuevo y saldrían dos veces
+    let mut useen: HashSet<String> = HashSet::new();
     let (mut mech_count, mut mech_tokens, mut mech_cost) = (0u64, 0u64, 0f64);
     let (mut sub_count, mut sub_tokens, mut sub_cost) = (0u64, 0u64, 0f64);
     // denominador del waste: TODO lo gastado en la ventana, de esta MISMA
@@ -3030,16 +3099,27 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
                     // chars(), no bytes: réplica exacta del len() de Python.
                     // Dedup por uuid: las reanudaciones copian la línea.
                     if let Some(ptxt) = user_turn_text(&v) {
-                        if ptxt.chars().count() >= PASTE_MIN_CHARS {
-                            let uuid = v["uuid"].as_str().unwrap_or("");
-                            let pcts = v["timestamp"]
-                                .as_str()
-                                .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-                                .map(|d| d.with_timezone(&Utc));
-                            if let Some(cx) = pcts {
-                                if cx >= window_ago
-                                    && cx <= end
-                                    && !uuid.is_empty()
+                        let uuid = v["uuid"].as_str().unwrap_or("");
+                        let pcts = v["timestamp"]
+                            .as_str()
+                            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                            .map(|d| d.with_timezone(&Utc));
+                        if let Some(cx) = pcts {
+                            if cx >= window_ago && cx <= end && !uuid.is_empty() {
+                                // TEMAS (etapa 3): TODOS los mensajes humanos,
+                                // recortados. Dedup PROPIO — el `seen` de los
+                                // otros detectores comparte espacio de uuids y
+                                // colarse ahí los apagaría en silencio.
+                                if useen.insert(uuid.to_string()) {
+                                    let st = sessions.entry(sid.clone()).or_default();
+                                    if st.umsgs.len() < TOPIC_COLLECT_MAX {
+                                        st.umsgs.push((
+                                            cx.timestamp(),
+                                            ptxt.chars().take(TOPIC_MSG_CHARS).collect(),
+                                        ));
+                                    }
+                                }
+                                if ptxt.chars().count() >= PASTE_MIN_CHARS
                                     && seen.insert(uuid.to_string())
                                 {
                                     let st = sessions.entry(sid.clone()).or_default();
@@ -3326,6 +3406,10 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
         }
         let growth = s.last_cr.saturating_sub(s.first_cr.unwrap_or(0));
         if growth >= INFLATE_MIN_GROWTH && s.turns >= INFLATE_MIN_TURNS {
+            // TEMAS (etapa 3): la evidencia viaja PEGADA al hallazgo y la
+            // consume get_findings; con el análisis local apagado nadie la
+            // mira y se tira igual (recogerla no cuesta nada medible).
+            let (umsgs, usampled) = topic_sample(&s.umsgs);
             findings.push(Finding {
                 kind: "inflate".into(),
                 project: sdisp(s),
@@ -3334,6 +3418,13 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
                 turns: s.turns,
                 tokens: growth,
                 cost: s.cr_cost,
+                umsgs,
+                usampled,
+                crs: s
+                    .cb
+                    .iter()
+                    .map(|(t, m, cr, _cw)| (*t, *cr, m.clone()))
+                    .collect(),
                 ..Default::default()
             });
         }
@@ -3595,7 +3686,11 @@ fn scan_local_findings(window_days: u32, end_ts: Option<i64>) -> (Vec<Finding>, 
 /// servidor vía --findings, con el origen etiquetado por quien lee. Async +
 /// spawn_blocking obligatorio (invariante 10ter: SSH y escaneo de disco).
 #[tauri::command]
-async fn get_findings(days: Option<u32>, end: Option<i64>) -> Result<FindingsPack, String> {
+async fn get_findings(
+    days: Option<u32>,
+    end: Option<i64>,
+    topics: Option<bool>,
+) -> Result<FindingsPack, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let window_days = days.unwrap_or(7).clamp(1, 90);
         let (mut out, mut waste) = scan_local_findings(window_days, end);
@@ -3625,6 +3720,19 @@ async fn get_findings(days: Option<u32>, end: Option<i64>) -> Result<FindingsPac
         }
         out.sort_by(|a, b| b.cost.partial_cmp(&a.cost).unwrap_or(std::cmp::Ordering::Equal));
         out.truncate(MAX_FINDINGS);
+        // TEMAS (etapa 3): DESPUÉS del tope, para no embeber tarjetas que
+        // nadie va a ver, y solo cuando lo pide la pasada COMPLETA de la
+        // pestaña — jamás la ligera de 1 día ni el Reporte (opción ausente =
+        // false = comportamiento de siempre).
+        if topics.unwrap_or(false) {
+            topics_for_inflates(&mut out);
+        }
+        // la evidencia cruda muere aquí pase lo que pase (regla 4): ni al
+        // panel, ni a localStorage, ni al historial
+        for f in out.iter_mut() {
+            f.umsgs.clear();
+            f.crs.clear();
+        }
         Ok(FindingsPack { findings: out, waste })
     })
     .await
@@ -4737,25 +4845,16 @@ fn emb_dbg(msg: &str) {
     );
 }
 
-fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Option<f32> {
+/// Arranca el server de embeddings y espera a que conteste. Devuelve el
+/// guard (su Drop lo mata pase lo que pase) y el puerto. EXTRAÍDO de
+/// ai_emb_sim el 2026-08-17 para la etapa 3: los temas de `inflate`
+/// embeben cientos de mensajes y arrancar un server por medida sería
+/// absurdo — el mismo arranque sirve para una o para mil. La etapa 2 no
+/// cambia de comportamiento: mismos flags, mismos rastros, mismo fail-quiet.
+fn ai_emb_start(cfg: &AiConfig, server: &str) -> Option<(AiChild, u16)> {
     let emb = ai_emb_path(cfg);
     if !emb.is_file() {
         emb_dbg(&format!("sin GGUF de embeddings: {}", emb.display()));
-        return None;
-    }
-    // el TEMA = título + mensajes viejos; LO RECIENTE = el último mensaje.
-    // Con un solo mensaje el tema es el título a secas — sigue funcionando.
-    let recent = msgs.last()?.trim().to_string();
-    if recent.is_empty() {
-        emb_dbg("sin mensaje reciente");
-        return None;
-    }
-    let mut theme = title.trim().to_string();
-    for m in &msgs[..msgs.len().saturating_sub(1)] {
-        theme.push_str(" · ");
-        theme.push_str(m);
-    }
-    if theme.trim().is_empty() || theme.trim() == "·" {
         return None;
     }
     let port = (if cfg.port == 0 { AI_PORT } else { cfg.port }) + AI_EMB_PORT_OFF;
@@ -4802,7 +4901,7 @@ fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Opt
             return None;
         }
     };
-    let _guard = AiChild(child); // muere también en todos los caminos de error
+    let guard = AiChild(child); // muere también en todos los caminos de error
     let t0 = std::time::Instant::now();
     loop {
         if t0.elapsed().as_millis() as u64 > AI_EMB_WAIT_MS {
@@ -4816,16 +4915,21 @@ fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Opt
         }
         std::thread::sleep(std::time::Duration::from_millis(300));
     }
-    // SIN prefijos, a propósito: en el banco del 2026-08-13 gemma separó
-    // MEJOR sin ellos (tema nuevo 0.15-0.25, continuación ~0.53, mismo tema
-    // 0.84) y esa distribución calza con los umbrales 0.45/0.65 del diseño.
-    // El "task: sentence similarity | query:" de su ficha comprimía todo
-    // hacia la banda media (más invocaciones del 2B, más lento).
-    let body = serde_json::json!({
-        "input": [theme.as_str(), recent.as_str()]
-    })
-    .to_string();
-    let (status, payload) = match ai_http(port, "POST /v1/embeddings", Some(&body), 15_000) {
+    Some((guard, port))
+}
+
+/// Vectores de un lote de textos, en el MISMO orden. None = no se pudo
+/// (fail-quiet, regla #4). SIN prefijos, a propósito: en el banco del
+/// 2026-08-13 gemma separó MEJOR sin ellos (tema nuevo 0.15-0.25,
+/// continuación ~0.53, mismo tema 0.84) y esa distribución calza con los
+/// umbrales 0.45/0.65 del diseño. El "task: sentence similarity | query:"
+/// de su ficha comprimía todo hacia la banda media.
+fn ai_emb_vecs(port: u16, texts: &[String]) -> Option<Vec<Vec<f32>>> {
+    if texts.is_empty() {
+        return None;
+    }
+    let body = serde_json::json!({ "input": texts }).to_string();
+    let (status, payload) = match ai_http(port, "POST /v1/embeddings", Some(&body), 30_000) {
         Ok(v) => v,
         Err(e) => {
             emb_dbg(&format!("http /v1/embeddings: {e}"));
@@ -4837,14 +4941,39 @@ fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Opt
         emb_dbg(&format!("respuesta ilegible ({status}): {head}"));
         return None;
     };
-    let (Some(a), Some(b)) = (
-        emb_vec(&v["data"][0]["embedding"]),
-        emb_vec(&v["data"][1]["embedding"]),
-    ) else {
-        emb_dbg(&format!("sin vectores ({status}): {head}"));
+    let mut out = Vec::with_capacity(texts.len());
+    for i in 0..texts.len() {
+        // el orden lo garantiza llama-server; aun así se lee por índice
+        match emb_vec(&v["data"][i]["embedding"]) {
+            Some(x) => out.push(x),
+            None => {
+                emb_dbg(&format!("sin vectores ({status}): {head}"));
+                return None;
+            }
+        }
+    }
+    Some(out)
+}
+
+fn ai_emb_sim(cfg: &AiConfig, server: &str, title: &str, msgs: &[String]) -> Option<f32> {
+    // el TEMA = título + mensajes viejos; LO RECIENTE = el último mensaje.
+    // Con un solo mensaje el tema es el título a secas — sigue funcionando.
+    let recent = msgs.last()?.trim().to_string();
+    if recent.is_empty() {
+        emb_dbg("sin mensaje reciente");
         return None;
-    };
-    let Some(sim) = emb_cos(&a, &b) else {
+    }
+    let mut theme = title.trim().to_string();
+    for m in &msgs[..msgs.len().saturating_sub(1)] {
+        theme.push_str(" · ");
+        theme.push_str(m);
+    }
+    if theme.trim().is_empty() || theme.trim() == "·" {
+        return None;
+    }
+    let (_guard, port) = ai_emb_start(cfg, server)?;
+    let vs = ai_emb_vecs(port, &[theme.clone(), recent.clone()])?;
+    let Some(sim) = emb_cos(vs.first()?, vs.get(1)?) else {
         emb_dbg("coseno imposible (vectores vacíos o de largos distintos)");
         return None;
     };
@@ -4896,6 +5025,419 @@ fn ai_emb_verdict(
     } else {
         (None, sim) // banda media: la zona gris sigue siendo del 2B
     }
+}
+
+// ---------------------------------------------------------------------------
+// ETAPA 3 — TEMAS en los hallazgos `inflate` (docs/analisis-local.md §"Etapa 3")
+// El hallazgo determinista NO cambia: nace con sus mismos umbrales, su
+// `cr_cost` y su misma clave. Esta capa es ADITIVA sobre la tarjeta ya
+// nacida — parte la sesión en TEMAS con embeddings y CALCULA lo que cada
+// frontera habría ahorrado, para dejar de suponer ("un /clear al cambiar de
+// tema…") sin saber si hubo cambio de tema. Sin opt-in, sin GGUF o con
+// cualquier fallo: la tarjeta de hoy, tal cual (fail-quiet, regla #4).
+// SOLO embeddings, nunca el 2B: un embedding no genera —mismo texto = mismo
+// vector, el coseno es aritmética— así que no rompe la regla del analizador
+// ("determinista, nunca un modelo local"): la banda media dice "no sé".
+// Los tres modos comparten ESTE camino: local y WSL llenan `umsgs`/`crs` en
+// el escaneo, el exportador los manda por SSH y el modelo corre SIEMPRE en
+// la máquina del panel (al VPS no va ningún modelo).
+// ---------------------------------------------------------------------------
+const TOPIC_NEW: f32 = 0.45; // por debajo del centro del tramo: frontera candidata
+const TOPIC_HOLD: usize = 2; // mensajes que deben confirmarla
+const TOPIC_MIN_MSGS: usize = 4; // tramo mínimo; uno menor se funde con su vecino
+const TOPIC_MAX_MSGS: usize = 200; // por sesión; más allá se muestrea y se DICE
+const TOPIC_MIN_WORDS: usize = 4; // "sí", "dale", "corre las pruebas" no votan
+const TOPIC_MSG_CHARS: usize = 300; // recorte de cada mensaje (privacidad + prefill)
+const TOPIC_LABEL_CHARS: usize = 40; // etiqueta del tramo (NO la redacta el modelo)
+const TOPIC_BATCH: usize = 24; // textos por petición al server de embeddings
+const TOPIC_BUDGET_S: u64 = 25; // techo de la pasada entera: jamás colgar la pestaña
+const TOPIC_CACHE_MAX: usize = 300; // entradas de inflate_topics.json
+const TOPIC_COLLECT_MAX: usize = 2_000; // techo duro por sesión al RECOGER
+
+/// De los mensajes recogidos a la evidencia del hallazgo. El ordinal `turn`
+/// es la posición entre los mensajes humanos de la sesión y se conserva
+/// aunque se muestree: la tarjeta dice "mensaje 23" y ese 23 es real.
+/// Muestreo UNIFORME (no los primeros 200: cortaría la sesión por la mitad
+/// justo donde están los cambios de tema) y DECLARADO.
+fn topic_sample(all: &[(i64, String)]) -> (Vec<UMsg>, bool) {
+    let n = all.len();
+    if n <= TOPIC_MAX_MSGS {
+        return (
+            all.iter()
+                .enumerate()
+                .map(|(i, (ts, text))| UMsg {
+                    turn: i as u64 + 1,
+                    ts: *ts,
+                    text: text.clone(),
+                })
+                .collect(),
+            false,
+        );
+    }
+    let mut out = Vec::with_capacity(TOPIC_MAX_MSGS);
+    for k in 0..TOPIC_MAX_MSGS {
+        let i = k * (n - 1) / (TOPIC_MAX_MSGS - 1);
+        out.push(UMsg {
+            turn: i as u64 + 1,
+            ts: all[i].0,
+            text: all[i].1.clone(),
+        });
+    }
+    out.dedup_by_key(|m| m.turn);
+    (out, true)
+}
+
+fn topics_dbg(msg: &str) {
+    // rastro propio, se sobrescribe en cada pasada. SIN los textos: solo
+    // sesión, conteos y similitudes (regla #4 de la etapa, privacidad).
+    let p = app_data_dir().join("topics_debug.txt");
+    let prev = fs::read_to_string(&p).unwrap_or_default();
+    let head = format!("{}\n", Utc::now());
+    let body = if prev.starts_with(&head) { prev } else { head };
+    let _ = fs::write(p, format!("{body}{msg}\n"));
+}
+
+/// Palabras de un mensaje: los de ≤3 no votan (ni cortan ni confirman).
+fn topic_words(s: &str) -> usize {
+    s.split_whitespace().filter(|w| !w.is_empty()).count()
+}
+
+/// Centro de un tramo: media de los vectores que VOTAN, renormalizada.
+fn topic_center(vecs: &[Vec<f32>], idx: &[usize]) -> Vec<f32> {
+    let dim = vecs.first().map(|v| v.len()).unwrap_or(0);
+    let mut c = vec![0f32; dim];
+    let mut n = 0f32;
+    for &i in idx {
+        if let Some(v) = vecs.get(i) {
+            if v.len() != dim {
+                continue;
+            }
+            for (a, b) in c.iter_mut().zip(v) {
+                *a += *b;
+            }
+            n += 1.0;
+        }
+    }
+    if n == 0.0 {
+        return c;
+    }
+    for a in c.iter_mut() {
+        *a /= n;
+    }
+    let norm: f32 = c.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if norm > 0.0 {
+        for a in c.iter_mut() {
+            *a /= norm;
+        }
+    }
+    c
+}
+
+/// ¿La frontera candidata en `i` se sostiene? Los TOPIC_HOLD mensajes que
+/// votan a continuación tienen que quedar TAMBIÉN lejos del centro viejo y
+/// CERCA del candidato: un "corre las pruebas otra vez" está lejos de todo
+/// y no debe partir la sesión. Sin suficientes mensajes después NO se corta
+/// (conservador a propósito: un outlier final no crea un tramo de uno).
+fn topic_confirm(vecs: &[Vec<f32>], votes: &[bool], i: usize, center: &[f32]) -> bool {
+    let mut held = 0usize;
+    let mut j = i + 1;
+    while j < vecs.len() && held < TOPIC_HOLD {
+        if !votes[j] {
+            j += 1;
+            continue;
+        }
+        let lejos = emb_cos(&vecs[j], center).unwrap_or(1.0) < TOPIC_NEW;
+        let cerca = emb_cos(&vecs[j], &vecs[i]).unwrap_or(0.0) > EMB_CROSS;
+        if lejos && cerca {
+            held += 1;
+            j += 1;
+        } else {
+            return false;
+        }
+    }
+    held == TOPIC_HOLD
+}
+
+/// Parte la lista de mensajes en tramos. Devuelve rangos [desde,hasta] sobre
+/// los ÍNDICES de la lista y la similitud más baja vista (para el rastro).
+fn topic_split(vecs: &[Vec<f32>], votes: &[bool]) -> (Vec<(usize, usize)>, f32) {
+    let n = vecs.len();
+    let mut segs: Vec<(usize, usize)> = Vec::new();
+    let mut sim_min = 1.0f32;
+    if n == 0 {
+        return (segs, sim_min);
+    }
+    let mut start = 0usize;
+    // el centro lo define el primer mensaje que VOTA: si el primero es un
+    // "sí, dale", con él salía un centro de ruido. Con la lista vacía
+    // topic_center devuelve un vector cero, emb_cos da None y el primero que
+    // vote entra sin cortar — que es justo lo que se quiere.
+    let mut members: Vec<usize> = if votes.first().copied().unwrap_or(false) {
+        vec![0]
+    } else {
+        Vec::new()
+    };
+    let mut center = topic_center(vecs, &members);
+    for i in 1..n {
+        if !votes[i] {
+            continue; // se adjunta al tramo vigente sin mover su centro
+        }
+        let sim = emb_cos(&vecs[i], &center).unwrap_or(1.0);
+        sim_min = sim_min.min(sim);
+        if sim < TOPIC_NEW && topic_confirm(vecs, votes, i, &center) {
+            segs.push((start, i - 1));
+            start = i;
+            members = vec![i];
+        } else {
+            members.push(i);
+        }
+        center = topic_center(vecs, &members);
+    }
+    segs.push((start, n - 1));
+    // tramos por debajo del mínimo: se funden con el vecino MÁS PARECIDO.
+    // Cada vuelta quita uno, así que termina siempre.
+    while segs.len() > 1 {
+        let Some(k) = segs.iter().position(|(a, b)| b - a + 1 < TOPIC_MIN_MSGS) else {
+            break;
+        };
+        let idx: Vec<usize> = (segs[k].0..=segs[k].1).collect();
+        let cme = topic_center(vecs, &idx);
+        let target = if k == 0 {
+            1
+        } else if k == segs.len() - 1 {
+            k - 1
+        } else {
+            let prev: Vec<usize> = (segs[k - 1].0..=segs[k - 1].1).collect();
+            let next: Vec<usize> = (segs[k + 1].0..=segs[k + 1].1).collect();
+            let sp = emb_cos(&cme, &topic_center(vecs, &prev)).unwrap_or(0.0);
+            let sn = emb_cos(&cme, &topic_center(vecs, &next)).unwrap_or(0.0);
+            if sp >= sn {
+                k - 1
+            } else {
+                k + 1
+            }
+        };
+        let (lo, hi) = (k.min(target), k.max(target));
+        segs[lo] = (segs[lo].0, segs[hi].1);
+        segs.remove(hi);
+    }
+    (segs, sim_min)
+}
+
+/// Etiqueta de un tramo: el PRIMER mensaje humano recortado. NO la redacta
+/// el modelo (regla #6 y analizador §5: el modelo no escribe UI).
+fn topic_label(text: &str) -> String {
+    let t: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if t.chars().count() <= TOPIC_LABEL_CHARS {
+        return t;
+    }
+    let corte: String = t.chars().take(TOPIC_LABEL_CHARS).collect();
+    match corte.rsplit_once(' ') {
+        Some((a, _)) if a.chars().count() >= TOPIC_LABEL_CHARS / 2 => format!("{a}…"),
+        _ => format!("{corte}…"),
+    }
+}
+
+/// El ahorro, CALCULADO (regla 3 de la etapa), nunca supuesto.
+/// Con un `/clear` en la frontera f, los turnos posteriores habrían dejado
+/// de releer todo lo acumulado HASTA f: ese acumulado es el `cache_read`
+/// del último turno anterior a f. Para cada turno se toma la ÚLTIMA frontera
+/// que quedó antes de él (con dos fronteras no se suma dos veces: lo soltado
+/// por la segunda ya incluye lo de la primera) y se cobra a la tarifa de
+/// LECTURA DE CACHÉ del modelo DE ESE TURNO, igual que `cr_cost`.
+/// Se acota con el propio `cache_read` del turno: tras una ruptura de caché
+/// el contexto BAJA, y "ahorrar" más de lo que ese turno leyó sería mentir.
+fn topic_saved(cut_ts: &[i64], crs: &[(i64, u64, String)]) -> f64 {
+    if cut_ts.is_empty() || crs.is_empty() {
+        return 0.0;
+    }
+    let mut v: Vec<&(i64, u64, String)> = crs.iter().collect();
+    v.sort_by_key(|x| x.0);
+    let mut cortes: Vec<(i64, u64)> = Vec::new();
+    let mut acum = 0u64;
+    for &c in cut_ts {
+        let base = v.iter().rev().find(|x| x.0 <= c).map(|x| x.1).unwrap_or(0);
+        // MÁXIMO CORRIDO, no el valor del instante: una ruptura de caché
+        // hace CAER el `cache_read` aunque la conversación siga entera (por
+        // eso existe el detector `cachebreak`). Con el valor suelto, AÑADIR
+        // una frontera podía REDUCIR el ahorro — cazado con datos reales del
+        // VPS al probar esta etapa (sesión 2a3ba5c0: $38.06 con un corte y
+        // $14.23 con ese mismo corte MÁS otro, que es imposible). Lo que
+        // suelta un /clear es todo lo anterior, y eso no encoge porque el
+        // proveedor reescriba su caché.
+        acum = acum.max(base);
+        cortes.push((c, acum));
+    }
+    let mut saved = 0.0;
+    for (ts, cr, model) in v.iter().map(|x| (x.0, x.1, x.2.as_str())) {
+        let Some(&(_, base)) = cortes.iter().rev().find(|(c, _)| *c <= ts) else {
+            continue;
+        };
+        let soltado = base.min(cr);
+        if soltado > 0 {
+            saved += cost_of(model, 0, 0, 0, soltado);
+        }
+    }
+    saved
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct TopicCacheEntry {
+    #[serde(default)]
+    at: i64,
+    #[serde(default)]
+    split: TopicSplit,
+}
+
+fn topics_cache_path() -> PathBuf {
+    app_data_dir().join("inflate_topics.json")
+}
+
+fn topics_cache_load() -> HashMap<String, TopicCacheEntry> {
+    fs::read_to_string(topics_cache_path())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn topics_cache_save(map: &mut HashMap<String, TopicCacheEntry>) {
+    if map.len() > TOPIC_CACHE_MAX {
+        let mut v: Vec<(String, i64)> = map.iter().map(|(k, e)| (k.clone(), e.at)).collect();
+        v.sort_by_key(|x| std::cmp::Reverse(x.1));
+        let keep: HashSet<String> = v.into_iter().take(TOPIC_CACHE_MAX).map(|x| x.0).collect();
+        map.retain(|k, _| keep.contains(k));
+    }
+    if let Ok(txt) = serde_json::to_string(map) {
+        let _ = fs::create_dir_all(app_data_dir());
+        let _ = fs::write(topics_cache_path(), txt);
+    }
+}
+
+/// Clave de caché: los logs viejos no cambian, así que una sesión se embebe
+/// UNA vez. Si sigue viva, `turns` y el número de mensajes crecen y la clave
+/// es otra: se recalcula sola.
+fn topics_key(f: &Finding) -> String {
+    format!(
+        "{}|{}|{}|{}",
+        f.origin,
+        f.session,
+        f.turns,
+        f.umsgs.len()
+    )
+}
+
+/// La pasada: para cada `inflate` con evidencia, temas y ahorro. Se arranca
+/// UN server de embeddings para todos y se mata al salir (guard). Presupuesto
+/// de tiempo duro: una pestaña que se cuelga es peor que una tarjeta sin
+/// temas. Todo camino de fallo deja el hallazgo EXACTAMENTE como estaba.
+fn topics_for_inflates(findings: &mut [Finding]) {
+    let cfg = load_ai_config();
+    if !cfg.enabled {
+        return;
+    }
+    let pend: Vec<usize> = findings
+        .iter()
+        .enumerate()
+        .filter(|(_, f)| f.kind == "inflate" && f.umsgs.len() >= TOPIC_MIN_MSGS * 2)
+        .map(|(i, _)| i)
+        .collect();
+    if pend.is_empty() {
+        return;
+    }
+    let mut cache = topics_cache_load();
+    let mut todo: Vec<usize> = Vec::new();
+    let mut hits = 0usize;
+    for i in pend {
+        let k = topics_key(&findings[i]);
+        match cache.get(&k) {
+            Some(e) => {
+                findings[i].topics = Some(e.split.clone());
+                hits += 1;
+            }
+            None => todo.push(i),
+        }
+    }
+    if todo.is_empty() {
+        topics_dbg(&format!("{hits} de caché, nada que embeber"));
+        return;
+    }
+    let server = if cfg.server.trim().is_empty() {
+        "llama-server".to_string()
+    } else {
+        cfg.server.trim().to_string()
+    };
+    let Some((_guard, port)) = ai_emb_start(&cfg, &server) else {
+        topics_dbg(&format!("{hits} de caché; el server de embeddings no arrancó"));
+        return; // fail-quiet: las tarjetas quedan como hoy
+    };
+    let t0 = std::time::Instant::now();
+    for i in todo {
+        if t0.elapsed().as_secs() > TOPIC_BUDGET_S {
+            topics_dbg("presupuesto de tiempo agotado: el resto queda sin temas");
+            break;
+        }
+        // los datos SALEN del hallazgo antes de tocarlo: así no hay préstamo
+        // vivo cuando al final se le escribe `topics` (y se lee mejor)
+        let (umsgs, crs, fcost, fsid, fsampled) = {
+            let f = &findings[i];
+            (f.umsgs.clone(), f.crs.clone(), f.cost, f.session.clone(), f.usampled)
+        };
+        let textos: Vec<String> = umsgs.iter().map(|m| m.text.clone()).collect();
+        let mut vecs: Vec<Vec<f32>> = Vec::with_capacity(textos.len());
+        let mut ok = true;
+        for chunk in textos.chunks(TOPIC_BATCH) {
+            match ai_emb_vecs(port, chunk) {
+                Some(v) => vecs.extend(v),
+                None => {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        if !ok || vecs.len() != textos.len() {
+            topics_dbg(&format!("{fsid}: no se pudo embeber"));
+            continue;
+        }
+        let votes: Vec<bool> = textos.iter().map(|t| topic_words(t) >= TOPIC_MIN_WORDS).collect();
+        let (segs, sim_min) = topic_split(&vecs, &votes);
+        let cortes: Vec<i64> = segs
+            .iter()
+            .skip(1)
+            .filter_map(|(a, _)| umsgs.get(*a).map(|m| m.ts))
+            .collect();
+        // el ahorro jamás puede pasar de lo que la sesión gastó releyendo
+        let saved = topic_saved(&cortes, &crs).min(fcost);
+        let split = TopicSplit {
+            segs: segs
+                .iter()
+                .filter_map(|(a, b)| {
+                    let m0 = umsgs.get(*a)?;
+                    let m1 = umsgs.get(*b)?;
+                    Some(TopicSeg {
+                        from: m0.turn,
+                        to: m1.turn,
+                        label: topic_label(&m0.text),
+                    })
+                })
+                .collect(),
+            saved,
+            sim_min,
+            sampled: fsampled,
+            msgs: umsgs.len() as u64,
+        };
+        topics_dbg(&format!(
+            "{fsid}: {} msgs, {} tramos, cortes en {:?}, sim_min={sim_min:.3}, ahorro={saved:.2}",
+            umsgs.len(),
+            split.segs.len(),
+            split.segs.iter().skip(1).map(|x| x.from).collect::<Vec<_>>()
+        ));
+        cache.insert(
+            topics_key(&findings[i]),
+            TopicCacheEntry { at: Utc::now().timestamp(), split: split.clone() },
+        );
+        findings[i].topics = Some(split);
+    }
+    topics_cache_save(&mut cache);
 }
 
 /// El análisis en sí (síncrono; el comando lo envuelve en spawn_blocking).

@@ -243,6 +243,18 @@
   .fnd-when{font-style:normal;flex:0 0 auto;color:var(--txt-mut);white-space:nowrap}
   .fnd-c{font-family:var(--mono);font-size:11.5px;margin-top:5px;color:var(--txt-dim)}
   .fnd-c b{font-weight:600;color:var(--txt)}
+  /* TEMAS de una sesión inflada (docs/analisis-local.md §"Etapa 3"): el
+     resumen va pegado al costo y SIEMPRE visible; los tramos, dentro de la
+     recomendación, que es lo que se pliega. */
+  .fnd-tp{font-size:11.5px;margin-top:4px;color:var(--txt-mut)}
+  .fnd-tp b{font-weight:600;color:var(--txt)}
+  .tp-chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 2px}
+  .tp-chip{font-size:11px;line-height:1.35;padding:3px 7px;border-radius:7px;
+    background:var(--accent-weak);border:1px solid var(--accent-line);
+    color:var(--txt-mut);max-width:100%;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap}
+  .tp-chip i{font-style:normal;font-family:var(--mono);color:var(--accent);
+    margin-right:5px}
   .fnd-f{font-size:12px;color:var(--txt-mut);line-height:1.55;margin-top:11px;
     border-top:1px dashed var(--stroke-soft);padding-top:10px}
   /* comandos dentro del texto: se distinguen sin gritar */
@@ -2190,6 +2202,13 @@ en:{
   fnd_mcp_t:s=>`Unused MCP server: ${s}`,
   fnd_reread_f:"Ask for the part that matters (line ranges) instead of the whole file — each read stacks onto the conversation, it does not replace the previous one.",
   fnd_inflate_f:"A /clear when you change topics splits the context: every turn re-reads everything that came before.",
+  fnd_topic_sum:n=>`${n} topics`,
+  fnd_topic_one_sum:"one single topic",
+  fnd_topic_msg:n=>`message ${n}`,
+  fnd_topic_sampled:"sampled",
+  fnd_topic_saved:m=>`That would have saved about $${m} of the re-reading.`,
+  fnd_inflate_multi:(n,cuts)=>`This session covered ${n} topics: a /clear at ${cuts} would have split the context instead of re-reading all of it every turn.`,
+  fnd_inflate_one:"One single topic, just very long: here /compact is the right call (it summarizes and carries on), not /clear.",
   fnd_mech_f:"Batch them at the end, or run them yourself in the terminal — that way they are free.",
   fnd_mcp_f:"Its tool definitions travel in every request anyway. Removing it from the config is one line, and reconnecting is another.",
   fnd_cachebreak_t:n=>`The context was rewritten ${n} times in one conversation`,
@@ -2260,7 +2279,7 @@ en:{
   press_lab:"Context pressure",
   ai_lab:"Local analysis (AI)",
   ai_on:"Suggest /clear or /compact with a local model",
-  ai_hint:"Experimental. Runs llama.cpp on this machine — nothing leaves your computer. When the intent card has no clear verdict, a small local model reads the session topic and your last messages and adds its suggestion.",
+  ai_hint:"Experimental. Runs llama.cpp on this machine — nothing leaves your computer. When the intent card has no clear verdict, a small local model reads the session topic and your last messages and adds its suggestion. It also splits inflated sessions into topics in Findings and works out what a /clear at each boundary would have saved.",
   ai_srv:"llama-server path (empty = use PATH)",
   ai_mdl:"Model path (.gguf)",
   ai_test:"Test",
@@ -2807,6 +2826,13 @@ es:{
   fnd_mcp_t:s=>`Servidor MCP sin usar: ${s}`,
   fnd_reread_f:"Pide el trozo que importa (rangos de líneas) en vez del archivo entero — cada lectura se apila en la conversación, no reemplaza a la anterior.",
   fnd_inflate_f:"Un /clear al cambiar de tema parte el contexto: cada turno relee todo lo anterior.",
+  fnd_topic_sum:n=>`${n} temas`,
+  fnd_topic_one_sum:"un solo tema",
+  fnd_topic_msg:n=>`mensaje ${n}`,
+  fnd_topic_sampled:"muestreado",
+  fnd_topic_saved:m=>`Habría ahorrado unos $${m} de las relecturas.`,
+  fnd_inflate_multi:(n,cuts)=>`Esta sesión tuvo ${n} temas: un /clear en ${cuts} habría partido el contexto en vez de releerlo entero cada turno.`,
+  fnd_inflate_one:"Un solo tema, nada más que muy largo: aquí lo que conviene es /compact (resume y sigue), no /clear.",
   fnd_mech_f:"Agrúpalas al final, o hazlas tú en la terminal — así salen gratis.",
   fnd_mcp_f:"Sus definiciones viajan en cada petición de todas formas. Quitarlo de la configuración es una línea, y reconectarlo otra.",
   fnd_cachebreak_t:n=>`El contexto se reescribió ${n} veces en la misma conversación`,
@@ -2877,7 +2903,7 @@ es:{
   press_lab:"Presión de contexto",
   ai_lab:"Análisis local (IA)",
   ai_on:"Sugerir /clear o /compact con un modelo local",
-  ai_hint:"Experimental. Usa llama.cpp en esta máquina — nada sale de tu computadora. Cuando la tarjeta de intención no tiene veredicto claro, un modelo local chico lee el tema de la sesión y tus últimos mensajes y añade su sugerencia.",
+  ai_hint:"Experimental. Usa llama.cpp en esta máquina — nada sale de tu computadora. Cuando la tarjeta de intención no tiene veredicto claro, un modelo local chico lee el tema de la sesión y tus últimos mensajes y añade su sugerencia. También parte en TEMAS las sesiones infladas de Hallazgos y calcula lo que habría ahorrado un /clear en cada frontera.",
   ai_srv:"Ruta de llama-server (vacío = usar el PATH)",
   ai_mdl:"Ruta del modelo (.gguf)",
   ai_test:"Probar",
@@ -3424,6 +3450,13 @@ pt:{
   fnd_mcp_t:s=>`Servidor MCP sem uso: ${s}`,
   fnd_reread_f:"Peça o trecho que importa (intervalos de linhas) em vez do arquivo inteiro — cada leitura se empilha na conversa, não substitui a anterior.",
   fnd_inflate_f:"Um /clear ao mudar de assunto divide o contexto: cada turno relê tudo o que veio antes.",
+  fnd_topic_sum:n=>`${n} assuntos`,
+  fnd_topic_one_sum:"um único assunto",
+  fnd_topic_msg:n=>`mensagem ${n}`,
+  fnd_topic_sampled:"amostrado",
+  fnd_topic_saved:m=>`Teria economizado cerca de $${m} das releituras.`,
+  fnd_inflate_multi:(n,cuts)=>`Esta sessão teve ${n} assuntos: um /clear em ${cuts} teria dividido o contexto em vez de relê-lo inteiro a cada turno.`,
+  fnd_inflate_one:"Um único assunto, apenas muito longo: aqui o certo é /compact (resume e segue), não /clear.",
   fnd_mech_f:"Agrupe-os no final, ou faça você mesmo no terminal — assim saem de graça.",
   fnd_mcp_f:"Suas definições viajam em cada pedido de qualquer forma. Removê-lo da configuração é uma linha, e reconectar é outra.",
   fnd_cachebreak_t:n=>`O contexto foi reescrito ${n} vezes na mesma conversa`,
@@ -3494,7 +3527,7 @@ pt:{
   press_lab:"Pressão de contexto",
   ai_lab:"Análise local (IA)",
   ai_on:"Sugerir /clear ou /compact com um modelo local",
-  ai_hint:"Experimental. Usa llama.cpp nesta máquina — nada sai do seu computador. Quando o cartão de intenção não tem veredito claro, um modelo local pequeno lê o tema da sessão e suas últimas mensagens e adiciona sua sugestão.",
+  ai_hint:"Experimental. Usa llama.cpp nesta máquina — nada sai do seu computador. Quando o cartão de intenção não tem veredito claro, um modelo local pequeno lê o tema da sessão e suas últimas mensagens e adiciona sua sugestão. Também divide em ASSUNTOS as sessões infladas em Achados e calcula o que um /clear em cada fronteira teria economizado.",
   ai_srv:"Caminho do llama-server (vazio = usar o PATH)",
   ai_mdl:"Caminho do modelo (.gguf)",
   ai_test:"Testar",
@@ -4041,6 +4074,13 @@ fr:{
   fnd_mcp_t:s=>`Serveur MCP inutilisé : ${s}`,
   fnd_reread_f:"Demandez la partie qui compte (plages de lignes) plutôt que le fichier entier — chaque lecture s'empile dans la conversation, elle ne remplace pas la précédente.",
   fnd_inflate_f:"Un /clear quand vous changez de sujet coupe le contexte : chaque tour relit tout ce qui précède.",
+  fnd_topic_sum:n=>`${n} sujets`,
+  fnd_topic_one_sum:"un seul sujet",
+  fnd_topic_msg:n=>`message ${n}`,
+  fnd_topic_sampled:"échantillonné",
+  fnd_topic_saved:m=>`Cela aurait économisé environ $${m} de relectures.`,
+  fnd_inflate_multi:(n,cuts)=>`Cette session a couvert ${n} sujets : un /clear à ${cuts} aurait coupé le contexte au lieu de tout relire à chaque tour.`,
+  fnd_inflate_one:"Un seul sujet, simplement très long : ici c'est /compact qu'il faut (il résume et continue), pas /clear.",
   fnd_mech_f:"Regroupez-les à la fin, ou faites-les vous-même dans le terminal — là, c'est gratuit.",
   fnd_mcp_f:"Ses définitions voyagent dans chaque requête de toute façon. Le retirer de la config tient en une ligne, le reconnecter aussi.",
   fnd_cachebreak_t:n=>`Le contexte a été réécrit ${n} fois dans la même conversation`,
@@ -4111,7 +4151,7 @@ fr:{
   press_lab:"Pression du contexte",
   ai_lab:"Analyse locale (IA)",
   ai_on:"Suggérer /clear ou /compact avec un modèle local",
-  ai_hint:"Expérimental. Utilise llama.cpp sur cette machine — rien ne quitte votre ordinateur. Quand la carte d'intention n'a pas de verdict clair, un petit modèle local lit le sujet de la session et vos derniers messages et ajoute sa suggestion.",
+  ai_hint:"Expérimental. Utilise llama.cpp sur cette machine — rien ne quitte votre ordinateur. Quand la carte d'intention n'a pas de verdict clair, un petit modèle local lit le sujet de la session et vos derniers messages et ajoute sa suggestion. Il découpe aussi en SUJETS les sessions gonflées dans Constats et calcule ce qu’un /clear à chaque frontière aurait économisé.",
   ai_srv:"Chemin de llama-server (vide = utiliser le PATH)",
   ai_mdl:"Chemin du modèle (.gguf)",
   ai_test:"Tester",
@@ -4658,6 +4698,13 @@ de:{
   fnd_mcp_t:s=>`Ungenutzter MCP-Server: ${s}`,
   fnd_reread_f:"Frag nach dem relevanten Teil (Zeilenbereiche) statt nach der ganzen Datei — jede Lektüre stapelt sich im Gespräch, sie ersetzt die vorherige nicht.",
   fnd_inflate_f:"Ein /clear beim Themenwechsel teilt den Kontext: Jeder Zug liest alles Vorherige erneut.",
+  fnd_topic_sum:n=>`${n} Themen`,
+  fnd_topic_one_sum:"ein einziges Thema",
+  fnd_topic_msg:n=>`Nachricht ${n}`,
+  fnd_topic_sampled:"Stichprobe",
+  fnd_topic_saved:m=>`Das hätte rund $${m} an Wiederholungslesen gespart.`,
+  fnd_inflate_multi:(n,cuts)=>`Diese Sitzung hatte ${n} Themen: ein /clear bei ${cuts} hätte den Kontext geteilt, statt ihn in jedem Zug ganz neu zu lesen.`,
+  fnd_inflate_one:"Ein einziges Thema, nur sehr lang: hier ist /compact richtig (fasst zusammen und macht weiter), nicht /clear.",
   fnd_mech_f:"Bündle sie am Ende, oder führe sie selbst im Terminal aus — dann sind sie gratis.",
   fnd_mcp_f:"Seine Tool-Definitionen reisen ohnehin in jeder Anfrage mit. Ihn aus der Konfiguration zu nehmen ist eine Zeile, das Wiederverbinden auch.",
   fnd_cachebreak_t:n=>`Der Kontext wurde ${n}-mal in derselben Unterhaltung neu geschrieben`,
@@ -4728,7 +4775,7 @@ de:{
   press_lab:"Kontextdruck",
   ai_lab:"Lokale Analyse (KI)",
   ai_on:"/clear oder /compact mit einem lokalen Modell vorschlagen",
-  ai_hint:"Experimentell. Nutzt llama.cpp auf diesem Rechner — nichts verlässt deinen Computer. Hat die Absichtskarte kein klares Urteil, liest ein kleines lokales Modell das Thema der Sitzung und deine letzten Nachrichten und ergänzt seinen Vorschlag.",
+  ai_hint:"Experimentell. Nutzt llama.cpp auf diesem Rechner — nichts verlässt deinen Computer. Hat die Absichtskarte kein klares Urteil, liest ein kleines lokales Modell das Thema der Sitzung und deine letzten Nachrichten und ergänzt seinen Vorschlag. Außerdem teilt es aufgeblähte Sitzungen in den Funden in THEMEN und rechnet aus, was ein /clear an jeder Grenze gespart hätte.",
   ai_srv:"Pfad zu llama-server (leer = PATH verwenden)",
   ai_mdl:"Pfad zum Modell (.gguf)",
   ai_test:"Testen",
@@ -5275,6 +5322,13 @@ ja:{
   fnd_mcp_t:s=>`未使用のMCPサーバー: ${s}`,
   fnd_reread_f:"ファイル全体ではなく必要な部分（行範囲）を指定してください — 読み込みは会話に積み重なり、前の内容を置き換えません。",
   fnd_inflate_f:"話題が変わるときの /clear がコンテキストを区切ります。各ターンはそれまでの全てを読み直しています。",
+  fnd_topic_sum:n=>`${n} つの話題`,
+  fnd_topic_one_sum:"話題は1つだけ",
+  fnd_topic_msg:n=>`メッセージ ${n}`,
+  fnd_topic_sampled:"サンプリング",
+  fnd_topic_saved:m=>`約 $${m} の読み直しを節約できました。`,
+  fnd_inflate_multi:(n,cuts)=>`このセッションには ${n} つの話題がありました。${cuts} で /clear していれば、毎ターン全部を読み直さずに区切れました。`,
+  fnd_inflate_one:"話題は1つで、ただ長いだけです。ここは /clear ではなく /compact(要約して続行)が適切です。",
   fnd_mech_f:"最後にまとめるか、ターミナルで自分で実行すれば無料です。",
   fnd_mcp_f:"ツール定義は毎回のリクエストに載っています。設定から外すのも再接続も1行です。",
   fnd_cachebreak_t:n=>`同じ会話でコンテキストが${n}回書き直されました`,
@@ -5345,7 +5399,7 @@ ja:{
   press_lab:"コンテキスト圧",
   ai_lab:"ローカル分析（AI）",
   ai_on:"ローカルモデルで /clear か /compact を提案",
-  ai_hint:"実験的機能。このPC上のllama.cppを使い、データは一切外部へ送られません。意図カードに明確な判定がないとき、小さなローカルモデルがセッションの話題と直近のメッセージを読んで提案を添えます。",
+  ai_hint:"実験的機能。このPC上のllama.cppを使い、データは一切外部へ送られません。意図カードに明確な判定がないとき、小さなローカルモデルがセッションの話題と直近のメッセージを読んで提案を添えます。また、「発見」タブの肥大化したセッションを話題ごとに区切り、各境界で /clear していれば節約できた額を計算します。",
   ai_srv:"llama-server のパス（空 = PATH を使用）",
   ai_mdl:"モデルのパス（.gguf）",
   ai_test:"テスト",
@@ -5892,6 +5946,13 @@ ko:{
   fnd_mcp_t:s=>`사용하지 않는 MCP 서버: ${s}`,
   fnd_reread_f:"파일 전체 대신 필요한 부분(줄 범위)을 요청하세요 — 읽기는 대화에 쌓이며 이전 내용을 대체하지 않습니다.",
   fnd_inflate_f:"주제가 바뀔 때 /clear 가 컨텍스트를 나눕니다. 매 턴마다 이전 내용 전부를 다시 읽습니다.",
+  fnd_topic_sum:n=>`주제 ${n}개`,
+  fnd_topic_one_sum:"단일 주제",
+  fnd_topic_msg:n=>`메시지 ${n}`,
+  fnd_topic_sampled:"표본 추출",
+  fnd_topic_saved:m=>`약 $${m}의 재읽기를 아낄 수 있었습니다.`,
+  fnd_inflate_multi:(n,cuts)=>`이 세션에는 주제가 ${n}개 있었습니다. ${cuts}에서 /clear 했다면 매 턴 전부를 다시 읽는 대신 컨텍스트를 나눌 수 있었습니다.`,
+  fnd_inflate_one:"주제는 하나인데 길기만 했습니다. 여기서는 /clear 가 아니라 /compact(요약하고 계속)가 맞습니다.",
   fnd_mech_f:"마지막에 몰아서 하거나 터미널에서 직접 실행하면 무료입니다.",
   fnd_mcp_f:"도구 정의는 어차피 매 요청마다 전송됩니다. 설정에서 빼는 것도, 다시 연결하는 것도 한 줄입니다.",
   fnd_cachebreak_t:n=>`같은 대화에서 컨텍스트가 ${n}번 다시 쓰였습니다`,
@@ -5962,7 +6023,7 @@ ko:{
   press_lab:"컨텍스트 압력",
   ai_lab:"로컬 분석(AI)",
   ai_on:"로컬 모델로 /clear 또는 /compact 제안",
-  ai_hint:"실험적 기능. 이 컴퓨터의 llama.cpp를 사용하며 어떤 데이터도 밖으로 나가지 않아요. 의도 카드에 명확한 판정이 없으면 작은 로컬 모델이 세션 주제와 최근 메시지를 읽고 제안을 덧붙여요.",
+  ai_hint:"실험적 기능. 이 컴퓨터의 llama.cpp를 사용하며 어떤 데이터도 밖으로 나가지 않아요. 의도 카드에 명확한 판정이 없으면 작은 로컬 모델이 세션 주제와 최근 메시지를 읽고 제안을 덧붙여요. 또한 발견 탭의 비대해진 세션을 주제별로 나누고, 각 경계에서 /clear 했다면 절약했을 금액을 계산합니다.",
   ai_srv:"llama-server 경로(비우면 PATH 사용)",
   ai_mdl:"모델 경로(.gguf)",
   ai_test:"테스트",
@@ -6509,6 +6570,13 @@ zh:{
   fnd_mcp_t:s=>`未使用的 MCP 服务器：${s}`,
   fnd_reread_f:"请求需要的部分（行范围）而不是整个文件 — 每次读取都会叠加到对话中，不会替换上一次。",
   fnd_inflate_f:"换话题时用 /clear 切分上下文：每一轮都会重读之前的全部内容。",
+  fnd_topic_sum:n=>`${n} 个话题`,
+  fnd_topic_one_sum:"只有一个话题",
+  fnd_topic_msg:n=>`第 ${n} 条消息`,
+  fnd_topic_sampled:"抽样",
+  fnd_topic_saved:m=>`大约可以省下 $${m} 的重读费用。`,
+  fnd_inflate_multi:(n,cuts)=>`这次会话有 ${n} 个话题：在${cuts}处 /clear 就能切分上下文，而不是每轮重读全部内容。`,
+  fnd_inflate_one:"只有一个话题，只是很长：这里该用 /compact(总结后继续),而不是 /clear。",
   fnd_mech_f:"攒到最后一起做，或自己在终端里执行 — 那样是免费的。",
   fnd_mcp_f:"它的工具定义反正每次请求都会传输。从配置中移除只需一行，重新连接也是。",
   fnd_cachebreak_t:n=>`同一场对话的上下文被重写了 ${n} 次`,
@@ -6579,7 +6647,7 @@ zh:{
   press_lab:"上下文压力",
   ai_lab:"本地分析（AI）",
   ai_on:"用本地模型建议 /clear 或 /compact",
-  ai_hint:"实验性功能。使用本机的 llama.cpp，任何数据都不会离开你的电脑。当意图卡片没有明确判定时，一个小型本地模型会阅读会话主题和你最近的消息，并附上它的建议。",
+  ai_hint:"实验性功能。使用本机的 llama.cpp，任何数据都不会离开你的电脑。当意图卡片没有明确判定时，一个小型本地模型会阅读会话主题和你最近的消息，并附上它的建议。它还会把「发现」中膨胀的会话切分成话题，并算出在每个分界处 /clear 能省下多少。",
   ai_srv:"llama-server 路径（留空 = 使用 PATH）",
   ai_mdl:"模型路径（.gguf）",
   ai_test:"测试",
@@ -12066,7 +12134,9 @@ async function loadFindings(force){
     $("fndFoot").textContent="";
   }
   try{
-    fndCache=(await invoke("get_findings",fndArgs())).findings||[];
+    // `topics:true` SOLO aquí: la pasada ligera de 1 día y el Reporte no
+    // arrancan el modelo de embeddings (docs/analisis-local.md §Etapa 3).
+    fndCache=(await invoke("get_findings",{...fndArgs(),topics:true})).findings||[];
     fndCacheAt=Date.now();
     fndTrackHist(fndCache);   // marcas de arreglo: solo con resultado FRESCO
     flog("fnd: escaneo ok, "+fndCache.length+" tarjetas ("+fndDays+"d)");
@@ -12080,6 +12150,47 @@ async function loadFindings(force){
     else $("fndList").innerHTML=`<div style="font-size:11px;color:var(--bad);margin-top:8px">${t("fnd_err")}</div>`;
   }
   finally{ fndBusy=false; }
+}
+// ---------- TEMAS de las sesiones infladas (análisis local, etapa 3) ----------
+// La capa semántica es ADITIVA: `f.topics` llega solo si el análisis local
+// está encendido, hay modelo de embeddings y la pasada COMPLETA lo pidió.
+// Sin ella, TODO se pinta exactamente como antes (fail-quiet, regla #4).
+// El hallazgo determinista, su clave y su costo NO cambian: esto solo deja
+// de SUPONER ("un /clear al cambiar de tema") cuando se puede DEMOSTRAR.
+function fndTopics(f){
+  const tp=f&&f.kind==="inflate"?f.topics:null;
+  return (tp&&Array.isArray(tp.segs)&&tp.segs.length)?tp:null;
+}
+// Resumen de una línea, pegado al costo y siempre visible (no se pliega).
+function fndTopicSum(f){
+  const tp=fndTopics(f); if(!tp) return "";
+  const n=tp.segs.length;
+  const cab=n===1?t("fnd_topic_one_sum"):t("fnd_topic_sum",n);
+  // el ahorro solo si se pudo CALCULAR: sin turnos con cache_read no hay
+  // cifra que enseñar y no se inventa ninguna (invariante #8)
+  const ah=tp.saved>0?` · <b>~$${tp.saved.toFixed(2)}</b>`:"";
+  const mu=tp.sampled?` · ${escapeHtml(t("fnd_topic_sampled"))}`:"";
+  return `<div class="fnd-tp">${escapeHtml(cab)}${ah}${mu}</div>`;
+}
+// Los tramos, dentro de la parte plegable: rango de mensajes + etiqueta (que
+// es el PRIMER mensaje del tramo recortado, no la escribe ningún modelo).
+function fndTopicChips(f){
+  const tp=fndTopics(f); if(!tp||tp.segs.length<2) return "";
+  return `<div class="tp-chips">`+tp.segs.map(sg=>{
+    const r=sg.from===sg.to?String(sg.from):`${sg.from}-${sg.to}`;
+    return `<span class="tp-chip" title="${escapeHtml(sg.label||"")}"><i>${escapeHtml(r)}</i>${escapeHtml(sg.label||"")}</span>`;
+  }).join("")+`</div>`;
+}
+// El consejo. Con temas medidos SUSTITUYE al genérico: decirle "un /clear al
+// cambiar de tema" a una sesión de un solo tema es justo el consejo malo que
+// esta etapa vino a arreglar (Oscar 2026-08-16).
+function fndAdvice(f){
+  const tp=fndTopics(f);
+  if(!tp) return t("fnd_"+f.kind.split("_")[0]+"_f")||"";
+  if(tp.segs.length===1) return t("fnd_inflate_one");
+  const cortes=tp.segs.slice(1).map(sg=>t("fnd_topic_msg",sg.from)).join(" · ");
+  const base=t("fnd_inflate_multi",tp.segs.length,cortes);
+  return tp.saved>0 ? base+" "+t("fnd_topic_saved",tp.saved.toFixed(2)) : base;
 }
 function renderFindings(){
   const ign=fndIgnored();
@@ -12120,9 +12231,10 @@ function renderFindings(){
             <div class="fnd-m"><span>${meta}</span>${
               f.ts?`<em class="fnd-when">${escapeHtml(fmtWhen(f.ts))}</em>`:""}</div>
             ${costHtml?`<div class="fnd-c">${costHtml}</div>`:""}
+            ${fndTopicSum(f)}
           </div>
         </div>
-        <div class="fnd-f">${withCmds(t("fnd_"+f.kind.split("_")[0]+"_f")||"")}</div>
+        <div class="fnd-f">${fndTopicChips(f)}${withCmds(fndAdvice(f))}</div>
       </div>`;
     }).join("");
     // contraer/expandir con clic, como las fichas de Consejos (Oscar

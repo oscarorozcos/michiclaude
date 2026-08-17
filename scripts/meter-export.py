@@ -198,6 +198,26 @@ def save_cache(files, retained_from):
         pass  # el caché es un lujo: si no se puede escribir, no pasa nada
 
 
+def topic_sample(all_msgs):
+    """De los mensajes recogidos a la evidencia del hallazgo (TEMAS, etapa
+    3). Réplica EXACTA de topic_sample() en lib.rs (invariante #1): el
+    ordinal `turn` es la posición entre los mensajes humanos y se conserva
+    aunque se muestree; el muestreo es UNIFORME (no los primeros 200:
+    cortaría la sesión justo donde están los cambios de tema) y DECLARADO."""
+    n = len(all_msgs)
+    if n <= TOPIC_MAX_MSGS:
+        return ([{"turn": i + 1, "ts": ts, "text": tx}
+                 for i, (ts, tx) in enumerate(all_msgs)], False)
+    out, vistos = [], set()
+    for k in range(TOPIC_MAX_MSGS):
+        i = k * (n - 1) // (TOPIC_MAX_MSGS - 1)
+        if i in vistos:
+            continue
+        vistos.add(i)
+        out.append({"turn": i + 1, "ts": all_msgs[i][0], "text": all_msgs[i][1]})
+    return (out, True)
+
+
 def is_user_turn(v, msg):
     """¿Turno ÚTIL del usuario? Envuelve a user_turn_text: UNA sola
     implementación del filtro (réplica exacta del Rust, invariante #1)."""
@@ -355,6 +375,15 @@ ACOMPACT_MIN = 3        # auto-compacts por proyecto en la ventana para avisar
 # lo correcto (un error de consola no tiene ruta) — por eso además del
 # conteo se exige volumen, y el fix no regaña.
 PASTE_MIN_CHARS = 5000    # chars en UN mensaje humano para contarlo
+# TEMAS de `inflate` (docs/analisis-local.md §"Etapa 3"): el exportador NO
+# analiza —al VPS no va ningún modelo, sigue siendo stdlib puro—; solo
+# RECOGE la evidencia (mensajes humanos recortados + el cache_read por
+# turno) y la manda pegada al hallazgo. El Windows embebe y calcula.
+# Réplica EXACTA de TOPIC_MAX_MSGS/TOPIC_MSG_CHARS/TOPIC_COLLECT_MAX en
+# lib.rs (invariante #1).
+TOPIC_MAX_MSGS = 200
+TOPIC_MSG_CHARS = 300
+TOPIC_COLLECT_MAX = 2000
 PASTE_MIN_COUNT = 3       # pegotes por proyecto en la ventana para avisar
 PASTE_MIN_TOKENS = 10_000  # ~tokens pegados (chars/4) para avisar
 CACHEBREAK_MIN_PREV = 20_000    # prefijo cacheado mínimo para evaluar un turno
@@ -639,6 +668,7 @@ def scan_findings(projects_dir, window_ago, days, end):
     mcp_used = set()
     skills_used = set()          # invocadas en la ventana (logs)
     seen = set()                 # misma dedup que la agregación
+    useen = set()                # dedup PROPIO de los mensajes humanos (TEMAS)
     skip_before = (window_ago - timedelta(days=2)).timestamp()
 
     # CLAUDE.md sin respaldo: identificadores por línea, a buscar en el
@@ -711,7 +741,8 @@ def scan_findings(projects_dir, window_ago, days, end):
                         "models": {}, "proj": proj.name, "disp": "", "ts": 0,
                         "cb": [], "compacts": [], "hooks": {},
                         "ac": [0, 0, 0],   # auto-compacts: [n, preTokens, ts]
-                        "pb": [0, 0, 0]})  # pegotes: [n, chars, ts]
+                        "pb": [0, 0, 0],   # pegotes: [n, chars, ts]
+                        "umsgs": []})      # TEMAS: (epoch, texto recortado)
                     # una compactación reescribe el contexto A PROPÓSITO:
                     # se marca para no contarla como ruptura de caché
                     if not S["disp"]:
@@ -747,15 +778,23 @@ def scan_findings(projects_dir, window_ago, days, end):
                     # resúmenes de compactación, <ide_…, comandos). Dedup por
                     # uuid: las reanudaciones copian la línea al archivo nuevo.
                     ptxt = user_turn_text(v, msg)
-                    if ptxt is not None and len(ptxt) >= PASTE_MIN_CHARS:
+                    if ptxt is not None:
                         pcts = parse_ts(v.get("timestamp"))
                         u = v.get("uuid") or ""
-                        if (pcts and window_ago <= pcts <= end
-                                and u and u not in seen):
-                            seen.add(u)
-                            S["pb"][0] += 1
-                            S["pb"][1] += len(ptxt)
-                            S["pb"][2] = max(S["pb"][2], int(pcts.timestamp()))
+                        if pcts and window_ago <= pcts <= end and u:
+                            # TEMAS (etapa 3): TODOS los mensajes humanos,
+                            # recortados. Dedup PROPIO: `seen` es de otros
+                            # detectores y colarse ahí los apagaría.
+                            if u not in useen:
+                                useen.add(u)
+                                if len(S["umsgs"]) < TOPIC_COLLECT_MAX:
+                                    S["umsgs"].append(
+                                        (int(pcts.timestamp()), ptxt[:TOPIC_MSG_CHARS]))
+                            if len(ptxt) >= PASTE_MIN_CHARS and u not in seen:
+                                seen.add(u)
+                                S["pb"][0] += 1
+                                S["pb"][1] += len(ptxt)
+                                S["pb"][2] = max(S["pb"][2], int(pcts.timestamp()))
                     # /comandos del usuario: quedan como <command-name> en el
                     # mensaje (estas líneas no traen usage, va antes del filtro)
                     if "<command-name>" in line:
@@ -922,10 +961,18 @@ def scan_findings(projects_dir, window_ago, days, end):
                 "session": sid[:8]})
         growth = ((S["last_cr"] or 0) - (S["first_cr"] or 0))
         if growth >= INFLATE_MIN_GROWTH and S["turns"] >= INFLATE_MIN_TURNS:
+            # TEMAS (etapa 3): la evidencia viaja PEGADA al hallazgo. Un
+            # panel viejo ignora las claves nuevas; un exportador viejo no
+            # las manda y el panel no analiza (degradación sola, como
+            # --coach). Los textos NO se guardan en el servidor.
+            umsgs, usampled = topic_sample(S["umsgs"])
             findings.append({
                 "kind": "inflate", "ts": S["ts"], "project": S["disp"] or S["proj"], "session": sid[:8],
                 "turns": S["turns"], "tokens": growth,
-                "cost": S["cr_cost"], "estimated": False})
+                "cost": S["cr_cost"], "estimated": False,
+                "umsgs": umsgs, "usampled": usampled,
+                "crs": [[int(t.timestamp()), cr, model]
+                        for (t, model, cr, _cw) in S["cb"]]})
         # rupturas de caché: turnos donde el prefijo cacheado se PERDIÓ
         # (cache_read cae a menos de la mitad) y la conversación se
         # reescribió a precio de escritura (1.25x input) en vez de leerse

@@ -368,6 +368,22 @@ hay pendientes, botón "Copiar comando" → `plugin:clipboard-manager|
 write_text` invocado directo (capability
 `clipboard-manager:allow-write-text`, sin wrapper npm).
 
+**TEMAS de `inflate` (etapa 3, HECHA)** — reglas en `docs/analisis-local.md`
+§"Etapa 3". Capa ADITIVA sobre el hallazgo (nace igual, misma clave, mismo
+costo): embeddings —NUNCA el 2B— parten la sesión en tramos y CALCULAN el
+ahorro por frontera. Cuelga del opt-in del análisis local, SIN casilla
+nueva, y solo corre con `topics:true` (pasada COMPLETA de Hallazgos; la
+ligera de 1 día y el Reporte no arrancan modelo). La evidencia (`umsgs` +
+`crs`) se recoge en la pasada QUE YA EXISTE con dedup PROPIO y viaja
+pegada al hallazgo: local/WSL la llenan en el escaneo, el exportador la
+manda por SSH (`topic_sample` réplica exacta) y el modelo corre SIEMPRE en
+la máquina del panel. Se BORRA antes de devolver (`skip_serializing` +
+limpieza explícita): a localStorage solo van tramos y ahorro. El ahorro usa
+el MÁXIMO CORRIDO del `cache_read` en las fronteras y se acota con el del
+turno — con el valor del instante, añadir una frontera BAJABA el ahorro en
+sesiones con rupturas de caché. Caché `inflate_topics.json` por
+origen|sesión|turnos|mensajes y presupuesto duro de 25 s.
+
 **Análisis local (IA)** — TODAS las reglas en `docs/analisis-local.md`,
 LEERLO (llama-server bajo demanda que se MATA al terminar; embeddings
 `ai_emb_verdict` ANTES del 2B con umbrales `EMB_NEW`/`EMB_CROSS`
@@ -534,12 +550,7 @@ FOTO COMPLETA: bitácora §"cierre 2026-08-08/09" y §"2026-08-17 (18)".
       emb_debug.txt).
 - [ ] HUB + RANGOS DE FECHA: NO sin una SEGUNDA máquina con MichiClaude
       (`docs/hub-modo-equipo.md` §"Rangos de fecha").
-- [ ] ANÁLISIS LOCAL ETAPA 3 (diseñada, APARCADA; analisis-local.md
-      §"Etapa 3" — LEERLO antes de tocar): TEMAS sobre `inflate` —
-      embeddings (nunca el 2B) parten la sesión en tramos y CALCULAN el
-      ahorro por frontera; capa ADITIVA sobre el hallazgo (fndKey intacto,
-      fail-quiet); local/WSL primero, VPS manda `umsgs` por SSH y el
-      Windows embebe (el modelo no va al VPS).
+
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito. NO:
   rastrear otras herramientas, BD de historial, modo equipo.
 
