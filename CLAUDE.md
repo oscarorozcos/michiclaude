@@ -533,10 +533,12 @@ presion-y-rendimiento §"Qué queda vivo".
       A LA VISTA, una vez por sesión, cualquier toque para; el AUTOMÁTICO
       espera el veredicto del análisis (`aiPending`); michi.exe viaja en
       el instalador SIN tocar el workflow (invariante #9).
-- [ ] RUTEO INTELIGENTE (etapas 0-6; TODAS las reglas vigentes en
-      `docs/ruteo-inteligente.md` §10-11 — LEERLO antes de tocar).
-      ETAPAS 0-5 HECHAS (0-2 validadas en vivo VPS+Windows; 3-5 el
-      2026-08-17, la 5 ADELANTADA por Oscar: es el error caro). Piezas:
+- [x] RUTEO INTELIGENTE — CERRADO 2026-08-17 (etapas 0-5c; TODAS las
+      reglas vigentes en `docs/ruteo-inteligente.md` §10-11 y
+      remediacion.md §"La ÚNICA ampliación" — LEERLO antes de tocar). En
+      VALIDACIÓN PASIVA con el uso: falta ver nacer el consejero (cuota
+      ≥70), la corrida en WSL y la terminal de Windows nativo (ConPTY,
+      michi.exe). Etapa 6 (v2) cuando haya días de datos. Piezas:
       nota `router_state.json` (local+WSL+SSH; apagado = no se escribe;
       >10 min = ausente; lleva `guard`/`ctx`/`esc`); Hook B `router-hook.py/
       .ps1` (exploración→haiku, implementación→sonnet, análisis baja solo
@@ -556,7 +558,7 @@ presion-y-rendimiento §"Qué queda vivo".
       5c `rs` (exige esc): el relevo reenvía el prompt (`then`, jamás
       persistido) — chat: mensaje JSON; terminal: `type_model` (Enter al
       diálogo + RESTAURAR el default que /model guarda) y `type_paste`.
-      Validados en vivo. FALTA: cargo check relevo/, .ps1, consejero, WSL.
+      Validados en vivo; cargo check limpio en Windows (2026-08-17).
 - APUESTA #2 sin arrancar: tarjeta semanal compartible del gatito. NO:
   rastrear otras herramientas, BD de historial, modo equipo.
 

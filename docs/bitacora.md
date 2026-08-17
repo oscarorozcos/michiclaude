@@ -3782,3 +3782,23 @@ dev; probar en una TERMINAL de Windows (`michi claude` o el alias),
 sesión Sonnet, prompt pesado y no tocar nada — debe frenar, cambiar a
 Opus, reenviar y responder en Opus, con el default de settings.json
 intacto (mirar `~/.claude/settings.json` antes y después).
+
+## 2026-08-17 (18) — cierre del ruteo inteligente (etapas 0-5c)
+
+QUÉ: se da por CERRADO el bloque de construcción del ruteo. Cargo check
+limpio en Windows de todo lo del día (relevo/ y src-tauri, con
+`Compiling` en el dev). Estado: nota + Hook B (subagentes → Haiku/
+Sonnet, validado en VPS, Windows y desde el chat de Oscar), medición en
+Reporte, consejero (motor + tarjeta + set_default_model), guardián
+(freno, insistencia, ~, contexto), escalar solo (chat y terminal, con
+la coreografía del /model), reenviar por mí (chat y terminal), registro
+visible y globo. Aclarado con Oscar: los subagentes NO necesitan
+guardián ni escalada porque nacen ya con el modelo correcto — son lo
+más automático del sistema.
+
+QUÉ QUEDA (validación PASIVA, con el uso — nada que programar): ver
+nacer el consejero (cuota ≥70 + sesión de consultas en Opus/Fable), la
+corrida del Hook B en WSL, la terminal de Windows nativo (michi.exe
+por ConPTY: misma coreografía, sin probar aquí), y en unos días decidir
+la etapa 6 con los datos del Reporte. Cualquier rareza: registro del
+ruteo en Ajustes, `ruteo_log.jsonl` de la máquina y flowLog.
