@@ -3383,3 +3383,35 @@ pestaña.
 
 QUÉ QUEDA: esa prueba, dentro de la validación pasiva ya abierta. No abre
 pendientes nuevos.
+
+## 2026-08-17 (8) — cerrada la validación en vivo del relevo: el ruteo queda desbloqueado
+
+QUÉ: Oscar probó en vivo la cadena completa del `/clear` tecleado por él y
+salió entera. Con eso se da por CERRADO el bloque de validación pasiva que
+frenaba al ruteo inteligente. Se actualiza CLAUDE.md §"Estado / pendientes"
+en tres sitios: la validación pasiva anota qué quedó cerrado, el ruteo pasa
+de BLOQUEADO a EN CURSO, y la etapa 3 del análisis local queda desbloqueada
+pero APARCADA detrás del ruteo. Sin cambios de código.
+
+POR QUÉ: la etapa 1 del ruteo se paró a propósito el 2026-08-13 para no
+tocar la misma zona mientras los automáticos se probaban en vivo. Esa razón
+ya no existe.
+
+CÓMO SE VERIFICÓ: cuatro capturas de Oscar, una por eslabón. (1) Globo del
+gatito tras teclear `/clear` en la terminal del VPS: "/clear en michiclaude
+· VPS-EU — la conversación anterior quedó guardada. Clic para verla."
+(2) Clic en el globo: el visor abre la conversación BORRADA, no la recién
+nacida — vuelve a confirmar el arreglo del sid vivo (e2ca447). (3) Pestaña
+Ajustes, ya abierta y sin tocar nada: la fila nace sola arriba del registro,
+`16/08 08:37 p.m. · tú · tecleaste /clear en «michiclaude · VPS-EU»`, con su
+botón "ver la copia" — el repintado de 5422bf7 funcionando. (4) Ese botón
+abre el MISMO visor con la misma conversación, y debajo siguen en su sitio
+las filas `auto` del 13/08, ordenadas por `ts` desc. La fecha de la fila es
+hora LOCAL de Windows (UTC-6) contra un VPS en UTC: `17/08 02:37 UTC` =
+`16/08 08:37 p.m.` — cuadra, no es un desfase.
+
+QUÉ QUEDA: de la validación pasiva siguen abiertas las alarmas reales, el
+camino ntfy con la PC apagada, el aviso de hallazgos naciendo natural y el
+primer `via:emb` en sesión real al 80%. Ninguna frena al ruteo: no tocan
+`ai_emb_*` ni el relevo. Siguiente paso, etapa 1 de
+`docs/ruteo-inteligente.md` §10-11.
