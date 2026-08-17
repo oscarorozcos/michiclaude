@@ -433,8 +433,8 @@ Fallos a ntfy_debug.json sin bloquear nada.
 
 ## Modo HUB (multi-máquina)
 
-TERMINADO y verificado. Análisis en `docs/hub-modo-equipo.md` — LEERLO
-antes de tocarlo. Cada ciclo sube la foto LOCAL A SECAS (subir lo fusionado haría eco) a
+TERMINADO. Análisis en `docs/hub-modo-equipo.md` — LEERLO antes de
+tocarlo. Cada ciclo sube la foto LOCAL A SECAS (subir lo fusionado haría eco) a
 `~/.michiclaude/hosts/<máquina>.json` por SSH; identidad en
 `hub_identity.json`, guard por id EN el servidor (código 3 si otro id). UNA FOTO POR VENTANA (`HUB_WINDOWS` = 1/7/15/30, DEBE
 coincidir con el selector); quien lee no puede recortar un resumen
