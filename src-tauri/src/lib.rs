@@ -5775,7 +5775,10 @@ async fn read_handoff(name: String, origin: String) -> Result<String, String> {
 /// existía antes del /clear. La ruta se compone siempre aquí, contra las
 /// mismas raíces del coach (local + WSL) o por ssh con el sid validado.
 /// Solo lectura, tope 4 MB. Un sid corto (el de 8 chars de los hits del
-/// coach) se trata como "sin sid": jamás casaría un nombre de archivo.
+/// coach) se trata como "sin sid": jamás casaría un nombre de archivo. Y un
+/// sid que apunta a la sesión NACIDA con el /clear cae a la búsqueda por cwd
+/// (trampa del sid vivo, abajo): el sid llega bueno o llega el de la nueva,
+/// nunca el de otra conversación.
 #[tauri::command]
 async fn read_cleared(sid: String, cwd: String, ts: i64, origin: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
@@ -5881,24 +5884,61 @@ async fn read_cleared(sid: String, cwd: String, ts: i64, origin: String) -> Resu
                 roots.push(p.join("projects"));
             }
         }
+        // cabecera de un .jsonl: cwd y primer timestamp viven en las
+        // primeras líneas; 16 KB bastan y no cuesta abrir todo
+        fn head_of(fp: &std::path::Path) -> String {
+            let Ok(mut fh) = fs::File::open(fp) else {
+                return String::new();
+            };
+            let mut buf = vec![0u8; 16384];
+            let n = {
+                use std::io::Read as _;
+                fh.read(&mut buf).unwrap_or(0)
+            };
+            String::from_utf8_lossy(&buf[..n]).to_string()
+        }
+        // cuándo NACIÓ la sesión; i64::MAX = no se pudo saber
+        fn born_of(head: &str) -> i64 {
+            raw_str(head, "timestamp")
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
+                .map(|d| d.timestamp())
+                .unwrap_or(i64::MAX)
+        }
         // 1) con sid: el nombre del archivo ES el sid (regla de
         // session_jsonl del relevo: no se reproduce la transformación de
         // carpetas de Claude Code, se busca por nombre)
         if !sid.is_empty() {
-            for root in &roots {
+            let mut found: Option<PathBuf> = None;
+            'busca: for root in &roots {
                 let Ok(projs) = fs::read_dir(root) else { continue };
                 for proj in projs.flatten() {
                     let p = proj.path().join(format!("{sid}.jsonl"));
                     if p.is_file() {
-                        return fs::read_to_string(&p)
-                            .map(capped)
-                            .map_err(|_| "ERR_SESSION_GONE".to_string());
+                        found = Some(p);
+                        break 'busca;
                     }
                 }
             }
-            return Err("ERR_SESSION_GONE".to_string());
+            let Some(p) = found else {
+                return Err("ERR_SESSION_GONE".to_string());
+            };
+            // TRAMPA DEL SID VIVO (2026-08-17, autopsia en la bitácora): en
+            // el chat el relevo publica el sid de la sesión VIVA, y el
+            // /clear estrena sesión EN EL ACTO — para cuando el panel lee el
+            // estado, ese sid ya es el de la recién nacida. El visor
+            // prometía "aquí sigue tu conversación" y abría un archivo con
+            // un solo apunte: el propio /clear. Si el archivo del sid nació
+            // CON el /clear, se cae a la búsqueda por cwd — la misma que ya
+            // valida la terminal, y que descarta a la nueva por lo mismo.
+            let born = born_of(&head_of(&p));
+            if ts <= 0 || born == i64::MAX || born < ts - 30 {
+                return fs::read_to_string(&p)
+                    .map(capped)
+                    .map_err(|_| "ERR_SESSION_GONE".to_string());
+            }
         }
-        // 2) terminal (sin sid): candidata = sesión del MISMO cwd que calló
+        // 2) terminal (sin sid) — y el chat cuyo sid resultó ser el de la
+        // recién nacida: candidata = sesión del MISMO cwd que calló
         // justo antes del /clear (mtime <= ts+120 por relojes) y que ya
         // vivía de antes (primer timestamp < ts-30) — eso excluye a la
         // recién nacida del propio /clear, que también ronda ese minuto.
@@ -5933,25 +5973,12 @@ async fn read_cleared(sid: String, cwd: String, ts: i64, origin: String) -> Resu
                     if best.as_ref().is_some_and(|(m, _)| *m >= mtime) {
                         continue; // ya hay una más cercana al /clear
                     }
-                    // cabecera: cwd y primer timestamp viven en las
-                    // primeras líneas; 16 KB bastan y no cuesta abrir todo
-                    let Ok(fh) = fs::File::open(&fp) else { continue };
-                    let mut buf = vec![0u8; 16384];
-                    let n = {
-                        use std::io::Read as _;
-                        let mut fh = fh;
-                        fh.read(&mut buf).unwrap_or(0)
-                    };
-                    let head = String::from_utf8_lossy(&buf[..n]);
+                    let head = head_of(&fp);
                     let Some(c) = raw_str(&head, "cwd") else { continue };
                     if cwd_key(&c) != want {
                         continue;
                     }
-                    let born = raw_str(&head, "timestamp")
-                        .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                        .map(|d| d.timestamp())
-                        .unwrap_or(i64::MAX);
-                    if born >= ts - 30 {
+                    if born_of(&head) >= ts - 30 {
                         continue; // nació con (o después de) el /clear: es la nueva
                     }
                     best = Some((mtime, fp));

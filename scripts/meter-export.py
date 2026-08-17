@@ -536,12 +536,13 @@ def find_cleared(projects_dir, sid, cwd, ts):
 
     Réplica EXACTA de read_cleared() de lib.rs (invariante #1): con sid
     COMPLETO (>=36 chars, solo lo tiene el modo chat) casa por nombre de
-    archivo; sin él, por cwd normalizado + cercanía al momento del /clear,
-    excluyendo la sesión que NACIÓ con ese /clear (primer timestamp
-    < ts-30). Devuelve el texto o None. Solo lectura.
+    archivo —salvo que ESE archivo sea el de la sesión nacida con el /clear,
+    y entonces cae al camino de abajo—; sin él, por cwd normalizado +
+    cercanía al momento del /clear, excluyendo la sesión que NACIÓ con ese
+    /clear (primer timestamp < ts-30). Devuelve el texto o None. Solo lectura.
 
-    Existe para las sesiones de TERMINAL en un servidor SSH: ahí no hay sid
-    y el Windows no puede mirar el disco del servidor. Los datos llegan por
+    Existe para las sesiones de un servidor SSH: ahí el Windows no puede
+    mirar el disco del servidor. Los datos llegan por
     STDIN (nunca interpolados en el shell) igual que --prices-stdin."""
     CAP = 4_000_000
 
@@ -580,11 +581,22 @@ def find_cleared(projects_dir, sid, cwd, ts):
         return s[:CAP] + "\n… [recortado]" if len(s) > CAP else s
 
     if sid and len(sid) >= 36:
+        found = None
         for proj in sorted(projects_dir.glob("*")):
             fp = proj / (sid + ".jsonl")
             if fp.is_file():
-                return read_capped(fp)
-        return None
+                found = fp
+                break
+        if found is None:
+            return None
+        # TRAMPA DEL SID VIVO (2026-08-17) — ver read_cleared() de lib.rs: el
+        # relevo publica el sid de la sesión VIVA y el /clear estrena sesión
+        # en el acto, así que lo que llega suele ser el sid de la RECIÉN
+        # NACIDA. Si el archivo nació con el /clear, se cae a la búsqueda por
+        # cwd, la misma que ya valida la terminal.
+        born = parse_ts(raw_str(head_of(found), "timestamp") or "")
+        if ts <= 0 or born is None or int(born.timestamp()) < ts - 30:
+            return read_capped(found)
     want = cwd_key(cwd)
     if not want or ts <= 0:
         return None

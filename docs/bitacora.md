@@ -3258,3 +3258,48 @@ palabra "Ahora".
 QUÉ QUEDA: solo validación PASIVA con el uso (Oscar avisa si ve algo
 raro): /clear del chat con sid, automático con copia, WSL y VPS, y ver el
 refresco de la ficha en vivo. Y la poda grande de CLAUDE.md.
+
+## 2026-08-17 (5) — el globo post-/clear abría la conversación equivocada: la trampa del sid vivo
+
+QUÉ: dos arreglos en el visor de la sesión borrada. (1) La guarda del SID
+VIVO en `read_cleared` (Rust) y su réplica `find_cleared` (exportador,
+invariante #1): si el archivo del sid nació CON el /clear, se cae a la
+búsqueda por cwd. (2) `handRender` deja de pintar los envoltorios que
+Claude Code inyecta con rol user (misma lista que `user_turn_text`),
+recorta el `<system-reminder>` pegado al mensaje bueno y marca con 🖼 la
+captura sin texto. Reglas y porqués en `remediacion.md` §"La trampa del
+sid vivo".
+
+POR QUÉ: Oscar mandó una captura del visor con un único apunte,
+`<command-name>/clear</command-name>` en crudo, y lo dio por detalle
+estético. No lo era: el visor estaba abriendo la sesión RECIÉN NACIDA. En
+el chat el relevo publica el sid de la sesión VIVA y el /clear estrena
+sesión en el acto, así que el sid que llega al panel es el de la nueva; la
+rama del sid de `read_cleared` se fiaba de él a ciegas — la guarda del
+"nació con el /clear" existía SOLO en la rama de terminal, que es justo la
+única fila de la matriz que estaba validada en vivo. Prueba: el estado del
+relevo del VPS (`~/.michiclaude/relevo/2263534.json`) con
+`sid = e84443f4…` (nacida 01:47:57) y `user_cmd = /clear` del MISMO
+segundo, mientras la conversación borrada, `d35db79a…`, seguía intacta con
+815 KB. La captura engañaba porque TODA sesión nacida de un /clear empieza
+por ese mismo apunte: por arriba, el archivo bueno y el malo se ven
+idénticos. Se descartó el arreglo "más fino" (que el relevo publique el
+sid del instante del `user_cmd`): obliga a campo nuevo en los DOS relevos
+y deja rotos los ya instalados, mientras que la guarda arregla también a
+los viejos y no toca `relevo/`.
+
+CÓMO SE VERIFICÓ: exportador contra los .jsonl reales del VPS con las
+señas EXACTAS del fallo — `HEAD` devuelve `e84443f4…` (el bug), el
+arreglado devuelve `d35db79a…` completa (815 955 bytes). Batería de 8
+casos, 8/8, y el único que cambia de respuesta es el del bug (sid bueno
+con ts posterior, sid bueno sin momento, sid inexistente, sid corto,
+terminal sin sid, cwd falso, sin momento). `handRender` extraído del
+index.html y corrido en node contra dos conversaciones reales: 130→129 y
+72→71 apuntes, cae exactamente el del /clear, cero tripas en la salida y
+la captura marcada. NO verificado aquí: `cargo check` del cambio en Rust
+(el VPS no tiene toolchain) y el clic real en el globo — ambos quedan para
+el Windows de Oscar.
+
+QUÉ QUEDA: `cargo check` + la prueba en vivo del globo en el chat, que era
+justo el camino que la matriz daba por pendiente. Lo demás de la
+validación pasiva sigue igual.

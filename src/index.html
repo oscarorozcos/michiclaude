@@ -9853,6 +9853,15 @@ async function remLogLoad(){
 // dijo qué y qué herramientas corrieron; las .md (el /export de la
 // terminal) tal cual. El texto pasa por escapeHtml SIEMPRE: la copia es
 // contenido del usuario, no HTML.
+// Envoltorios que Claude Code o el IDE inyectan con rol user: un /comando,
+// la salida de un comando local, el <ide_…> de la extensión, un recordatorio
+// del sistema. No los dijiste tú, así que no se pintan — MISMA lista que
+// `user_turn_text` del backend (lib.rs), que ya los descarta para contar
+// turnos humanos. Sin esto la primera línea del visor era el propio
+// "<command-name>/clear</command-name>" en crudo (captura de Oscar,
+// 2026-08-17).
+const HAND_WRAP=["<command-","<local-command","<ide_","<system-reminder",
+  "[Request interrupted"];
 function handRender(name,txt){
   if(!name.endsWith(".jsonl")) return escapeHtml(txt);
   const out=[];
@@ -9862,9 +9871,18 @@ function handRender(name,txt){
     if(v.isMeta) continue;
     const m=v.message||{};
     if(v.type==="user"){
-      const tx=typeof m.content==="string"?m.content
-        :(m.content||[]).map(b=>b&&b.type==="text"?b.text:"").join(" ").trim();
-      if(tx) out.push("<b>· "+t("hand_you")+"</b>\n"+escapeHtml(tx));
+      const arr=Array.isArray(m.content)?m.content:[];
+      // bloque a bloque: un recordatorio del sistema viaja PEGADO al mensaje
+      // de verdad (bloque aparte o cola del mismo), y unirlo todo antes de
+      // mirar dejaría las tripas dentro
+      const tx=(typeof m.content==="string"?[m.content]
+        :arr.filter(b=>b&&b.type==="text").map(b=>String(b.text||"")))
+        .map(x=>x.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g,"").trim())
+        .filter(x=>x&&!HAND_WRAP.some(p=>x.startsWith(p))).join("\n");
+      // una captura pegada no tiene texto: que se vea que hubo algo
+      const img="🖼".repeat(arr.filter(b=>b&&b.type==="image").length);
+      const body=[tx&&escapeHtml(tx),img].filter(Boolean).join("\n");
+      if(body) out.push("<b>· "+t("hand_you")+"</b>\n"+body);
     }else if(v.type==="assistant"){
       for(const b of (m.content||[])){
         if(!b) continue;

@@ -1696,10 +1696,10 @@ hay que poner enfrente lo que ya se guarda. Tres hechos lo sostienen:
 | Origen | Globo | Visor |
 |---|---|---|
 | Windows terminal | sí (sondeo 5 s) | por cwd+ts — **VALIDADO EN VIVO** |
-| Windows chat (extensión) | sí | por sid |
+| Windows chat (extensión) | sí | por sid **con la guarda del sid vivo** (abajo) |
 | WSL terminal / chat | sí (compás del coach) | por cwd+ts / sid, raíces `wsl_claude_dirs` |
 | VPS (SSH) terminal | sí (compás del coach) | `--cleared-stdin` del exportador |
-| VPS (SSH) chat | sí | ídem (con sid) |
+| VPS (SSH) chat | sí | ídem — **VALIDADO** con datos reales (abajo) |
 
 El caso del VPS obligó a una pieza más: el Windows no puede mirar el disco
 del servidor, así que la BÚSQUEDA la hace allá el exportador
@@ -1718,6 +1718,42 @@ máquina — con WSL y el VPS en la lista, dos sesiones podían compartirlo y
 la segunda se daba por vista (sin globo y sin contar para el desbloqueo).
 La clave ahora es `origin#pid`, aceptando el sello viejo para no recontar
 lo ya contado al actualizar.
+
+### La trampa del sid vivo (2026-08-17) — REGLA
+
+**El `sid` que publica el relevo es el de la sesión VIVA, no el de la que
+acabas de borrar.** El `/clear` estrena sesión EN EL ACTO (Claude Code
+manda su `system` init con un `session_id` nuevo, y el relevo lo guarda:
+`main.rs` hilo 2 / `michi-relevo.py`), así que para cuando el panel lee el
+estado —milisegundos después— ese `sid` ya es el de la RECIÉN NACIDA. El
+visor abría entonces un archivo con un solo apunte, el propio `/clear`, y
+la conversación de verdad seguía intacta a su lado. Lo cazó Oscar con una
+captura el 2026-08-17; el estado del relevo del VPS lo prueba negro sobre
+blanco: `sid = e84443f4…` (nacida a las 01:47:57) con
+`user_cmd = /clear, user_cmd_ts = 01:47:57`, mientras la conversación
+borrada era `d35db79a…` (815 KB).
+
+Costó verlo porque la captura ENGAÑA: **toda** sesión nacida de un `/clear`
+empieza por ese mismo `<command-name>/clear</command-name>`, así que el
+archivo bueno y el malo se ven idénticos por arriba. Lo que decide es el
+estado del relevo, no la pantalla.
+
+La guarda (en `read_cleared` y en su réplica `find_cleared`, invariante #1):
+si el archivo del `sid` **nació con el /clear** (primer timestamp ≥ ts-30),
+se cae a la búsqueda por `cwd` — la misma que ya valida la terminal y que
+descarta a la nueva por ese mismo criterio. No se toca el relevo: capturar
+el sid en el instante del `user_cmd` sería más fino, pero obliga a campo
+nuevo en LOS DOS relevos y deja a los ya instalados con el fallo; la guarda
+arregla también a los viejos. Si no se puede saber cuándo nació (o no hay
+momento del /clear), manda el `sid`: el sid llega bueno o llega el de la
+nueva, nunca el de otra conversación.
+
+Y el visor NO pinta los envoltorios que Claude Code inyecta con rol user
+(`<command-`, `<local-command`, `<ide_`, `<system-reminder`,
+`[Request interrupted`): misma lista que `user_turn_text` del backend, que
+ya los descarta para contar turnos humanos. Un `<system-reminder>` pegado
+dentro del mensaje bueno se recorta aparte, y una captura sin texto se
+marca con 🖼 (sin diccionario: es un símbolo, no una palabra).
 
 ### Verificación
 
@@ -1765,3 +1801,17 @@ El cambio SSH COMPILA LIMPIO en Windows (Oscar, 2026-08-16, `Compiling
 michiclaude` → `Finished` en 34.86 s): la deuda de compilación de la pieza
 queda cerrada. PENDIENTE solo la validación en vivo de los caminos que
 faltan — chat (sid), automático con copia, WSL y VPS.
+
+**LA GUARDA DEL SID VIVO, PROBADA CONTRA EL CASO REAL (2026-08-17, VPS):**
+con las señas EXACTAS del fallo de Oscar (`sid` de la nacida, cwd del
+proyecto, ts del /clear), el exportador de `HEAD` devolvía `e84443f4…` (la
+nueva, la del bug) y el arreglado devuelve `d35db79a…` entera, 815 955
+bytes. Batería de 8 casos sobre los .jsonl reales, 8/8, y el ÚNICO que
+cambia de respuesta es el del bug: sid bueno con ts posterior, sid bueno
+sin momento (ts=0), sid inexistente → nada, sid corto → por cwd, terminal
+sin sid (regresión), cwd falso → nada, sin momento → nada. El visor
+(`handRender` extraído del index.html y corrido en node contra las dos
+conversaciones reales) pasa de 130 a 129 apuntes en una y de 72 a 71 en la
+otra —cae exactamente el apunte del `/clear`, cero tripas en la salida— y
+la captura pegada aparece marcada. `cargo check` del cambio en Rust:
+PENDIENTE en el Windows de Oscar (el VPS no tiene toolchain).
