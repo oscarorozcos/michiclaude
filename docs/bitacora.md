@@ -3643,3 +3643,23 @@ venir en Opus, el gatito debe haber sacado el globo «Frené tu prompt…
 subí la sesión a Opus», y el registro: «el guardián frenó… y subió la
 sesión a Opus». (4) Reporte: fila «N de esos se escalaron solos».
 Pendientes anteriores intactos (consejero en vivo, WSL, etapa 6).
+
+## 2026-08-17 (13) — la escalada validada en el chat de Oscar; el globo tenía compás de coach
+
+QUÉ: prueba en vivo de la etapa 5b en el chat Remote-SSH de Oscar
+(sesión Sonnet, prompt del `def suma`): freno 16:52:54 → el relevo
+tecleó `/model opus` a las 16:53:02 (8 s) → «Set model to Opus 5 for
+this session only» → el reenvío corrió en Opus (el selector del chat lo
+confirma). Registro: «el guardián frenó… y subió la sesión a Opus».
+Dos observaciones de Oscar: (1) el globo del gatito tardó minutos —
+estaba colgado del compás del coach (3 min en sesión recién abierta):
+ahora tiene sondeo PROPIO `rtEscSched` cada 12 s, solo con el guardián
+encendido. (2) Un «hola» posterior siguió en Opus: correcto y a
+propósito — `/model` es "for this session only"; MichiClaude solo SUBE
+(el error caro), bajar a media sesión es la mitad barata y ahí mandan el
+consejero (siguiente sesión) o el usuario. El propio Claude, por el
+contexto inyectado, sugirió «/model sonnet te sale mucho más barato».
+
+CÓMO SE VERIFICÓ: capturas de Oscar + log del VPS y acuse del relevo
+(esc-… ok a los 8 s). node --check del JS. QUÉ QUEDA: cargo check de
+5b en Windows (lib.rs y relevo/), consejero en vivo, WSL, etapa 6.

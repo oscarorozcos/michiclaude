@@ -9086,10 +9086,23 @@ async function rtEscBalloon(){
     if(!$("tab-prefs").hidden) rtLogLoad();
   }catch(_){}
 }
+// Sondeo PROPIO del globo, cada 12 s y solo con el guardián encendido: colgado
+// del compás del coach llegaba a los 3 min en una sesión recién abierta
+// (Oscar lo vio en vivo, 2026-08-17: la escalada tardó 8 s y el globo, minutos).
+let rtEscTimer=null;
+function rtEscSched(){
+  clearTimeout(rtEscTimer);
+  rtEscTimer=setTimeout(async ()=>{
+    try{
+      const c=await invoke("get_ruteo_cfg");
+      if(c&&c.on&&c.guard&&!simRunning) await rtEscBalloon();
+    }catch(_){}
+    rtEscSched();
+  },12000);
+}
 async function coachPoll(){
   if(!invoke) return;
   if(simFnd){ coachSched(); return; }   // simulación en curso: no la pises
-  rtEscBalloon();
   try{
     // las sesiones con relevo, al mismo compás: la tarjeta de intención dice
     // si ESTA sesión tiene relevo, y para eso la lista tiene que estar puesta
@@ -9236,6 +9249,7 @@ async function coachPoll(){
   coachSched();                      // el compás siguiente sale de lo visto
 }
 coachTimer=setTimeout(coachPoll,60*1000);  // el primer sondeo, tras la carga
+rtEscSched();                              // el globo de la escalada, a su compás
 
 // ---------- análisis local (IA) en la tarjeta de intención ----------
 // docs/analisis-local.md — LEERLO antes de tocar. SOLO llena el hueco
