@@ -200,6 +200,35 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 
 ---
 
+## Plan por fases (propuesta de Oscar, 2026-08-19)
+
+**Premisa que hay que tener clara:** dev y el exe son EL MISMO código —
+`npm run dev` y `npm run build` compilan el mismo `index.html` y el mismo
+`lib.rs`. No hay funcionalidades "en dev" pendientes de portar; el exe las
+lleva todas desde el primer día. Lo que hacía parecer dev más completo era
+el **simulador** (finge globos, contexto e intención con un clic) y **R6**
+(umbrales inalcanzables con techo de 1M).
+
+Lo que SÍ tiene sentido escalonar son los **interruptores**: con todo
+encendido a la vez, cuando algo sale raro no se sabe quién lo hizo. Orden
+propuesto, cada fase se cierra antes de abrir la siguiente:
+
+| Fase | Qué se enciende | Qué se valida | Requisito |
+|---|---|---|---|
+| 0 (hecha) | Lo que dispara solo | Ficha de caché, recibo, hallazgos, alarmas de cuota, consejero del ruteo | — |
+| 1 | *(arreglo antes que interruptor)* | **R6**: umbrales absolutos → se desbloquean presión, manómetro, tarjeta de intención y el ⚠ de fugas | Tanda de arreglos |
+| 2 | Automáticos (`/compact`, `/clear`) | Cuenta atrás que dice el comando, toque que la para, copia verificada, aterrizaje | Fase 1: sin presión no hay disparo |
+| 3 | Ruteo completo | Guardián que frena, escalado, reenvío, `/model` en ConPTY, bajada sola | Trabajar A PROPÓSITO en sonnet: en opus el guardián no tiene nada que frenar |
+| 4 | ntfy | Los 4 pushes y el invariante de privacidad | Canal nuevo si se comparte el topic |
+| 5 | Archivador y purga | Mover ≥365 d y borrar solo lo archivado | Hoy apagados a propósito |
+| 6 | HUB | Bloqueado | Segunda máquina |
+
+**Por qué la fase 1 va antes que ningún interruptor:** mientras R6 siga en
+pie, 15 filas del checklist no pueden validarse aunque se encienda todo —
+sus reglas no llegan a dispararse nunca.
+
+---
+
 ## El vigía (VPS) — para no tener que estar mirando
 
 `~/.michiclaude/vigia.py` — script propio de validación, **fuera del
