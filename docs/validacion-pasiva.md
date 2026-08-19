@@ -76,7 +76,12 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
 - [x] **Bombilla encendida en el gatito** con sesión con contexto.
       *2026-08-19: bombilla visible sobre la cápsula, cápsula desplazada
       hacia arriba (`body.hasidea`).*
-- [ ] Ficha de contexto al hacer hover en la bombilla (número + proyecto).
+- [x] **Ficha de contexto al hover en la bombilla**, en la MISMA ventana.
+      *2026-08-19: "7% Presión de contexto · michiclaude · VPS-EU ·
+      relevo" — trae número, proyecto, origen y la marca de que esa
+      sesión va por el relevo.*
+- [x] **Coherencia del manómetro**: el 7% de la bombilla es el mismo que
+      Ajustes enseña para `pid 4020410`. *2026-08-19.*
 - [ ] Arco de presión en la pastilla y número en `pcard`.
 - [ ] Techo por modelo correcto (`full` del hit) — verlo con un modelo de
       1M y con uno de 200k.
@@ -93,6 +98,9 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
 ## 7. Análisis local (IA)
 
 - [ ] Primer `via:emb` en sesión REAL al 80%.
+- [ ] **Primer auto-`/clear` por `tema_nuevo`** — interruptor
+      `relayClearAi` ENCENDIDO desde 2026-08-19 (visto en Ajustes), o
+      sea que la segunda razón ya está armada y solo falta que dispare.
 - [ ] Muestra natural suficiente antes de tocar `EMB_NEW`/`EMB_CROSS`.
 - [ ] `ai_intent` con veredicto unsure → insignia punteada propia.
 - [ ] Fail-quiet: sin GGUF se comporta exactamente como la v1.
@@ -108,15 +116,32 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
       "ver la copia" abre `HANDOFF-4122038-1787174044.JSONL · VPS-EU` con
       la conversación real dentro. *2026-08-19.* Es la pieza fail-closed
       del /clear automático.
-- [ ] "Aplicar" desde la ficha inyecta el comando en la sesión (verlo
-      llegar a la ventana de Claude Code).
+- [x] **Registro de acciones** con una fila por aplicación (fecha, si fue
+      `manual` o `auto`, en qué máquina) y **"ver la copia"** en cada
+      una. *2026-08-19: filas del 13, 16 y 19 de agosto, en «VPS-EU» y
+      «oscar».*
+- [x] **Compuerta de aprendizaje** cumplida en uso real: `/compact 2 de 2`
+      y `/clear 8 de 3`; los candados de los interruptores ya no se
+      enseñan. *2026-08-19.* (Ver rareza R1: el marcador sigue
+      prometiendo un desbloqueo que ya ocurrió.)
+- [x] **Lista de sesiones con relevo** en Ajustes: proyecto, máquina,
+      tipo (`chat`), pid, presión y estado `listo`, con su botón
+      "Aplicar /compact" por sesión. *2026-08-19: `michiclaude` pid
+      4020410 · 7% y `sparky-site` pid 4122038 · 4%.*
+- [~] "Aplicar" desde el panel inyecta el comando. *2026-08-19: el
+      registro anota 8 `/clear` manuales y las copias existen, así que
+      la cadena entera dejó rastro — falta ver con los ojos el comando
+      ATERRIZANDO en la ventana de Claude Code.*
 - [ ] Auto-`/compact` real con cuenta atrás de 15 s que DICE el comando.
-- [ ] Auto-`/clear` por Boundary, con widget a la vista y una sola vez
-      por sesión.
-- [ ] Auto-`/clear` por análisis local (`tema_nuevo`, `relayClearAi` ON).
+- [~] Auto-`/clear` automático: hay filas `auto` del 13/08 en el
+      registro, así que ya disparó solo alguna vez. Falta saber POR QUÉ
+      razón (Boundary vs `tema_nuevo`) — se ve en `rem_debug.json` /
+      flowLog — y ver uno en vivo con el widget a la vista.
 - [ ] Cualquier toque durante la cuenta atrás la para.
 - [ ] Archivador (≥365 d) mueve; la purga solo borra lo ya archivado.
-- [ ] El VPS **solo informa** (`--du`), nunca borra por SSH.
+- [x] **El VPS solo informa** (`--du`): "LOGS EN TUS SERVIDORES (SOLO
+      INFORMACIÓN) · VPS-EU · 124 archivos · 245 MB", sin botón de
+      borrar al lado. *2026-08-19.*
 
 ## 9. Ruteo inteligente
 
@@ -165,4 +190,21 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
 
 ## Rarezas / a revisar
 
-*(vacío por ahora — cada entrada: fecha, qué se vio, qué rastro mirar)*
+Cada entrada: fecha, qué se vio, qué rastro mirar, y si se arregló.
+
+### R1 · El marcador de desbloqueo no sabe que ya terminó — 2026-08-19
+
+**Qué se vio:** Ajustes enseña "Aplicado por ti: /compact 2 de 2 ·
+/clear 8 de 3 — el automático se desbloquea al completarlos", con los
+dos cupos ya cumplidos (y el `/clear` pasado de rosca).
+
+**Por qué pasa:** `rly_unlock` (index.html, las 8 traducciones) es una
+frase ÚNICA con la coletilla en futuro, y `remUi()` la pinta siempre con
+el contador crudo. Los candados `rlyAutoLock` / `rlyClearLock` sí se
+esconden bien al completarse — el fallo es solo el marcador.
+
+**Impacto:** cosmético, pero contradice a la propia UI: dice que falta
+algo que ya está hecho, y enseña "8 de 3".
+
+**Arreglo propuesto (sin hacer):** capar el contador a su tope y cambiar
+la coletilla a "desbloqueado" cuando ambos cupos estén completos.
