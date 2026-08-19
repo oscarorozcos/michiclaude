@@ -33,7 +33,7 @@ instalador, no `npm run dev`. Consecuencias:
 - Las sesiones observadas viven en el VPS y llegan por SSH; el panel
   corre en el Windows de Oscar.
 
-**Marcador (2026-08-19):** 84 filas — en Exe van **24 ✅**, 4 `~` y 56
+**Marcador (2026-08-19):** 85 filas — en Exe van **25 ✅**, 4 `~` y 56
 pendientes. En Dev hay ~40 ✅ y 15 🧪 (solo simulador): esas 15 son las
 que más ganan al confirmarse en el exe.
 
@@ -152,7 +152,8 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Guardián frena un prompt pesado en haiku/sonnet | ✅ (17/08 nº11) | ⬜ | |
 | Escalado por el relevo (`/model <alias>`) y reenvío (`then`) | ✅ (17/08 nº13-15) | ⬜ | |
 | `/model` en **terminal ConPTY** (subir y bajar) | ✅ (17/08 nº17) | ⬜ | |
-| Consejero `light` en vivo con cuota ≥70 | ⬜ | ⬜ | |
+| Contexto inyectado (`ctx`): Claude sugiere bajar de modelo él solo | ✅ (17/08 nº11) | ✅ | **19/08**, chat de `sparky-site`: "Para implementar los pasos 1-4 ya no hace falta Opus… puedes bajar a Sonnet con /model y ahorrar cuota". Lo escribe el modelo del chat obedeciendo las dos líneas del hook — MichiClaude nunca escribe en la conversación. |
+| Consejero `light` en vivo con cuota ≥70 | ⬜ | ⬜ | Distinto de la fila de arriba: `light` es la regla del coach que alimenta la bajada sola, no el texto inyectado. |
 | Primer `think-top → fable` real con cuota <50 | ⬜ | ⬜ | |
 | Primera BAJADA SOLA real (8 ligeros + cuota ≥70) | ⬜ | ⬜ | |
 | Ruteo en **WSL** | ⬜ | ⬜ | |
