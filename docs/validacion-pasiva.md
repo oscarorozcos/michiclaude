@@ -37,6 +37,12 @@ instalador, no `npm run dev`. Consecuencias:
 pendientes. En Dev hay ~40 ✅ y 15 🧪 (solo simulador): esas 15 son las
 que más ganan al confirmarse en el exe.
 
+**Interruptores de Oscar (2026-08-19):** TODOS encendidos salvo *borrado
+automático* (purga) y *archivar logs*. Es decir: ruteo, guardián, escalar
+solo, reenviar, modelo top, bajar solo, auto-/compact, auto-/clear y el
+análisis local están puestos — si algo no dispara, la causa no es un
+interruptor apagado.
+
 Regla: nada se marca `✅` en la columna Exe por haberlo visto en el
 simulador ni por "debería funcionar". La evidencia va con fecha y una
 frase de qué se vio. Lo raro abre entrada en §Rarezas.
@@ -155,7 +161,7 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Contexto inyectado (`ctx`): Claude sugiere bajar de modelo él solo | ✅ (17/08 nº11) | ✅ | **19/08**, chat de `sparky-site`: "Para implementar los pasos 1-4 ya no hace falta Opus… puedes bajar a Sonnet con /model y ahorrar cuota". Lo escribe el modelo del chat obedeciendo las dos líneas del hook — MichiClaude nunca escribe en la conversación. |
 | Consejero `light` en vivo con cuota ≥70 | ⬜ | ⬜ | Distinto de la fila de arriba: `light` es la regla del coach que alimenta la bajada sola, no el texto inyectado. |
 | Primer `think-top → fable` real con cuota <50 | ⬜ | ⬜ | |
-| Primera BAJADA SOLA real (8 ligeros + cuota ≥70) | ⬜ | ⬜ | **19/08, revisado y NO es fallo**: con cuota al ~50% el hecho `light` se descarta en la compuerta (`LIGHT_QUOTA_PCT`=70 sobre el PEOR de sesión/semana, index.html:9359), así que no hay ni tarjeta ni cola. Además exige los CUATRO interruptores (ruteo + guardián + escalar solo + bajar solo, index.html:11594) y el último nace apagado. Se espera a que la semana suba del 70%. |
+| Primera BAJADA SOLA real (8 ligeros + cuota ≥70) | ⬜ | ⬜ | **19/08, revisado y NO es fallo**: con cuota al ~50% el hecho `light` se descarta en la compuerta (`LIGHT_QUOTA_PCT`=70 sobre el PEOR de sesión/semana, index.html:9359), así que no hay ni tarjeta ni cola. Además exige los CUATRO interruptores (ruteo + guardián + escalar solo + bajar solo, index.html:11594) y el último nace apagado — **confirmado el 19/08: los cuatro están puestos**. Se espera a que la semana suba del 70%. |
 | Ruteo en **WSL** | ⬜ | ⬜ | |
 | Medición `scan_ruteo`: lo que no casa no se factura | ✅ | ⬜ | |
 
@@ -191,6 +197,38 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
 | Todo el bloque HUB + rangos de fecha | ⬜ | ⬜ | **NO sin una segunda máquina con MichiClaude** (`hub-modo-equipo.md`). |
+
+---
+
+## El vigía (VPS) — para no tener que estar mirando
+
+`~/.michiclaude/vigia.py` — script propio de validación, **fuera del
+repo** (es herramienta personal, no producto). Lee cada 60 s los rastros
+que MichiClaude ya deja en el VPS y escribe en `~/.michiclaude/vigia.log`
+**solo cuando algo cambia**, con una línea "→ en el panel:" que dice qué
+debería haber pasado en la UI. No habla con la API, no toca los `.jsonl`
+de Claude Code y no gasta cuota: es lectura pura.
+
+| Comando | Para qué |
+|---|---|
+| `python3 ~/.michiclaude/vigia.py --now` | Foto del estado actual (panel, cuota, sesiones, relevos, hits). |
+| `python3 ~/.michiclaude/vigia.py --watch` | Bucle de 60 s (así corre en fondo). |
+| `cat ~/.michiclaude/vigia.log` | Lo que ha pasado desde que arrancó. |
+| `pkill -f "vigia.py --watch"` | Pararlo. |
+
+**Qué ve:** latido del panel y cuota (`router_state.json`), sesiones que
+mide el coach con turnos/contexto/pausa/costo (`coach_debug.json`), hits
+del motor, eventos del guardián (`ruteo_log.jsonl`), sesiones bajo relevo
+y sus acciones aplicadas (`relevo/*.json`, con el mismo `RELAY_FRESH`=15 s
+que la app) y las copias `/export` nuevas (`handoff/`).
+
+**Qué NO ve, y por tanto sigue necesitando ojo humano:** la UI (si salió
+la tarjeta, el globo, el post-it, qué dibujo tiene el gatito), las
+sesiones de Windows y WSL, y los debug del panel en AppData.
+
+**Trampa que ya mordió:** los umbrales están COPIADOS de la app
+(`CTX_INTENT`, `LIGHT_QUOTA`, `RELAY_FRESH`…). Si se cambian en el código
+y no aquí, el vigía anuncia cosas que el panel ya no hace.
 
 ---
 
