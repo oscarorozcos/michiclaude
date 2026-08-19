@@ -1472,6 +1472,17 @@
       <label class="cfg-row" style="cursor:pointer">
         <span data-i18n="fnd_badge_label"></span><input type="checkbox" id="fndBadgeChk">
       </label>
+      <!-- BITÁCORA PRO: la misma flowLog que graba siempre (también en
+           release), pero con botón propio y VISIBLE para el usuario. Nació
+           en la ronda de validación pasiva (2026-08-19): sin ella, un exe
+           que se porta raro no deja forma de saber qué se disparó y cuándo.
+           Se llama "PRO" a secas para que Oscar distinga de un vistazo la
+           del instalador de la 📜 de dev, que sigue en su fila. -->
+      <div class="cfg-row">
+        <span data-i18n="log_pro_label"></span>
+        <button id="logProBtn" data-i18n="log_pro_btn"></button>
+      </div>
+      <div id="logProMsg" style="font-size:10.5px;color:var(--txt-dim);margin:-4px 0 6px"></div>
       <!-- Simulador de estados del gatito: SOLO visible en compilaciones de
            desarrollo (is_dev). Nunca llega a un usuario, por eso es el único
            control cuyos textos no pasan por t(). -->
@@ -2265,6 +2276,10 @@ en:{
   when_hour:n=>`${n} h ago`,
   when_yday:"yesterday",
   fnd_badge_label:"Alert me on the widget (findings & tips)",
+  log_pro_label:"PRO log — what fired and when (Shift+click clears it)",
+  log_pro_btn:"Copy log",
+  log_pro_copied:n=>`copied · ${n} lines`,
+  log_pro_cleared:"log cleared",
   fnd_badge_tip:n=>`New findings: ${n}`,
   pill_style_label:"Widget style",
   pill_style_plain:"Pill",
@@ -2889,6 +2904,10 @@ es:{
   when_hour:n=>`hace ${n} h`,
   when_yday:"ayer",
   fnd_badge_label:"Avisarme en el widget (hallazgos y consejos)",
+  log_pro_label:"Bitácora PRO — qué se disparó y cuándo (Mayús+clic la vacía)",
+  log_pro_btn:"Copiar bitácora",
+  log_pro_copied:n=>`copiada · ${n} renglones`,
+  log_pro_cleared:"bitácora vaciada",
   fnd_badge_tip:n=>`Hallazgos nuevos: ${n}`,
   pill_style_label:"Estilo del widget",
   pill_style_plain:"Pastilla",
@@ -3513,6 +3532,10 @@ pt:{
   when_hour:n=>`há ${n} h`,
   when_yday:"ontem",
   fnd_badge_label:"Avisar-me no widget (achados e dicas)",
+  log_pro_label:"Registro PRO — o que disparou e quando (Shift+clique limpa)",
+  log_pro_btn:"Copiar registro",
+  log_pro_copied:n=>`copiado · ${n} linhas`,
+  log_pro_cleared:"registro limpo",
   fnd_badge_tip:n=>`Achados novos: ${n}`,
   pill_style_label:"Estilo do widget",
   pill_style_plain:"Pílula",
@@ -4137,6 +4160,10 @@ fr:{
   when_hour:n=>`il y a ${n} h`,
   when_yday:"hier",
   fnd_badge_label:"M'avertir sur le widget (constats et conseils)",
+  log_pro_label:"Journal PRO — ce qui s'est déclenché et quand (Maj+clic l'efface)",
+  log_pro_btn:"Copier le journal",
+  log_pro_copied:n=>`copié · ${n} lignes`,
+  log_pro_cleared:"journal effacé",
   fnd_badge_tip:n=>`Nouveaux constats : ${n}`,
   pill_style_label:"Style du widget",
   pill_style_plain:"Pastille",
@@ -4761,6 +4788,10 @@ de:{
   when_hour:n=>`vor ${n} Std.`,
   when_yday:"gestern",
   fnd_badge_label:"Am Widget hinweisen (Befunde und Tipps)",
+  log_pro_label:"PRO-Protokoll — was wann ausgelöst wurde (Umschalt+Klick leert es)",
+  log_pro_btn:"Protokoll kopieren",
+  log_pro_copied:n=>`kopiert · ${n} Zeilen`,
+  log_pro_cleared:"Protokoll geleert",
   fnd_badge_tip:n=>`Neue Befunde: ${n}`,
   pill_style_label:"Widget-Stil",
   pill_style_plain:"Pille",
@@ -5385,6 +5416,10 @@ ja:{
   when_hour:n=>`${n}時間前`,
   when_yday:"昨日",
   fnd_badge_label:"ウィジェットで知らせる（検出結果とヒント）",
+  log_pro_label:"PROログ — 何がいつ発火したか（Shift+クリックで消去）",
+  log_pro_btn:"ログをコピー",
+  log_pro_copied:n=>`コピーしました · ${n}行`,
+  log_pro_cleared:"ログを消去しました",
   fnd_badge_tip:n=>`新しい検出結果: ${n}件`,
   pill_style_label:"ウィジェットのスタイル",
   pill_style_plain:"ピル",
@@ -6009,6 +6044,10 @@ ko:{
   when_hour:n=>`${n}시간 전`,
   when_yday:"어제",
   fnd_badge_label:"위젯에서 알림 (발견 항목과 팁)",
+  log_pro_label:"PRO 로그 — 무엇이 언제 발동했는지 (Shift+클릭으로 지움)",
+  log_pro_btn:"로그 복사",
+  log_pro_copied:n=>`복사됨 · ${n}줄`,
+  log_pro_cleared:"로그를 지웠습니다",
   fnd_badge_tip:n=>`새 발견 항목: ${n}개`,
   pill_style_label:"위젯 스타일",
   pill_style_plain:"알약",
@@ -6633,6 +6672,10 @@ zh:{
   when_hour:n=>`${n} 小时前`,
   when_yday:"昨天",
   fnd_badge_label:"在小组件上提醒（发现与技巧）",
+  log_pro_label:"PRO 日志 — 什么在何时触发（Shift+点击清空）",
+  log_pro_btn:"复制日志",
+  log_pro_copied:n=>`已复制 · ${n} 行`,
+  log_pro_cleared:"日志已清空",
   fnd_badge_tip:n=>`新发现：${n} 项`,
   pill_style_label:"小组件样式",
   pill_style_plain:"药丸",
@@ -6967,6 +7010,7 @@ function applyI18n(){
   // que dejarlos en el idioma viejo (cazado por Oscar 2026-08-04 probando
   // ERR_BAD_PYTHON en alemán: la UI cambió y el error siguió en español)
   $("rMsg").textContent="";
+  $("logProMsg").textContent="";   // misma razón: transitorio, se quedaría en el idioma viejo
   // El menú del icono de bandeja lo construye Rust al arrancar y no puede
   // pasar por t(): el idioma vive aquí. Se lo mandamos ya traducido, al
   // cargar y en cada cambio de idioma (era el único texto que se quedaba
@@ -9643,6 +9687,24 @@ $("flowBtn").addEventListener("click", async e=>{
   try{ await navigator.clipboard.writeText(txt); }
   catch(_){ console.log(txt); }
   $("simMsg").textContent="bitácora copiada ("+a.length+" renglones)";
+});
+
+// 📒 BITÁCORA PRO: la misma bitácora, pero para el exe. Copia con el
+// portapapeles de Tauri (navigator.clipboard no es de fiar bajo la CSP de
+// release, invariante #3); Mayús+clic la vacía, igual que en dev.
+$("logProBtn").addEventListener("click", async e=>{
+  const msg=$("logProMsg");
+  if(e.shiftKey){
+    localStorage.removeItem("flowLog");
+    msg.textContent=t("log_pro_cleared");
+    return;
+  }
+  let a=[]; try{ a=JSON.parse(localStorage.getItem("flowLog")||"[]"); }catch(_){}
+  const txt=a.join("\n")||"(sin renglones)";
+  let ok=false;
+  try{ if(invoke){ await invoke("plugin:clipboard-manager|write_text",{text:txt}); ok=true; } }catch(_){}
+  if(!ok){ try{ await navigator.clipboard.writeText(txt); ok=true; }catch(_){} }
+  msg.textContent=t("log_pro_copied",a.length);
 });
 
 // ---------- pestañas: Principal / Fuentes de datos / Preferencias ----------
