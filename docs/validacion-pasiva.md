@@ -11,6 +11,19 @@ Leyenda:
 - `[~]` **parcial / raro** — se vio, pero con un pero anotado.
 - `[ ]` **pendiente** — todavía no ocurre en uso real.
 
+**CÓMO se está validando (2026-08-19):** Oscar usa el **instalador de
+release**, como usuario, no `npm run dev`. Consecuencias que hay que
+tener presentes al diagnosticar:
+
+- **No hay flowLog (📜) ni DevTools** — son de dev. Todo rastro tiene que
+  salir de `%APPDATA%\com.oscarorozco.michiclaude\` (`coach_debug.json`,
+  `rem_debug.json`, `emb_debug.txt`, `inflate_topics.json`,
+  `quota_debug.json`…). No pedir el flowLog.
+- **A favor**: lo que se ve bien aquí está probado CON la CSP de release
+  (invariante #3), que es donde suelen romperse los estilos.
+- Las sesiones observadas viven en el VPS y llegan por SSH; el panel
+  corre en el Windows de Oscar.
+
 Regla: nada se marca `[x]` por haberlo visto en el simulador ni por
 "debería funcionar". La evidencia va con fecha y una frase de qué se vio.
 Cuando algo sale raro se abre línea propia en §"Rarezas" con el rastro
@@ -20,7 +33,10 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
 
 ## 1. Cuota y alarmas
 
-- [ ] Alarma de sesión por umbral (chip configurado) con cuota real.
+- [x] **Alarma de sesión por umbral con cuota real**: globo "Sesión al
+      10% de tu límite de 5 h. · Reset en 3 h 36 min". *2026-08-19,
+      release.* Trae el porcentaje y la hora de reset, y el gatito pasa a
+      `cat-fire`.
 - [ ] Repetición cada 5 min hasta abrir el panel.
 - [ ] Varios umbrales cruzados de golpe → solo el más alto.
 - [ ] Alarma semanal al 100% (uno por ventana).
@@ -42,7 +58,10 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
 - [x] **Un hallazgo NACE natural** (sin simulador): post-it rojo con `2`
       en la tapa del gatito y badge rojo `2` en la pestaña Hallazgos,
       encendidos solos. *2026-08-19.*
-- [ ] "Leído" al clicar la tarjeta descuenta contador y post-it.
+- [x] **"Leído" al clicar descuenta contador y post-it**: tras leer los
+      dos hallazgos, el badge rojo de la pestaña y el post-it rojo del
+      gatito se apagaron, y el turquesa del coach siguió con su `1`.
+      *2026-08-19.*
 - [ ] Ignorar persiste; restaurar ignorados revive las no leídas.
 - [ ] Pasada ligera al cerrar una sesión (recibo) enciende el aviso.
 - [~] **Temas de `inflate` (etapa 3)**: *2026-08-19*, de dos tarjetas
@@ -67,6 +86,12 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
       (badge `1` sobre "Consejos"). *2026-08-19.*
 - [x] **Botonera de la ficha**: chip `/clear`, "Copiar comando",
       "Aplicar" y "ver la copia". *2026-08-19.*
+- [x] **"Copiar comando" copia de verdad**: el botón pasa a "Copiado ✓".
+      *2026-08-19, release* — o sea que `clipboard-manager|write_text`
+      invocado a pelo funciona en el build firmado.
+- [x] **Ficha caliente sobre la sesión LOCAL en curso**: la regla `cache`
+      disparó sobre «Validación de funcionalidades» (michiclaude ·
+      VPS-EU) mientras se hacía esta misma validación. *2026-08-19.*
 - [x] **Recibo `sum` al cerrar una sesión**, completo. *2026-08-19:
       «Imagen.webp a zorro-final-webp» · Resumen de la sesión ·
       sparky-site · VPS-EU · "1 min · 4 comandos · 1 archivos editados ·
@@ -75,8 +100,11 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
       `coach_leaks()` al cierre. (Ver rareza R2: el plural.)
 - [ ] Push `done` / `ask` al celular.
 - [ ] Tope diario de 10 fichas (con `sum` exento).
-- [ ] Ficha caliente que se REFRESCA sin renacer (misma sesión, conserva
-      born/min/v) — verlo cambiar el "Ahora:" sin saltar de sitio.
+- [~] Ficha caliente que se REFRESCA sin renacer: la de `cache` se vio
+      con "6 min de pausa" y antes con "7 min" en otra sesión — falta
+      verla cambiar el minutaje SIN saltar de sitio, en la misma tarjeta.
+- [x] **Contraer + leído**: al clicar el recibo se pliega a título +
+      subtítulo y deja de contar. *2026-08-19.*
 - [ ] Caducidad a 24 h.
 - [ ] Post-it turquesa del coach en el gatito y clic → panel en Consejos.
 
@@ -170,11 +198,15 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
 
 - [x] **Cápsula "Sesión X%" sobre el gatito con lectura real** (5%).
       *2026-08-19.*
-- [ ] Globo de alarma (`notif`): se queda hasta ✕ o abrir el panel, y no
-      vuelve.
+- [x] **Globo de alarma anclado al gatito**, con cola apuntando al
+      widget y su ✕. *2026-08-19, release* — y bien pintado, o sea que
+      la CSP de release no se comió los estilos de `notif.html`.
+- [ ] Que se quede hasta ✕ o abrir el panel, **y no vuelva**.
 - [ ] Hover lo esconde pero no cuenta como leído.
 - [ ] Cerrar el globo NO cambia el dibujo del gatito.
-- [ ] Estados por gravedad: `cat-zzz`, `cat-break`, `cat-fire`.
+- [~] Estados por gravedad: **`cat-fire` visto** con la alarma pendiente
+      de confirmar (llamas en la laptop). *2026-08-19.* Faltan `cat-zzz`
+      (semana al tope) y `cat-break` (sesión al tope).
 - [x] **Post-its con sus números, los dos a la vez**: rojo `2`
       (hallazgos) y turquesa `1` (coach) en la tapa, coherentes con los
       badges de las pestañas del panel. *2026-08-19.*
@@ -249,8 +281,9 @@ después, o si el presupuesto duro de 25 s se agotó, o si no había
 evidencia (`umsgs`/`crs`) suficiente, se queda sin capa. El fail-quiet
 es POR DISEÑO — lo que hay que confirmar es cuál de los tres fue.
 
-**Rastro:** `flowLog` (línea `fnd: temas listos en N sesión(es)`),
-`emb_debug.txt` y `inflate_topics.json`.
+**Rastro:** al estar en release NO hay flowLog. Queda `emb_debug.txt`,
+`emb_server.log` e `inflate_topics.json` en AppData: si el hallazgo
+fresco no aparece como clave en el caché, es que la pasada no lo vio.
 
 **Arreglo propuesto:** ninguno todavía — primero diagnóstico. Si resulta
 ser "el hallazgo nuevo llegó tarde", la pasada de temas debería
