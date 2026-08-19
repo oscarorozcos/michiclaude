@@ -202,6 +202,8 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
       widget y su ✕. *2026-08-19, release* — y bien pintado, o sea que
       la CSP de release no se comió los estilos de `notif.html`.
 - [ ] Que se quede hasta ✕ o abrir el panel, **y no vuelva**.
+- [ ] Con el widget puesto, ese aviso NO sale además como toast de
+      Windows (el toast es solo para quien no tiene widget).
 - [ ] Hover lo esconde pero no cuenta como leído.
 - [ ] Cerrar el globo NO cambia el dibujo del gatito.
 - [~] Estados por gravedad: **`cat-fire` visto** con la alarma pendiente
