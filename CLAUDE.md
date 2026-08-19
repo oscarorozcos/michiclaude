@@ -541,15 +541,13 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 
 FOTO COMPLETA: bitácora §"cierre 2026-08-08/09" y §"2026-08-17 (18)".
 
-- [ ] VALIDACIÓN PASIVA (con el uso): alarmas reales (umbral, 100%,
-      ventana nueva), camino ntfy completo (PC apagada), aviso de
-      hallazgos naciendo natural, ruteo (consejero en vivo con cuota ≥70,
-      primer `think-top → fable` real con cuota <50, primera BAJADA SOLA
-      real —8 ligeros + cuota ≥70—, `/model` en terminal ConPTY tanto
-      para subir como para bajar, WSL) y análisis local (primer `via:emb` en
-      sesión REAL al 80% y muestra natural antes de afinar umbrales;
-      cualquier rareza de clear/compact se revisa con flowLog +
-      emb_debug.txt).
+- [ ] VALIDACIÓN PASIVA (con el uso): checklist vivo en
+      `docs/validacion-pasiva.md` — se marca AHÍ, con evidencia y fecha,
+      y nada se da por bueno desde el simulador. Falta lo gordo: alarmas
+      reales, ntfy con la PC apagada, hallazgo naciendo natural, ruteo
+      (consejero en vivo, `think-top → fable`, bajada sola, `/model` en
+      ConPTY, WSL) y análisis local (primer `via:emb` real). Cualquier
+      rareza de clear/compact se revisa con flowLog + emb_debug.txt.
 - [ ] HUB + RANGOS DE FECHA: NO sin una SEGUNDA máquina con MichiClaude
       (`docs/hub-modo-equipo.md` §"Rangos de fecha").
 

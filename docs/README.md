@@ -18,6 +18,7 @@ discrepan, manda CLAUDE.md y hay que corregir el doc.
 | `presion-y-rendimiento.md` | Pestaña Reporte, `uturns`, histórico de cuota, marcas de arreglo, `waste`. |
 | `adr-multiharness-y-persistencia.md` | Integridad de las fuentes (las 4 piezas) y por qué NO hay SQLite ni otras herramientas. |
 | `avisos-ntfy.md` | Pushes al celular: privacidad, topic, programados, cómo probarlo. |
+| `validacion-pasiva.md` | Checklist vivo de lo que solo se valida USANDO la app: qué quedó probado en uso real, con qué evidencia y qué salió raro. |
 | `hub-modo-equipo.md` | Modo HUB multi-máquina y el diseño (bloqueado) de rangos de fecha. |
 | `ruteo-inteligente.md` | Ruteo de subagentes por modelo: etapa 0 hecha, plan 1-6 (bloqueado). |
 | `hallazgos-hooks-token-saving-michiclaude.md` | Análisis EXTERNO (2026-08-15) del ecosistema de hooks/plugins de ahorro de tokens y qué medir/recomendar desde MichiClaude. Leer su nota de encaje: trae supuestos que NO aplican (SQLite, daemon). |
