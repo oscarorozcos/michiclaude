@@ -109,7 +109,7 @@ Bloque entero **nunca validado, ni en dev** (pendiente histórico).
 | Ficha de contexto al hover, en la misma ventana | ✅ (11/08) | ✅ | **19/08**: "7% Presión de contexto · michiclaude · VPS-EU · relevo" — número, proyecto, origen y marca de relevo. |
 | Coherencia: el mismo % en la bombilla y en Ajustes | — | ✅ | **19/08**: 7% en las dos, para el `pid 4020410`. |
 | Arco en la pastilla y número en `pcard` | ? | ⬜ | Oscar usa el estilo gatito; requiere cambiar de estilo. |
-| Techo por modelo correcto (200k vs 1M) | ? | ⬜ | |
+| Techo por modelo correcto (200k vs 1M) | ? | ✅ | **19/08**: con `claude-opus-5` a 193k de contexto, la bombilla marcó **19%** — o sea techo de 1M, la regla "Opus y Sonnet saltaron a 1M en la 4.6" de `ctx_table()`. Prueba empírica de que acierta: la auto-compactación de Claude Code (~94%) habría entrado a 188k si el techo fuera 200k, y la sesión pasó de 185k a 197k sin compactar. |
 | `compact_boundary` deja "sin medida" hasta el turno siguiente | ✅ | ⬜ | Bug con autopsia en la bitácora: el manómetro mentía 10 min. |
 
 ## 6. Intención (contexto ≥80%)
@@ -245,9 +245,14 @@ compartir el topic, que es la contraseña del canal; se regenera después.
 comprueba que el contexto de esa sesión CAE; si en 10 min no bajó, lo
 anota como sospecha de que el comando no llegó.
 
-**Trampa que ya mordió:** los umbrales están COPIADOS de la app
-(`CTX_INTENT`, `LIGHT_QUOTA`, `RELAY_FRESH`…). Si se cambian en el código
-y no aquí, el vigía anuncia cosas que el panel ya no hace.
+**Trampa que YA mordió (2026-08-19):** los umbrales y tablas están
+COPIADOS de la app (`CTX_INTENT`, `LIGHT_QUOTA`, `RELAY_FRESH`,
+`ctx_table`…). El vigía nació con el techo de contexto clavado en 200k
+mientras la app daba 1M a `claude-opus-5`, y anunció un "93% de contexto,
+urgente" que era **falsa alarma**: eran 19%. Se arregló leyendo el modelo
+del transcript y replicando `ctx_table()`. Moraleja: cuando el vigía y el
+panel discrepen, **el sospechoso es el vigía** — la app tiene el dato de
+primera mano.
 
 ---
 
