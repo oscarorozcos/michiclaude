@@ -39,13 +39,18 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
 
 ## 3. Hallazgos (analizador de fugas)
 
-- [ ] Un hallazgo NACE natural (sin simulador): post-it rojo + campana +
-      contador encienden solos.
+- [x] **Un hallazgo NACE natural** (sin simulador): post-it rojo con `2`
+      en la tapa del gatito y badge rojo `2` en la pestaña Hallazgos,
+      encendidos solos. *2026-08-19.*
 - [ ] "Leído" al clicar la tarjeta descuenta contador y post-it.
 - [ ] Ignorar persiste; restaurar ignorados revive las no leídas.
 - [ ] Pasada ligera al cerrar una sesión (recibo) enciende el aviso.
-- [ ] Temas de `inflate` (etapa 3): tramos y ahorro pintados en la
-      tarjeta tras la segunda pasada, sin que Hallazgos espere al modelo.
+- [~] **Temas de `inflate` (etapa 3)**: *2026-08-19*, de dos tarjetas
+      `inflate` del mismo proyecto, UNA trae la capa semántica ("un solo
+      tema" pegado al costo, y el consejo correcto: «un solo tema, nada
+      más que muy largo → /compact, no /clear») y la otra —la más
+      fresca— cae al consejo genérico. Funciona; falta entender por qué
+      no llegó a la segunda. Ver rareza R3.
 - [ ] Marcas de arreglo (`fndHist`): un hallazgo de estado desaparece y
       sale como arreglado.
 
@@ -62,8 +67,12 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
       (badge `1` sobre "Consejos"). *2026-08-19.*
 - [x] **Botonera de la ficha**: chip `/clear`, "Copiar comando",
       "Aplicar" y "ver la copia". *2026-08-19.*
-- [ ] Recibo `sum` al cerrar una sesión (título AI, min/comandos/archivos,
-      `· ~$X` y ⚠ de fugas al cierre).
+- [x] **Recibo `sum` al cerrar una sesión**, completo. *2026-08-19:
+      «Imagen.webp a zorro-final-webp» · Resumen de la sesión ·
+      sparky-site · VPS-EU · "1 min · 4 comandos · 1 archivos editados ·
+      ~$0.48" y el ⚠ "cerró con 37k tokens de contexto — el caché venció
+      en la pausa".* Valida título AI, línea de hechos, `~$X` y
+      `coach_leaks()` al cierre. (Ver rareza R2: el plural.)
 - [ ] Push `done` / `ask` al celular.
 - [ ] Tope diario de 10 fichas (con `sum` exento).
 - [ ] Ficha caliente que se REFRESCA sin renacer (misma sesión, conserva
@@ -166,7 +175,9 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
 - [ ] Hover lo esconde pero no cuenta como leído.
 - [ ] Cerrar el globo NO cambia el dibujo del gatito.
 - [ ] Estados por gravedad: `cat-zzz`, `cat-break`, `cat-fire`.
-- [ ] Post-its (rojo hallazgos / turquesa coach) con sus números.
+- [x] **Post-its con sus números, los dos a la vez**: rojo `2`
+      (hallazgos) y turquesa `1` (coach) en la tapa, coherentes con los
+      badges de las pestañas del panel. *2026-08-19.*
 - [ ] Capa: el widget no se hunde tras usar otra app a pantalla completa.
 - [ ] Globo como popover con la pastilla (`body.cap`).
 
@@ -211,3 +222,50 @@ algo que ya está hecho, y enseña "8 de 3".
 
 **Arreglo propuesto (sin hacer):** capar el contador a su tope y cambiar
 la coletilla a "desbloqueado" cuando ambos cupos estén completos.
+
+### R2 · El recibo no distingue singular de plural — 2026-08-19
+
+**Qué se vio:** "1 min · 4 comandos · **1 archivos editados**".
+
+**Por qué pasa:** `tip_sum_line` es una plantilla plana sin concordancia.
+Afecta a 5 idiomas (ES/EN/PT/FR/DE: "1 commands", "1 files edited",
+"1 comandos"…). Los tres asiáticos usan contadores y están bien.
+
+**Impacto:** cosmético, pero es la tarjeta más visible del coach.
+
+**Arreglo propuesto (sin hacer):** concordancia por cantidad en las
+cinco plantillas afectadas (ya existe el patrón en `rly_auto_lock`).
+
+### R3 · Un `inflate` fresco se quedó sin capa de temas — 2026-08-19
+
+**Qué se vio:** dos tarjetas `inflate` de `michiclaude · VPS-EU`. La de
+hace 2 h trae "un solo tema" y el consejo bueno (/compact). La de hace
+6 min NO trae temas y cae al genérico «un /clear al cambiar de tema» —
+justo el consejo que la etapa 3 vino a evitar.
+
+**Por qué puede pasar (sin confirmar):** la segunda pasada
+(`fndTopicsLater`) corre UNA vez y repinta; si el hallazgo fresco nació
+después, o si el presupuesto duro de 25 s se agotó, o si no había
+evidencia (`umsgs`/`crs`) suficiente, se queda sin capa. El fail-quiet
+es POR DISEÑO — lo que hay que confirmar es cuál de los tres fue.
+
+**Rastro:** `flowLog` (línea `fnd: temas listos en N sesión(es)`),
+`emb_debug.txt` y `inflate_topics.json`.
+
+**Arreglo propuesto:** ninguno todavía — primero diagnóstico. Si resulta
+ser "el hallazgo nuevo llegó tarde", la pasada de temas debería
+re-lanzarse cuando aparece un `inflate` sin `topics`.
+
+### R4 · Dos `inflate` con exactamente 61k tok — 2026-08-19 (verificar)
+
+**Qué se vio:** las dos tarjetas de R3 marcan `61k tok` idénticos, con
+turnos y costos distintos (14 turnos/$0.49 y 20 turnos/$0.63), y la más
+NUEVA tiene MENOS turnos.
+
+**Qué comprobar:** que sean dos sesiones de verdad distintas y no el
+mismo hallazgo partido, y que el `value` de `inflate` sea el crecimiento
+de esa sesión y no un tope que las está aplanando a las dos.
+
+**Rastro:** `get_findings` crudo (sesión de cada tarjeta) y
+`scan_local_findings`.
+
