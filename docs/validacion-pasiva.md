@@ -347,3 +347,44 @@ que la TUI guarda (el mismo que `type_model` restaura) en vez de
 rendirse; o dejar constancia en el registro de que ese prompt no se pudo
 evaluar.
 
+### R6 · Con techo de 1M, media app se queda dormida — 2026-08-19 (GORDA)
+
+**Qué se vio:** Oscar, usando el exe con normalidad: "veo a michi muy
+tranquilo, en dev veía más movimiento". Cierto, y no es cosa suya.
+
+**Los números.** Las reglas de presión miden PORCENTAJE DEL TECHO
+(`COACH_CTX_PCT`=60, `INTENT_PCT`=80, manómetro 60/85). Con
+`claude-opus-5` el techo es 1M, así que hacen falta:
+
+| Regla | Umbral | Contexto necesario |
+|---|---|---|
+| Ficha "compacta" y ⚠ `ctx` de `coach_leaks` | 60% | 600k |
+| Tarjeta de intención, análisis local, auto-`/clear` | 80% | 800k |
+| Manómetro ámbar / rojo | 60 / 85 | 600k / 850k |
+
+Una sesión real de 197k va por ~$20. Llegar a 600k son horas y varias
+veces ese gasto: **en la práctica no se alcanza nunca**. Toda la capa de
+presión, intención y automáticos está apagada de hecho en los modelos de
+1M — que son los que Oscar usa a diario.
+
+**Lo que sí sigue vivo** (y por eso el coach no está mudo del todo): la
+ficha de caché (pausa ≥6 min con ctx ≥30k, umbral ABSOLUTO), `done`,
+`ask`, el recibo `sum`, los hallazgos, el consejero del ruteo y las
+alarmas de cuota. Justo las que se han visto disparar estos días.
+
+**Por qué se rompió:** medir en % del techo era un atajo válido cuando
+todos los modelos tenían 200k. Pero **el daño es ABSOLUTO, no relativo**:
+releer 200k de contexto cuesta lo mismo tenga el modelo 200k o 1M de
+techo. El dinero no sabe de porcentajes.
+
+**Arreglo propuesto (sin hacer, para la tanda):** que las reglas entren
+por **lo que ocurra ANTES** — el 60/80% del techo *o* un umbral absoluto
+(orden de 150k para compactar, 200k para intención). El techo sigue
+mandando en el DIBUJO del manómetro (es honesto: te queda mucho), pero
+no en CUÁNDO se avisa. Ojo: toca `press`, `coach_leaks`, la tarjeta de
+intención y las compuertas del automático — hay que revisarlas juntas, y
+el auto-`/clear` con especial cuidado.
+
+**Nota para la bitácora:** este es el hallazgo más valioso de la ronda de
+validación pasiva, y solo aparece USANDO la app. En dev estaba tapado por
+el simulador, que finge justo esos estados.
