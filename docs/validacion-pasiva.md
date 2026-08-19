@@ -216,16 +216,29 @@ propuesto, cada fase se cierra antes de abrir la siguiente:
 | Fase | Qué se enciende | Qué se valida | Requisito |
 |---|---|---|---|
 | 0 (hecha) | Lo que dispara solo | Ficha de caché, recibo, hallazgos, alarmas de cuota, consejero del ruteo | — |
-| 1 | *(arreglo antes que interruptor)* | **R6**: umbrales absolutos → se desbloquean presión, manómetro, tarjeta de intención y el ⚠ de fugas | Tanda de arreglos |
-| 2 | Automáticos (`/compact`, `/clear`) | Cuenta atrás que dice el comando, toque que la para, copia verificada, aterrizaje | Fase 1: sin presión no hay disparo |
-| 3 | Ruteo completo | Guardián que frena, escalado, reenvío, `/model` en ConPTY, bajada sola | Trabajar A PROPÓSITO en sonnet: en opus el guardián no tiene nada que frenar |
-| 4 | ntfy | Los 4 pushes y el invariante de privacidad | Canal nuevo si se comparte el topic |
-| 5 | Archivador y purga | Mover ≥365 d y borrar solo lo archivado | Hoy apagados a propósito |
-| 6 | HUB | Bloqueado | Segunda máquina |
+| 1 | **TODO apagado**, y de ahí uno a uno | Que cada interruptor haga solo lo suyo: con todo encendido no se sabe quién actuó | Ninguno |
+| 2 | Lo MANUAL de cada área | Aplicar `/compact` y `/clear` desde el panel, copiar comando, ver la copia, leer hallazgos | No necesita R6 |
+| 3 | *(arreglo, no interruptor)* | **R6**: umbrales absolutos → desbloquea presión, manómetro, intención y el ⚠ de fugas | Tanda de arreglos |
+| 4 | Los AUTOMÁTICOS | Cuenta atrás que dice el comando, toque que la para, copia verificada, aterrizaje | Fase 3: sin presión no hay disparo |
+| 5 | Ruteo completo | Guardián que frena, escalado, reenvío, `/model` en ConPTY, bajada sola | Trabajar A PROPÓSITO en sonnet: en opus el guardián no tiene nada que frenar |
+| 6 | ntfy | Los 4 pushes y el invariante de privacidad | Canal nuevo si se comparte el topic |
+| 7 | Archivador y purga | Mover ≥365 d y borrar solo lo archivado | Hoy apagados a propósito |
+| 8 | HUB | Bloqueado | Segunda máquina |
 
-**Por qué la fase 1 va antes que ningún interruptor:** mientras R6 siga en
-pie, 15 filas del checklist no pueden validarse aunque se encienda todo —
-sus reglas no llegan a dispararse nunca.
+**Manual antes que automático** (idea de Oscar, y encaja con el diseño: la
+propia app exige aplicaciones manuales antes de desbloquear el automático).
+Lo manual NO necesita R6: se aplica desde el panel a mano. R6 sí bloquea el
+automático — mientras siga en pie, esas reglas no llegan a dispararse.
+
+**AVISO al apagar el ruteo:** `save_router_state` no escribe la nota con el
+ruteo apagado, así que el vigía del VPS pierde el LATIDO del panel y la
+CUOTA (seguirá viendo sesiones, relevos y copias). Mientras dure esa fase,
+esos dos datos hay que mirarlos en el panel.
+
+**Bitácora PRO** (2026-08-19, commit 287b559): Ajustes tiene ya su botón
+propio para copiar la bitácora del flujo desde el exe — `flog()` grababa
+siempre, solo faltaba poder sacarla. Es la forma de que un "no salió X"
+llegue con datos. Exige recompilar en Windows.
 
 ---
 
