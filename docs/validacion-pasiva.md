@@ -319,8 +319,10 @@ esconden bien al completarse — el fallo es solo el marcador.
 **Impacto:** cosmético, pero contradice a la propia UI: dice que falta
 algo que ya está hecho, y enseña "8 de 3".
 
-**Arreglo propuesto (sin hacer):** capar el contador a su tope y cambiar
-la coletilla a "desbloqueado" cuando ambos cupos estén completos.
+**ARREGLADO (2026-08-19):** cumplidos los dos cupos, el marcador se
+esconde. Se descartó capar el número y añadir una frase de "desbloqueado":
+el marcador existe para VER que se acumula, y la señal de desbloqueo ya la
+dan los candados al desaparecer. Cero texto nuevo en 8 idiomas.
 
 ### R2 · El recibo no distingue singular de plural — 2026-08-19
 
@@ -332,8 +334,8 @@ Afecta a 5 idiomas (ES/EN/PT/FR/DE: "1 commands", "1 files edited",
 
 **Impacto:** cosmético, pero es la tarjeta más visible del coach.
 
-**Arreglo propuesto (sin hacer):** concordancia por cantidad en las
-cinco plantillas afectadas (ya existe el patrón en `rly_auto_lock`).
+**ARREGLADO (2026-08-19):** concordancia por cantidad en las cinco
+plantillas (EN/ES/PT/FR/DE); JA/KO/ZH usan contadores y ya estaban bien.
 
 ### R3 · Un `inflate` fresco se quedó sin capa de temas — 2026-08-19
 

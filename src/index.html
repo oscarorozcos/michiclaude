@@ -2266,7 +2266,7 @@ en:{
   tip_now_attach:(n,f)=>`Now: Claude read ${f?f+" ":""}${n} times in this session`,
   tip_now_shots:(n,f)=>`Now: Claude looked at ${n} screenshots${f?" ("+f+")":""} in this session`,
   tip_sum_t:"Session recap",
-  tip_sum_line:(m,c,e)=>`${m} min · ${c} commands · ${e} files edited`,
+  tip_sum_line:(m,c,e)=>`${m} min · ${c} command${c===1?"":"s"} · ${e} file${e===1?"":"s"} edited`,
   fnd_ignore:"Ignore",
   fnd_restore:n=>`Show the ${n} finding${n>1?"s":""} you hid`,
   fnd_turns:"turns",
@@ -2894,7 +2894,7 @@ es:{
   tip_now_attach:(n,f)=>`Ahora: Claude leyó ${f?f+" ":"el mismo archivo "}${n} veces en esta sesión`,
   tip_now_shots:(n,f)=>`Ahora: Claude miró ${n} capturas de pantalla${f?" ("+f+")":""} en esta sesión`,
   tip_sum_t:"Resumen de la sesión",
-  tip_sum_line:(m,c,e)=>`${m} min · ${c} comandos · ${e} archivos editados`,
+  tip_sum_line:(m,c,e)=>`${m} min · ${c} comando${c===1?"":"s"} · ${e} archivo${e===1?"":"s"} editado${e===1?"":"s"}`,
   fnd_ignore:"Ignorar",
   fnd_restore:n=>`Volver a mostrar ${n} hallazgo${n>1?"s":""} que ocultaste`,
   fnd_turns:"turnos",
@@ -3522,7 +3522,7 @@ pt:{
   tip_now_attach:(n,f)=>`Agora: o Claude leu ${f?f+" ":"o mesmo arquivo "}${n} vezes nesta sessão`,
   tip_now_shots:(n,f)=>`Agora: o Claude olhou ${n} capturas de tela${f?" ("+f+")":""} nesta sessão`,
   tip_sum_t:"Resumo da sessão",
-  tip_sum_line:(m,c,e)=>`${m} min · ${c} comandos · ${e} arquivos editados`,
+  tip_sum_line:(m,c,e)=>`${m} min · ${c} comando${c===1?"":"s"} · ${e} arquivo${e===1?"":"s"} editado${e===1?"":"s"}`,
   fnd_ignore:"Ignorar",
   fnd_restore:n=>`Mostrar de novo ${n} achado${n>1?"s":""} que você ocultou`,
   fnd_turns:"turnos",
@@ -4150,7 +4150,7 @@ fr:{
   tip_now_attach:(n,f)=>`Maintenant : Claude a lu ${f?f+" ":"le même fichier "}${n} fois dans cette session`,
   tip_now_shots:(n,f)=>`Maintenant : Claude a regardé ${n} captures d’écran${f?" ("+f+")":""} dans cette session`,
   tip_sum_t:"Résumé de la session",
-  tip_sum_line:(m,c,e)=>`${m} min · ${c} commandes · ${e} fichiers modifiés`,
+  tip_sum_line:(m,c,e)=>`${m} min · ${c} commande${c===1?"":"s"} · ${e} fichier${e===1?"":"s"} modifié${e===1?"":"s"}`,
   fnd_ignore:"Ignorer",
   fnd_restore:n=>`Réafficher ${n} constat${n>1?"s":""} que vous avez masqué${n>1?"s":""}`,
   fnd_turns:"tours",
@@ -4778,7 +4778,7 @@ de:{
   tip_now_attach:(n,f)=>`Jetzt: Claude hat ${f?f:"dieselbe Datei"} in dieser Sitzung ${n}-mal gelesen`,
   tip_now_shots:(n,f)=>`Jetzt: Claude hat in dieser Sitzung ${n} Screenshots${f?" ("+f+")":""} angesehen`,
   tip_sum_t:"Sitzungsüberblick",
-  tip_sum_line:(m,c,e)=>`${m} Min. · ${c} Befehle · ${e} Dateien bearbeitet`,
+  tip_sum_line:(m,c,e)=>`${m} Min. · ${c} ${c===1?"Befehl":"Befehle"} · ${e} ${e===1?"Datei":"Dateien"} bearbeitet`,
   fnd_ignore:"Ignorieren",
   fnd_restore:n=>`${n} ausgeblendete${n>1?" Befunde":"n Befund"} wieder anzeigen`,
   fnd_turns:"Züge",
@@ -10725,6 +10725,12 @@ function remUi(){
   const c=relayCount();
   $("rlyUnlock").textContent=t("rly_unlock",
     c["/compact"]||0, RELAY_UNLOCK["/compact"], c["/clear"]||0, RELAY_UNLOCK["/clear"]);
+  // el marcador existe para VER que se va acumulando; cumplidos los dos cupos
+  // ya no tiene nada que decir y su coletilla ("se desbloquea al
+  // completarlos") pasa a ser falsa — además enseñaba cosas como "8 de 3".
+  // Que desaparezcan los candados es la señal de desbloqueo (R1, 2026-08-19).
+  $("rlyUnlock").hidden = (c["/compact"]||0) >= RELAY_UNLOCK["/compact"]
+                       && (c["/clear"]||0)   >= RELAY_UNLOCK["/clear"];
   $("rlyAutoChk").checked=remOn("relay");
   // el candado solo se explica cuando el automático está PEDIDO y aún no
   // ganado; con el interruptor apagado no hay nada que aclarar
