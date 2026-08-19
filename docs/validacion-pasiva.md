@@ -155,7 +155,7 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Contexto inyectado (`ctx`): Claude sugiere bajar de modelo él solo | ✅ (17/08 nº11) | ✅ | **19/08**, chat de `sparky-site`: "Para implementar los pasos 1-4 ya no hace falta Opus… puedes bajar a Sonnet con /model y ahorrar cuota". Lo escribe el modelo del chat obedeciendo las dos líneas del hook — MichiClaude nunca escribe en la conversación. |
 | Consejero `light` en vivo con cuota ≥70 | ⬜ | ⬜ | Distinto de la fila de arriba: `light` es la regla del coach que alimenta la bajada sola, no el texto inyectado. |
 | Primer `think-top → fable` real con cuota <50 | ⬜ | ⬜ | |
-| Primera BAJADA SOLA real (8 ligeros + cuota ≥70) | ⬜ | ⬜ | |
+| Primera BAJADA SOLA real (8 ligeros + cuota ≥70) | ⬜ | ⬜ | **19/08, revisado y NO es fallo**: con cuota al ~50% el hecho `light` se descarta en la compuerta (`LIGHT_QUOTA_PCT`=70 sobre el PEOR de sesión/semana, index.html:9359), así que no hay ni tarjeta ni cola. Además exige los CUATRO interruptores (ruteo + guardián + escalar solo + bajar solo, index.html:11594) y el último nace apagado. Se espera a que la semana suba del 70%. |
 | Ruteo en **WSL** | ⬜ | ⬜ | |
 | Medición `scan_ruteo`: lo que no casa no se factura | ✅ | ⬜ | |
 
