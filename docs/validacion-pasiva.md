@@ -226,6 +226,25 @@ que la app) y las copias `/export` nuevas (`handoff/`).
 la tarjeta, el globo, el post-it, qué dibujo tiene el gatito), las
 sesiones de Windows y WSL, y los debug del panel en AppData.
 
+**Reparto del trabajo (de las 60 filas abiertas el 2026-08-19):**
+
+| Quién | Cuántas | Cuáles |
+|---|:--:|---|
+| El vigía, solo | 12 | Casi todo el **ruteo** (el hook corre en este servidor: Hook B, guardián, escalado con reenvío, `think-top`, bajada sola), el techo por modelo y `compact_boundary`. |
+| El vigía avisa → Oscar confirma de un vistazo | 15 | Alarma semanal al 100%, restablecimiento de ventana, tarjeta de intención al 80%, recibos, ficha que se refresca. |
+| Solo Oscar | 32 | Todo lo visual (globos, post-its, `cat-zzz`, tray, Reporte), lo de localStorage (Ignorar, tope diario, caducidad) y lo que pasa en Windows o WSL. |
+| Bloqueado | 1 | HUB: necesita segunda máquina. |
+
+**ntfy, si se quiere:** desde el VPS se puede `curl` el canal y ver los
+pushes llegar — cerraría las 4 filas Y verificaría el invariante de
+privacidad leyendo los payloads (que solo viajen % y horas). Cuesta
+compartir el topic, que es la contraseña del canal; se regenera después.
+
+**Prueba de aterrizaje:** el vigía no se conforma con que el relevo diga
+`ok` (eso solo prueba que lo tecleó). Tras un `/clear` o `/compact`
+comprueba que el contexto de esa sesión CAE; si en 10 min no bajó, lo
+anota como sospecha de que el comando no llegó.
+
 **Trampa que ya mordió:** los umbrales están COPIADOS de la app
 (`CTX_INTENT`, `LIGHT_QUOTA`, `RELAY_FRESH`…). Si se cambian en el código
 y no aquí, el vigía anuncia cosas que el panel ya no hace.
