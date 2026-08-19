@@ -191,6 +191,9 @@ que toca mirar (`docs/README.md` §"Dónde mirar cuando algo falla").
 ## Rarezas / a revisar
 
 Cada entrada: fecha, qué se vio, qué rastro mirar, y si se arregló.
+**Nada se arregla sobre la marcha**: las rarezas se acumulan aquí con su
+arreglo propuesto y se atacan en UNA tanda cuando Oscar lo diga (así la
+sesión de validación no se convierte en sesión de código a medias).
 
 ### R1 · El marcador de desbloqueo no sabe que ya terminó — 2026-08-19
 
