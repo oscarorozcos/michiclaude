@@ -322,3 +322,23 @@ de esa sesión y no un tope que las está aplanando a las dos.
 **Rastro:** `get_findings` crudo (sesión de cada tarjeta) y
 `scan_local_findings`.
 
+### R5 · El primer prompt de cada sesión escapa al guardián — 2026-08-19
+
+**Qué se vio:** en `ruteo_log.jsonl`, 16 de 159 eventos van con
+`model: null` — y **13 de ellos son el PRIMER prompt de su sesión**.
+Coincide con la línea que inyecta el hook: "Session model: unknown".
+
+**Por qué pasa:** el modelo se deduce del transcript, y en el primer
+prompt todavía no hay respuesta del asistente de la que sacarlo.
+
+**Impacto:** mientras el modelo es desconocido el guardián no puede
+decidir — ni frenar un prompt pesado ni escalar. O sea que abrir una
+sesión en haiku y pegar de entrada algo enorme pasa sin filtro. Es
+justo el momento en que más valdría. Bajo riesgo, pero es un agujero
+real y silencioso.
+
+**Arreglo posible (sin hacer):** con modelo desconocido, leer el default
+que la TUI guarda (el mismo que `type_model` restaura) en vez de
+rendirse; o dejar constancia en el registro de que ese prompt no se pudo
+evaluar.
+
