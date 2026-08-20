@@ -64,14 +64,18 @@ frase de qué se vio. Lo raro abre entrada en §Rarezas.
 
 ## 2. Avisos al celular (ntfy)
 
-Bloque entero **nunca validado, ni en dev** (pendiente histórico).
+**CORRECCIÓN 2026-08-20:** ntfy está ENCENDIDO y publicando — la bitácora
+PRO lo demuestra. Lo que sigue sin confirmarse es el último tramo: que el
+push **aparezca en el celular** (`push ok` solo dice que la publicación
+salió bien).
 
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
-| Push de umbral llega al celular | ⬜ | ⬜ | |
+| El panel publica el push de umbral | ⬜ | ✅ | Bitácora: `21:33:57 push ok: Sesión al 10% de tu límite de 5 h.` y varios más los días 12, 13 y 19. |
+| El push de umbral **se ve en el celular** | ⬜ | ⬜ | El único tramo que la bitácora no puede probar. |
 | 100%: aviso inmediato + "ya volvió" programado **con la PC apagada** | ⬜ | ⬜ | La pieza que de verdad prueba el diseño. |
-| Un push por ventana (no se repite) | ⬜ | ⬜ | |
-| Nombre de proyecto solo con la casilla `names` | ? | ⬜ | Privacidad: por ntfy solo van %, horas y conteos. |
+| Un push por ventana (no se repite) | ⬜ | ✅ | Bitácora: el globo se reemitió 3 veces a las 21:33-21:34 y hubo **un solo** `push ok`. La dedup aguanta aunque el globo insista (ver R7). |
+| Nombre de proyecto solo con la casilla `names` | ? | ~ | Los textos de la bitácora SÍ llevan proyecto (`Terminó tu sesión en sparky-site · VPS-EU`), o sea que la casilla está encendida. Falta leer un payload real para confirmar que no viaja nada más. |
 
 ## 3. Hallazgos (analizador de fugas)
 
@@ -96,9 +100,10 @@ Bloque entero **nunca validado, ni en dev** (pendiente histórico).
 | Recibo `sum` al cerrar (título AI, hechos, `~$X`, ⚠) | ? | ✅ | **19/08**: "1 min · 4 comandos · … · ~$0.48" + "⚠ cerró con 37k tokens de contexto — el caché venció en la pausa". Ver **R2**. |
 | Contraer una ficha y que deje de contar | ✅ | ✅ | **19/08**: el recibo se plegó a título + subtítulo. |
 | Ficha caliente que se REFRESCA sin renacer | ✅ (17/08 nº3) | ~ | Falta verla cambiar el minutaje sin saltar de sitio. |
-| Push `done` / `ask` al celular | ⬜ | ⬜ | Depende de ntfy (§2). |
+| Push `done` / `ask` publicados | ⬜ | ✅ | Bitácora: `push ok: Terminó tu sesión en michiclaude · VPS-EU · 7 min, 29 turnos` y `23:20:38 push ok: Claude espera tu aprobación en sparky-site · VPS-EU · 3 min`. Justo el `ask` de la herramienta colgada que se vio esa noche: el aviso SÍ salió. |
 | Tope diario de 10 fichas (`sum` exento) | ? | ⬜ | |
 | Caducidad a 24 h | ? | ⬜ | |
+| Compás adaptativo del coach (3 min ↔ 60 s ↔ rampa de 10 s) | ✅ | ✅ | Bitácora: `compás 180 s`, `compás 60 s (presión 8%)` y `21:50:09 compás 10 s (presión 8%, rampa)` — la rampa entra por SALTO de tokens, no por presión, y por eso funciona aunque R6 tenga dormido lo demás. |
 | Post-it turquesa → panel abierto en Consejos | 🧪 | ⬜ | El post-it se ve; falta clicarlo. |
 
 ## 5. Presión de contexto (`press`)
@@ -141,7 +146,7 @@ Bloque entero **nunca validado, ni en dev** (pendiente histórico).
 | Registro de acciones, una fila por aplicación | ✅ (17/08 nº6-7) | ✅ | **19/08**: filas del 13, 16 y 19 de agosto, `manual` y `auto`, en «VPS-EU» y «oscar». |
 | Compuerta de aprendizaje (manuales antes del automático) | ✅ | ✅ | **19/08**: `/compact 2 de 2` y `/clear 8 de 3`, candados ya ocultos. Ver **R1**. |
 | Lista de sesiones con relevo (pid, presión, `listo`) | ? | ✅ | **19/08**: `michiclaude` pid 4020410 · 7% y `sparky-site` pid 4122038 · 4%. |
-| "Aplicar" inyecta el comando en la sesión | ✅ (17/08) | ~ | El registro anota 8 `/clear` manuales y las copias existen; falta ver el comando ATERRIZANDO en la ventana. |
+| "Aplicar" inyecta el comando en la sesión | ✅ (17/08) | ✅ | La bitácora distingue las dos vías y las dos se ven: `relevo: /clear tecleado por el usuario en pid 3236` frente a `21:14:06 relevo: aplicado /clear en pid 4122038` — esta última es el botón del panel, y a esa misma hora nació `handoff-4122038-1787174044.jsonl`. |
 | Auto-`/compact` con cuenta atrás de 15 s que DICE el comando | ✅ (13/08 nº3) | ⬜ | |
 | Auto-`/clear` disparado solo | ✅ (13/08 nº5-7) | ~ | Hay filas `auto` del 13/08 en el registro; falta saber por qué razón y verlo en vivo. |
 | Cualquier toque para la cuenta atrás | ✅ | ⬜ | |
@@ -190,6 +195,7 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Presupuesto semanal contra los últimos 7 días | ✅ | ⬜ | |
 | Integridad: un `.jsonl` que encoge → "no comparable" | ✅ (15/08) | ⬜ | |
 | Multiidioma repinta TODO, incluido el menú del tray | ✅ | ⬜ | |
+| **Bitácora PRO**: botón visible en Ajustes que copia el flujo | — | ✅ | *2026-08-20*: "copiada · 300 renglones" y el contenido llegó entero. Con ella se cerró R3 en una sola pegada. |
 | Auto-updater: check al arrancar y globo de versión nueva | ✅ (12/08) | ⬜ | Se probó con un release REAL: es el único bloque que nació validado en exe. |
 
 ## 12. HUB (bloqueado)
@@ -337,7 +343,7 @@ Afecta a 5 idiomas (ES/EN/PT/FR/DE: "1 commands", "1 files edited",
 **ARREGLADO (2026-08-19):** concordancia por cantidad en las cinco
 plantillas (EN/ES/PT/FR/DE); JA/KO/ZH usan contadores y ya estaban bien.
 
-### R3 · Un `inflate` fresco se quedó sin capa de temas — 2026-08-19
+### R3 · Un `inflate` fresco se quedó sin capa de temas — CERRADA 2026-08-20
 
 **Qué se vio:** dos tarjetas `inflate` de `michiclaude · VPS-EU`. La de
 hace 2 h trae "un solo tema" y el consejo bueno (/compact). La de hace
@@ -354,9 +360,19 @@ es POR DISEÑO — lo que hay que confirmar es cuál de los tres fue.
 `emb_server.log` e `inflate_topics.json` en AppData: si el hallazgo
 fresco no aparece como clave en el caché, es que la pasada no lo vio.
 
-**Arreglo propuesto:** ninguno todavía — primero diagnóstico. Si resulta
-ser "el hallazgo nuevo llegó tarde", la pasada de temas debería
-re-lanzarse cuando aparece un `inflate` sin `topics`.
+**RESUELTO (2026-08-20) con la bitácora PRO.** La pasada corre en CADA
+escaneo y va llenando lo que le cabe: `19:24:52 temas listos en 1
+sesión(es)`, `21:29:33 en 1` con dos tarjetas en pantalla, y `00:39:16 en
+2 sesión(es)` con tres. O sea que la cobertura CRECE sola pasada a pasada
+— coherente con el presupuesto duro de 25 s y con el caché
+`inflate_topics.json`, que va acumulando. No es un fallo: es el
+presupuesto haciendo su trabajo, y el fail-quiet dejando el consejo
+genérico mientras tanto.
+
+**Lo único mejorable (no urgente):** mientras a una tarjeta le falta la
+capa, enseña el consejo genérico "un /clear al cambiar de tema", que
+puede ser el consejo MALO para esa sesión. Se podría callar el consejo
+hasta que haya veredicto, en vez de dar uno que quizá no toca.
 
 ### R4 · Dos `inflate` con exactamente 61k tok — 2026-08-19 (verificar)
 
@@ -432,3 +448,31 @@ el auto-`/clear` con especial cuidado.
 **Nota para la bitácora:** este es el hallazgo más valioso de la ronda de
 validación pasiva, y solo aparece USANDO la app. En dev estaba tapado por
 el simulador, que finge justo esos estados.
+
+### R7 · Una alarma, tres o cuatro globos — 2026-08-20 (verificar)
+
+**Qué se vio** en la bitácora PRO:
+
+```
+21:33:56 · globo alarm: Sesión al 10% de tu límite de 5 h.
+21:33:57 · push ok:     Sesión al 10% de tu límite de 5 h.
+21:34:09 · globo alarm: Sesión al 10% de tu límite de 5 h.
+21:34:12 · globo alarm: Sesión al 10% de tu límite de 5 h.
+```
+
+Tres renglones de globo en 16 segundos para UNA alarma. Se repite los
+días 12, 13 y 19 (dos o tres cada vez).
+
+**Lo que NO es:** no es la repetición cada 5 min (los intervalos son de
+segundos), y **no es spam al celular**: el `push ok` sale una sola vez,
+o sea que la dedup por ventana aguanta.
+
+**Sospecha:** cada vez que la ventana del globo se recarga emite
+`notif:ready` y el panel le reenvía el aviso — que es el comportamiento
+QUERIDO (esconder con hover no cuenta como leído), y `flog()` lo apunta
+otra vez. Si es eso, el ruido está en la bitácora, no en la pantalla.
+
+**Cómo distinguirlo:** mirar si en pantalla aparece un globo o varios.
+Si es uno solo, sobra el `flog` en la vía de restauración; si son
+varios, es un fallo de verdad.
+
