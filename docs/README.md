@@ -36,11 +36,11 @@ el rastro, después el código.
 |---|---|---|
 | Cuota mal, 429, buckets raros | `quota_debug.json` (respuesta cruda del endpoint) | AppData |
 | Histórico/Reporte "juntando datos" | `quota_history.json` (90 d, solo lecturas buenas) | AppData |
-| Coach: no salió ficha/aviso/recibo | `coach_debug.json` y luego `flowLog` (📜 en dev; localStorage, 300 líneas) | AppData / panel |
+| Coach: no salió ficha/aviso/recibo | `coach_debug.json` y luego la bitácora del flujo: **Ajustes → Bitácora PRO** en el exe, 📜 en dev (`flowLog`, localStorage, 300 líneas) | AppData / panel |
 | Coach en un servidor SSH | `~/.cache/michiclaude/coach_state.json` (reconstruible: borrarlo reinicia) | VPS |
 | Análisis local: veredicto raro | `ai_debug.txt` (2B), `emb_debug.txt` + `emb_server.log` (embeddings; el 2B pisa `ai_debug`) | AppData |
 | Relevo / auto-compact / auto-clear | `rem_debug.json` (app) y `wrap_debug.txt` (michi.exe, el que envuelve la sesión) | AppData |
-| Pastilla / gatito no se ven bien | no hay rastro propio: DevTools de la ventana (dev) y `flowLog`; si dev bien y build mal → CSP (invariante #3) | panel |
+| Pastilla / gatito no se ven bien | no hay rastro propio: DevTools de la ventana (dev) y la bitácora (PRO en el exe); si dev bien y build mal → CSP (invariante #3) | panel |
 | Panel dice "bajó el consumo" | `integrity.json` (archivos que encogieron o desaparecieron) | AppData |
 | Escaneo lento o cifras viejas | `scan_cache.json` (borrarlo fuerza re-parseo, nunca cambia el coste) | AppData |
 | Precio/techo con "~" | `prices_cache.json` (cascada LiteLLM→models.dev→OpenRouter, 24 h) | AppData |

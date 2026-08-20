@@ -433,8 +433,9 @@ principal LIMPIA pending_tool; los tool_use de subagentes no lo tocan.
 El nombre del proyecto va RESUELTO desde Rust (`pname`, cwd real). Aviso
 en widget: post-it turquesa / foco ámbar, campo `coach` en quota:update,
 mismo interruptor. El recibo NO manda push (su push fue el "terminó").
-Depurar "no llegó X": PRIMERO `coach_debug.json` y la bitácora `flowLog`
-(📜 en dev). coachHits queda SOLO para el simulador.
+Depurar "no llegó X": PRIMERO `coach_debug.json` y la bitácora del flujo
+(`flowLog`): **Ajustes → Bitácora PRO** en el exe (Mayús+clic la vacía),
+📜 en dev. coachHits queda SOLO para el simulador.
 
 **Compás adaptativo:** `coachPoll` se auto-agenda (`coachSched`) — 3 min
 en reposo, 60 s con sesión activa, 20 s ≥55%, 10 s ≥70% o salto ≥15k tok
@@ -541,13 +542,30 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 
 FOTO COMPLETA: bitácora §"cierre 2026-08-08/09" y §"2026-08-17 (18)".
 
+- [ ] **R6 — con techo de 1M media app duerme** (`docs/validacion-pasiva.md`
+      §Rarezas): las reglas de presión miden % del TECHO
+      (`COACH_CTX_PCT`=60, `INTENT_PCT`=80), y con `claude-opus-5` (1M)
+      eso son 600k/800k de contexto: NO se alcanzan nunca — medido, la
+      presión máxima real en 11 días fue 23%. Duermen manómetro, ficha de
+      compactar, tarjeta de intención, ⚠ `ctx` de fugas y los AUTOMÁTICOS.
+      Siguen vivas las reglas de umbral ABSOLUTO (caché, done, ask, sum).
+      El daño de un contexto grande es absoluto, no relativo: releer 200k
+      cuesta igual con techo de 200k que de 1M. Arreglo propuesto: entrar
+      por lo que ocurra ANTES, % del techo o absoluto (~150k compactar,
+      ~200k intención); el techo sigue mandando en el DIBUJO. Toca `press`,
+      `coach_leaks`, intención y las compuertas del automático — revisarlas
+      juntas y el auto-`/clear` con lupa.
 - [ ] VALIDACIÓN PASIVA (con el uso): checklist vivo en
       `docs/validacion-pasiva.md` — se marca AHÍ, con evidencia y fecha,
       y nada se da por bueno desde el simulador. Falta lo gordo: alarmas
       reales, ntfy con la PC apagada, hallazgo naciendo natural, ruteo
       (consejero en vivo, `think-top → fable`, bajada sola, `/model` en
       ConPTY, WSL) y análisis local (primer `via:emb` real). Cualquier
-      rareza de clear/compact se revisa con flowLog + emb_debug.txt.
+      rareza de clear/compact se revisa con la Bitácora PRO +
+      emb_debug.txt. Plan por fases acordado (apagar todo → manual → R6 →
+      automáticos → ruteo → ntfy → purga → HUB) y VIGÍA en el VPS
+      (`~/.michiclaude/vigia.py`, fuera del repo) que anota los cambios de
+      los rastros sin gastar cuota.
 - [ ] HUB + RANGOS DE FECHA: NO sin una SEGUNDA máquina con MichiClaude
       (`docs/hub-modo-equipo.md` §"Rangos de fecha").
 

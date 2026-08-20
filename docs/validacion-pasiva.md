@@ -33,9 +33,10 @@ instalador, no `npm run dev`. Consecuencias:
 - Las sesiones observadas viven en el VPS y llegan por SSH; el panel
   corre en el Windows de Oscar.
 
-**Marcador (2026-08-19):** 85 filas — en Exe van **25 ✅**, 4 `~` y 56
-pendientes. En Dev hay ~40 ✅ y 15 🧪 (solo simulador): esas 15 son las
-que más ganan al confirmarse en el exe.
+**Marcador (2026-08-20, cierre de la 1.ª jornada):** 88 filas — en Exe van
+**32 ✅**, 4 `~` y 52 pendientes. En Dev hay ~40 ✅ y 15 🧪 (solo
+simulador): esas 15 son las que más ganan al confirmarse en el exe, y en
+esta ronda cayeron seis de ellas.
 
 **Interruptores de Oscar (2026-08-19):** TODOS encendidos salvo *borrado
 automático* (purga) y *archivar logs*. Es decir: ruteo, guardián, escalar

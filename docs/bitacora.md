@@ -3994,3 +3994,90 @@ día cazado verificando: la función usaba `$("tab-fnd")`, id que NO EXISTE
 (es `tab-findings`) — un repintado que nunca habría ocurrido. Se comprobó
 con un barrido de TODOS los `$("…")` del archivo contra los `id=`
 declarados: ninguno huérfano.
+
+## 2026-08-19 (y madrugada del 20) — arranca la validación pasiva CON EL EXE: nace el checklist dev/release, el vigía y R6
+
+QUÉ:
+
+- **`docs/validacion-pasiva.md`**, checklist vivo a DOS COLUMNAS (Dev /
+  Exe) con 88 filas en 12 áreas. Cada fila dice qué se probó en desarrollo
+  —distinguiendo `✅` en vivo de `🧪` solo simulador— y qué se ha
+  confirmado ya con el instalador. Al cierre: **32 ✅ en Exe**, 4 a medias,
+  52 pendientes.
+- **Bitácora PRO** (`feat`, commit 287b559): fila propia en Ajustes que
+  copia `flowLog` desde el exe. `flog()` ya grababa siempre en release; lo
+  único escondido era el botón 📜, que vive en la fila del simulador.
+  Copia por el portapapeles de Tauri (bajo la CSP de release
+  `navigator.clipboard` no es de fiar), Mayús+clic la vacía, 8 idiomas.
+- **R1 y R2 arreglados** (commit cfbe369): el marcador de desbloqueo se
+  esconde al cumplirse los cupos (enseñaba "/clear 8 de 3" y prometía un
+  desbloqueo ya ocurrido) y el recibo concuerda en plural ("1 archivo
+  editado"). En R1 se DESCARTÓ capar el número y añadir una frase nueva en
+  8 idiomas: la señal de desbloqueo ya la dan los candados al irse.
+- **Vigía** (`~/.michiclaude/vigia.py`, FUERA del repo por ser herramienta
+  personal): lee cada 60 s los rastros del VPS (`router_state.json`,
+  `coach_debug.json`, `ruteo_log.jsonl`, `relevo/*.json`, `handoff/`) y
+  anota en `vigia.log` solo lo que cambia, con una línea "→ en el panel:"
+  que dice qué debería verse. No habla con la API: cero cuota.
+- **Plan por fases** acordado con Oscar: apagar TODOS los interruptores y
+  encenderlos de uno en uno, lo manual antes que lo automático.
+
+POR QUÉ:
+
+- Oscar empezó a usar el instalador como usuario y a mandar capturas; sin
+  un sitio donde marcarlas, las validaciones se perdían. El doc nació de
+  ahí y la separación dev/exe la pidió él para poder CASAR una con otra.
+- La bitácora PRO nació de un atasco real: R3 no se podía diagnosticar
+  porque el flowLog es de dev y los debug del panel viven en el AppData de
+  Windows, que desde el VPS no se ve.
+- El plan por fases salió de una premisa equivocada de Oscar ("integrar
+  poco a poco lo de dev al exe") que hubo que corregir: dev y el exe son
+  EL MISMO código. Lo que sí tenía sentido escalonar eran los
+  interruptores, y el criterio "manual antes que automático" coincide con
+  el que la app ya aplica en su compuerta de aprendizaje.
+
+CÓMO SE VERIFICÓ (todo en release, sin simulador):
+
+- Cayeron por primera vez fuera de dev: **la alarma real** ("Sesión al 10%
+  · Reset en 3 h 36 min" con `cat-fire`), el globo anclado, los post-its
+  rojo y turquesa a la vez cuadrando con los badges, el hallazgo naciendo
+  solo, el recibo `sum` completo, la ficha del coach sobre una sesión
+  REMOTA por SSH, "Copiar comando" → "Copiado ✓", y la ficha de contexto
+  al hover con origen y marca de relevo.
+- El **contexto inyectado del ruteo** se vio funcionando en un chat real:
+  el Claude de `sparky-site` sugirió bajar a Sonnet por su cuenta. Se
+  anotó separado del consejero `light`, que es otra pieza.
+- La **bitácora PRO** cerró R3 en una pegada: la capa de temas va
+  llenándose pasada a pasada (`temas listos en 1 sesión(es)` con dos
+  tarjetas, `en 2` con tres más tarde) — es el presupuesto de 25 s
+  trabajando, no un fallo. Y demostró que **ntfy publica** (umbral, "terminó"
+  y el `ask` de la herramienta colgada), que "Aplicar" del panel se
+  distingue de lo tecleado a mano (`aplicado /clear en pid 4122038` + su
+  copia a la misma hora) y que el compás llega a la rampa de 10 s.
+
+DOS ERRORES PROPIOS, con su autopsia:
+
+1. **Falsa alarma del 93%.** El vigía nació con el techo de contexto
+   clavado en 200k mientras la app da 1M a `claude-opus-5`; anunció "93%,
+   urgente" cuando eran 19%. Prueba de que la app acertaba: la
+   auto-compactación de Claude Code (~94%) habría entrado a 188k y la
+   sesión pasó de 185k a 197k sin compactar. Regla que queda: **cuando el
+   vigía y el panel discrepen, el sospechoso es el vigía** — él trabaja con
+   una COPIA de las reglas (`ctx_table`, umbrales) y la app tiene el dato
+   de primera mano.
+2. **"Con ntfy apagado no te enteraste"** — dicho sin comprobarlo. La
+   bitácora enseñó el `push ok` del `ask`. Estaba encendido.
+
+QUÉ QUEDA:
+
+- **R6, el hallazgo de la jornada** (ya en CLAUDE.md §Estado): las reglas
+  de presión miden % del techo, y con 1M eso son 600k/800k de contexto —
+  inalcanzables. La presión máxima medida en 11 días de bitácora fue
+  **23%**. Duermen manómetro, ficha de compactar, tarjeta de intención, el
+  ⚠ `ctx` de fugas y TODOS los automáticos; siguen vivas las reglas de
+  umbral absoluto. Solo se ve USANDO la app: en dev lo tapaba el simulador.
+- R4 (dos `inflate` con 61k tok idénticos), R5 (el primer prompt de cada
+  sesión va sin modelo, así que escapa al guardián) y R7 (una alarma deja
+  3-4 renglones de globo, con un solo push: falta ver si en pantalla sale
+  uno o varios).
+- El plan por fases, sin arrancar. Fase 1 = apagar todo.
