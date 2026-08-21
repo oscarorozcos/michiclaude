@@ -197,6 +197,7 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Integridad: un `.jsonl` que encoge → "no comparable" | ✅ (15/08) | ⬜ | |
 | Multiidioma repinta TODO, incluido el menú del tray | ✅ | ⬜ | |
 | **Bitácora PRO**: botón visible en Ajustes que copia el flujo | — | ✅ | *2026-08-20*: "copiada · 300 renglones" y el contenido llegó entero. Con ella se cerró R3 en una sola pegada. |
+| **Gating v1**: bloques escondidos, Reporte "Próximamente", Mayús+clic alterna, tooltip cambia de idioma | — | ✅ | **21/08**, capturas de Oscar tras instalar el build 4c26726: Ajustes sin IA/remediación/ruteo/HUB, Reporte gris ("Coming soon" en inglés), y Mayús+clic en Acerca de devolviendo todo (relevo con sesiones "listo" incluido). La desinstalación con "borrar datos locales" hizo de prueba en limpio real: AppData vacía, localStorage del panel sobrevive (vive en WebView2). |
 | Auto-updater: check al arrancar y globo de versión nueva | ✅ (12/08) | ⬜ | Se probó con un release REAL: es el único bloque que nació validado en exe. |
 
 ## 12. HUB (bloqueado)
