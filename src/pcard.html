@@ -51,8 +51,8 @@
   .grip{flex:0 0 auto;width:13px;color:var(--dim);font-size:11px;
     letter-spacing:-1px;text-align:center}
   .mk{flex:0 0 auto;width:24px;height:24px;display:grid;place-items:center}
-  .mk img{width:24px;height:24px;object-fit:contain;display:block;
-    -webkit-user-drag:none}
+  /* misma huella que la cápsula: SVG que hereda el color del texto */
+  .mk .paw{width:22px;height:22px;display:block;fill:currentColor}
   .lab{font-size:13px;font-weight:500;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap}
   .pct{font-size:13.5px;font-weight:700;color:var(--txt-strong);white-space:nowrap}
@@ -97,7 +97,7 @@
 <div class="box">
   <div class="hdr">
     <span class="grip">⠿</span>
-    <span class="mk"><img src="icon-mini-panel.png" alt="" draggable="false"></span>
+    <span class="mk"><svg class="paw" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="14" cy="30" rx="6.5" ry="8.5" transform="rotate(-18 14 30)"/><ellipse cx="27" cy="20" rx="7" ry="9" transform="rotate(-7 27 20)"/><ellipse cx="40" cy="20" rx="7" ry="9" transform="rotate(7 40 20)"/><ellipse cx="53" cy="30" rx="6.5" ry="8.5" transform="rotate(18 53 30)"/><path d="M33 58c-10 0-17-6-17-13.5 0-7 7-11.5 17-11.5s17 4.5 17 11.5C50 52 43 58 33 58z"/></svg></span>
     <span class="lab" id="sesLab"></span><b class="pct" id="sPct">—</b>
     <!-- cabecera IDÉNTICA a la cápsula (o el despliegue salta): los
          huecos se quitaron y VOLVIERON el mismo 2026-07-31 -->
