@@ -497,7 +497,11 @@
   .pitem .pav i{position:absolute;inset:0;border-radius:inherit;opacity:.16;z-index:-1}
   .pitem .pname{font-size:12.5px;font-weight:600;display:flex;align-items:center;min-width:0}
   .pitem .pname span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pitem .pcost{flex:0 0 auto;font-family:var(--mono);font-size:13px;font-weight:600}
+  /* Columna derecha de la fila: TOKENS arriba (lo que gasta la cuota) y el
+     $ debajo, atenuado (es nocional). Dos líneas alineadas a la derecha. */
+  .pitem .pcost{flex:0 0 auto;font-family:var(--mono);font-size:13px;font-weight:600;
+    display:flex;flex-direction:column;align-items:flex-end;line-height:1.25}
+  .pitem .pcost .pusd{font-size:10.5px;font-weight:500;color:var(--txt-dim)}
   .pitem .pbar{height:4px;border-radius:99px;background:var(--track);overflow:hidden;
     max-width:180px;margin-top:6px}
   .pitem .pbar i{display:block;height:100%;border-radius:99px}
@@ -651,6 +655,11 @@
     border:1px solid var(--stroke-soft);border-radius:var(--r-md);
     padding:12px 14px;margin-bottom:12px}
   .spendtot .st-l{min-width:0}
+  .spendtot .st-usd{font-family:var(--mono);font-size:12px;font-weight:600;
+    color:var(--txt-mut);margin-top:1px}
+  /* la unidad no compite con la cifra: misma línea, cuerpo chico */
+  .spendtot .st-u{font-family:var(--font);font-size:12px;font-weight:700;
+    letter-spacing:0;color:var(--txt-mut);margin-left:5px}
   .spendtot .st-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.1px;
     text-transform:uppercase;color:var(--txt-dim);margin-bottom:3px;
     overflow-wrap:anywhere}
@@ -1204,9 +1213,14 @@
          (maqueta de Oscar). Sustituye al pie "Hoy" del final del panel,
          que decía lo mismo cuando el periodo ya era hoy. -->
     <div class="spendtot" id="winTot">
+      <!-- TOKENS arriba y el $ debajo (Oscar 2026-08-21): lo que la
+           suscripción gasta de verdad son tokens; el dólar es NOCIONAL
+           (equiv. API) y por eso va de segundo y lleva "USD" escrito, que
+           "$" a secas no decía de qué moneda hablamos. -->
       <div class="st-l">
         <div class="st-lbl" id="winLbl"></div>
-        <b id="costWeek">–</b>
+        <b id="tokWeek">–</b>
+        <div class="st-usd">$<span id="costWeek">–</span> USD</div>
       </div>
       <div class="foot-note" data-i18n="footnote"></div>
     </div>
@@ -2082,7 +2096,7 @@ en:{
   tray_no_data:"MichiClaude — no quota data",
   demo_mode:"Demo mode (no Tauri)",
   src_local:"local",
-  trend_title:"Daily trend",
+  trend_title:"Usage per day",
   trend_q:"last 30 days",
   prefs_title:"Preferences",
   prefs_general:"General",
@@ -2711,7 +2725,7 @@ es:{
   tray_no_data:"MichiClaude — sin datos de cuota",
   demo_mode:"Modo demo (sin Tauri)",
   src_local:"local",
-  trend_title:"Tendencia diaria",
+  trend_title:"Consumo por día",
   trend_q:"últimos 30 días",
   prefs_title:"Ajustes",
   prefs_general:"General",
@@ -3340,7 +3354,7 @@ pt:{
   tray_no_data:"MichiClaude — sem dados de cota",
   demo_mode:"Modo demo (sem Tauri)",
   src_local:"local",
-  trend_title:"Tendência diária",
+  trend_title:"Consumo por dia",
   trend_q:"últimos 30 dias",
   prefs_title:"Preferências",
   prefs_general:"Geral",
@@ -3969,7 +3983,7 @@ fr:{
   tray_no_data:"MichiClaude — pas de données de quota",
   demo_mode:"Mode démo (sans Tauri)",
   src_local:"local",
-  trend_title:"Tendance quotidienne",
+  trend_title:"Consommation par jour",
   trend_q:"30 derniers jours",
   prefs_title:"Préférences",
   prefs_general:"Général",
@@ -4598,7 +4612,7 @@ de:{
   tray_no_data:"MichiClaude — keine Kontingentdaten",
   demo_mode:"Demo-Modus (ohne Tauri)",
   src_local:"lokal",
-  trend_title:"Täglicher Trend",
+  trend_title:"Verbrauch pro Tag",
   trend_q:"letzte 30 Tage",
   prefs_title:"Einstellungen",
   prefs_general:"Allgemein",
@@ -5227,7 +5241,7 @@ ja:{
   tray_no_data:"MichiClaude — クォータデータなし",
   demo_mode:"デモモード（Tauri なし）",
   src_local:"ローカル",
-  trend_title:"日次トレンド",
+  trend_title:"1日あたりの消費量",
   trend_q:"過去30日",
   prefs_title:"設定",
   prefs_general:"一般",
@@ -5856,7 +5870,7 @@ ko:{
   tray_no_data:"MichiClaude — 쿼터 데이터 없음",
   demo_mode:"데모 모드 (Tauri 없음)",
   src_local:"로컬",
-  trend_title:"일별 추세",
+  trend_title:"일별 사용량",
   trend_q:"최근 30일",
   prefs_title:"환경설정",
   prefs_general:"일반",
@@ -6485,7 +6499,7 @@ zh:{
   tray_no_data:"MichiClaude — 无配额数据",
   demo_mode:"演示模式（无 Tauri）",
   src_local:"本机",
-  trend_title:"每日趋势",
+  trend_title:"每日用量",
   trend_q:"最近30天",
   prefs_title:"偏好设置",
   prefs_general:"常规",
@@ -8109,7 +8123,12 @@ function renderLocal(s){
   const all=filt?every.filter(p=>projFilter.has(p.name)):every;
   const rest=filt?[]:every.slice(PROJ_TOP);
   const projs=(filt||projOpen)?all:all.slice(0,PROJ_TOP);
-  const max=Math.max(...all.map(p=>p.cost),0.01);
+  // La barra va con los TOKENS, que es el número que manda desde 2026-08-21:
+  // la suscripción se gasta en tokens y el $ es equivalente de API. Ojo: la
+  // lista sigue ordenada por coste (la manda el backend), así que una barra
+  // puede ser más corta que la de abajo — es cierto y es informativo: ese
+  // proyecto usó un modelo más caro por token.
+  const max=Math.max(...all.map(p=>p.tokens||0),1);
   renderFchips(every);
 
   let rows = projs.map((p,i)=>{
@@ -8118,16 +8137,17 @@ function renderLocal(s){
       <div class="pav" style="color:${c}"><i style="background:${c}"></i>${escapeHtml(projInitials(p.base))}</div>
       <div class="ptx">
         <div class="pname"><span>${escapeHtml(p.base)}</span>${p.src?`<span class="srctag">${escapeHtml(p.src)}</span>`:""}</div>
-        <div class="pbar"><i style="width:${Math.round(p.cost/max*100)}%;background:${c}"></i></div>
+        <div class="pbar"><i style="width:${Math.round((p.tokens||0)/max*100)}%;background:${c}"></i></div>
       </div>
-      <div class="pcost">$${p.cost.toFixed(2)}</div>
+      <div class="pcost">${fmtTok(p.tokens||0)} tok<span class="pusd">$${p.cost.toFixed(2)}</span></div>
     </div>`;}).join("");
   // La cola se resume en una fila que se despliega al hacer clic: saber que
   // hay $39 repartidos no sirve de nada si no puedes ver en qué.
   if(rest.length) rows += `
     <div class="pitem more" id="plistMore">
       <div class="ptx"><div class="pname"><span>${escapeHtml(projOpen?t("others_less"):t("others",rest.length))}</span></div></div>
-      <div class="pcost">${projOpen?"":"$"+rest.reduce((a,p)=>a+p.cost,0).toFixed(2)}</div>
+      <div class="pcost">${projOpen?"":fmtTok(rest.reduce((a,p)=>a+(p.tokens||0),0))+" tok"
+        +`<span class="pusd">$${rest.reduce((a,p)=>a+p.cost,0).toFixed(2)}</span>`}</div>
     </div>`;
   if(!rows) rows = `<div class="errbox" style="color:var(--txt-dim)">${t("no_activity")}</div>`;
 
@@ -8161,8 +8181,12 @@ function renderLocal(s){
   // con filtro de proyectos el total es la suma de los ELEGIDOS, no el de
   // la ventana entera: enseñar el total completo junto a una lista
   // recortada sería mentir por omisión
-  $("costWeek").textContent="$"+(filt
+  $("costWeek").textContent=(filt
     ? all.reduce((a,p)=>a+p.cost,0) : s.cost_week).toFixed(2);
+  // los tokens del total siguen la MISMA regla que el $: con filtro, la suma
+  // de los elegidos; sin filtro, el dato de la ventana que manda el backend
+  $("tokWeek").innerHTML=fmtTok(filt
+    ? all.reduce((a,p)=>a+(p.tokens||0),0) : (s.tokens_week||0))+`<span class="st-u">tok</span>`;
   // La etiqueta NO repite el periodo ni los proyectos: el botón de fechas
   // y los chips, justo encima, ya lo dicen (Oscar 2026-08-05). Solo avisa
   // cuando la cifra está recortada por el filtro — ahí callarlo sí sería
@@ -8182,21 +8206,29 @@ function renderLocal(s){
 function renderTrend(daily){
   if(!daily.length){ $("trendSect").hidden=true; return; }
   $("trendSect").hidden=false;
-  const map=Object.fromEntries(daily.map(d=>[d.date,d.cost]));
+  const map=Object.fromEntries(daily.map(d=>[d.date,d]));
   const days=[];
   for(let i=29;i>=0;i--){
     const d=new Date(Date.now()-i*864e5);
     const key=d.toISOString().slice(0,10);
-    days.push({key, cost:map[key]||0});
+    const e=map[key];
+    days.push({key, cost:e?e.cost:0, tokens:e&&e.tokens?e.tokens:0});
   }
-  const max=Math.max(...days.map(d=>d.cost),0.01);
+  // La altura va con los TOKENS. RESPALDO: un exportador viejo manda la serie
+  // SIN tokens (campo con default, queda en 0) — con gasto pero sin tokens la
+  // gráfica saldría plana, así que en ese caso se dibuja el coste, como antes.
+  const anyTok=days.some(d=>d.tokens>0);
+  const val=d=>anyTok?d.tokens:d.cost;
+  const max=Math.max(...days.map(val),anyTok?1:0.01);
   $("tchart").innerHTML=days.map((d,i)=>{
-    const h=Math.max(3,Math.round(d.cost/max*66));
-    // el día MÁS CARO se destaca (maqueta v5); si todo está a cero no hay
-    // pico que señalar y ninguna barra se marca
-    const cls=(i===days.length-1?"today":"")+(d.cost===0?" zero":"")
-      +(d.cost>0&&d.cost===max?" top":"");
-    return `<i class="${cls.trim()}" style="height:${h}px" title="${fmtDate(d.key)} · $${d.cost.toFixed(2)}"></i>`;
+    const h=Math.max(3,Math.round(val(d)/max*66));
+    // el día de MÁS consumo se destaca (maqueta v5); si todo está a cero no
+    // hay pico que señalar y ninguna barra se marca
+    const cls=(i===days.length-1?"today":"")+(val(d)===0?" zero":"")
+      +(val(d)>0&&val(d)===max?" top":"");
+    // el globo dice las dos cifras, en el mismo orden que el resto del panel
+    const tip=`${fmtDate(d.key)} · ${d.tokens?fmtTok(d.tokens)+" tok · ":""}$${d.cost.toFixed(2)}`;
+    return `<i class="${cls.trim()}" style="height:${h}px" title="${tip}"></i>`;
   }).join("");
   $("tFrom").textContent=fmtDate(days[0].key);
   $("tTo").textContent=fmtDate(days[days.length-1].key);
@@ -8529,6 +8561,7 @@ function spendBusy(){
   projOpen=false;                        // otro periodo, otra lista
   $("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
   $("costWeek").textContent="–";
+  $("tokWeek").textContent="–";
 }
 
 function markDays(){
@@ -12648,11 +12681,19 @@ function demo(){
       {kind:"weekly_all",group:"weekly",percent:41,resets_at:new Date(Date.now()+80*3.6e6).toISOString()},
       {kind:"weekly_scoped",group:"weekly",percent:22,scope:{model:{display_name:"Fable"}},resets_at:new Date(Date.now()+80*3.6e6).toISOString()}
     ]});
-  renderLocal({projects:[{name:"vps-infra",cost:18.4},{name:"edge-gallery",cost:12.1},
-    {name:"rocket-code-prep",cost:8.9}],
+  renderLocal({projects:[{name:"vps-infra",cost:18.4,tokens:14.2e6},
+    {name:"edge-gallery",cost:12.1,tokens:9.7e6},
+    {name:"rocket-code-prep",cost:8.9,tokens:7.1e6}],
+    tokens_week:31e6,
     models:{"claude-sonnet-4-6":{input:9e6,output:1e6,cache_write:2e6,cache_read:0,cost:30},
       "claude-opus-4-8":{input:2e6,output:4e5,cache_write:8e5,cache_read:0,cost:17}},
-    cost_today:6.8,cost_week:47.2});
+    cost_today:6.8,cost_week:47.2,
+    // serie diaria de pega para ver la gráfica en el navegador suelto
+    daily:Array.from({length:30},(_,i)=>{
+      const d=new Date(Date.now()-(29-i)*864e5).toISOString().slice(0,10);
+      const w=[.2,.5,1,.7,.3,.9,.4][i%7]*(i===22?3:1);
+      return {date:d, cost:+(3.4*w).toFixed(2), tokens:Math.round(1.1e6*w)};
+    })});
   $("syncTxt").textContent=t("demo_mode");
 }
 

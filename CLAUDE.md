@@ -215,6 +215,12 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
    VENTANA vive en la cabecera de "gasto por proyecto" (suma de esa
    lista, cambia con el selector); el pie queda solo con "Hoy"; con
    ventana de 1 día el total de cabecera se OCULTA (= "Hoy").
+8bis. TOKENS PRIMERO, $ debajo (2026-08-21): en Principal el número
+   grande —total, filas y ALTURA de las barras— son tokens; el $ va
+   atenuado debajo y en el total lleva "USD" (es nocional). La serie
+   diaria dibuja tokens, con RESPALDO al coste si vienen en 0 (exportador
+   viejo, `anyTok`). El orden de la lista sigue siendo por coste: una
+   barra puede romperlo y es cierto (modelo más caro por token).
 9. No tocar `README*.md`, `.github/workflows/release.yml` ni
    `app-icon.png` salvo petición explícita. (El token de este entorno no
    puede tocar workflows — eso lo hace Oscar desde la web.)
@@ -542,16 +548,14 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 
 FOTO COMPLETA: bitácora §"cierre 2026-08-08/09" y §"2026-08-17 (18)".
 
-**GATING v1 del lanzamiento (2026-08-21, VIGENTE):** la v1 pública
+**GATING v1 (2026-08-21, VIGENTE; lanzamiento 08-23):** la v1 pública
 esconde `aiSect`/`remSect`/`rtSect`/`hubCfgSect` (IA local, remediación+
 purga+relevo, ruteo, config del HUB) y pinta Reporte gris "Próximamente"
-— listas `V1_HIDE`/`V1_SOON_TABS` en index.html; liberar una pieza =
-quitarla de la lista en una release. Esconder es cosmético: los
-interruptores siguen apagados de fábrica (doble candado). Los datos del
-Reporte se juntan igual por debajo. Mayús+clic en "MichiClaude vX.Y"
-(Acerca de) alterna el modo completo (`v1all` en localStorage) — para
-validar sin recompilar, sin documentar en la UI. ntfy quedó VISIBLE
-(push confirmado en celular 21/08). Lanzamiento objetivo: 2026-08-23.
+— listas `V1_HIDE`/`V1_SOON_TABS`; liberar algo = quitarlo de la lista en
+una release. Esconder es cosmético: los interruptores siguen apagados de
+fábrica (doble candado) y el Reporte junta datos igual. Mayús+clic en
+"MichiClaude vX.Y" alterna el modo completo (`v1all`), sin documentar en
+la UI. ntfy VISIBLE (push confirmado en celular 21/08).
 
 - [ ] **R6 — con techo de 1M media app duerme** (`docs/validacion-pasiva.md`
       §Rarezas): las reglas de presión miden % del TECHO

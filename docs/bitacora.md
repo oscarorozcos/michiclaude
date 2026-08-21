@@ -4141,3 +4141,51 @@ QUÉ QUEDA:
 - R7 antes del anuncio (¿un globo o varios en pantalla?); redactar el
   anuncio con la transparencia por delante; decidir si la update de
   septiembre que enciende el Reporte va acompañada del relevo manual.
+
+## 2026-08-21 (2) — tokens primero, dólares después: Principal deja claro qué mide
+
+QUÉ:
+
+- **Gasto por proyecto**: el número grande de cada fila pasa a ser los
+  TOKENS (`fmtTok`, el mismo formato k/M de los hallazgos) y el $ baja a
+  segunda línea, atenuado. La barra ya no es proporcional al coste sino a
+  los tokens.
+- **Total de la ventana**: tokens en el display grande con la unidad en
+  cuerpo chico (`.st-u`), y debajo `$X USD` — la palabra USD escrita, que
+  era la duda original de Oscar ("aclara que son dólares").
+- **La gráfica se llamaba "Tendencia diaria"** y no decía de qué: ahora es
+  **"Consumo por día"** (8 idiomas) y dibuja TOKENS. El globo da las dos
+  cifras: `21/Ago/26 · 12.4M tok · $219.00`.
+- Demo del navegador enriquecido (proyectos con tokens y serie diaria de
+  30 días) para poder ver la pantalla sin compilar.
+
+POR QUÉ:
+
+- Oscar, mirando el panel del build de lanzamiento: "$394.45 a secas no
+  dice ni que son dólares", y "¿tendencia diaria de qué?". Decidió él el
+  orden: **la prioridad son los tokens, luego el $**.
+- Encaja con la doctrina de la casa: el $ es NOCIONAL (equiv. API) y la
+  suscripción se gasta en tokens, así que el dato honesto es el que ahora
+  manda en la pantalla. El invariante #8 gana su 8bis.
+- El RESPALDO de la gráfica no es adorno: `DailyAgg.tokens` lleva
+  `#[serde(default)]`, así que un exportador viejo en un servidor manda la
+  serie con tokens en 0 — sin el respaldo la gráfica saldría plana con
+  gasto real. Si no hay tokens en toda la serie, se dibuja el coste.
+- Se DESCARTÓ reordenar la lista por tokens: el orden lo fija el backend
+  (y el exportador, invariante #1) y tocarlo obligaba a mover dos motores
+  para un cambio de pintura. Queda anotado que la barra puede romper el
+  orden — es información, no un fallo: ese proyecto usó un modelo más caro
+  por token.
+
+CÓMO SE VERIFICÓ:
+
+- `node --check` limpio sobre el script extraído.
+- **Render real headless** (chromium sobre `index.html` en modo demo): el
+  total sale "31.0M tok / $47.20 USD", las filas con tokens arriba y el $
+  debajo, las barras proporcionales a los tokens y la gráfica bajo el
+  título "Usage per day". Sin compilar en Windows todavía.
+
+QUÉ QUEDA:
+
+- Verlo en el exe con datos reales (los proyectos de VPS-EU) y confirmar
+  que a 446 px las dos líneas del total no aprietan la nota de privacidad.
