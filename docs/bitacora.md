@@ -4189,3 +4189,58 @@ QUÉ QUEDA:
 
 - Verlo en el exe con datos reales (los proyectos de VPS-EU) y confirmar
   que a 446 px las dos líneas del total no aprietan la nota de privacidad.
+
+## 2026-08-21 (3) — el aro de foco, la huella de marca y la memoria de la conversación
+
+QUÉ:
+
+- **Arreglado el recuadro blanco sobre el gatito** (`d19daae`): la zona
+  `.head` es un `<button>` de verdad, y al clicar WebView2 pintaba su aro
+  de foco, que sobre un gif transparente se lee como una línea blanca.
+  `button:focus{outline:none}` en las CINCO ventanas del widget; el panel
+  conserva el suyo (ahí sí se navega con teclado).
+- **«Presión de contexto» → «Memoria de la conversación»** (`e0c1cd1`), 8
+  idiomas. Se alinearon además las dos frases largas que hablaban del
+  «manómetro de presión» (tooltip de precios y ficha `acomp` del coach):
+  dejar dos nombres para lo mismo era justo la confusión que se quería
+  quitar. Motor y umbrales intactos.
+- **Marca del panel: la HUELLA.** El sol de rayos (`sunburst`) se cambia
+  por `pawMark()`, SVG dibujado en código igual que el anterior: sin
+  archivo nuevo, nítido a cualquier tamaño y con `var(--brand)` en los dos
+  temas. Oscar puso además su propia huella como `app-icon.png` (1024²).
+
+POR QUÉ:
+
+- La huella y no el gatito: **Bongo Cat tiene dueño**. Investigado hoy —
+  el arte original es de @StrayRogue (7 mayo 2018), @DitzyFlama hizo la
+  versión con bongos, y StrayRogue **vende merchandising oficial** del
+  personaje. El permiso que circula es específico (por escrito, a la web
+  bongo.cat en 2018), y el MIT de esos repos cubre el CÓDIGO, no el
+  dibujo. Como mascota dentro de la app, con la excepción del LICENSE,
+  es la zona templada; como ICONO y LOGO sería la cara de un producto que
+  se va a promocionar. Una huella dice "gato" sin usar a nadie.
+- El nombre nuevo salió de Oscar usando la app: "presión de contexto está
+  algo confuso". El usuario objetivo no sabe qué es una ventana de
+  contexto, pero sabe que una memoria se llena.
+
+CÓMO SE VERIFICÓ:
+
+- `node --check` en las seis ventanas y **render headless** de la huella a
+  160/44/22 px y en el encabezado real: lee como huella al tamaño que
+  importa (22 px). Se afinó una vez (dedos +0.5, almohadilla más
+  estrecha) tras ver el primer render.
+- **La validación del post-it se cerró SOLA**, sin montar el proyecto de
+  prueba que se iba a fabricar. Bitácora PRO de Oscar, 22:03:03-04:
+  `nace tarjeta sum` → `fnd: pasada por cierre de sesión ok, 2 tarjetas
+  (1d)` → `fnd: AVISO ENCENDIDO (1 sin ver, de 2)`, y a las 22:11 los dos
+  avisos apagándose al clicar cada tarjeta. La cadena entera en 2 s. Dos
+  filas del checklist marcadas; la sospecha de "el post-it no funciona"
+  era la CADENCIA (pasada ligera de 1 día: al nacer un recibo, o cada 3 h).
+
+QUÉ QUEDA:
+
+- Oscar: `npm run icons` en Windows con su app-icon.png y COMMITEAR los
+  iconos (el updater los necesita commiteados, invariante del auto-update).
+- Opcional: `src/icon-mini-panel.png` (la marca del `pcard`) sigue siendo
+  el sol; se puede sustituir copiando `src-tauri/icons/128x128.png`.
+- R7 sigue abierta (¿un globo o varios en pantalla?).

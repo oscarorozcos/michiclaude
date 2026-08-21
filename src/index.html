@@ -7089,18 +7089,21 @@ $("themeBtn").addEventListener("click",()=>{
 });
 
 // ---------- marca ----------
-function sunburst(size){
-  const S=64,cx=32,cy=32,rays=11;let p=`<svg width="${size}" height="${size}" viewBox="0 0 ${S} ${S}">`;
-  for(let i=0;i<rays;i++){const a=Math.PI*2*i/rays-Math.PI/2;
-    const ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux;
-    const base=S*.04,tip=S*.46,mid=S*.26,hw=S*.055;
-    const pts=[[cx+ux*base,cy+uy*base],[cx+ux*mid+px*hw,cy+uy*mid+py*hw],
-      [cx+ux*tip,cy+uy*tip],[cx+ux*mid-px*hw,cy+uy*mid-py*hw]]
-      .map(q=>q.map(n=>n.toFixed(2)).join(",")).join(" ");
-    p+=`<polygon points="${pts}" fill="var(--brand)"/>`}
-  return p+`<circle cx="${cx}" cy="${cy}" r="${S*.07}" fill="var(--brand)"/></svg>`;
+// Marca del panel: la HUELLA (2026-08-21). Sustituye al sol de rayos —
+// Oscar quiso al gatito de marca, y una huella dice "gato" sin usar el
+// personaje de Bongo Cat, que tiene dueño (ver LICENSE §assets). Va en
+// SVG dibujado aquí, como el sol: sin archivo nuevo, nítida a cualquier
+// tamaño y del color de la marca en los dos temas.
+function pawMark(size){
+  const toes=[[14,30,6.5,8.5,-18],[27,20,7,9,-7],[40,20,7,9,7],[53,30,6.5,8.5,18]];
+  return `<svg width="${size}" height="${size}" viewBox="0 0 64 64">`
+    + toes.map(([cx,cy,rx,ry,rot])=>
+        `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="var(--brand)"`
+        + ` transform="rotate(${rot} ${cx} ${cy})"/>`).join("")
+    + `<path d="M33 58c-10 0-17-6-17-13.5 0-7 7-11.5 17-11.5s17 4.5 17 11.5C50 52 43 58 33 58z"`
+    + ` fill="var(--brand)"/></svg>`;
 }
-$("mark").innerHTML=sunburst(22);
+$("mark").innerHTML=pawMark(22);
 
 // ---------- entorno ----------
 const TAURI = window.__TAURI__?.core;

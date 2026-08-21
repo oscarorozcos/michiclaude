@@ -84,8 +84,8 @@ salió bien).
 |---|:--:|:--:|---|
 | Un hallazgo NACE natural y enciende post-it + contador | 🧪 | ✅ | **19/08**: post-it rojo `2` en la tapa y badge rojo `2` en la pestaña, solos. |
 | "Leído" al clicar descuenta contador y post-it | 🧪 | ✅ | **19/08**: leídos los dos, se apagaron ambos; el turquesa del coach siguió con su `1`. |
-| Ignorar persiste; restaurar revive las no leídas | ? | ⬜ | |
-| La pasada ligera al nacer un recibo enciende el aviso | ? | ⬜ | |
+| Ignorar persiste; restaurar revive las no leídas | ? | ~ | **21/08**: el panel enseña «Volver a mostrar 1 hallazgo que ocultaste», así que Ignorar SÍ persistió a la reinstalación (vive en localStorage). Falta pulsar el enlace y ver revivir la tarjeta. |
+| La pasada ligera al nacer un recibo enciende el aviso | ? | ✅ | **21/08 22:03**, en la bitácora PRO y sin provocarlo: `nace tarjeta sum` → 1 s después `fnd: pasada por cierre de sesión ok, 2 tarjetas (1d)` → `fnd: AVISO ENCENDIDO (1 sin ver, de 2)`. La cadena entera —recibo, pasada, aviso— en dos segundos. |
 | Temas de `inflate` (etapa 3): tramos y ahorro | ✅ (17/08 nº23) | ~ | **19/08**: de dos tarjetas, una trae "un solo tema" y el consejo bueno (/compact); la más fresca cae al genérico → **R3**. |
 | Marcas de arreglo (`fndHist`) | ? | ⬜ | |
 
