@@ -45,10 +45,15 @@
      Sesión % + campana/foco) entre el asa y la flecha: sin avisos queda
      centrado, y cuando nacen los iconos se suman al grupo y todo se
      reacomoda parejo sin brincar (pedido de Oscar 2026-07-31) */
+  /* OJO con el color: un <button> NO hereda el del texto (Chromium le pone
+     el suyo, negro), y la huella se pinta con currentColor — sin esta línea
+     salía negra sobre el cristal oscuro */
   .mkbtn{flex:0 0 auto;width:26px;height:26px;padding:0;border:0;background:none;
+    color:var(--txt-strong);
     cursor:pointer;display:grid;place-items:center;margin-left:auto}
-  .mkbtn img{width:26px;height:26px;object-fit:contain;display:block;
-    -webkit-user-drag:none}
+  /* la marca es la HUELLA, dibujada (2026-08-21): sigue al tema por
+     currentColor, así que ya no hacen falta dos PNG ni cambiarlos a mano */
+  .mkbtn .paw{width:24px;height:24px;display:block;fill:currentColor}
   .lab{font-size:13px;font-weight:500;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap}
   .pct{font-size:13.5px;font-weight:700;color:var(--txt-strong);white-space:nowrap}
@@ -118,7 +123,7 @@
 <body class="loading">
 <div class="cap" id="cap">
   <span class="grip" id="grip" title="⠿">⠿</span>
-  <button class="mkbtn" id="mkbtn"><img id="mkImg" src="sticker-black.png" alt="" draggable="false"></button>
+  <button class="mkbtn" id="mkbtn"><svg class="paw" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="14" cy="30" rx="6.5" ry="8.5" transform="rotate(-18 14 30)"/><ellipse cx="27" cy="20" rx="7" ry="9" transform="rotate(-7 27 20)"/><ellipse cx="40" cy="20" rx="7" ry="9" transform="rotate(7 40 20)"/><ellipse cx="53" cy="30" rx="6.5" ry="8.5" transform="rotate(18 53 30)"/><path d="M33 58c-10 0-17-6-17-13.5 0-7 7-11.5 17-11.5s17 4.5 17 11.5C50 52 43 58 33 58z"/></svg></button>
   <span class="lab" id="sesLab"></span><b class="pct" id="sPct">—</b>
   <!-- manómetro de PRESIÓN DE CONTEXTO (docs/remediacion.md etapa 1):
        arco diminuto que se llena con el % de contexto de la sesión activa.
@@ -186,13 +191,11 @@ const invoke=TAURI?.core?.invoke;
 const EVENT=TAURI?.event;
 const APPWIN=TAURI?.window?TAURI.window.getCurrentWindow():null;
 
-// marca: el GATITO (sticker en variante por tema, misma regla que los gifs:
-// claro → -white, oscuro → -black). Antes era el mini sunburst; se cambió a
-// petición de Oscar el 2026-07-29 — la mascota ES la marca.
-function syncMk(light){
-  const src = light ? "sticker-white.png" : "sticker-black.png";
-  if($("mkImg").getAttribute("src")!==src) $("mkImg").setAttribute("src",src);
-}
+// marca: la HUELLA (2026-08-21). Fue mini sunburst, luego el gatito en dos
+// PNG por tema, y ahora un SVG que hereda el color del texto: el tema lo
+// resuelve el CSS y esta función ya no tiene nada que sincronizar. Se
+// conserva la firma porque la llaman desde el ciclo del tema.
+function syncMk(_light){}
 
 // Color de los porcentajes. El verde de "todo bien" se cambió por el acento
 // de la app (petición de Oscar 2026-07-27: el mismo tono del tag

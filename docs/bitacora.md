@@ -4244,3 +4244,55 @@ QUÉ QUEDA:
 - Opcional: `src/icon-mini-panel.png` (la marca del `pcard`) sigue siendo
   el sol; se puede sustituir copiando `src-tauri/icons/128x128.png`.
 - R7 sigue abierta (¿un globo o varios en pantalla?).
+
+## 2026-08-21 (4) — la huella se vuelve marca: cápsula, detalle e instalador
+
+QUÉ:
+
+- **La marca de la pastilla y del detalle pasa a ser la huella.** Eran dos
+  PNG (`sticker-black/white.png` en la cápsula, `icon-mini-panel.png` en el
+  `pcard`) y ahora es el MISMO SVG del panel, con `fill:currentColor`: el
+  tema lo resuelve el CSS y `syncMk()` se queda sin nada que sincronizar
+  (se conserva vacía porque la llama el ciclo del tema).
+- **Arte del instalador** en estilo cómic: `scripts/make-installer-art.py`
+  (solo stdlib) dibuja `src-tauri/installer/header.bmp` (150x57) y
+  `sidebar.bmp` (164x314) — azul #251590 con lunares y la huella en blanco,
+  con supermuestreo x3 porque NSIS no suaviza. `tauri.conf.json` los
+  referencia junto a `installerIcon`.
+- Los gifs del gatito NO se tocan: la mascota sigue siendo el gato; la
+  huella es la MARCA (icono, logo, cápsula, instalador).
+
+POR QUÉ:
+
+- Oscar quiso unificar: huella en el icono del exe, en el panel, en la
+  cápsula y en el instalador. Y de las dos maquetas HTML que pasó (una
+  azul-lavanda, otra crema-ámbar) pidió **un solo color**: se eligió el
+  azul, que es el de la app.
+- El arte se DIBUJA en un script en vez de exportarse de un editor: NSIS
+  exige BMP de 24 bits con tamaños fijos, y así el instalador se regenera
+  cuando cambie la marca sin depender de un archivo que solo existe en la
+  máquina de alguien. Misma geometría que el SVG del panel (viewBox 64) a
+  propósito: si cambia la huella, cambia en los dos sitios o se nota.
+
+TRAMPA QUE MORDIÓ (y queda anotada): un `<button>` **no hereda el color
+del texto** en Chromium — le pone el suyo, negro. La huella de la cápsula
+se pinta con `currentColor`, así que salía NEGRA sobre el cristal oscuro.
+Se arregla con `color:var(--txt-strong)` en `.mkbtn`. Con el `<img>`
+anterior el problema no existía: por eso no estaba.
+
+CÓMO SE VERIFICÓ:
+
+- `node --check` en las dos ventanas y **render headless a 3x** de la
+  cápsula: la huella sale blanca sobre el cristal, del tamaño del gatito
+  que sustituye. El arte del instalador se revisó abriendo los BMP en el
+  navegador.
+- Lo que NO se puede verificar aquí: cómo se ven los BMP dentro del
+  instalador real. Eso sale en el `npm run build` de Windows.
+
+QUÉ QUEDA:
+
+- **El aspecto cómic COMPLETO del instalador no es posible con NSIS**: las
+  maquetas HTML llevan botones, tipografías y bordes propios, y NSIS dibuja
+  controles NATIVOS de Windows. Lo que sí cambia son las dos imágenes, el
+  icono y el título. Un instalador con esa piel exige una app instaladora
+  propia — proyecto aparte, no para esta semana.
