@@ -83,6 +83,14 @@
   .track{height:5px;border-radius:3px;background:var(--track);overflow:hidden}
   .fill{height:100%;border-radius:3px;transition:width .4s}
   .reset{font-size:11px;color:var(--dim);margin-top:4px}
+
+  /* El aro de FOCO de WebView2: al clicar un <button> (la zona `.head` del
+     gatito, la marca de la cápsula, los post-its, la ✕ del globo) Chromium
+     dibuja su recuadro, y sobre un gif transparente se veía como una línea
+     blanca alrededor del gatito (Oscar 2026-08-21). Estas ventanas no se
+     navegan con teclado (WS_EX_NOACTIVATE, sin orden de tabulación), así que
+     el aro no informa a nadie: solo estorba. El PANEL conserva el suyo. */
+  button:focus, button:focus-visible{outline:none}
 </style>
 </head>
 <body>
