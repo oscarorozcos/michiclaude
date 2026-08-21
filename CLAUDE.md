@@ -103,7 +103,7 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   (Principal · Fuentes de datos · Hallazgos · Consejos · Reporte ·
   Ajustes), con encabezado sticky en `.p-top` (el padding superior vive
   AHÍ, no en `.panel`: si no, rendija al scroll).
-  Pie Hoy/Semana solo en Principal. El panel es el ÚNICO que llama al endpoint;
+  El panel es el ÚNICO que llama al endpoint;
   el tray se actualiza desde su ciclo (`updateTray`).
 - **Pastilla** (`pill`, 280x54) + **detalle** (`pcard`, 280x300): cápsula
   de cristal con asa ⠿, gatito como MARCA, "Sesión X%" y huecos semanales,
@@ -213,8 +213,9 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
    otros" se ELIMINÓ (el desglose no es calculable: gasto local en $ y
    cuota en %); en su lugar la nota `spend_only_cc`. El total de la
    VENTANA vive en la cabecera de "gasto por proyecto" (suma de esa
-   lista, cambia con el selector); el pie queda solo con "Hoy"; con
-   ventana de 1 día el total de cabecera se OCULTA (= "Hoy").
+   lista, cambia con el selector) y SIEMPRE se enseña, con su etiqueta:
+   con ventana de 1 día es el gasto de hoy. El pie "Hoy/Semana" ya no
+   existe — se quitó al mudar el total arriba (`markDays`).
 8bis. TOKENS PRIMERO, $ debajo (2026-08-21): en Principal el número
    grande —total, filas y ALTURA de las barras— son tokens; el $ va
    atenuado debajo y en el total lleva "USD" (es nocional). La serie
