@@ -4296,3 +4296,43 @@ QUÉ QUEDA:
   controles NATIVOS de Windows. Lo que sí cambia son las dos imágenes, el
   icono y el título. Un instalador con esa piel exige una app instaladora
   propia — proyecto aparte, no para esta semana.
+
+## 2026-08-21 (5) — la marca queda en un solo dibujo: huella naranja sobre azul
+
+QUÉ:
+
+- `scripts/make-installer-art.py` crece: además de los dos BMP del
+  instalador genera **`app-icon.png` de 1024²** con esquinas redondeadas
+  (radio 22%, el de Windows 11) y fondo transparente fuera de la pastilla.
+  Se corrió `npm run icons` y el juego entero de iconos va commiteado.
+- **Colores de la app, no inventados**: fondo `--card` #151F3A y huella
+  `--brand` #E08B63, copiados de index.html. El icono casa con el avatar
+  del panel porque es literalmente la misma pareja de colores.
+- Fuera los lunares del instalador: Oscar pidió el fondo plano de su
+  captura. Queda una sola marca —misma geometría, mismos colores— en el
+  icono del exe, el instalador, el panel, la cápsula y el detalle.
+
+POR QUÉ:
+
+- Oscar mandó una captura del avatar del panel: "esta huella naranja y ese
+  fondo, en todos lados". Antes el icono era su PNG azul claro y el
+  instalador azul-violeta: tres marcas distintas para la misma app.
+- El PNG se dibuja con `zlib` + `struct` de la stdlib (encoder propio de
+  ~10 líneas, filtro 0 por fila). Cero dependencias nuevas.
+- Detalle que se cuidó: al promediar el supermuestreo, el borde de la
+  pastilla mezcla color y alfa; sin premultiplicar tiraba a negro sobre
+  fondos claros.
+
+CÓMO SE VERIFICÓ:
+
+- Render headless del icono a 160/48/32/**16 px**: la huella sigue
+  reconociéndose al tamaño de la barra de tareas, que es donde mueren los
+  iconos con detalle fino. También los PNG que genera `tauri icon`.
+- Los BMP se abrieron en el navegador. Falta verlos DENTRO del instalador
+  real: eso sale en el build de Windows.
+
+QUÉ QUEDA:
+
+- Oscar: `git pull` y `npm run build`. Ya NO tiene que correr
+  `npm run icons` — los iconos van commiteados desde el VPS.
+- El icono viejo del escritorio es caché de Windows, no del build.
