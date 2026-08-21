@@ -542,6 +542,17 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 
 FOTO COMPLETA: bitácora §"cierre 2026-08-08/09" y §"2026-08-17 (18)".
 
+**GATING v1 del lanzamiento (2026-08-21, VIGENTE):** la v1 pública
+esconde `aiSect`/`remSect`/`rtSect`/`hubCfgSect` (IA local, remediación+
+purga+relevo, ruteo, config del HUB) y pinta Reporte gris "Próximamente"
+— listas `V1_HIDE`/`V1_SOON_TABS` en index.html; liberar una pieza =
+quitarla de la lista en una release. Esconder es cosmético: los
+interruptores siguen apagados de fábrica (doble candado). Los datos del
+Reporte se juntan igual por debajo. Mayús+clic en "MichiClaude vX.Y"
+(Acerca de) alterna el modo completo (`v1all` en localStorage) — para
+validar sin recompilar, sin documentar en la UI. ntfy quedó VISIBLE
+(push confirmado en celular 21/08). Lanzamiento objetivo: 2026-08-23.
+
 - [ ] **R6 — con techo de 1M media app duerme** (`docs/validacion-pasiva.md`
       §Rarezas): las reglas de presión miden % del TECHO
       (`COACH_CTX_PCT`=60, `INTENT_PCT`=80), y con `claude-opus-5` (1M)

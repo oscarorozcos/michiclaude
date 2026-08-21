@@ -73,7 +73,7 @@ salió bien).
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
 | El panel publica el push de umbral | ⬜ | ✅ | Bitácora: `21:33:57 push ok: Sesión al 10% de tu límite de 5 h.` y varios más los días 12, 13 y 19. |
-| El push de umbral **se ve en el celular** | ⬜ | ⬜ | El único tramo que la bitácora no puede probar. |
+| El push de umbral **se ve en el celular** | ⬜ | ✅ | **21/08**: Oscar confirmó que los pushes llegan a su celular ("ya validé que sí funcionan"). Con esto ntfy entra VISIBLE en la v1 del lanzamiento. |
 | 100%: aviso inmediato + "ya volvió" programado **con la PC apagada** | ⬜ | ⬜ | La pieza que de verdad prueba el diseño. |
 | Un push por ventana (no se repite) | ⬜ | ✅ | Bitácora: el globo se reemitió 3 veces a las 21:33-21:34 y hubo **un solo** `push ok`. La dedup aguanta aunque el globo insista (ver R7). |
 | Nombre de proyecto solo con la casilla `names` | ? | ~ | Los textos de la bitácora SÍ llevan proyecto (`Terminó tu sesión en sparky-site · VPS-EU`), o sea que la casilla está encendida. Falta leer un payload real para confirmar que no viaja nada más. |

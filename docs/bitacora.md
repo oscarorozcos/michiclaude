@@ -4081,3 +4081,63 @@ QUÉ QUEDA:
   3-4 renglones de globo, con un solo push: falta ver si en pantalla sale
   uno o varios).
 - El plan por fases, sin arrancar. Fase 1 = apagar todo.
+
+## 2026-08-21 — gating v1: la app decide qué enseña para el lanzamiento del 23
+
+QUÉ:
+
+- **Respaldo previo por dos vías**: etiqueta `respaldo-2026-08-21` empujada
+  a GitHub y `michiclaude-2026-08-21.tar.gz` (83 MB, sin targets ni
+  node_modules) en `/opt/projects/respaldos/` del VPS.
+- **Gating v1** en index.html: dos listas (`V1_HIDE`, `V1_SOON_TABS`) y una
+  función `applyV1()` que corre al arrancar y en cada `applyI18n()`.
+  Escondidos con `hidden` (invariante 10bis los blinda): IA local
+  (`aiSect`), remediación+purga+relevo (`remSect`, comparten tarjeta),
+  ruteo (`rtSect`) y config compartida del HUB (`hubCfgSect`). La pestaña
+  **Reporte** queda visible pero gris (`.tab.soon`), con tooltip
+  "Próximamente" (`tab_soon`, 8 idiomas) y sin abrir por ninguna vía
+  (guardia al inicio de `showTab`).
+- **Gesto de desbloqueo**: Mayús+clic en "MichiClaude vX.Y" (Acerca de)
+  alterna `v1all` en localStorage y repinta al momento — Oscar puede
+  validar el modo completo con el MISMO exe, sin recompilar. Si se apaga
+  con una pestaña gateada abierta, salta a Principal.
+- **ntfy queda VISIBLE**: Oscar confirmó hoy que los pushes llegan a su
+  celular — la fila del checklist pasa a ✅ (21/08) y el bloque de Avisos
+  se queda entero en la v1.
+- Regla VIGENTE anotada en CLAUDE.md §Estado; fila de ntfy marcada en
+  `validacion-pasiva.md`.
+
+POR QUÉ:
+
+- Lanzamiento objetivo 2026-08-23: dar la app por partes para que los
+  usuarios se familiaricen sin revolverse, y que instalen ANTES de los
+  cambios de cuota de Anthropic de septiembre (el Reporte gris es el
+  teaser: sus datos se juntan desde el día uno y una update lo enciende
+  con el "antes" ya guardado).
+- Criterio de la tabla acordada con Oscar: ✅ visible = solo lee y está
+  validado en exe; 🔒 gris = solo lee pero sin validar (se anuncia);
+  🙈 oculto = toca sesiones o archivos del usuario, o depende de R6.
+  Mensaje del lanzamiento: "MichiClaude solo mira, nunca toca".
+- Se DESCARTÓ deshabilitar-visible para todo (idea inicial de Oscar): un
+  bloque gris de automáticos anuncia justo lo que no se quiere prometer
+  aún, y cada explicación son 8 traducciones. El híbrido (solo Reporte
+  gris) da el teaser sin el ruido. También se descartó esconder Hallazgos
+  o Consejos: están validados en exe y son el diferencial.
+- `var` y no `const` para las listas del gating: `showTab` las consulta
+  con `typeof` y con `const` en TDZ el `typeof` lanza en vez de responder.
+
+CÓMO SE VERIFICÓ:
+
+- `node --check` limpio sobre el script extraído de index.html (619k).
+- Sin cambios en Rust: no aplica cargo check. Pendiente la pasada visual
+  en el exe de Windows (recompilar allí; ojo a la trampa de la hora del
+  binario tras el pull).
+
+QUÉ QUEDA:
+
+- Probar en release: pestañas visibles completas, Reporte gris con
+  tooltip, Mayús+clic alterna todo, cambio de idioma repinta el tooltip,
+  y la primera ejecución en un Windows limpio (nunca probada desde cero).
+- R7 antes del anuncio (¿un globo o varios en pantalla?); redactar el
+  anuncio con la transparencia por delante; decidir si la update de
+  septiembre que enciende el Reporte va acompañada del relevo manual.

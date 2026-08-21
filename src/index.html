@@ -194,6 +194,10 @@
   .tab:hover{color:var(--txt)}
   .tab.on{color:#fff;background:var(--grad);
     box-shadow:0 8px 18px -8px rgba(124,140,255,.6)}
+  /* Pestaña anunciada pero aún no liberada (gating v1 del lanzamiento):
+     gris, sin mano y sin hover — el porqué lo dice el title (tab_soon). */
+  .tab.soon{opacity:.45;cursor:default}
+  .tab.soon:hover{color:var(--txt-mut)}
   /* contador de hallazgos NUEVOS sin ver: lo enciende la pasada diaria y lo
      apaga abrir la pestaña. Cápsula ROJA flotando en la esquina superior
      derecha de la pestaña (maqueta de Oscar 2026-07-29), tope en 9+; el
@@ -1501,7 +1505,7 @@
          Nace APAGADO; solo pinta una insignia en la tarjeta de intención
          cuando el veredicto determinista quedó en `unsure`. El modelo corre
          en 127.0.0.1 bajo demanda y nada sale de la máquina. -->
-    <div class="sect">
+    <div class="sect" id="aiSect">
       <div class="eyebrow" data-i18n="ai_lab"></div>
       <label class="cfg-row" style="cursor:pointer">
         <span data-i18n="ai_on"></span><input type="checkbox" id="aiChk">
@@ -1595,7 +1599,7 @@
        primera vez de cada acción SIEMPRE la aplica el usuario con su clic
        (aquí o en la tarjeta de Consejos); solo después el interruptor
        automático tiene efecto. Todo lo aplicado queda en el registro. -->
-  <div class="sect">
+  <div class="sect" id="remSect">
     <div class="eyebrow" data-i18n="rem_label"></div>
     <div class="cfg-form">
       <div class="cfg-note" data-i18n="rem_hint"></div>
@@ -1732,7 +1736,7 @@
        todo como estaba). El hook no piensa: lee router_state.json (>10 min
        de viejo = no hace nada) y solo toca SUBAGENTES, jamás la sesión
        principal. Una fila por máquina, como el wrapper del chat. -->
-  <div class="sect">
+  <div class="sect" id="rtSect">
     <div class="eyebrow" data-i18n="rt_label"></div>
     <div class="cfg-form">
       <label class="cfg-row" style="cursor:pointer">
@@ -1846,7 +1850,7 @@
        (petición de Oscar). Es un ajuste y aquí lo busca el usuario; solo
        DEPENDE de un servidor, que es otra cosa. El aviso de abajo aparece
        cuando no hay ninguno, para que los botones no fallen en silencio. -->
-  <div class="sect">
+  <div class="sect" id="hubCfgSect">
     <div class="eyebrow"><span data-i18n="hub_cfg_label"></span></div>
     <div class="cfg-note" data-i18n="hub_cfg_hint"></div>
     <div class="cfg-note" id="hubNoSrv" hidden style="color:var(--warn)" data-i18n="hub_cfg_needsrv"></div>
@@ -1865,7 +1869,7 @@
     <div class="eyebrow" data-i18n="about_label"></div>
     <div class="about-row">
       <div style="min-width:0">
-        <div class="about-name">MichiClaude <span class="about-ver" id="aboutVer">—</span></div>
+        <div class="about-name" id="aboutName">MichiClaude <span class="about-ver" id="aboutVer">—</span></div>
         <div class="about-sub" id="aboutState"></div>
       </div>
       <button id="aboutCheck" class="sec" data-i18n="about_check"></button>
@@ -2108,6 +2112,7 @@ en:{
   prices_err:"Could not update; keeping what was saved",
   est_tip:"Estimated: this model is not in any price table",
   export_label:"Export data (CSV/JSON)",
+  tab_soon:"Coming soon",
   export_dir_ph:"destination folder (empty = Downloads)",
   exp_ok:f=>`${f} exported`,
   exp_open:"Open",
@@ -2736,6 +2741,7 @@ es:{
   prices_err:"No se pudo actualizar; se conserva lo guardado",
   est_tip:"Estimado: este modelo no está en ninguna tabla de precios",
   export_label:"Exportar datos (CSV/JSON)",
+  tab_soon:"Próximamente",
   export_dir_ph:"carpeta destino (vacía = Descargas)",
   exp_ok:f=>`${f} exportado`,
   exp_open:"Abrir",
@@ -3364,6 +3370,7 @@ pt:{
   prices_err:"Não foi possível atualizar; mantendo o salvo",
   est_tip:"Estimado: este modelo não está em nenhuma tabela de preços",
   export_label:"Exportar dados (CSV/JSON)",
+  tab_soon:"Em breve",
   export_dir_ph:"pasta de destino (vazia = Downloads)",
   exp_ok:f=>`${f} exportado`,
   exp_open:"Abrir",
@@ -3992,6 +3999,7 @@ fr:{
   prices_err:"Mise à jour impossible ; données enregistrées conservées",
   est_tip:"Estimé : ce modèle ne figure dans aucune table de prix",
   export_label:"Exporter les données (CSV/JSON)",
+  tab_soon:"Bientôt disponible",
   export_dir_ph:"dossier de destination (vide = Téléchargements)",
   exp_ok:f=>`${f} exporté`,
   exp_open:"Ouvrir",
@@ -4620,6 +4628,7 @@ de:{
   prices_err:"Aktualisierung fehlgeschlagen; Gespeichertes bleibt",
   est_tip:"Geschätzt: Dieses Modell steht in keiner Preistabelle",
   export_label:"Daten exportieren (CSV/JSON)",
+  tab_soon:"Demnächst",
   export_dir_ph:"Zielordner (leer = Downloads)",
   exp_ok:f=>`${f} exportiert`,
   exp_open:"Öffnen",
@@ -5248,6 +5257,7 @@ ja:{
   prices_err:"更新できません。保存済みを使用します",
   est_tip:"推定: このモデルは料金表にありません",
   export_label:"データのエクスポート（CSV/JSON）",
+  tab_soon:"近日公開",
   export_dir_ph:"保存先フォルダー（空 = ダウンロード）",
   exp_ok:f=>`${f} を書き出しました`,
   exp_open:"開く",
@@ -5876,6 +5886,7 @@ ko:{
   prices_err:"업데이트 실패, 저장된 값 유지",
   est_tip:"추정: 이 모델은 가격표에 없습니다",
   export_label:"데이터 내보내기 (CSV/JSON)",
+  tab_soon:"곧 제공됩니다",
   export_dir_ph:"대상 폴더 (비우면 다운로드)",
   exp_ok:f=>`${f} 내보냄`,
   exp_open:"열기",
@@ -6504,6 +6515,7 @@ zh:{
   prices_err:"更新失败，保留已保存的数据",
   est_tip:"估算: 该模型不在任何价格表中",
   export_label:"导出数据（CSV/JSON）",
+  tab_soon:"即将推出",
   export_dir_ph:"目标文件夹（留空 = 下载）",
   exp_ok:f=>`已导出 ${f}`,
   exp_open:"打开",
@@ -7024,6 +7036,9 @@ function applyI18n(){
   // la lista de relevos también: sus filas se arman con t() y el aviso de
   // "ninguna sesión" pisa el data-i18n de arriba
   if(!$("tab-prefs").hidden){ rlyRows(); rtFlagsUi(); }   // la casilla del top lleva el nombre del modelo
+  // el title de la pestaña "Próximamente" (gating v1) se escribe con t():
+  // un cambio de idioma debe repintarlo
+  if(typeof V1_SOON_TABS!=="undefined") applyV1();
 }
 
 // Traducción de códigos de error del backend (ERR_*)
@@ -10368,6 +10383,9 @@ function renderRepNext(d){
 }
 
 function showTab(name){
+  // gating v1: una pestaña "Próximamente" no abre por ninguna vía (clic,
+  // eventos del tray o del widget) mientras el modo completo esté apagado
+  if(typeof V1_SOON_TABS!=="undefined" && V1_SOON_TABS.includes(name) && !v1Full()) return;
   for(const k of ["main","sources","findings","tips","report","prefs"]) $("tab-"+k).hidden = (k!==name);
   $("expBox").hidden = true;                      // el aviso era de ese momento
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
@@ -12638,8 +12656,41 @@ function demo(){
   $("syncTxt").textContent=t("demo_mode");
 }
 
+// ---------- gating v1 del lanzamiento (2026-08-21) ----------
+// La v1 pública enseña SOLO lo validado en el exe (docs/validacion-pasiva.md):
+// los bloques que tocan sesiones o archivos del usuario (IA local, remediación/
+// purga/relevo, ruteo, config compartida del HUB) van ESCONDIDOS — sus
+// interruptores ya nacen apagados, así que esconder es cosmético y apagado es
+// lo que protege — y la pestaña Reporte queda VISIBLE pero gris ("Próximamente"):
+// sus datos se juntan igual por debajo y una update la enciende. Liberar una
+// pieza en una versión futura = quitarla de estas listas.
+// Mayús+clic en "MichiClaude vX.Y" (Acerca de) alterna el modo completo
+// (v1all en localStorage) para poder validar sin recompilar; adrede sin
+// documentar en la UI.
+var V1_HIDE=["aiSect","remSect","rtSect","hubCfgSect"];
+var V1_SOON_TABS=["report"];   // var y no const: showTab la consulta con typeof
+function v1Full(){ return localStorage.getItem("v1all")==="1"; }
+function applyV1(){
+  const full=v1Full();
+  V1_HIDE.forEach(id=>{ const el=$(id); if(el) el.hidden=!full; });
+  V1_SOON_TABS.forEach(name=>{
+    const b=document.querySelector(`.tab[data-tab="${name}"]`);
+    if(!b) return;
+    b.classList.toggle("soon",!full);
+    b.title=full?"":t("tab_soon");
+  });
+}
+$("aboutName").addEventListener("click",e=>{
+  if(!e.shiftKey) return;
+  localStorage.setItem("v1all", v1Full()?"0":"1");
+  applyV1();
+  // si el modo completo se apaga con una pestaña gateada abierta, a Principal
+  if(!v1Full() && V1_SOON_TABS.some(n=>!$("tab-"+n).hidden)) showTab("main");
+});
+
 // ---------- arranque ----------
 applyI18n();
+applyV1();
 $("syncTxt").textContent=t("connecting");
 $("plist").innerHTML=`<div class="errbox" style="color:var(--txt-dim)">${t("reading")}</div>`;
 processAcks();          // si quedó un "restablecido" sin confirmar, retómalo
