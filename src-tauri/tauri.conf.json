@@ -63,7 +63,18 @@
       "nsis": {
         "headerImage": "installer/header.bmp",
         "sidebarImage": "installer/sidebar.bmp",
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "languages": [
+          "English",
+          "Spanish",
+          "SpanishInternational",
+          "PortugueseBR",
+          "French",
+          "German",
+          "Japanese",
+          "Korean",
+          "SimpChinese"
+        ]
       }
     }
   },
