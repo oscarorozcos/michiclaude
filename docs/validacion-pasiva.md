@@ -60,7 +60,7 @@ frase de qué se vio. Lo raro abre entrada en §Rarezas.
 | Alarma semanal al 100% (una por ventana) | ⬜ | ⬜ | Hace falta llegar al 100% de verdad. |
 | Restablecimiento de ventana con confirmación | 🧪 | ⬜ | |
 | 429: el gauge conserva el último dato bueno 15 min | ✅ | ⬜ | En dev se provocó (arranques seguidos → 429 de 60 min); de ahí salió la cadencia de 3 min. |
-| Tray con cuota en error: "–" gris | ? | ⬜ | |
+| Tray con cuota en error: "–" gris | ? | ✅ | **21/08**: captura de Oscar en la prueba en limpio del gating v1 — token vencido, tray con "–" y el panel con la guía "corre claude una vez", sin inventar datos. |
 | Con widget puesto, la alarma NO sale además como toast | ? | ⬜ | Regla dura: el toast es solo para quien no tiene widget. |
 
 ## 2. Avisos al celular (ntfy)
