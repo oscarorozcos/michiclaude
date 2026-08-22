@@ -10,18 +10,9 @@
   <a href="https://www.linkedin.com/in/oscar-os/"><img alt="LinkedIn" src="https://img.shields.io/badge/LinkedIn-Oscar%20Orozco-E08B63?style=for-the-badge&labelColor=151F3A&logo=linkedin&logoColor=white"></a>
 </p>
 
-<!-- ↓↓↓ HUECO PARA LA IMAGEN PRINCIPAL ↓↓↓
-     Sube la captura o el gif del gatito (con su globo de alarma, que es lo
-     que engancha) a docs/img/michiclaude.gif — o .png — y BORRA las dos
-     líneas de comentario que rodean al <p>. Ancho recomendado: 900 px.
-     Mientras el archivo no exista, esto se queda invisible en vez de
-     enseñar una imagen rota.
-
 <p align="center">
   <img src="docs/img/michiclaude.gif" alt="MichiClaude en el escritorio: el gatito, el icono de bandeja y el panel" width="900">
 </p>
-
-     ↑↑↑ HUECO PARA LA IMAGEN PRINCIPAL ↑↑↑ -->
 
 > 🚧 **En desarrollo activo** — la app ya es funcional y se usa a diario,
 > pero siguen llegando mejoras (ver [Roadmap](#roadmap)). Issues y
