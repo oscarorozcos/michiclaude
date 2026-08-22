@@ -850,7 +850,6 @@ Lo que se está mirando ahora:
 - [ ] Rangos de fecha (no solo "los últimos N días") en todas las máquinas
 - [ ] Temas sobre el analizador de fugas: partir una sesión larga en temas
       para enseñar cuánto habría ahorrado un `/clear` antes
-- [ ] Capturas en este README
 - [ ] Una tarjeta semanal compartible del gatito
 
 No está planeado: rastrear herramientas que no sean Claude Code, una base de

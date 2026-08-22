@@ -840,7 +840,6 @@ What's being looked at next:
 - [ ] Date ranges (not just "the last N days") across all machines
 - [ ] Themes over the leak analyzer: splitting a long session into topics to
       show what an earlier `/clear` would have saved
-- [ ] Screenshots in this README
 - [ ] A shareable weekly card from the cat
 
 Not planned: tracking tools other than Claude Code, a history database, or a
