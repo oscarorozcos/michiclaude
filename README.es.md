@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/img/michiclaude.gif" alt="MichiClaude en el escritorio: el gatito, el icono de bandeja y el panel" width="900">
+  <img src="docs/img/es-michi-principal.gif" alt="MichiClaude en el escritorio: el gatito, el icono de bandeja y el panel" width="900">
 </p>
 
 > 🚧 **En desarrollo activo** — la app ya es funcional y se usa a diario,
@@ -169,6 +169,18 @@ El panel tiene **seis pestañas**:
 - **Ajustes** — idioma, widget flotante, alarmas, presupuesto y export.
 
 El pie (Hoy / periodo) siempre está visible en la pestaña Principal.
+
+<p align="center">
+  <img src="docs/img/1-es-primerospasos.png" alt="Principal: el gauge de 5 h, las barras semanales y el marcador de ritmo" width="820">
+</p>
+
+<p align="center">
+  <img src="docs/img/2-es-primerospasos.png" alt="Gasto por proyecto: los tokens al frente y el dólar debajo" width="820">
+</p>
+
+<p align="center">
+  <img src="docs/img/3-es-primerospasos.png" alt="Modelo más usado y la gráfica de consumo por día" width="820">
+</p>
 
 ## ¿Dónde usas Claude Code? (Windows nativo, WSL o servidor)
 
@@ -330,6 +342,10 @@ locales y busca patrones que queman tokens sin darte nada a cambio. Cada
 hallazgo es una tarjeta con qué pasó, cuánto te costó aproximadamente y qué
 hacer al respecto. La severidad va por costo: rojo desde $10, ámbar desde $1.
 
+<p align="center">
+  <img src="docs/img/1-es-hallazgostips.png" alt="Hallazgos: fugas encontradas en tus propios registros, cada una con su costo" width="820">
+</p>
+
 Qué busca, en llano:
 
 | Hallazgo | Qué significa |
@@ -356,6 +372,10 @@ proyectos, así que se quedan en la máquina (ver
 [Privacidad](#privacidad-y-a-dónde-se-conecta)).
 
 ## Consejos: el coach
+
+<p align="center">
+  <img src="docs/img/2-es-hallazgostips.png" alt="Consejos: el recibo de la sesión y las fichas escritas a mano" width="820">
+</p>
 
 La pestaña **Consejos** tiene dos mitades.
 
@@ -555,6 +575,10 @@ puedes montar el tuyo: pon su dirección en `"server"` dentro de
 `%APPDATA%\com.oscarorozco.michiclaude\ntfy_config.json`.
 
 ### El widget gatito 🐱
+
+<p align="center">
+  <img src="docs/img/es-michi-estados.gif" alt="El gatito: teclea cuando vas bien, arde al cruzar tu alarma y duerme si agotas la semana" width="640">
+</p>
 
 - **Cápsula "Sesión X%"** sobre su cabeza, siempre visible.
 - **Una bombilla** encima con la presión de contexto de tu sesión viva; pasa

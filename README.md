@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/img/michiclaude.gif" alt="MichiClaude on the desktop: the cat widget, the tray icon and the panel" width="900">
+  <img src="docs/img/en-michi-principal.gif" alt="MichiClaude on the desktop: the cat widget, the tray icon and the panel" width="900">
 </p>
 
 > 🚧 **Under active development** — the app is fully usable and gets daily
@@ -168,6 +168,18 @@ The panel has **six tabs**:
 - **Preferences** — language, floating widget, alarms, budget and export.
 
 The footer (Today / period) is always visible on the Overview tab.
+
+<p align="center">
+  <img src="docs/img/1-en-primerospasos.png" alt="Overview: the 5-hour gauge, the weekly bars and the pace marker" width="820">
+</p>
+
+<p align="center">
+  <img src="docs/img/2-en-primerospasos.png" alt="Spend per project: tokens first, dollars underneath" width="820">
+</p>
+
+<p align="center">
+  <img src="docs/img/3-en-primerospasos.png" alt="Top model and the daily usage chart" width="820">
+</p>
 
 ## Where do you use Claude Code? (native Windows, WSL or a server)
 
@@ -331,6 +343,10 @@ looks for patterns that burn tokens without giving anything back. Each finding
 is a card with what happened, roughly what it cost you, and what to do about
 it. Severity is by cost: red from $10, amber from $1.
 
+<p align="center">
+  <img src="docs/img/1-en-hallazgostips.png" alt="Findings: leaks found in your own logs, each with its cost" width="820">
+</p>
+
 What it looks for, in plain terms:
 
 | Finding | What it means |
@@ -356,6 +372,10 @@ clear as you actually read them, one by one.
 on the machine (see [Privacy](#privacy-and-what-it-connects-to)).
 
 ## Tips: the coach
+
+<p align="center">
+  <img src="docs/img/2-en-hallazgostips.png" alt="Tips: the session receipt and the hand-written cards" width="820">
+</p>
 
 The **Tips** tab has two halves.
 
@@ -550,6 +570,10 @@ and you can run your own: put its address in `"server"` inside
 `%APPDATA%\com.oscarorozco.michiclaude\ntfy_config.json`.
 
 ### The cat widget 🐱
+
+<p align="center">
+  <img src="docs/img/en-michi-estados.gif" alt="The cat: typing when you are fine, on fire past your alarm, asleep when the week runs out" width="640">
+</p>
 
 - **"Session X%" capsule** over its head, always visible.
 - **A light bulb** above it showing context pressure for your live session;
