@@ -1,6 +1,6 @@
 [package]
 name = "michiclaude"
-version = "0.1.2"
+version = "0.2.0"
 description = "Widget de bandeja para Windows: cuota real de Claude (5h/semanal), coste por proyecto y modelo más usado."
 authors = ["Oscar Orozco"]
 edition = "2021"
