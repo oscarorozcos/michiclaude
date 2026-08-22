@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/oscarorozcos/michiclaude/releases/latest"><img alt="Descargar para Windows" src="https://img.shields.io/badge/Descargar-Windows%2010%20%2F%2011-E08B63?style=for-the-badge&labelColor=151F3A&logo=windows&logoColor=white"></a>
+  <img alt="Estado: beta" src="https://img.shields.io/badge/estado-beta%20%C2%B7%20en%20desarrollo%20activo-E08B63?style=for-the-badge&labelColor=151F3A">
   <a href="https://github.com/oscarorozcos/michiclaude/releases/latest"><img alt="Última versión" src="https://img.shields.io/github/v/release/oscarorozcos/michiclaude?style=for-the-badge&label=versi%C3%B3n&color=E08B63&labelColor=151F3A"></a>
   <a href="LICENSE"><img alt="Licencia GPL-3.0" src="https://img.shields.io/badge/licencia-GPL--3.0-E08B63?style=for-the-badge&labelColor=151F3A"></a>
   <a href="https://github.com/oscarorozcos/michiclaude/discussions"><img alt="Discusiones" src="https://img.shields.io/badge/Discusiones-preg%C3%BAntanos-E08B63?style=for-the-badge&labelColor=151F3A&logo=github&logoColor=white"></a>
@@ -43,6 +44,14 @@ cuánto has usado de tu suscripción de Claude y cuánto te queda:
 
 Construido con [Tauri 2](https://tauri.app): binario nativo pequeño, frontend
 HTML/CSS/JS sin frameworks, backend Rust mínimo.
+
+> **Qué abre esta primera versión pública (0.2.0):** Principal, Fuentes de
+> datos, Hallazgos y Consejos. La pestaña **Reporte** y todo lo que escribe en
+> tus sesiones —aplicar `/compact` y `/clear` por ti, el ruteo de modelos, el
+> análisis local con IA— existe en el código pero viene **apagado**; se irá
+> abriendo en próximas versiones, cuando esté validado con uso real. Algunas
+> secciones de más abajo describen esas piezas para que sepas qué viene.
+> **Esta versión solo mira: nunca toca tus sesiones.**
 
 ---
 

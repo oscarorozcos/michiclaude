@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/oscarorozcos/michiclaude/releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/Download-Windows%2010%20%2F%2011-E08B63?style=for-the-badge&labelColor=151F3A&logo=windows&logoColor=white"></a>
+  <img alt="Status: beta" src="https://img.shields.io/badge/status-beta%20%C2%B7%20actively%20developed-E08B63?style=for-the-badge&labelColor=151F3A">
   <a href="https://github.com/oscarorozcos/michiclaude/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/oscarorozcos/michiclaude?style=for-the-badge&label=version&color=E08B63&labelColor=151F3A"></a>
   <a href="LICENSE"><img alt="License GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-E08B63?style=for-the-badge&labelColor=151F3A"></a>
   <a href="https://github.com/oscarorozcos/michiclaude/discussions"><img alt="Discussions" src="https://img.shields.io/badge/Discussions-ask%20here-E08B63?style=for-the-badge&labelColor=151F3A&logo=github&logoColor=white"></a>
@@ -42,6 +43,14 @@ your Claude subscription you've used and how much is left:
 
 Built with [Tauri 2](https://tauri.app): a small native binary, an HTML/CSS/JS
 frontend with no frameworks, and a minimal Rust backend.
+
+> **What this first public version (0.2.0) opens up:** Overview, Data sources,
+> Findings and Tips. The **Report** tab and everything that writes into your
+> sessions — applying `/compact` and `/clear` for you, model routing, local AI
+> analysis — exists in the code but ships **switched off**; it will open up in
+> later versions, once validated in real use. Some sections below describe
+> those pieces so you know what's coming. **This version only watches: it
+> never touches your sessions.**
 
 ---
 
