@@ -4336,3 +4336,47 @@ QUÉ QUEDA:
 - Oscar: `git pull` y `npm run build`. Ya NO tiene que correr
   `npm run icons` — los iconos van commiteados desde el VPS.
 - El icono viejo del escritorio es caché de Windows, no del build.
+
+## 2026-08-22 — v0.2.0 PUBLICADA: el primer release para usuarios, con su cara y su historia
+
+QUÉ:
+
+- **Release v0.2.0 publicado y firmado** (tag de Oscar, workflow verde en
+  ~12 min): instalador 7.4 MB + .sig + latest.json correcto. Notas de
+  release bilingües escritas y publicadas: qué es, qué trae, **qué viene
+  apagado a propósito** y transparencia (endpoint no oficial dicho por
+  nosotros; crédito a Bongo Cat).
+- **README de lanzamiento** (ambos idiomas): fila de badges (descarga,
+  versión auto, GPL, Discussions, LinkedIn), badge de **beta**, bloque
+  "qué abre la v1" (solo mira, nunca toca), y **14 imágenes** de Oscar
+  colocadas donde explican algo — gif principal por idioma, 3 de
+  Principal, fugas, recibo del coach y gif de estados del gatito.
+  Discussions activado. Roadmap poda "capturas" (hecho).
+- **Camino del lanzamiento en Facebook** acordado con las ENCUESTAS de
+  Oscar como base (58% Windows nativo, 46% /clear a mano + 15% "me entero
+  cuando ya se acabó", 87% conoce el límite inflado hasta el 31/08):
+  post para los grupos con esa narrativa, y post fundacional de la página
+  IA Sparky **ya publicado y fijado**. Grupo: sábado 9:30-11:00 CDMX.
+
+POR QUÉ:
+
+- El desajuste README-vs-app gateada era el riesgo de confianza del día
+  uno: el README describe Reporte/automáticos/IA que la v1 esconde. El
+  bloque nuevo lo convierte en promesa ("se abrirá validado") en vez de
+  sorpresa.
+- Las cifras reales de las capturas ($1,324/15d, proyectos con nombre) se
+  quedan A PROPÓSITO: Oscar decidió que la honestidad vende más que el
+  pulido. El dato de los $34 del inflate de 269 turnos pasó al post como
+  prueba verificable.
+- "No retar" al grupo: el post cerró en agradecimiento (las encuestas le
+  dieron forma) y Mac quedó como puerta abierta según interés — sirve de
+  termómetro para decidir el port.
+
+QUÉ QUEDA (validación en curso, no bloqueó el release):
+
+- R7 (¿un globo o varios?), reconfigurar ntfy/VPS-EU si el desinstalador
+  los borró, ensayo de descarga desde el enlace público, y el post del
+  grupo el sábado por la mañana con Oscar respondiendo la primera hora.
+- Pendientes acordados: LinkedIn (texto largo ya redactado), página
+  iasparky.com como portafolio enlazado, respuestas preparadas para
+  "¿y Mac?", "¿mi token?", "¿vs ccusage?".

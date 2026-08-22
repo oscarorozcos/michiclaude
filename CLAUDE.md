@@ -549,7 +549,7 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
 
 FOTO COMPLETA: bitácora §"cierre 2026-08-08/09" y §"2026-08-17 (18)".
 
-**GATING v1 (2026-08-21, VIGENTE; lanzamiento 08-23):** la v1 pública
+**GATING v1 (2026-08-21, VIGENTE; v0.2.0 PUBLICADA 08-22):** la v1 pública
 esconde `aiSect`/`remSect`/`rtSect`/`hubCfgSect` (IA local, remediación+
 purga+relevo, ruteo, config del HUB) y pinta Reporte gris "Próximamente"
 — listas `V1_HIDE`/`V1_SOON_TABS`; liberar algo = quitarlo de la lista en
