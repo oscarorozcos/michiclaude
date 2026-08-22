@@ -6,6 +6,7 @@
   <a href="https://github.com/oscarorozcos/michiclaude/releases/latest"><img alt="Download for Windows" src="https://img.shields.io/badge/Download-Windows%2010%20%2F%2011-E08B63?style=for-the-badge&labelColor=151F3A&logo=windows&logoColor=white"></a>
   <a href="https://github.com/oscarorozcos/michiclaude/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/oscarorozcos/michiclaude?style=for-the-badge&label=version&color=E08B63&labelColor=151F3A"></a>
   <a href="LICENSE"><img alt="License GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-E08B63?style=for-the-badge&labelColor=151F3A"></a>
+  <a href="https://github.com/oscarorozcos/michiclaude/discussions"><img alt="Discussions" src="https://img.shields.io/badge/Discussions-ask%20here-E08B63?style=for-the-badge&labelColor=151F3A&logo=github&logoColor=white"></a>
   <a href="https://www.linkedin.com/in/oscar-os/"><img alt="LinkedIn" src="https://img.shields.io/badge/LinkedIn-Oscar%20Orozco-E08B63?style=for-the-badge&labelColor=151F3A&logo=linkedin&logoColor=white"></a>
 </p>
 
