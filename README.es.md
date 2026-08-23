@@ -68,6 +68,37 @@ HTML/CSS/JS sin frameworks, backend Rust mínimo.
 > No hay pasos de configuración obligatorios: si usas Claude Code en esa PC,
 > la cuota y los costos por proyecto aparecen solos.
 
+### ⚠️ Windows te va a mostrar una advertencia la primera vez
+
+Al ejecutar el instalador, Windows puede mostrar la pantalla azul de
+**"Windows protegió tu PC"**, y a algunos usuarios Defender incluso les marca
+el archivo. Es lo normal para todo programa gratuito sin certificado de firma
+digital (el certificado cuesta dinero cada año; este proyecto es gratis y de
+código abierto). No significa que el programa tenga algo — significa que
+Windows todavía no conoce al publicador.
+
+**Para abrirlo:** clic en **"Más información"** → **"Ejecutar de todas formas"**.
+
+#### Verifícalo tú mismo, no me creas a mí
+
+- **¿Tiene virus?** Aquí está el
+  [análisis de VirusTotal de la v0.2.0](https://www.virustotal.com/gui/file/014c7870beaa44c3fbed5736283322064fdb0f5f802120a7d0a6a42641cf857e/detection):
+  **68 de 70 antivirus lo dan limpio**, incluidos todos los grandes
+  (Kaspersky, BitDefender, ESET, Avast, CrowdStrike…). Los 2 que lo marcan
+  son heurísticas de aprendizaje automático que reaccionan a "instalador sin
+  firmar"; el falso positivo ya está reportado a Microsoft. El análisis de
+  comportamiento de ese mismo reporte muestra **cero conexiones de red** del
+  instalador.
+- **¿Las actualizaciones son seguras?** La app solo acepta actualizaciones
+  firmadas criptográficamente con la llave del proyecto (cada release publica
+  su `.sig` junto al instalador). Un binario alterado, aunque sea en un byte,
+  no se instala.
+- **¿Prefieres no confiar en binarios?** Clona el repositorio y compílalo tú
+  mismo: [BUILD.md](BUILD.md).
+- **¿Y el tráfico de red?** Ábrelo con Wireshark o el monitor de red
+  corriendo: solo verás `api.anthropic.com`. Si ves cualquier otra cosa,
+  repórtalo como issue — es exactamente el tipo de aviso que quiero recibir.
+
 ### ¿Qué versión de Windows necesito?
 
 **Windows 10 o Windows 11.** Hasta hoy solo se ha probado en Windows 11 (es

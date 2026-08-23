@@ -66,6 +66,36 @@ frontend with no frameworks, and a minimal Rust backend.
 > There are no mandatory setup steps: if you use Claude Code on that PC, your
 > quota and per-project costs show up on their own.
 
+### ⚠️ Windows will show you a warning the first time
+
+When you run the installer, Windows may show the blue
+**"Windows protected your PC"** screen, and for some users Defender even flags
+the file. This is normal for any free program without a code-signing
+certificate (certificates cost money every year; this project is free and open
+source). It doesn't mean the program carries anything — it means Windows
+doesn't know the publisher yet.
+
+**To open it:** click **"More info"** → **"Run anyway"**.
+
+#### Verify it yourself — don't take my word for it
+
+- **Does it have a virus?** Here is the
+  [VirusTotal analysis of v0.2.0](https://www.virustotal.com/gui/file/014c7870beaa44c3fbed5736283322064fdb0f5f802120a7d0a6a42641cf857e/detection):
+  **68 out of 70 antivirus engines report it clean**, including all the major
+  ones (Kaspersky, BitDefender, ESET, Avast, CrowdStrike…). The 2 that flag
+  it are machine-learning heuristics reacting to "unsigned installer"; the
+  false positive has already been reported to Microsoft. The behavior
+  analysis in that same report shows **zero network connections** from the
+  installer.
+- **Are updates safe?** The app only accepts updates cryptographically signed
+  with the project's key (every release publishes its `.sig` next to the
+  installer). A binary altered by even one byte will not install.
+- **Would you rather not trust binaries at all?** Clone the repository and
+  build it yourself: [BUILD.md](BUILD.md).
+- **What about network traffic?** Run it with Wireshark or a network monitor
+  open: you'll only see `api.anthropic.com`. If you see anything else, report
+  it as an issue — that's exactly the kind of report I want to receive.
+
 ### Which Windows version do I need?
 
 **Windows 10 or Windows 11.** So far it has only been tested on Windows 11
