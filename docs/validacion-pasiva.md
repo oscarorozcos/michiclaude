@@ -38,6 +38,12 @@ instalador, no `npm run dev`. Consecuencias:
 simulador): esas 15 son las que más ganan al confirmarse en el exe, y en
 esta ronda cayeron seis de ellas.
 
+**Actualización 2026-08-24 (jornada 3, uso normal):** caen 3 filas más en
+Exe —el `/clear` tecleado por ti detectado y contado, el globo `cleared`
+con su visor, y el ✕ que despacha una ficha— y se abre **R8** (el contador
+de la compuerta de aprendizaje volvió a empezar). La presión de contexto
+midió 12-13% en dos sesiones largas: **R6** sigue tal cual.
+
 **Interruptores de Oscar (2026-08-19):** TODOS encendidos salvo *borrado
 automático* (purga) y *archivar logs*. Es decir: ruteo, guardián, escalar
 solo, reenviar, modelo top, bajar solo, auto-/compact, auto-/clear y el
@@ -100,6 +106,7 @@ salió bien).
 | "Copiar comando" copia de verdad ("Copiado ✓") | ? | ✅ | **19/08**: `clipboard-manager\|write_text` a pelo funciona en el build firmado. |
 | Recibo `sum` al cerrar (título AI, hechos, `~$X`, ⚠) | ? | ✅ | **19/08**: "1 min · 4 comandos · … · ~$0.48" + "⚠ cerró con 37k tokens de contexto — el caché venció en la pausa". Ver **R2**. |
 | Contraer una ficha y que deje de contar | ✅ | ✅ | **19/08**: el recibo se plegó a título + subtítulo. |
+| El ✕ despacha la ficha y apaga el aviso | ✅ | ✅ | **24/08**: `17:51:01 tips: ✕ despacha sum\|1a6e69e2` → `tips: aviso apagado`, mismo segundo. El recibo había nacido a las 17:26 y encendido el aviso él solo. |
 | Ficha caliente que se REFRESCA sin renacer | ✅ (17/08 nº3) | ~ | Falta verla cambiar el minutaje sin saltar de sitio. |
 | Push `done` / `ask` publicados | ⬜ | ✅ | Bitácora: `push ok: Terminó tu sesión en michiclaude · VPS-EU · 7 min, 29 turnos` y `23:20:38 push ok: Claude espera tu aprobación en sparky-site · VPS-EU · 3 min`. Justo el `ask` de la herramienta colgada que se vio esa noche: el aviso SÍ salió. |
 | Tope diario de 10 fichas (`sum` exento) | ? | ⬜ | |
@@ -147,6 +154,8 @@ salió bien).
 | Registro de acciones, una fila por aplicación | ✅ (17/08 nº6-7) | ✅ | **19/08**: filas del 13, 16 y 19 de agosto, `manual` y `auto`, en «VPS-EU» y «oscar». |
 | Compuerta de aprendizaje (manuales antes del automático) | ✅ | ✅ | **19/08**: `/compact 2 de 2` y `/clear 8 de 3`, candados ya ocultos. Ver **R1**. |
 | Lista de sesiones con relevo (pid, presión, `listo`) | ? | ✅ | **19/08**: `michiclaude` pid 4020410 · 7% y `sparky-site` pid 4122038 · 4%. |
+| El relevo ve un `/clear` **tecleado por ti** y lo cuenta | ✅ (17/08) | ✅ | **24/08 18:37**: `relevo: /clear tecleado por el usuario en pid 3695326` → `/clear aplicado a mano (1/3)`, sin tocar el panel. Ojo al contador: ver **R8**. |
+| Globo `cleared` + clic → la conversación anterior (`read_cleared`) | ✅ (16-17/08) | ✅ | **24/08**: globo anclado al gatito «/clear en michiclaude · VPS-EU — la conversación anterior quedó guardada. Clic para verla» y el visor abriéndola entera. Es la vía SIN copia handoff (el `/clear` tuyo no la deja): lee el `.jsonl` de la sesión por SSH. Cierra además la trampa del *sid vivo* del 17/08 — la conversación era la correcta. |
 | "Aplicar" inyecta el comando en la sesión | ✅ (17/08) | ✅ | La bitácora distingue las dos vías y las dos se ven: `relevo: /clear tecleado por el usuario en pid 3236` frente a `21:14:06 relevo: aplicado /clear en pid 4122038` — esta última es el botón del panel, y a esa misma hora nació `handoff-4122038-1787174044.jsonl`. |
 | Auto-`/compact` con cuenta atrás de 15 s que DICE el comando | ✅ (13/08 nº3) | ⬜ | |
 | Auto-`/clear` disparado solo | ✅ (13/08 nº5-7) | ~ | Hay filas `auto` del 13/08 en el registro; falta saber por qué razón y verlo en vivo. |
@@ -448,6 +457,10 @@ no en CUÁNDO se avisa. Ojo: toca `press`, `coach_leaks`, la tarjeta de
 intención y las compuertas del automático — hay que revisarlas juntas, y
 el auto-`/clear` con especial cuidado.
 
+**Medida nueva (2026-08-24):** dos sesiones largas de trabajo real en
+`michiclaude · VPS-EU` marcaron **12-13%** de presión durante toda la
+tarde (bitácora PRO, 17:15 → 18:37). Ni se acercó al 60%. R6 intacta.
+
 **Nota para la bitácora:** este es el hallazgo más valioso de la ronda de
 validación pasiva, y solo aparece USANDO la app. En dev estaba tapado por
 el simulador, que finge justo esos estados.
@@ -479,3 +492,31 @@ otra vez. Si es eso, el ruido está en la bitácora, no en la pantalla.
 Si es uno solo, sobra el `flog` en la vía de restauración; si son
 varios, es un fallo de verdad.
 
+### R8 · El contador de la compuerta de aprendizaje volvió a empezar — 2026-08-24
+
+**Qué se vio:** al teclear un `/clear` a mano, la bitácora PRO anota
+`relevo: /clear aplicado a mano (1/3)`. El 19/08 ese mismo contador iba
+por **8 de 3** (§8, fila de la compuerta). O sea que `relayDone` está en 1.
+
+**Por qué importa:** `relayUnlocked()` lee ese contador, así que el
+auto-`/clear` está **bloqueado otra vez** — pide 2 aplicaciones manuales
+más. (En la práctica R6 ya lo tenía dormido: el automático exige presión
+≥80%, que con techo de 1M no llega. Pero conviene saber cuál de los dos
+candados está echado.)
+
+**Sospechoso:** la desinstalación con «borrar datos locales» del 21/08.
+Contradice la nota de esa fecha —«localStorage del panel sobrevive»,
+deducida de que el hallazgo ignorado seguía ahí—, así que una de las dos
+observaciones necesita repaso: puede que sobreviviera una parte
+(WebView2 en `AppData\Local`) y se perdiera otra, o que el hallazgo
+ignorado se volviera a ocultar después.
+
+**Cómo confirmarlo (30 s, Oscar):** Ajustes → Mayús+clic en «MichiClaude
+vX.Y» para sacar el bloque de remediación (el gating v1 lo esconde) y leer
+el marcador «Aplicado por ti: /compact _ de 2 · /clear _ de 3». Si marca
+0 de 2 en `/compact`, se borró toda la cuenta y es el desinstalador.
+
+**Sin arreglo propuesto todavía:** si se confirma que es el desinstalador,
+la pregunta de diseño es si la compuerta de aprendizaje debería vivir en
+disco (AppData) en vez de en localStorage — hoy una reinstalación te
+vuelve a pedir el aprendizaje entero. No se toca nada hasta la tanda.
