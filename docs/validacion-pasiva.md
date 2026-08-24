@@ -609,21 +609,28 @@ que llevan control. Dos líneas legibles antes que un título mutilado.
 **Qué se vio:** el héroe dice «5.3M tokens ≈ $164 estimado» y la tarjeta de
 desperdicio, justo debajo, «$25 de $163 del periodo».
 
-**Por qué pasa (sospecha):** son dos caminos independientes a propósito
-—`get_local_stats` para el héroe, el `total_cost` del escaneo de hallazgos
-para el denominador— y el 2026-08-14 se validaron iguales AL CÉNTIMO. Hoy
-difieren ~$0.4-0.8. El sospechoso es la máquina del HUB: la lista de
-proyectos incluye `oscar · OSCAR-HUAWEI` con $0.36, y los hallazgos NO
-viajan por el hub (solo la foto agregada), así que el denominador del
-desperdicio no puede verla.
+**Por qué pasa (sospecha principal):** son dos caminos independientes a
+propósito —`get_local_stats` para el héroe, el `total_cost` del escaneo de
+hallazgos para el denominador— y el 2026-08-14 se validaron iguales AL
+CÉNTIMO. Los dos son ventanas RODANTES ancladas en `now`, pero **no corren
+en el mismo instante**: el héroe se refresca con el ciclo del panel y el
+escaneo de hallazgos con el suyo (la captura decía «actualizado hace
+145s»). Minutos de diferencia mueven las dos puntas de la ventana, y con
+Opus trabajando eso son décimas de dólar. La diferencia vista (~$0.4) cabe
+de sobra ahí.
 
-**Impacto:** hoy $1 de 164, invisible. Con una segunda máquina de verdad
-el porcentaje de desperdicio se calcularía sobre un total incompleto —o
-sea, saldría MÁS ALTO de lo que es. Y dos totales distintos para el mismo
-periodo, a dos centímetros, es justo lo que erosiona la confianza en un
-medidor.
+**Descartado:** que fuera la máquina del hub. `oscar · OSCAR-HUAWEI` es la
+PROPIA máquina de Oscar (el Reporte etiqueta el origen local con el nombre
+del equipo; el CSV, en cambio, lo llama `Local` — misma fuente, dos
+nombres, ojo al comparar). No hay segunda máquina en juego.
 
-**Qué comprobar antes de arreglar:** correr el escaneo con y sin la fuente
-del hub y ver si la diferencia es exactamente el gasto de esa máquina. Si
-lo es, la salida honesta es que el denominador diga de qué máquinas habla
-(o que excluya el hub también del numerador Y del total que enseña).
+**Impacto:** hoy $1 de 164 y solo cosmético, pero dos totales distintos
+para el mismo periodo, a dos centímetros, es justo lo que erosiona la
+confianza en un medidor.
+
+**Qué comprobar antes de arreglar:** abrir el Reporte y mirar si la
+diferencia CAMBIA entre refrescos (sí → es el desfase de instantes; no →
+hay un sumando que uno de los dos caminos no ve, y toca comparar
+`waste.total_cost` con el `cost_window` de la misma pasada, como el
+2026-08-14). El arreglo honesto para el primer caso es que la tarjeta de
+desperdicio use el total que ya trae el héroe en vez de recalcularlo.
