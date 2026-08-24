@@ -7185,9 +7185,36 @@ const PRESS_FULL=200000;
 // denominador — si esto se duplica, vuelve el bug del 200k fijo.
 function pressFull(h){ return (h&&h.full>0) ? h.full : PRESS_FULL; }
 function pressPct(h){ return Math.min(100,Math.round((h&&h.value||0)/pressFull(h)*100)); }
+// R6 (2026-08-24): SUELOS ABSOLUTOS junto al % del techo. Con Opus/Sonnet de
+// 1M, el 80% de la intención son 800.000 tokens — inalcanzable en una sesión
+// real (máximo medido en 11 días: 23%), así que la tarjeta de intención, el
+// manómetro en color y las compuertas del automático no llegaban a existir en
+// los modelos que más cuestan. Releer 200k cuesta lo mismo tenga el modelo
+// 200k o 1M de techo: el daño es absoluto. Entra LO QUE OCURRA ANTES.
+// Gemelos en Rust y en el exportador: COACH_CTX_ABS / ctx_alto (invariante #1).
+const CTX_ABS_COMPACT=150000;  // ámbar y ficha de compactar
+const CTX_ABS_INTENT=200000;   // rojo y tarjeta de intención
+const CTX_ABS_LOW=100000;      // solo el primer escalón de la bombilla
+// El DIBUJO sigue siendo % del techo (es honesto: te queda mucho depósito);
+// esto es solo el COLOR/nivel, que es un aviso, no una medida.
+function pressLevel(v,pct){
+  if(pct>=85||v>=CTX_ABS_INTENT) return 3;
+  if(pct>=60||v>=CTX_ABS_COMPACT) return 2;
+  if(pct>=40||v>=CTX_ABS_LOW) return 1;
+  return 0;
+}
+// ¿zona de intención? El % del techo o el suelo absoluto, lo que llegue antes.
+function pressHot(h){
+  return pressPct(h)>=INTENT_PCT || ((h&&h.value)||0)>=CTX_ABS_INTENT;
+}
 function pressField(){
   if(!lastPress||!lastPress.ctx) return null;
   return {pct:Math.min(100,Math.round(lastPress.ctx/pressFull(lastPress)*100)),
+    // nivel 0-3 ya decidido AQUÍ (R6): las ventanas del widget solo tienen el
+    // %, y con techo de 1M el % nunca llega a los umbrales. Que cada una lo
+    // recalculara con su propio 60/85 fue el bug original repetido tres veces.
+    lvl:pressLevel(lastPress.ctx, Math.min(100,Math.round(
+      lastPress.ctx/pressFull(lastPress)*100))),
     proj:lastPress.project+(lastPress.origin?" · "+lastPress.origin:""),
     // ¿la sesión que estamos midiendo tiene relevo? (etapa 3c). Dice algo
     // DISTINTO de la marca del título de la pestaña: aquella habla de la
@@ -9331,9 +9358,14 @@ function coachSched(){
   let ms=COACH_POLL_IDLE;
   if(lastPress){
     const pct=Math.min(100,Math.round((lastPress.ctx||0)/(lastPress.full||1)*100));
-    ms = (pct>=COACH_HOT_PCT||coachJump) ? COACH_POLL_HOT
-       : pct>=COACH_WARM_PCT             ? COACH_POLL_WARM
-       :                                   COACH_POLL_ACTIVE;
+    // R6: también por tokens absolutos. Con techo de 1M el % no llegaba a
+    // 55/70 ni con la conversación cara, y el compás solo aceleraba por el
+    // SALTO entre sondeos — que funciona, pero llega tarde a una sesión que
+    // ya nació grande.
+    const ctx=lastPress.ctx||0;
+    ms = (pct>=COACH_HOT_PCT||ctx>=CTX_ABS_INTENT||coachJump) ? COACH_POLL_HOT
+       : (pct>=COACH_WARM_PCT||ctx>=CTX_ABS_COMPACT)          ? COACH_POLL_WARM
+       :                                                        COACH_POLL_ACTIVE;
   }
   if(ms!==coachLastMs){                    // solo las transiciones al rastro
     flog("coach: compás "+(ms/1000)+" s"+(lastPress
@@ -9433,7 +9465,7 @@ async function coachPoll(){
     // al 89% detrás de una al 29%, y el automático quedó ciego 2 minutos
     // (visto en vivo, 19:41). Entre dos que arden, o dos que no, la más
     // fresca; a igual frescura, la de más contexto.
-    const arde=h=>pressPct(h)>=INTENT_PCT?1:0;
+    const arde=h=>pressHot(h)?1:0;
     const pr=pressAll
       .slice().sort((a,b)=>arde(b)-arde(a)
         ||(a.quiet||0)-(b.quiet||0)||(b.value||0)-(a.value||0))[0];
@@ -9454,7 +9486,7 @@ async function coachPoll(){
     let intentHit=null;
     if(pr){
       const ppct=pressPct(pr);
-      if(ppct>=INTENT_PCT){
+      if(pressHot(pr)){
         intentHit={rule:"intent", session:pr.session||"", value:ppct,
           project:pr.project||"", origin:pr.origin||"", quiet:pr.quiet||0,
           topen:pr.topen||0, ttotal:pr.ttotal||0, cont:pr.cont||0,
@@ -11660,7 +11692,7 @@ EVENT?.listen("relay:stop",()=>autoStop("el usuario"));
 async function relayAutoCheck(pr){
   if(autoRun||simFnd||!invoke||!pr) return;
   if(!remOn("relay")) return;                // interruptor maestro del automático
-  if(pressPct(pr)<INTENT_PCT) return;
+  if(!pressHot(pr)) return;
   const sid=pr.session||"";
   if(!sid||autoBlocked(sid)) return;         // aplicado, o intento reciente
   const rly=relayFor(pr);

@@ -4380,3 +4380,85 @@ QUÉ QUEDA (validación en curso, no bloqueó el release):
 - Pendientes acordados: LinkedIn (texto largo ya redactado), página
   iasparky.com como portafolio enlazado, respuestas preparadas para
   "¿y Mac?", "¿mi token?", "¿vs ccusage?".
+
+## 2026-08-24 — jornada de validación en modo usuario: 13 filas cerradas y la tanda de 7 rarezas (R5 a R13), R6 incluida
+
+QUÉ. Dos cosas, en este orden. (1) Validación pasiva con Oscar usando el
+exe como usuario y mandando capturas: cayeron 13 filas del checklist —el
+`/clear` tecleado por ti detectado y contado, el globo `cleared` con su
+visor, el ✕ que despacha una ficha, el post-it turquesa, restaurar un
+hallazgo ignorado, el export CSV verificado en Excel, el idioma llegando
+al globo del gatito, el globo resumen con buckets por modelo, el
+presupuesto semanal, la INTEGRIDAD («comparación no concluyente»), la
+capa sobre pantalla completa, el globo popover con la pastilla, y el
+Reporte entero en sus tres modos— más tres filas de RUTEO que el propio
+Reporte demostró medidas (Hook B, guardián con 3 frenados y 1
+insistencia, `scan_ruteo`). (2) La tanda de arreglos: R5, R6, R8, R9,
+R10, R11, R12 y R13.
+
+POR QUÉ, una por una:
+
+- **R6 (la gorda).** Las reglas de presión medían SOLO % del techo. Con
+  Opus/Sonnet de 1M, el 60% son 600k y el 80% son 800k: inalcanzables
+  (presión máxima real medida en 11 días, 23%). Dormían la ficha de
+  compactar, la tarjeta de intención, el ⚠ `ctx`, el color del manómetro
+  y los AUTOMÁTICOS — justo en los modelos que más cuestan. El daño de un
+  contexto grande es ABSOLUTO: releer 200k cuesta lo mismo con techo de
+  200k que de 1M. Ahora entra lo que ocurra ANTES: `ctx_alto()` (60% ∨
+  150k) en Rust y su réplica en el exportador, `pressHot()` (80% ∨ 200k)
+  y `pressLevel()` en el panel, y el compás del coach con los mismos
+  suelos. El DIBUJO no cambia (sigue siendo % del techo, que es lo
+  honesto); cambia CUÁNDO avisa. El `lvl` se decide UNA vez en el panel y
+  viaja dentro de `press`: que pill/pcard/cat recalcularan cada una su
+  60/85 era el mismo bug escrito tres veces.
+- **R12.** El Reporte enseñaba dos totales del mismo periodo ($2418 arriba,
+  $2381 en desperdicio). Se midió en el VPS: los dos caminos coinciden AL
+  CÉNTIMO en una máquina (7 d y 30 d, diferencia 0.0000). El hueco lo
+  ponía el HUB, que manda su foto agregada con `waste` en ceros — la de
+  OSCAR-HUAWEI suma $37.03 en 30 d, exactamente el hueco. Se descartó la
+  primera hipótesis (desfase de instantes) con esos números. El
+  denominador pasa a ser el total del héroe: el % sale más conservador,
+  que es el único lado seguro para un dato que se anuncia como «al menos».
+  Contradice el «mismos orígenes» de la fórmula, así que queda ESCRITO en
+  presion-y-rendimiento.md, no escondido.
+- **R10.** «Esta semana» daba 5.3M/$164 arriba y 3.9M/$117 en la gráfica:
+  ventana de 7×24 h rodando (con la cola del 17/08, un día de 4.5M) contra
+  7 días naturales. Las ventanas del Reporte terminan ahora al cierre del
+  día, en UTC porque así agrupa la serie diaria. El motor no se tocó.
+- **R8.** La compuerta de aprendizaje del relevo vivía en localStorage y
+  la desinstalación con «borrar datos locales» del 21/08 se la llevó
+  entera (de `/compact 2 de 2 · /clear 8 de 3` a `0 de 2 · 1 de 3`, con el
+  automático bloqueado otra vez). Es confianza GANADA: ahora vive en
+  `relay_gate.json` y localStorage queda de espejo; la primera carga sube
+  lo que hubiera como `seed` y Rust fusiona por el máximo.
+- **R9.** `flog()` sellaba en UTC y la interfaz en local: el mismo /clear
+  salía como «18:37» en la Bitácora PRO y «12:34 p.m.» en el registro.
+- **R13.** El presupuesto semanal guardaba en el evento `change`, sin
+  confirmación, al lado de unas alarmas que sí tienen chips y botón.
+  Ahora tiene la misma forma; el botón reusa `cal_apply` (cero texto
+  nuevo en 8 idiomas).
+- **R11.** «DESPERDICIO ESTRUCTUR…»: la cabecera mutilaba el título para
+  salvar la coletilla. Ahora envuelve.
+- **R5.** El primer prompt de cada sesión escapaba al guardián (13 de 16
+  eventos sin modelo eran eso). Último recurso: el modelo que esa carpeta
+  ya usaba (`lastModelUsage`), y SOLO si hay uno; si aun así no se sabe,
+  `ev:"noeval"` en el registro — un agujero contable se puede medir, uno
+  silencioso no.
+
+CÓMO SE VERIFICÓ. `node --check` limpio sobre el JS de las seis ventanas;
+`ast.parse` limpio en los dos .py; el respaldo de R5 probado a mano (una
+carpeta con un modelo devuelve el modelo, una con varios devuelve None);
+R12 medido con el exportador real en el VPS (tabla de arriba). **`cargo
+check` PENDIENTE en el Windows de Oscar**: el VPS no tiene toolchain de
+Rust — se tocó `lib.rs` (comando `relay_gate` nuevo, `ctx_alto()`, dos
+llamadas sustituidas) y se hizo grep de todos los usos, que es lo que
+manda CLAUDE.md cuando no hay compilador.
+
+QUÉ QUEDA. R6 está ARREGLADA pero no VALIDADA: falta ver la primera ficha
+de compactar y la primera tarjeta de intención con un modelo de 1M en uso
+real. Los automáticos siguen APAGADOS y la compuerta pide 2 `/compact` y 2
+`/clear` manuales: la fase 4 no puede empezar hasta que Oscar los aplique
+desde el panel. R4 y R7 siguen abiertas (verificar), el HUB sigue
+bloqueado sin segunda máquina, y el bloque B del reparto —alarmas
+repetidas, semanal al 100%, ntfy con la PC apagada, `cat-zzz`/`cat-break`,
+caducidad de 24 h— solo se puede cerrar esperando a que ocurra.

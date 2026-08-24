@@ -404,7 +404,11 @@ function apply(d){
   if(!pr) document.body.classList.remove("showtip");
   if(pr){
     const p=Math.round(pr.pct);
-    $("idea").dataset.lvl = p>=85?"3":p>=60?"2":p>=40?"1":"0";
+    // el nivel viene decidido del panel (R6, 2026-08-24): los umbrales son
+    // "% del techo O tokens absolutos, lo que llegue antes", y aquí solo
+    // llega el %. Con techo de 1M la bombilla no se encendía nunca.
+    $("idea").dataset.lvl = String(pr.lvl!=null ? pr.lvl
+      : (p>=85?3:p>=60?2:p>=40?1:0));
     // ficha del hover: el número y el proyecto que antes iban en el globo del
     // resumen. Con relevo se DICE (el punto del casquillo solo insinúa).
     $("ptipPct").textContent=p+"%";

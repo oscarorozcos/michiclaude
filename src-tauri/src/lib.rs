@@ -3762,6 +3762,24 @@ const COACH_ACTIVE_MIN: i64 = 30; // minutos sin tocar el log = sesión dormida
 // de ctx_full() (evidencia de la máquina incluida); con modelo desconocido
 // ctx_for() cae a 200k y el umbral queda en 120k, el comportamiento de antes.
 const COACH_CTX_PCT: u64 = 60;
+// ...Y UN SUELO ABSOLUTO (R6, 2026-08-24). Medir SOLO en % del techo fue un
+// atajo válido mientras todos los modelos tenían 200k. Con Opus/Sonnet de 1M,
+// el 60% son 600.000 tokens de contexto: no se alcanza NUNCA en una sesión
+// real (medido en 11 días de uso, la presión máxima fue 23%), así que la
+// ficha de compactar, el ⚠ `ctx` del recibo, la tarjeta de intención y los
+// automáticos se quedaban dormidos justo en los modelos que más cuestan.
+// El daño es ABSOLUTO, no relativo: releer 200k cuesta lo mismo con techo de
+// 200k que de 1M — el dinero no sabe de porcentajes. Entra LO QUE OCURRA
+// ANTES. El techo sigue mandando en el DIBUJO del manómetro (es honesto:
+// te queda mucho), pero no en CUÁNDO se avisa.
+const COACH_CTX_ABS: u64 = 150_000;
+
+/// ¿Contexto alto? El 60% del techo del modelo O el suelo absoluto, lo que
+/// llegue antes. ÚNICO sitio donde se decide: replicado en `meter-export.py`
+/// (`ctx_alto`, invariante #1) y con su gemelo en el panel (`pressHot`).
+fn ctx_alto(last_ctx: u64, model: &str, ctx_seen: u64) -> bool {
+    last_ctx >= COACH_CTX_ABS || last_ctx >= ctx_full(model, ctx_seen) * COACH_CTX_PCT / 100
+}
 const COACH_GAP_MIN: i64 = 6; // minutos de pausa para avisar del caché vencido
 const COACH_GAP_CTX: u64 = 30_000; // ...solo si hay contexto que valga la pena
 const COACH_REREAD: u32 = 3; // lecturas del mismo archivo en la sesión
@@ -3912,7 +3930,7 @@ fn coach_leaks(st: &CoachSess) -> Vec<CoachLeak> {
     if shots >= COACH_SHOTS {
         out.push(CoachLeak { kind: "shots".into(), file: String::new(), n: shots as u64 });
     }
-    if st.last_ctx >= ctx_full(&st.model, st.ctx_seen) * COACH_CTX_PCT / 100 {
+    if ctx_alto(st.last_ctx, &st.model, st.ctx_seen) {
         out.push(CoachLeak { kind: "ctx".into(), file: String::new(), n: st.last_ctx / 1000 });
     } else if st.last_ctx >= COACH_GAP_CTX {
         // Cerró con contexto grande (sin llegar al umbral del /compact):
@@ -4331,7 +4349,7 @@ fn coach_scan() -> Vec<CoachHit> {
                 .file_stem()
                 .map(|s| s.to_string_lossy().chars().take(8).collect())
                 .unwrap_or_default();
-            if st.last_ctx >= ctx_full(&st.model, st.ctx_seen) * COACH_CTX_PCT / 100 {
+            if ctx_alto(st.last_ctx, &st.model, st.ctx_seen) {
                 hits.push(CoachHit {
                     rule: "compact".into(),
                     session: sid.clone(),

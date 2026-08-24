@@ -418,8 +418,14 @@ está, y apagarla desactiva su `precomputeCompactionEnabled`. Entramos al
 80% (`INTENT_PCT`): se gana por diseño, no por carrera. La compactación
 NO lleva `usage`: no se factura, solo se ve en cuota.
 
-**Reglas:** ctx ≥60% del techo (`COACH_CTX_PCT`×`ctx_full`; el ⚠ "ctx"
-de `coach_leaks` usa el MISMO umbral) → compact; pausa≥6 min con ctx≥30k
+**Reglas:** ctx ≥60% del techo O ≥150k absolutos, LO QUE OCURRA ANTES
+(`ctx_alto()` = `COACH_CTX_PCT`×`ctx_full` ∨ `COACH_CTX_ABS`; réplica en
+el exportador, invariante #1; el ⚠ "ctx" de `coach_leaks` usa el MISMO
+umbral). El gemelo del panel es `pressHot()` (`INTENT_PCT` ∨
+`CTX_ABS_INTENT`=200k) y `pressLevel()` decide el COLOR del manómetro,
+que viaja como `lvl` en `press` — las ventanas del widget no lo
+recalculan. El DIBUJO sigue siendo % del techo. R6 (2026-08-24): medir
+solo en % dejaba dormida media app con techo de 1M → compact; pausa≥6 min con ctx≥30k
 → cache; mismo archivo+RANGO leído ≥3 → attach (SOLO texto; imágenes →
 `shots` ≥10, ficha propia; ambos hits llevan `file`, la línea "Ahora:"
 dice QUÉ leyó Claude); `ask` (tool_use sin tool_result ≥3 min) y `done`
@@ -566,19 +572,11 @@ fábrica (doble candado) y el Reporte junta datos igual. Mayús+clic en
 "MichiClaude vX.Y" alterna el modo completo (`v1all`), sin documentar en
 la UI. ntfy VISIBLE (push confirmado en celular 21/08).
 
-- [ ] **R6 — con techo de 1M media app duerme** (`docs/validacion-pasiva.md`
-      §Rarezas): las reglas de presión miden % del TECHO
-      (`COACH_CTX_PCT`=60, `INTENT_PCT`=80), y con `claude-opus-5` (1M)
-      eso son 600k/800k de contexto: NO se alcanzan nunca — medido, la
-      presión máxima real en 11 días fue 23%. Duermen manómetro, ficha de
-      compactar, tarjeta de intención, ⚠ `ctx` de fugas y los AUTOMÁTICOS.
-      Siguen vivas las reglas de umbral ABSOLUTO (caché, done, ask, sum).
-      El daño de un contexto grande es absoluto, no relativo: releer 200k
-      cuesta igual con techo de 200k que de 1M. Arreglo propuesto: entrar
-      por lo que ocurra ANTES, % del techo o absoluto (~150k compactar,
-      ~200k intención); el techo sigue mandando en el DIBUJO. Toca `press`,
-      `coach_leaks`, intención y las compuertas del automático — revisarlas
-      juntas y el auto-`/clear` con lupa.
+**R6 ARREGLADA (2026-08-24)** — umbrales absolutos junto al % del techo;
+autopsia en la bitácora y en `docs/validacion-pasiva.md` §R6. Falta VERLA
+disparar en uso real: primera ficha de compactar y primera tarjeta de
+intención con un modelo de 1M.
+
 - [ ] VALIDACIÓN PASIVA (con el uso): checklist vivo en
       `docs/validacion-pasiva.md` — se marca AHÍ, con evidencia y fecha,
       y nada se da por bueno desde el simulador. Falta lo gordo: alarmas

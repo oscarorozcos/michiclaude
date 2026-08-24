@@ -464,13 +464,26 @@ todos los modelos tenían 200k. Pero **el daño es ABSOLUTO, no relativo**:
 releer 200k de contexto cuesta lo mismo tenga el modelo 200k o 1M de
 techo. El dinero no sabe de porcentajes.
 
-**Arreglo propuesto (sin hacer, para la tanda):** que las reglas entren
-por **lo que ocurra ANTES** — el 60/80% del techo *o* un umbral absoluto
-(orden de 150k para compactar, 200k para intención). El techo sigue
-mandando en el DIBUJO del manómetro (es honesto: te queda mucho), pero
-no en CUÁNDO se avisa. Ojo: toca `press`, `coach_leaks`, la tarjeta de
-intención y las compuertas del automático — hay que revisarlas juntas, y
-el auto-`/clear` con especial cuidado.
+**ARREGLADO (2026-08-24), con los números acordados con Oscar:** las
+reglas entran por **lo que ocurra ANTES** — el % del techo *o* un suelo
+absoluto. Cinco piezas, todas con su gemelo (invariante #1):
+
+| Pieza | Dónde | Umbral nuevo |
+|---|---|---|
+| Ficha «compacta» y ⚠ `ctx` del recibo | `ctx_alto()` en lib.rs + réplica en `meter-export.py` | 60% del techo **o 150k** (`COACH_CTX_ABS`) |
+| Tarjeta de intención y compuerta del AUTOMÁTICO (`relayAutoCheck`) | `pressHot()` | 80% **o 200k** (`CTX_ABS_INTENT`) |
+| Color del manómetro y bombilla | `pressLevel()` → viaja como `lvl` dentro de `press` | 40/60/85% **o** 100k/150k/200k |
+| Compás del coach (20 s / 10 s) | `coachSched` | 55/70% **o** 150k/200k |
+
+El **DIBUJO no cambia**: el arco y el número siguen siendo % del techo,
+que es lo honesto (te queda mucho depósito). Lo que cambia es CUÁNDO
+avisa. Y el `lvl` se decide UNA vez, en el panel: que cada ventana del
+widget recalculara su propio 60/85 era el mismo bug repetido tres veces.
+
+**Lo que falta:** verlo disparar de verdad. Con los umbrales nuevos, una
+sesión normal de Oscar (~200k) debería sacar la ficha de compactar y
+rozar la tarjeta de intención. Hasta que eso se vea, R6 está *arreglada*,
+no *validada*.
 
 **Medida nueva (2026-08-24):** dos sesiones largas de trabajo real en
 `michiclaude · VPS-EU` marcaron **12-13%** de presión durante toda la

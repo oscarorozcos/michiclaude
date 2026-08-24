@@ -1140,6 +1140,12 @@ COACH_ACTIVE_MIN = 30
 # % del techo del modelo para sugerir /compact (antes 120k FIJO: con techo
 # de 1M avisaba al 12%). Con modelo desconocido ctx_full cae a 200k → 120k.
 COACH_CTX_PCT = 60
+# ...Y UN SUELO ABSOLUTO (R6, 2026-08-24). Réplica EXACTA de COACH_CTX_ABS y
+# ctx_alto() en lib.rs — invariante #1. Medir solo en % del techo dejaba
+# dormida toda la capa de presión en los modelos de 1M (el 60% son 600k, que
+# no se alcanzan nunca): el daño de un contexto grande es absoluto, no
+# relativo. Entra lo que ocurra ANTES.
+COACH_CTX_ABS = 150_000
 COACH_GAP_MIN = 6
 COACH_GAP_CTX = 30_000
 COACH_REREAD = 3
@@ -1221,6 +1227,15 @@ def _coach_default():
             "seen_user": False}
 
 
+def ctx_alto(st):
+    """¿Contexto alto? El % del techo del modelo O el suelo absoluto, lo que
+    llegue antes. Réplica EXACTA de ctx_alto() en lib.rs (invariante #1)."""
+    return (st["last_ctx"] >= COACH_CTX_ABS
+            or st["last_ctx"] >= (ctx_full(st.get("model", ""),
+                                           st.get("ctx_seen", 0))
+                                  * COACH_CTX_PCT // 100))
+
+
 def coach_leaks(st):
     """Mini-auditoría del cierre — mismas tres reglas que coach_leaks() en
     Rust: releídos, contexto (ctx y cache EXCLUYENTES) y pausas con caché
@@ -1234,8 +1249,7 @@ def coach_leaks(st):
     shots = sum(st.get("shots", {}).values())
     if shots >= COACH_SHOTS:
         out.append({"kind": "shots", "file": "", "n": shots})
-    if st["last_ctx"] >= (ctx_full(st.get("model", ""), st.get("ctx_seen", 0))
-                          * COACH_CTX_PCT // 100):
+    if ctx_alto(st):
         out.append({"kind": "ctx", "file": "", "n": st["last_ctx"] // 1000})
     elif st["last_ctx"] >= COACH_GAP_CTX:
         out.append({"kind": "cache", "file": "", "n": st["last_ctx"] // 1000})
@@ -1438,9 +1452,7 @@ def coach_scan(projects_dir):
                     h.update(extra)
                     hits.append(h)
 
-                if st["last_ctx"] >= (ctx_full(st.get("model", ""),
-                                               st.get("ctx_seen", 0))
-                                      * COACH_CTX_PCT // 100):
+                if ctx_alto(st):
                     # scwd aditivo (2026-08-16, réplica de Rust): con el cwd
                     # la ficha caliente casa un relevo y ofrece "Aplicar".
                     # title (2026-08-17): dice DE QUÉ SESIÓN habla la ficha

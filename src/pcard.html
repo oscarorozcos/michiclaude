@@ -207,7 +207,8 @@ function render(d){
   // puede insinuarlo, y una insinuación que no se entiende no sirve.
   if(pr) list.appendChild(row(ICON.press, d.labels?.press||"Context pressure",
     pr.pct, null, (pr.proj||"")+(pr.relay?" · "+(d.labels?.relay||"relay"):""),
-    pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--acc)"));
+    (pr.lvl!=null?pr.lvl:(pr.pct>=85?3:pr.pct>=60?2:0))>=3 ? "var(--bad)"
+      : (pr.lvl!=null?pr.lvl:(pr.pct>=60?2:0))>=2 ? "var(--warn)" : "var(--acc)"));
   if(w) list.appendChild(row(ICON.week, wkLab, Math.round(w.pct), null, d.wkReset));
   // buckets por modelo: DINÁMICOS, con la etiqueta tal cual la reporta el
   // endpoint (Fable hoy, lo que salga mañana)

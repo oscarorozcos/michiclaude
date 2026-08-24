@@ -227,7 +227,11 @@ function render(d){
   const pr=d?.press;
   $("pBox").hidden=!pr;
   if(pr){
-    $("pBox").style.color = pr.pct>=85?"var(--bad)":pr.pct>=60?"var(--warn)":"var(--acc)";
+    // el NIVEL lo decide el panel (R6: con techo de 1M el % nunca llegaba a
+    // 60/85, así que el arco se quedaba clavado en verde con la conversación
+    // ya cara). El ARCO sigue dibujando el % del techo: es lo honesto.
+    const lv = pr.lvl!=null ? pr.lvl : (pr.pct>=85?3:pr.pct>=60?2:0);
+    $("pBox").style.color = lv>=3?"var(--bad)":lv>=2?"var(--warn)":"var(--acc)";
     $("pArc").setAttribute("stroke-dasharray",Math.max(3,pr.pct)+" 100");
     // `toggleAttribute` y no `.hidden`: es un <circle> SVG y la propiedad
     // `hidden` solo existe en HTMLElement — asignarla no tocaba el atributo y
