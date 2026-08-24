@@ -1971,10 +1971,17 @@ const $=id=>document.getElementById(id);
 // escaneos, globos): reconstruir "qué se disparó y cuándo" con datos en vez
 // de capturas y memoria. Tope 300 renglones; el botón 📜 (solo dev) la
 // copia al portapapeles. No viaja a ningún lado.
+// La hora va en LOCAL, la misma que enseña toda la interfaz. Nació con
+// toISOString() —o sea UTC— y eso obligaba a sumar el desfase a mano para
+// casar un renglón de aquí con la fila del registro de acciones o con lo
+// que se vio en pantalla (2026-08-24: «18:37» aquí y «12:34 p.m.» allí
+// para el MISMO /clear). Formato intacto: MM-DD HH:MM:SS.
 function flog(ev){
   try{
     const a=JSON.parse(localStorage.getItem("flowLog")||"[]");
-    a.push(new Date().toISOString().slice(5,19).replace("T"," ")+" · "+ev);
+    const d=new Date(), z=n=>String(n).padStart(2,"0");
+    a.push(z(d.getMonth()+1)+"-"+z(d.getDate())+" "+z(d.getHours())+":"
+      +z(d.getMinutes())+":"+z(d.getSeconds())+" · "+ev);
     localStorage.setItem("flowLog", JSON.stringify(a.slice(-300)));
   }catch(_){}
 }

@@ -176,8 +176,8 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
-| Hook B rutea un subagente real | ✅ (17/08 nº9-10) | ⬜ | |
-| Guardián frena un prompt pesado en haiku/sonnet | ✅ (17/08 nº11) | ⬜ | |
+| Hook B rutea un subagente real | ✅ (17/08 nº9-10) | ✅ | **24/08**, tarjeta de ruteo del Reporte (7 d): «1 subagente ruteado (1 → Haiku, 0 → Sonnet)», casado con su transcript. No se vio en vivo: se ve MEDIDO después, que es más fuerte. |
+| Guardián frena un prompt pesado en haiku/sonnet | ✅ (17/08 nº11) | ✅ | **24/08**: «el guardián frenó 3 prompts pesados en un modelo barato antes de gastar un token · insististe 1». Los tres frenados y la insistencia, en uso normal. |
 | Escalado por el relevo (`/model <alias>`) y reenvío (`then`) | ✅ (17/08 nº13-15) | ⬜ | |
 | `/model` en **terminal ConPTY** (subir y bajar) | ✅ (17/08 nº17) | ⬜ | |
 | Contexto inyectado (`ctx`): Claude sugiere bajar de modelo él solo | ✅ (17/08 nº11) | ✅ | **19/08**, chat de `sparky-site`: "Para implementar los pasos 1-4 ya no hace falta Opus… puedes bajar a Sonnet con /model y ahorrar cuota". Lo escribe el modelo del chat obedeciendo las dos líneas del hook — MichiClaude nunca escribe en la conversación. |
@@ -185,7 +185,7 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Primer `think-top → fable` real con cuota <50 | ⬜ | ⬜ | |
 | Primera BAJADA SOLA real (8 ligeros + cuota ≥70) | ⬜ | ⬜ | **19/08, revisado y NO es fallo**: con cuota al ~50% el hecho `light` se descarta en la compuerta (`LIGHT_QUOTA_PCT`=70 sobre el PEOR de sesión/semana, index.html:9359), así que no hay ni tarjeta ni cola. Además exige los CUATRO interruptores (ruteo + guardián + escalar solo + bajar solo, index.html:11594) y el último nace apagado — **confirmado el 19/08: los cuatro están puestos**. Se espera a que la semana suba del 70%. |
 | Ruteo en **WSL** | ⬜ | ⬜ | |
-| Medición `scan_ruteo`: lo que no casa no se factura | ✅ | ⬜ | |
+| Medición `scan_ruteo`: lo que no casa no se factura | ✅ | ✅ | **24/08**: «1 casados con su transcript · 9783 tokens · costaron $0.01 · habrían costado $0.13» → ahorro $0.12, y aparte el autoconsumo «~4440 tokens (74 contextos inyectados)». Un ruteado, un casado: no se facturó nada sin transcript. |
 
 ## 10. Widget (pastilla, gatito, globos)
 
@@ -207,8 +207,8 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
-| Reporte con ≥20 fotos de cuota (sale de "juntando datos") | ? | ⬜ | |
-| "1M tok ≈ $X" con la tarifa real del periodo | ✅ | ⬜ | |
+| Reporte con ≥20 fotos de cuota (sale de "juntando datos") | ? | ✅ | **24/08**: desbloqueado con Mayús+clic y pintado ENTERO en modo Semana — héroe, desperdicio, ruteo, «¿te duró más o menos?» (con las fotos de cuota reales: 0 topes de 5 h), gráfica de 4 semanas, proyectos, arreglos y tareas. Cuadra por dentro (ver **R10**/**R12** para los dos peros). |
+| "1M tok ≈ $X" con la tarifa real del periodo | ✅ | ✅ | **24/08**: «1M tok ≈ $31» y todo el Reporte casa con esa tarifa — 36.577 tok/mensaje ≈ $1.12, 5.3M ≈ $164. Es la tarifa MEDIDA del periodo, no una de tabla. |
 | Export CSV/JSON: una fila por hecho, BOM, sin totales | ✅ | ✅ | **24/08**: CSV de 30 d abierto en Excel — cabeceras con acentos correctos (BOM), columnas Fecha · Proyecto · Modelo · Origen · Costo estimado (USD) · Tokens, una fila por fecha×proyecto×modelo×origen, sin fila de totales, y `Local` / `VPS-EU` conviviendo. El aviso «CSV exportado» con su botón **Abrir** también va. |
 | Presupuesto semanal contra los últimos 7 días | ✅ | ⬜ | |
 | Integridad: un `.jsonl` que encoge → "no comparable" | ✅ (15/08) | ⬜ | |
@@ -552,5 +552,78 @@ no hablan la misma hora.
 que vi en pantalla» con «lo que dice la bitácora» obliga a sumar seis
 horas a mano, y la trampa es silenciosa (las dos horas parecen válidas).
 
-**Arreglo propuesto (1 línea, para la tanda):** sellar `flog()` en hora
-local. El formato `MM-DD HH:MM:SS` se mantiene; solo cambia el reloj.
+**ARREGLADO (2026-08-24):** `flog()` sella en hora local con el mismo
+formato `MM-DD HH:MM:SS`. Los renglones ya escritos siguen en UTC (viven en
+localStorage); a partir del próximo arranque, bitácora e interfaz cuentan
+la misma hora. Sin `cargo check`: es solo frontend.
+
+### R10 · «Esta semana» tiene dos cifras en la misma pestaña — 2026-08-24
+
+**Qué se vio** en el Reporte con el chip *Semana*:
+
+| Dónde | Trabajo | Coste | Tok/mensaje |
+|---|---|---|---|
+| Héroe, arriba | 5.3M tok | $164 | 36.577 |
+| Gráfica de 4 semanas, punto «esta» | 3.9M tok | $117 | 33.463 |
+
+**Por qué pasa:** son dos ventanas distintas con el mismo nombre. El héroe
+—y la lista de proyectos, que suma $163.82 y cuadra con él— usa la ventana
+del motor: `window_ago = end - Duration::days(7)` (lib.rs:2092), o sea
+**7×24 h rodando desde este instante**, que incluye la COLA del octavo día
+natural. La gráfica suma **7 fechas del calendario** de la serie diaria
+(`repWeeks`, index.html:10205). Con el 17/08 (un día de ~4.5M tok) justo en
+esa cola, la diferencia es 1.4M tok / $47.
+
+**Impacto:** ninguna de las dos miente, pero conviven a dos pantallazos de
+distancia y el usuario no tiene forma de saber por qué. Peor: el «↓71%
+menos que el periodo anterior» y el «↓29% más barato que la anterior»
+comparan cosas distintas.
+
+**Arreglo propuesto (para la tanda):** que la gráfica y el héroe midan lo
+MISMO. Lo barato y honesto es que `repWeeks` empiece la semana «esta» donde
+empieza la ventana del motor (o al revés: que el héroe use días naturales).
+NO tocar la firma del motor — invariante #1: el motor solo entiende ancho +
+final. Decisión pendiente de Oscar.
+
+### R11 · El título de «Desperdicio estructural» sale cortado — 2026-08-24
+
+**Qué se vio:** «DESPERDICIO ESTRUCTUR… es un piso — hay más que no se
+puede medir». El título con puntos suspensivos; la coletilla, entera.
+
+**Por qué pasa:** `.eyebrow>span:first-child{overflow:hidden;
+text-overflow:ellipsis}` y `.q{flex:0 0 auto}` (index.html:373-374). La
+regla se escribió para las cabeceras cuyo lado derecho es un CONTROL (el
+selector de rango, el conmutador tokens/$): ahí el título cede a propósito.
+Pero en las que llevan solo una coletilla de texto, el que cede es el dato
+importante.
+
+**Impacto:** cosmético y solo en español (el título es más largo que en
+inglés), pero está en la tarjeta que da el número más delicado del Reporte.
+
+**Arreglo propuesto:** permitir que la cabecera envuelva (`flex-wrap:wrap`)
+cuando el lado derecho es `.q` de texto, dejando el `ellipsis` solo para las
+que llevan control. Dos líneas legibles antes que un título mutilado.
+
+### R12 · El total del periodo sale $164 arriba y $163 en desperdicio — 2026-08-24
+
+**Qué se vio:** el héroe dice «5.3M tokens ≈ $164 estimado» y la tarjeta de
+desperdicio, justo debajo, «$25 de $163 del periodo».
+
+**Por qué pasa (sospecha):** son dos caminos independientes a propósito
+—`get_local_stats` para el héroe, el `total_cost` del escaneo de hallazgos
+para el denominador— y el 2026-08-14 se validaron iguales AL CÉNTIMO. Hoy
+difieren ~$0.4-0.8. El sospechoso es la máquina del HUB: la lista de
+proyectos incluye `oscar · OSCAR-HUAWEI` con $0.36, y los hallazgos NO
+viajan por el hub (solo la foto agregada), así que el denominador del
+desperdicio no puede verla.
+
+**Impacto:** hoy $1 de 164, invisible. Con una segunda máquina de verdad
+el porcentaje de desperdicio se calcularía sobre un total incompleto —o
+sea, saldría MÁS ALTO de lo que es. Y dos totales distintos para el mismo
+periodo, a dos centímetros, es justo lo que erosiona la confianza en un
+medidor.
+
+**Qué comprobar antes de arreglar:** correr el escaneo con y sin la fuente
+del hub y ver si la diferencia es exactamente el gasto de esa máquina. Si
+lo es, la salida honesta es que el denominador diga de qué máquinas habla
+(o que excluya el hub también del numerador Y del total que enseña).
