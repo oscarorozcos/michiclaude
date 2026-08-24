@@ -136,8 +136,8 @@ salió bien).
 
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
-| Tarjeta de intención aparece sola al 80% | ✅ (12/08) | ⬜ | |
-| Insignia "Recomendado" solo con veredicto | ✅ | ⬜ | |
+| Tarjeta de intención aparece sola (al umbral) | ✅ (12/08) | ✅ | **24/08 17:40:39**, primera vez en exe y a los pocos minutos de instalar R6: `nace tarjeta intent` junto a `nace tarjeta compact`, con **26% de presión** (~262k de un techo de 1M). Con la regla vieja hacía falta 80% = 800k: no habría nacido nunca. |
+| Insignia "Recomendado" solo con veredicto | ✅ | ✅ | **24/08**: la tarjeta salió con «RECOMENDADO» en *Ya terminé, empiezo algo nuevo* (`/clear`) y sin insignia en la otra. El veredicto era boundary, y la línea de pruebas lo dice en llano: «Michi detectó: commit reciente sin cambios después · último mensaje hace 2 min». |
 | "Copiar comando" pega en el portapapeles | ✅ | ✅ | Mismo botón validado en la ficha del coach (§4). |
 | Advertencia si hay pendientes | ✅ | ⬜ | |
 
@@ -178,7 +178,7 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 |---|:--:|:--:|---|
 | Hook B rutea un subagente real | ✅ (17/08 nº9-10) | ✅ | **24/08**, tarjeta de ruteo del Reporte (7 d): «1 subagente ruteado (1 → Haiku, 0 → Sonnet)», casado con su transcript. No se vio en vivo: se ve MEDIDO después, que es más fuerte. |
 | Guardián frena un prompt pesado en haiku/sonnet | ✅ (17/08 nº11) | ✅ | **24/08**: «el guardián frenó 3 prompts pesados en un modelo barato antes de gastar un token · insististe 1». Los tres frenados y la insistencia, en uso normal. |
-| Escalado por el relevo (`/model <alias>`) y reenvío (`then`) | ✅ (17/08 nº13-15) | ⬜ | |
+| Escalado por el relevo (`/model <alias>`) y reenvío (`then`) | ✅ (17/08 nº13-15) | ✅ | **24/08**, tarjeta de ruteo (30 d): «el guardián frenó **23** prompts pesados… insististe 9» y «**13 de esos se escalaron solos** (la sesión subió y tú solo reenviaste) · 5 reenviados por ti». Las dos vías, medidas contra los transcripts. |
 | `/model` en **terminal ConPTY** (subir y bajar) | ✅ (17/08 nº17) | ⬜ | |
 | Contexto inyectado (`ctx`): Claude sugiere bajar de modelo él solo | ✅ (17/08 nº11) | ✅ | **19/08**, chat de `sparky-site`: "Para implementar los pasos 1-4 ya no hace falta Opus… puedes bajar a Sonnet con /model y ahorrar cuota". Lo escribe el modelo del chat obedeciendo las dos líneas del hook — MichiClaude nunca escribe en la conversación. |
 | Consejero `light` en vivo con cuota ≥70 | ⬜ | ⬜ | Distinto de la fila de arriba: `light` es la regla del coach que alimenta la bajada sola, no el texto inyectado. |
@@ -480,10 +480,24 @@ que es lo honesto (te queda mucho depósito). Lo que cambia es CUÁNDO
 avisa. Y el `lvl` se decide UNA vez, en el panel: que cada ventana del
 widget recalculara su propio 60/85 era el mismo bug repetido tres veces.
 
-**Lo que falta:** verlo disparar de verdad. Con los umbrales nuevos, una
-sesión normal de Oscar (~200k) debería sacar la ficha de compactar y
-rozar la tarjeta de intención. Hasta que eso se vea, R6 está *arreglada*,
-no *validada*.
+**VALIDADA EN VIVO el mismo día (2026-08-24 17:40:39)**, a los minutos de
+instalar el build:
+
+```
+17:40:39 · coach: nace tarjeta compact|362dfab7 (michiclaude)
+17:40:39 · coach: nace tarjeta intent|362dfab7 (michiclaude)
+17:40:39 · tips: AVISO ENCENDIDO (2 sin ver)
+17:40:39 · coach: compás 10 s (presión 26%)
+```
+
+Las tres piezas a la vez y con **26%** de presión (~262k de un techo de
+1M): la ficha de compactar (suelo 150k), la tarjeta de intención (suelo
+200k) y el compás en 10 s (suelo 200k). Con la regla vieja habrían hecho
+falta 600k y 800k. En pantalla: la tarjeta «Tu sesión ya pesa mucho ·
+26%» con sus dos opciones y «RECOMENDADO» en el `/clear`, la bombilla del
+gatito encendida y su ficha «26% Memoria de la conversación · michiclaude
+· VPS-EU · relevo». **La regla que llevaba dormida desde que existen los
+modelos de 1M funcionó a la primera.**
 
 **Medida nueva (2026-08-24):** dos sesiones largas de trabajo real en
 `michiclaude · VPS-EU` marcaron **12-13%** de presión durante toda la
@@ -515,6 +529,11 @@ o sea que la dedup por ventana aguanta.
 `notif:ready` y el panel le reenvía el aviso — que es el comportamiento
 QUERIDO (esconder con hover no cuenta como leído), y `flog()` lo apunta
 otra vez. Si es eso, el ruido está en la bitácora, no en la pantalla.
+
+**Se repite con OTRO tipo de globo (24/08):** el del presupuesto, cuatro
+renglones —`20:17:18`, `20:17:32` ×2, `20:20:23`— para un solo aviso. O
+sea que no es cosa de las alarmas: es la vía de restauración del globo,
+común a todos. Refuerza la sospecha de abajo.
 
 **Cómo distinguirlo:** mirar si en pantalla aparece un globo o varios.
 Si es uno solo, sobra el `flog` en la vía de restauración; si son
@@ -575,8 +594,11 @@ no hablan la misma hora.
 que vi en pantalla» con «lo que dice la bitácora» obliga a sumar seis
 horas a mano, y la trampa es silenciosa (las dos horas parecen válidas).
 
-**ARREGLADO (2026-08-24):** `flog()` sella en hora local con el mismo
-formato `MM-DD HH:MM:SS`. Los renglones ya escritos siguen en UTC (viven en
+**ARREGLADO Y VISTO (2026-08-24):** `flog()` sella en hora local con el
+mismo formato `MM-DD HH:MM:SS`. En la misma bitácora se ve el salto: los
+renglones viejos llegan hasta `21:39` (UTC) y los nuevos empiezan en
+`17:39` (local, seis horas menos) — el mismo instante, contado ya como lo
+cuenta la interfaz. Los renglones ya escritos siguen en UTC (viven en
 localStorage); a partir del próximo arranque, bitácora e interfaz cuentan
 la misma hora. Sin `cargo check`: es solo frontend.
 
@@ -668,6 +690,10 @@ conservador, que es el único lado seguro para un dato que se anuncia como
 cálculo, porque contradice el «mismos orígenes» de la línea de arriba y eso
 tiene que estar dicho, no escondido.
 
+**CONFIRMADO en pantalla (24/08, tras instalar):** Reporte en Mes,
+«55.5M tokens ≈ **$2393**» arriba y «~$242 de **$2393** del periodo» en
+desperdicio. El mismo número en las dos tarjetas.
+
 ### R13 · El presupuesto semanal se guarda a escondidas — 2026-08-24
 
 **Qué se vio:** el aviso FUNCIONA (globo con «$382.30 superó tu presupuesto
@@ -685,4 +711,6 @@ avisos, «no sé si se guardó» es peor que en cualquier otro sitio.
 activo (`$100 ✕`, quitarlo = 0 = sin aviso) e input con botón. El botón
 reusa `cal_apply` («Aplicar»/«Apply»), que ya está en los 8 idiomas: cero
 texto nuevo. El `change` del input se conserva, así que quien teclea y se
-va con Tab tampoco pierde el valor.
+va con Tab tampoco pierde el valor. **VISTO (24/08)**: chip `$100 ✕` sobre
+el input y el botón «Aplicar» al lado, con la misma pinta que las alarmas
+de arriba.
