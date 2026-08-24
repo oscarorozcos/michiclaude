@@ -633,6 +633,11 @@ suma la gráfica, y lo mismo para el periodo ANTERIOR, el desperdicio y su
 habría descuadrado medio día. El motor no se tocó: sigue entendiendo ancho
 + final (invariante #1) — solo se le dice dónde termina.
 
+**CONFIRMADO EN PANTALLA (2026-08-24, exe):** con el chip *Semana* el héroe
+dice **4.4M tok ≈ $131** y el punto «esta» de la gráfica de 4 semanas dice
+**4.4M tok ≈ $131**, con el mismo tok/mensaje (34.469) en los dos sitios.
+Las dos cifras que estaban a dos pantallazos de distancia ya son la misma.
+
 ### R11 · El título de «Desperdicio estructural» sale cortado — 2026-08-24
 
 **Qué se vio:** «DESPERDICIO ESTRUCTUR… es un piso — hay más que no se
