@@ -423,10 +423,16 @@ sesión en haiku y pegar de entrada algo enorme pasa sin filtro. Es
 justo el momento en que más valdría. Bajo riesgo, pero es un agujero
 real y silencioso.
 
-**Arreglo posible (sin hacer):** con modelo desconocido, leer el default
-que la TUI guarda (el mismo que `type_model` restaura) en vez de
-rendirse; o dejar constancia en el registro de que ese prompt no se pudo
-evaluar.
+**ARREGLADO (2026-08-24), las dos cosas:** el respaldo de `settings.json`
+ya existía (`modelo_sesion`), pero solo sirve si tienes un modelo por
+defecto puesto — Oscar lo tuvo a partir del 19/08 y por eso los 16 nulos
+son todos del 17 y el 19 (31 eventos seguidos con modelo desde entonces).
+Ahora hay un último recurso, `modelo_ultimo_del_proyecto()`: el modelo que
+ESA carpeta ya venía usando, según `projects[<cwd>].lastModelUsage` de
+`~/.claude.json`, y **solo si hay uno** — con varios no se adivina, que un
+guardián equivocado de modelo es peor que uno callado. Y si aun así no se
+sabe, se apunta `ev:"noeval"` en el registro: un agujero contable se
+puede medir, uno silencioso no.
 
 ### R6 · Con techo de 1M, media app se queda dormida — 2026-08-19 (GORDA)
 
@@ -532,10 +538,13 @@ automático*, *Aplicar /clear en automático* y *…cuando el análisis local
 diga «tema nuevo»* están **APAGADOS**. La reinstalación devolvió los
 interruptores a fábrica. Ver el aviso de interruptores al principio.
 
-**Sin arreglo propuesto todavía:** si se confirma que es el desinstalador,
-la pregunta de diseño es si la compuerta de aprendizaje debería vivir en
-disco (AppData) en vez de en localStorage — hoy una reinstalación te
-vuelve a pedir el aprendizaje entero. No se toca nada hasta la tanda.
+**ARREGLADO (2026-08-24):** la compuerta vive en DISCO —`relay_gate.json`
+en AppData, comando `relay_gate(add, seed)`— y localStorage queda como
+ESPEJO, nunca como jefe. La primera carga manda lo que haya en
+localStorage como `seed` y Rust fusiona **por el máximo**, así la cuenta
+que sobreviva sube al archivo y no puede bajar. `relayGate` es la copia en
+memoria porque las compuertas se consultan en caliente y no pueden ser
+async. Lo que ya se borró no vuelve: la cuenta empieza donde está hoy.
 
 ### R9 · La Bitácora PRO va en UTC y la interfaz en tu hora — 2026-08-24
 
@@ -580,11 +589,14 @@ distancia y el usuario no tiene forma de saber por qué. Peor: el «↓71%
 menos que el periodo anterior» y el «↓29% más barato que la anterior»
 comparan cosas distintas.
 
-**Arreglo propuesto (para la tanda):** que la gráfica y el héroe midan lo
-MISMO. Lo barato y honesto es que `repWeeks` empiece la semana «esta» donde
-empieza la ventana del motor (o al revés: que el héroe use días naturales).
-NO tocar la firma del motor — invariante #1: el motor solo entiende ancho +
-final. Decisión pendiente de Oscar.
+**ARREGLADO (2026-08-24):** las ventanas del Reporte terminan al **cierre
+del día**, no en «ahora» (`repDayEnd()`, y `repArgs`/`repEnd` lo pasan como
+`end`). Con eso la ventana de 7 d son exactamente los 7 días naturales que
+suma la gráfica, y lo mismo para el periodo ANTERIOR, el desperdicio y su
+«antes». El ancla es **UTC** porque la serie diaria agrupa por fecha UTC
+(en Rust los `ts` se pasan a Utc antes de formatear); anclarlo en local
+habría descuadrado medio día. El motor no se tocó: sigue entendiendo ancho
++ final (invariante #1) — solo se le dice dónde termina.
 
 ### R11 · El título de «Desperdicio estructural» sale cortado — 2026-08-24
 
@@ -601,40 +613,47 @@ importante.
 **Impacto:** cosmético y solo en español (el título es más largo que en
 inglés), pero está en la tarjeta que da el número más delicado del Reporte.
 
-**Arreglo propuesto:** permitir que la cabecera envuelva (`flex-wrap:wrap`)
-cuando el lado derecho es `.q` de texto, dejando el `ellipsis` solo para las
-que llevan control. Dos líneas legibles antes que un título mutilado.
+**ARREGLADO (2026-08-24):** `.eyebrow` envuelve (`flex-wrap:wrap`) y el
+título ya no baja de `min-width:min-content`, así que cuando no caben los
+dos es la COLETILLA la que se va a la segunda línea. El selector de rango
+conserva su `white-space:nowrap` propio: sigue sin partirse.
 
 ### R12 · El total del periodo sale $164 arriba y $163 en desperdicio — 2026-08-24
 
 **Qué se vio:** el héroe dice «5.3M tokens ≈ $164 estimado» y la tarjeta de
-desperdicio, justo debajo, «$25 de $163 del periodo».
+desperdicio, justo debajo, «$25 de $163 del periodo». En **Mes** el hueco
+era mucho mayor: **$2418 arriba y $2381 abajo**.
 
-**Por qué pasa (sospecha principal):** son dos caminos independientes a
-propósito —`get_local_stats` para el héroe, el `total_cost` del escaneo de
-hallazgos para el denominador— y el 2026-08-14 se validaron iguales AL
-CÉNTIMO. Los dos son ventanas RODANTES ancladas en `now`, pero **no corren
-en el mismo instante**: el héroe se refresca con el ciclo del panel y el
-escaneo de hallazgos con el suyo (la captura decía «actualizado hace
-145s»). Minutos de diferencia mueven las dos puntas de la ventana, y con
-Opus trabajando eso son décimas de dólar. La diferencia vista (~$0.4) cabe
-de sobra ahí.
+**CAUSA CONFIRMADA (2026-08-24) — es el HUB.** (Y no el desfase de
+instantes, que fue mi primera sospecha y era falsa.) Prueba, medida en el
+VPS con los mismos datos y la misma ventana:
 
-**Descartado:** que fuera la máquina del hub. `oscar · OSCAR-HUAWEI` es la
-PROPIA máquina de Oscar (el Reporte etiqueta el origen local con el nombre
-del equipo; el CSV, en cambio, lo llama `Local` — misma fuente, dos
-nombres, ojo al comparar). No hay segunda máquina en juego.
+```
+días=7   cost_week=140.0820   waste.total_cost=140.0820   dif=0.0000
+días=30  cost_week=2346.3421  waste.total_cost=2346.3421  dif=0.0000
+```
 
-**Impacto:** hoy $1 de 164 y solo cosmético, pero dos totales distintos
-para el mismo periodo, a dos centímetros, es justo lo que erosiona la
-confianza en un medidor.
+Los dos caminos coinciden AL CÉNTIMO en una máquina sola: el motor está
+bien. El hueco aparece al FUSIONAR: las máquinas que dejan su foto en el
+hub mandan `waste` en **ceros** (se ve en el propio export:
+`"waste": {"struct_cost": 0.0, "total_cost": 0.0, ...}`), así que su gasto
+entra en el total del héroe y no en el denominador del desperdicio. La foto
+de `OSCAR-HUAWEI` suma **$37.03** en 30 días y **$0.357** en 7 — que son
+exactamente los dos huecos vistos.
 
-**Qué comprobar antes de arreglar:** abrir el Reporte y mirar si la
-diferencia CAMBIA entre refrescos (sí → es el desfase de instantes; no →
-hay un sumando que uno de los dos caminos no ve, y toca comparar
-`waste.total_cost` con el `cost_window` de la misma pasada, como el
-2026-08-14). El arreglo honesto para el primer caso es que la tarjeta de
-desperdicio use el total que ya trae el héroe en vez de recalcularlo.
+**De paso, descartado un susto:** NO hay doble conteo. `oscar ·
+OSCAR-HUAWEI` es la máquina de Oscar entrando por el hub, y su escaneo
+local no la duplica (el panel no encontró ningún proyecto con etiqueta
+local). El Reporte etiqueta el origen local con el nombre del equipo y el
+CSV lo llama `Local`: misma fuente, dos nombres — ojo al comparar.
+
+**ARREGLADO (2026-08-24):** el denominador pasa a ser el `cost_week` que YA
+enseña el héroe, con respaldo al de siempre si no hay cifra. Dividir por el
+total pequeño INFLABA el porcentaje; con el grande el número es más
+conservador, que es el único lado seguro para un dato que se anuncia como
+«al menos». La regla queda escrita en `presion-y-rendimiento.md` §Reglas de
+cálculo, porque contradice el «mismos orígenes» de la línea de arriba y eso
+tiene que estar dicho, no escondido.
 
 ### R13 · El presupuesto semanal se guarda a escondidas — 2026-08-24
 
@@ -649,8 +668,8 @@ encima, las alarmas de sesión tienen **chips** (`80% ✕`, `95% ✕`) y un bot�
 lenguajes distintos: uno te confirma y el otro no. En un ajuste que dispara
 avisos, «no sé si se guardó» es peor que en cualquier otro sitio.
 
-**Arreglo propuesto (para la tanda):** darle la misma forma que las alarmas
-— input + botón **Guardar**, y el valor activo como chip (`$100 ✕`) donde
-quitar el chip = 0 = sin aviso. Cero conceptos nuevos y el bloque queda
-coherente. Texto: reusar `btn_add`/`btn_save` si existe; si no, una entrada
-nueva en los 8 idiomas.
+**ARREGLADO (2026-08-24):** misma forma que las alarmas — chip del valor
+activo (`$100 ✕`, quitarlo = 0 = sin aviso) e input con botón. El botón
+reusa `cal_apply` («Aplicar»/«Apply»), que ya está en los 8 idiomas: cero
+texto nuevo. El `change` del input se conserva, así que quien teclea y se
+va con Tab tampoco pierde el valor.

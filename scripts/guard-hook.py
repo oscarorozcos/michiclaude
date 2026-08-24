@@ -93,6 +93,26 @@ def estado_fresco():
         return None
 
 
+def modelo_ultimo_del_proyecto(cwd):
+    """Último recurso (R5, 2026-08-24): el modelo que ESA carpeta ha usado,
+    según `projects[<cwd>].lastModelUsage` de ~/.claude.json. Solo vale si
+    hay UNO: con varios no se adivina — un guardián que se equivoca de
+    modelo es peor que uno que calla. Devuelve None ante cualquier duda."""
+    if not cwd:
+        return None
+    try:
+        with open(os.path.join(os.path.expanduser("~"), ".claude.json"),
+                  "r", encoding="utf-8") as fh:
+            pr = json.load(fh).get("projects") or {}
+        usos = (pr.get(cwd) or {}).get("lastModelUsage") or {}
+        nombres = [k for k in usos if isinstance(k, str) and k.startswith("claude-")]
+        if len(nombres) == 1:
+            return nombres[0]
+    except Exception:
+        pass
+    return None
+
+
 def modelo_sesion(transcript, cfg_dir):
     """El modelo con el que va la sesión: cola del transcript; si no hay
     aún, el `model` de settings.json; si tampoco, None (no se adivina)."""
@@ -287,7 +307,19 @@ def main():
 
     cfg_dir = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
     model = modelo_sesion(ev.get("transcript_path"), cfg_dir)
+    # R5 (2026-08-24): el PRIMER prompt de cada sesión no tiene todavía
+    # respuesta del asistente en el transcript, así que el modelo salía
+    # desconocido y el guardián no podía ni frenar ni escalar — 13 de 16
+    # eventos sin modelo del registro eran justo eso, y es el momento en que
+    # más valdría (abrir sesión en haiku y pegar algo enorme pasaba sin
+    # filtro). Antes de rendirse, el modelo que esa carpeta ya venía usando.
+    if not model:
+        model = modelo_ultimo_del_proyecto(ev.get("cwd"))
     tr = tier(model)
+    # y si sigue sin saberse, que quede DICHO: un agujero contable se puede
+    # medir; uno silencioso, no.
+    if not model:
+        apunta(dict(base, ev="noeval"))
 
     salida = {}
     # --- (a) el guardián ---

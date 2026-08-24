@@ -331,6 +331,17 @@ Reglas de cálculo, todas obligatorias:
 - **Mismo escaneo.** Numerador y denominador salen de la misma corrida, misma
   ventana (`days`+`end`) y mismos orígenes. Cruzar un `get_findings` de 7 días
   con un `cost_week` de 30 es fabricar un número.
+- **MATIZ DEL HUB (2026-08-24, R12).** El denominador que PINTA el panel es el
+  `cost_week` del héroe, no el `total_cost` del escaneo. Motivo: las máquinas
+  del hub mandan su foto agregada **sin waste** (viaja en ceros), así que su
+  gasto entra en el total de arriba y no en el del escaneo — se vieron $2418
+  y $2381 en la misma pestaña, exactamente los $37.03 de la foto ajena. Los
+  dos caminos coinciden AL CÉNTIMO en una máquina sola (medido otra vez en el
+  VPS el 24/08: 7 d y 30 d, diferencia 0.0000), así que el cambio solo actúa
+  cuando hay hub. El numerador sigue sin ver esas máquinas: el porcentaje se
+  vuelve más CONSERVADOR, que es el único lado seguro para un número que ya
+  se anuncia como "al menos". Nunca al revés — dividir por el total pequeño
+  lo inflaba.
 - **Antes del tope de 12.**
 - **Fusión multi-origen = suma de numeradores ÷ suma de denominadores.**
   JAMÁS el promedio de los porcentajes de cada máquina (media de razones ≠

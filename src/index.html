@@ -368,10 +368,15 @@
   .eyebrow{font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--txt-dim);
     font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;
     align-items:center;gap:8px}
-  /* el control de la derecha manda: el título se encoge antes que él, para
-     que un rango como "03 ago – 05 ago" no se parta en dos líneas */
-  .eyebrow>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  /* El control de la derecha manda, pero el título NO se mutila (R11,
+     2026-08-24: "DESPERDICIO ESTRUCTUR…" en español). Con min-content el
+     título no baja de su palabra más larga y, al no caber los dos, la
+     coletilla se va entera a la segunda línea en vez de comerse el título.
+     El selector de rango sigue sin partirse: nowrap propio. */
+  .eyebrow{flex-wrap:wrap}
+  .eyebrow>span:first-child{min-width:min-content;overflow:hidden;text-overflow:ellipsis}
   .eyebrow .q{flex:0 0 auto}
+  #repRangeLbl{white-space:nowrap}
   .eyebrow .q{font-family:var(--mono);letter-spacing:0;text-transform:none;
     color:var(--txt-mut);font-weight:500;font-size:11px}
 
@@ -1557,8 +1562,16 @@
         <input id="alarmIn" type="number" min="1" max="100" step="1" style="max-width:80px" placeholder="%">
         <button id="alarmAdd" data-i18n="btn_add"></button>
       </div>
+      <!-- R13 (2026-08-24): misma forma que las alarmas de arriba —chip del
+           valor activo + botón—, porque estaban en la MISMA tarjeta con dos
+           lenguajes distintos: una te confirma y la otra guardaba a
+           escondidas en el evento `change`. Quitar el chip = 0 = sin aviso. -->
       <div class="cfg-lbl" data-i18n="budget_label"></div>
-      <input id="budgetIn" type="number" min="0" step="1" style="max-width:120px">
+      <div class="chips" id="budgetChip"></div>
+      <div class="btnrow">
+        <input id="budgetIn" type="number" min="0" step="1" style="max-width:120px">
+        <button id="budgetSave" data-i18n="cal_apply"></button>
+      </div>
       <!-- Avisos al celular vía ntfy (2026-08-01): opcional y APAGADO por
            defecto. Por este canal viajan SOLO porcentajes y horas de reset —
            nunca proyectos, rutas ni dólares (regla en CLAUDE.md). El topic es
@@ -9779,12 +9792,26 @@ try{ const r=JSON.parse(localStorage.getItem("repRange")||"null");
   if(r&&r.from&&r.to) repRange=r; }catch(_){}
 let repStamp=0, repData=null;
 
+// R10 (2026-08-24): las ventanas del Reporte terminan al CIERRE DEL DÍA, no
+// "ahora". Con el final en `now`, la ventana de 7 d era 7x24 h RODANDO y se
+// llevaba la COLA del octavo día natural, mientras la gráfica de 4 semanas
+// suma días enteros de la serie diaria: el mismo periodo salía con dos
+// cifras (5.3M/$164 arriba, 3.9M/$117 en la gráfica, con el 17/08 —un día
+// de 4.5M— justo en esa cola). Se ancla en UTC porque la serie diaria
+// agrupa por fecha UTC (lib.rs: los ts se convierten a Utc antes de
+// formatear); anclarlo en local volvería a descuadrar medio día. El motor
+// no se toca: sigue entendiendo ancho + final (invariante #1).
+function repDayEnd(){
+  const n=new Date();
+  return Math.floor(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate(),
+    23,59,59)/1000);
+}
 function repArgs(){
   return repRange ? {days:rangeDays(repRange), end:rangeEnd(repRange)}
-                  : {days:repDays};
+                  : {days:repDays, end:repDayEnd()};
 }
 function repWidth(){ return repRange ? rangeDays(repRange) : repDays; }
-function repEnd(){ return repRange ? rangeEnd(repRange) : Math.floor(Date.now()/1000); }
+function repEnd(){ return repRange ? rangeEnd(repRange) : repDayEnd(); }
 function repPeriodLabel(){
   if(!repRange) return repDays===7 ? t("rep_week") : t("rep_month");
   if(repRange.from===repRange.to) return fmtCalDay(repRange.from);
@@ -10102,7 +10129,17 @@ function renderRepWaste(d){
   if(w.err){ el.innerHTML=`<div class="rp-empty">${t("fnd_err")}</div>`; return; }
   const ign=fndIgnored();
   const {items,num}=wstNum(w,ign);
-  const den=w.total_cost||0;
+  // R12 (2026-08-24): el denominador es el total que YA enseña el héroe, no
+  // el que recalcula el escaneo de hallazgos. Los dos caminos coinciden al
+  // céntimo en una sola máquina (medido en el VPS: 7 d y 30 d, diferencia
+  // 0.0000), pero las máquinas del HUB mandan su foto agregada SIN waste
+  // (viaja en ceros), así que su gasto entraba en el total de arriba y no en
+  // este: $2418 arriba y $2381 aquí, exactamente los $37.03 de la foto de
+  // OSCAR-HUAWEI. Dividir por el total pequeño INFLA el porcentaje; con el
+  // grande el número es más conservador, que es el lado correcto para un
+  // dato que ya se anuncia como "al menos". Respaldo al de siempre si el
+  // héroe no trajo cifra.
+  const den=(d.cur&&d.cur.cost_week>0)?d.cur.cost_week:(w.total_cost||0);
   if(den<1||(w.sessions||0)<10){
     el.innerHTML=`<div class="rp-empty">${escapeHtml(t("wst_gather",w.sessions||0))}</div>`;
     return;
@@ -11419,10 +11456,32 @@ const RELAY_UNLOCK={"/compact":2,"/clear":3};
 // sin que el usuario viera nada. El countdown es su única ventana para
 // pararlo; si desaparece de la pantalla, deja de ser una ventana.
 let relayBusy=0;
-function relayCount(){ try{ return JSON.parse(localStorage.getItem("relayDone")||"{}"); }catch(_){ return {}; } }
+// R8 (2026-08-24): la cuenta vive en DISCO (`relay_gate.json`), no en
+// localStorage — una reinstalación con «borrar datos locales» se la llevó
+// entera y el automático volvió a bloquearse después de semanas de
+// aprendizaje. `relayGate` es la copia en memoria del archivo: las compuertas
+// se consultan en caliente y no pueden ser async. Mientras no haya llegado
+// (o si el disco falla) manda lo que había en localStorage, que se sigue
+// escribiendo como ESPEJO — nunca al revés.
+let relayGate=null;
+function relayCount(){
+  if(relayGate) return relayGate;
+  try{ return JSON.parse(localStorage.getItem("relayDone")||"{}"); }catch(_){ return {}; }
+}
+async function relayGateLoad(){
+  if(!invoke) return;
+  let seed={}; try{ seed=JSON.parse(localStorage.getItem("relayDone")||"{}"); }catch(_){}
+  // el seed sube la cuenta vieja al archivo la PRIMERA vez (se fusiona por
+  // máximo en Rust); de ahí en adelante el archivo es el que manda
+  try{ relayGate=await invoke("relay_gate",{seed})||seed; }catch(_){ relayGate=seed; }
+  if(!$("tab-prefs").hidden) remUi();
+}
 function relayUnlocked(cmd){ return (relayCount()[cmd]||0) >= (RELAY_UNLOCK[cmd]||99); }
 function relayMark(cmd){
-  const c=relayCount(); c[cmd]=(c[cmd]||0)+1;
+  const c=Object.assign({},relayCount()); c[cmd]=(c[cmd]||0)+1;
+  relayGate=c;
+  invoke?.("relay_gate",{add:cmd}).then(m=>{ if(m&&Object.keys(m).length) relayGate=m; })
+    .catch(()=>{});
   localStorage.setItem("relayDone",JSON.stringify(c));
   flog("relevo: "+cmd+" aplicado a mano ("+c[cmd]+"/"+(RELAY_UNLOCK[cmd]||"?")+")");
   if(!$("tab-prefs").hidden) remUi();
@@ -12505,6 +12564,7 @@ $("alarmAdd").addEventListener("click",()=>{
 renderAlarms();
 
 // ---------- preferencias: widget flotante, presupuesto y exportación ----------
+relayGateLoad();   // R8: la compuerta de aprendizaje vive en disco
 if(invoke){ invoke("get_pill_visible").then(v=>{ $("pillChk").checked=!!v; pillOn=!!v; }).catch(()=>{}); }
 $("pillChk").addEventListener("change",()=>{
   pillOn=$("pillChk").checked;
@@ -12552,10 +12612,27 @@ if(invoke){ invoke("get_pill_layer").then(l=>{ $("pillLayerSel").value=l; }).cat
 $("pillLayerSel").addEventListener("change",()=>{
   invoke?.("set_pill_layer",{layer:$("pillLayerSel").value});
 });
+function renderBudget(){
+  const v=+(localStorage.getItem("budgetWeek")||0);
+  $("budgetChip").innerHTML = v>0
+    ? `<span class="chip">$${v} <b title="✕">✕</b></span>` : "";
+  const b=document.querySelector("#budgetChip b");
+  if(b) b.onclick=()=>{ saveBudget(0); };
+}
+function saveBudget(v){
+  localStorage.setItem("budgetWeek", String(v||0));
+  $("budgetIn").value = v>0 ? String(v) : "";
+  renderBudget();
+}
 $("budgetIn").value=localStorage.getItem("budgetWeek")||"";
+// el `change` se conserva: quien teclea y se va con Tab no pierde el valor
 $("budgetIn").addEventListener("change",()=>{
-  localStorage.setItem("budgetWeek", $("budgetIn").value||"0");
+  saveBudget(Math.max(0,Math.round(+$("budgetIn").value||0)));
 });
+$("budgetSave").addEventListener("click",()=>{
+  saveBudget(Math.max(0,Math.round(+$("budgetIn").value||0)));
+});
+renderBudget();
 $("exportDir").value=localStorage.getItem("exportDir")||"";
 $("exportDir").addEventListener("change",()=>{
   localStorage.setItem("exportDir", $("exportDir").value.trim());

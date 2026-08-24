@@ -9728,6 +9728,49 @@ fn save_purge_config(cfg: PurgeCfg) -> Result<(), String> {
     fs::write(purge_cfg_path(), s).map_err(|e| e.to_string())
 }
 
+/// Compuerta de aprendizaje del relevo: cuántas veces has aplicado TÚ cada
+/// comando. Vivía solo en localStorage y una reinstalación con «borrar datos
+/// locales» la borró entera (R8, 2026-08-24: de `/compact 2 de 2 · /clear 8
+/// de 3` a `0 de 2 · 1 de 3`, con el automático bloqueado otra vez). Es
+/// confianza GANADA, no una preferencia de ventana: va a disco.
+///
+/// `seed` = lo que traiga el panel de localStorage; se fusiona tomando el
+/// MÁXIMO por comando, así la cuenta vieja sube al archivo la primera vez y
+/// nunca baja. `add` = suma uno. Devuelve siempre el mapa ya fusionado.
+fn relay_gate_path() -> PathBuf {
+    app_data_dir().join("relay_gate.json")
+}
+
+#[tauri::command]
+fn relay_gate(
+    add: Option<String>,
+    seed: Option<std::collections::HashMap<String, u32>>,
+) -> std::collections::HashMap<String, u32> {
+    let mut m: std::collections::HashMap<String, u32> = fs::read_to_string(relay_gate_path())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default();
+    let before = m.clone();
+    if let Some(seed) = seed {
+        for (k, v) in seed {
+            let e = m.entry(k).or_insert(0);
+            if v > *e {
+                *e = v;
+            }
+        }
+    }
+    if let Some(cmd) = add {
+        *m.entry(cmd).or_insert(0) += 1;
+    }
+    if m != before {
+        let _ = fs::create_dir_all(app_data_dir());
+        if let Ok(s) = serde_json::to_string(&m) {
+            let _ = fs::write(relay_gate_path(), s);
+        }
+    }
+    m
+}
+
 /// Días efectivos: lo elegido, pero NUNCA por debajo del suelo (regla 2).
 /// 0 = purga apagada.
 fn purge_effective_days(cfg: &PurgeCfg) -> i64 {
@@ -10000,6 +10043,7 @@ pub fn run() {
             kill_zombie,
             scan_archivable,
             archive_old,
+            relay_gate,
             get_purge_config,
             save_purge_config,
             scan_purgeable,

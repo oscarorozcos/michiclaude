@@ -497,7 +497,10 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
   viaja en el instalador SIN tocar el workflow (invariante #9). Purga: el
   archivador MUEVE (≥365d), la purga BORRA solo lo archivado, allowlist
   canónica (JAMÁS `~/.claude`) y el VPS SOLO INFORMA (`--du`) — nunca se
-  borra por SSH.
+  borra por SSH. La compuerta de aprendizaje (cuántos manuales llevas)
+  vive en DISCO (`relay_gate.json`, comando `relay_gate`, localStorage
+  solo como espejo): es confianza ganada y una reinstalación se la
+  llevaba entera.
 - **RUTEO INTELIGENTE** — `docs/ruteo-inteligente.md` §10-11 y
   remediacion.md §"La ÚNICA ampliación". Resumen: nota `router_state.json`
   (local+WSL+SSH; apagado = no se escribe; >10 min = ausente; banderas
@@ -531,7 +534,12 @@ identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
   arreglado); pestaña Reporte (`rep_tab`): nunca pintar con uturns=0;
   mínimo 20 fotos de cuota o "juntando datos"; "1M tok ≈ $X" con la
   tarifa REAL del periodo; el $ pegado a su dato (.as-money); caché POR
-  PERIODO y render PROGRESIVO.
+  PERIODO y render PROGRESIVO. Las ventanas del Reporte terminan al
+  CIERRE DEL DÍA en UTC (`repDayEnd`, como agrupa la serie diaria): con
+  el final en "ahora" el mismo periodo salía con dos cifras (héroe
+  rodante vs gráfica por días). El denominador del desperdicio es el
+  `cost_week` del héroe, no el del escaneo — el hub manda foto sin waste
+  (R12).
 - **INTEGRIDAD DE LAS FUENTES** (los .jsonl no son nuestros; un limpiador
   los recorta y el panel diría "bajó el consumo") —
   `docs/adr-multiharness-y-persistencia.md` §"LAS 4 PIEZAS": (1) DETECTOR
