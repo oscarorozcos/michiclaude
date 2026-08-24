@@ -200,18 +200,18 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Estados `cat-zzz` (semana al tope) y `cat-break` (sesión al tope) | 🧪 | ⬜ | |
 | Globo resumen al hover en `.head` (sesión + semanales) | ✅ | ✅ | **24/08**: tarjeta blanca sobre el gatito con cola al portátil — `Session 5%`, `Weekly 14%`, `Weekly · Fable 19%` y sus resets. Los buckets POR MODELO se pintan solos (invariante #6): «Fable» salió sin estar en ninguna lista. |
 | Post-its rojo y turquesa con sus números | 🧪 | ✅ | **19/08**: `2` y `1` a la vez, iguales a los badges del panel. |
-| Capa: el widget no se hunde tras otra app a pantalla completa | ✅ | ⬜ | |
-| Globo como popover con la pastilla (`body.cap`) | 🧪 | ⬜ | Requiere estilo pastilla. |
+| Capa: el widget no se hunde tras otra app a pantalla completa | ✅ | ✅ | **24/08**: vídeo a pantalla completa, gatito encima; repetido con el estilo pastilla. |
+| Globo como popover con la pastilla (`body.cap`) | 🧪 | ✅ | **24/08**: aviso de presupuesto como popover pegado a la cápsula, fondo opaco, ⚠ ámbar de severidad y cola pequeña — sobre un vídeo a pantalla completa. |
 
 ## 11. Panel, Reporte y fuentes
 
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
-| Reporte con ≥20 fotos de cuota (sale de "juntando datos") | ? | ✅ | **24/08**: desbloqueado con Mayús+clic y pintado ENTERO en modo Semana — héroe, desperdicio, ruteo, «¿te duró más o menos?» (con las fotos de cuota reales: 0 topes de 5 h), gráfica de 4 semanas, proyectos, arreglos y tareas. Cuadra por dentro (ver **R10**/**R12** para los dos peros). |
+| Reporte con ≥20 fotos de cuota (sale de "juntando datos") | ? | ✅ | **24/08**: los TRES modos —Semana, Mes ($2420 en 30 d) y Personalizado— pintan enteros; desbloqueado con Mayús+clic — héroe, desperdicio, ruteo, «¿te duró más o menos?» (con las fotos de cuota reales: 0 topes de 5 h), gráfica de 4 semanas, proyectos, arreglos y tareas. Cuadra por dentro (ver **R10**/**R12** para los dos peros). |
 | "1M tok ≈ $X" con la tarifa real del periodo | ✅ | ✅ | **24/08**: «1M tok ≈ $31» y todo el Reporte casa con esa tarifa — 36.577 tok/mensaje ≈ $1.12, 5.3M ≈ $164. Es la tarifa MEDIDA del periodo, no una de tabla. |
 | Export CSV/JSON: una fila por hecho, BOM, sin totales | ✅ | ✅ | **24/08**: CSV de 30 d abierto en Excel — cabeceras con acentos correctos (BOM), columnas Fecha · Proyecto · Modelo · Origen · Costo estimado (USD) · Tokens, una fila por fecha×proyecto×modelo×origen, sin fila de totales, y `Local` / `VPS-EU` conviviendo. El aviso «CSV exportado» con su botón **Abrir** también va. |
-| Presupuesto semanal contra los últimos 7 días | ✅ | ⬜ | |
-| Integridad: un `.jsonl` que encoge → "no comparable" | ✅ (15/08) | ⬜ | |
+| Presupuesto semanal contra los últimos 7 días | ✅ | ✅ | **24/08**: puesto en $100 → globo «El gasto semanal $382.30 superó tu presupuesto de $100 (equiv. API)»; cambiado a $200 → volvió a avisar con la cifra nueva. Se ve la pega de UX en **R13**. |
+| Integridad: un `.jsonl` que encoge → "no comparable" | ✅ (15/08) | ✅ | **24/08**, Reporte en **Mes**: banda «Comparación no concluyente · 1 día(s) con trabajo ya no aparecen en los logs», insignia `no comparable` junto al número y la frase honesta («lo que parece un cambio podría ser solo lo que falta»). La pieza 2 del ADR, disparada sola por los logs reales. |
 | Multiidioma repinta TODO, incluido el menú del tray | ✅ | ~ | **24/08**: panel entero en inglés (Overview/Data sources/Findings/Tips/Report/Preferences) **y el globo resumen del gatito también** («Session / Weekly / Weekly · Fable / Resets in 19 min») — o sea que el idioma llega a las ventanas del widget, no solo al panel. Falta lo único que dibuja Rust: el **menú del tray** (clic derecho). |
 | **Bitácora PRO**: botón visible en Ajustes que copia el flujo | — | ✅ | *2026-08-20*: "copiada · 300 renglones" y el contenido llegó entero. Con ella se cerró R3 en una sola pegada. |
 | **Gating v1**: bloques escondidos, Reporte "Próximamente", Mayús+clic alterna, tooltip cambia de idioma | — | ✅ | **21/08**, capturas de Oscar tras instalar el build 4c26726: Ajustes sin IA/remediación/ruteo/HUB, Reporte gris ("Coming soon" en inglés), y Mayús+clic en Acerca de devolviendo todo (relevo con sesiones "listo" incluido). La desinstalación con "borrar datos locales" hizo de prueba en limpio real: AppData vacía, localStorage del panel sobrevive (vive en WebView2). |
@@ -222,7 +222,8 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
-| Todo el bloque HUB + rangos de fecha | ⬜ | ⬜ | **NO sin una segunda máquina con MichiClaude** (`hub-modo-equipo.md`). |
+| Rangos de fecha (chip **Personalizado** del Reporte) | ✅ | ✅ | **24/08**: calendario con atajos Hoy/7/15/30 d, «10 ago → 24 ago» aplicado y el Reporte entero recalculado (24.6M tok ≈ $991, día más pesado 17/Ago). La nota del hub sale sola. Lo que sigue bloqueado es el HUB, no el rango. |
+| Todo el bloque HUB | ⬜ | ⬜ | **NO sin una segunda máquina con MichiClaude** (`hub-modo-equipo.md`). |
 
 ---
 
@@ -634,3 +635,22 @@ hay un sumando que uno de los dos caminos no ve, y toca comparar
 `waste.total_cost` con el `cost_window` de la misma pasada, como el
 2026-08-14). El arreglo honesto para el primer caso es que la tarjeta de
 desperdicio use el total que ya trae el héroe en vez de recalcularlo.
+
+### R13 · El presupuesto semanal se guarda a escondidas — 2026-08-24
+
+**Qué se vio:** el aviso FUNCIONA (globo con «$382.30 superó tu presupuesto
+de $100», y otra vez con $200 al cambiarlo). La pega es la casilla: justo
+encima, las alarmas de sesión tienen **chips** (`80% ✕`, `95% ✕`) y un botón
+**Agregar**; el presupuesto es un `<input>` pelado que guarda en el evento
+`change` (index.html:12556) — sin botón, sin chip, sin «guardado ✓». Tecleas
+100, te vas, y no sabes si quedó.
+
+**Impacto:** UX. Dos controles hermanos, en la MISMA tarjeta, con dos
+lenguajes distintos: uno te confirma y el otro no. En un ajuste que dispara
+avisos, «no sé si se guardó» es peor que en cualquier otro sitio.
+
+**Arreglo propuesto (para la tanda):** darle la misma forma que las alarmas
+— input + botón **Guardar**, y el valor activo como chip (`$100 ✕`) donde
+quitar el chip = 0 = sin aviso. Cero conceptos nuevos y el bloque queda
+coherente. Texto: reusar `btn_add`/`btn_save` si existe; si no, una entrada
+nueva en los 8 idiomas.
