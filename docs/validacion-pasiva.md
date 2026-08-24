@@ -44,7 +44,14 @@ con su visor, y el ✕ que despacha una ficha— y se abre **R8** (el contador
 de la compuerta de aprendizaje volvió a empezar). La presión de contexto
 midió 12-13% en dos sesiones largas: **R6** sigue tal cual.
 
-**Interruptores de Oscar (2026-08-19):** TODOS encendidos salvo *borrado
+**Interruptores de Oscar — CADUCADO, ver R8.** La reinstalación del 21/08
+devolvió a fábrica lo que vivía en localStorage: el 24/08 el auto-`/compact`,
+el auto-`/clear` y el `/clear` por análisis local están APAGADOS, y la
+compuerta de aprendizaje volvió a 0/2 y 1/3. Antes de dar por «no dispara»
+nada de los automáticos, mirar el interruptor. Lo de abajo es la foto vieja
+del 19/08:
+
+**Interruptores de Oscar (2026-08-19, ya no vale):** TODOS encendidos salvo *borrado
 automático* (purga) y *archivar logs*. Es decir: ruteo, guardián, escalar
 solo, reenviar, modelo top, bajar solo, auto-/compact, auto-/clear y el
 análisis local están puestos — si algo no dispara, la causa no es un
@@ -90,7 +97,7 @@ salió bien).
 |---|:--:|:--:|---|
 | Un hallazgo NACE natural y enciende post-it + contador | 🧪 | ✅ | **19/08**: post-it rojo `2` en la tapa y badge rojo `2` en la pestaña, solos. |
 | "Leído" al clicar descuenta contador y post-it | 🧪 | ✅ | **19/08**: leídos los dos, se apagaron ambos; el turquesa del coach siguió con su `1`. |
-| Ignorar persiste; restaurar revive las no leídas | ? | ~ | **21/08**: el panel enseña «Volver a mostrar 1 hallazgo que ocultaste», así que Ignorar SÍ persistió a la reinstalación (vive en localStorage). Falta pulsar el enlace y ver revivir la tarjeta. |
+| Ignorar persiste; restaurar revive las no leídas | ? | ✅ | **21/08**: «Volver a mostrar 1 hallazgo que ocultaste» sobrevivió a la reinstalación. **24/08**: pulsado — la tarjeta revivió arriba del todo (`inflate` de 12 turnos, `$0.41 · 62k tok`, «hace 7 min») y el enlace desapareció. Ciclo cerrado: ocultar, persistir, restaurar. |
 | La pasada ligera al nacer un recibo enciende el aviso | ? | ✅ | **21/08 22:03**, en la bitácora PRO y sin provocarlo: `nace tarjeta sum` → 1 s después `fnd: pasada por cierre de sesión ok, 2 tarjetas (1d)` → `fnd: AVISO ENCENDIDO (1 sin ver, de 2)`. La cadena entera —recibo, pasada, aviso— en dos segundos. |
 | Temas de `inflate` (etapa 3): tramos y ahorro | ✅ (17/08 nº23) | ~ | **19/08**: de dos tarjetas, una trae "un solo tema" y el consejo bueno (/compact); la más fresca cae al genérico → **R3**. |
 | Marcas de arreglo (`fndHist`) | ? | ⬜ | |
@@ -112,7 +119,7 @@ salió bien).
 | Tope diario de 10 fichas (`sum` exento) | ? | ⬜ | |
 | Caducidad a 24 h | ? | ⬜ | |
 | Compás adaptativo del coach (3 min ↔ 60 s ↔ rampa de 10 s) | ✅ | ✅ | Bitácora: `compás 180 s`, `compás 60 s (presión 8%)` y `21:50:09 compás 10 s (presión 8%, rampa)` — la rampa entra por SALTO de tokens, no por presión, y por eso funciona aunque R6 tenga dormido lo demás. |
-| Post-it turquesa → panel abierto en Consejos | 🧪 | ⬜ | El post-it se ve; falta clicarlo. |
+| Post-it turquesa → panel abierto en Consejos | 🧪 | ✅ | **24/08**: post-it turquesa `1` en la tapa del portátil → clic → panel en **Consejos** con el badge `1` y la ficha «El caché caduca en minutos» arriba (`6 min de pausa con contexto grande`, michiclaude · VPS-EU). El salto directo a la pestaña funciona. |
 
 ## 5. Presión de contexto (`press`)
 
@@ -187,10 +194,11 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Cápsula "Sesión X%" con lectura real | ✅ | ✅ | **19/08**. |
 | Globo de alarma anclado, con cola al widget | 🧪 | ✅ | **19/08**: bien pintado en release → la CSP no se comió `notif.html`. |
 | Se queda hasta ✕ o abrir el panel, **y no vuelve** | 🧪 | ⬜ | |
-| Hover lo esconde pero NO cuenta como leído | 🧪 | ⬜ | |
+| Hover lo esconde pero NO cuenta como leído | 🧪 | ✅ | **24/08**: confirmado por Oscar — el globo se esconde al pasar por encima y vuelve al salir. |
 | Cerrar el globo NO cambia el dibujo del gatito | 🧪 | ⬜ | |
 | Estado `cat-fire` (alarma por confirmar) | 🧪 | ✅ | **19/08**: llamas en la laptop con la alarma viva. |
 | Estados `cat-zzz` (semana al tope) y `cat-break` (sesión al tope) | 🧪 | ⬜ | |
+| Globo resumen al hover en `.head` (sesión + semanales) | ✅ | ✅ | **24/08**: tarjeta blanca sobre el gatito con cola al portátil — `Session 5%`, `Weekly 14%`, `Weekly · Fable 19%` y sus resets. Los buckets POR MODELO se pintan solos (invariante #6): «Fable» salió sin estar en ninguna lista. |
 | Post-its rojo y turquesa con sus números | 🧪 | ✅ | **19/08**: `2` y `1` a la vez, iguales a los badges del panel. |
 | Capa: el widget no se hunde tras otra app a pantalla completa | ✅ | ⬜ | |
 | Globo como popover con la pastilla (`body.cap`) | 🧪 | ⬜ | Requiere estilo pastilla. |
@@ -201,10 +209,10 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 |---|:--:|:--:|---|
 | Reporte con ≥20 fotos de cuota (sale de "juntando datos") | ? | ⬜ | |
 | "1M tok ≈ $X" con la tarifa real del periodo | ✅ | ⬜ | |
-| Export CSV/JSON: una fila por hecho, BOM, sin totales | ✅ | ⬜ | |
+| Export CSV/JSON: una fila por hecho, BOM, sin totales | ✅ | ✅ | **24/08**: CSV de 30 d abierto en Excel — cabeceras con acentos correctos (BOM), columnas Fecha · Proyecto · Modelo · Origen · Costo estimado (USD) · Tokens, una fila por fecha×proyecto×modelo×origen, sin fila de totales, y `Local` / `VPS-EU` conviviendo. El aviso «CSV exportado» con su botón **Abrir** también va. |
 | Presupuesto semanal contra los últimos 7 días | ✅ | ⬜ | |
 | Integridad: un `.jsonl` que encoge → "no comparable" | ✅ (15/08) | ⬜ | |
-| Multiidioma repinta TODO, incluido el menú del tray | ✅ | ⬜ | |
+| Multiidioma repinta TODO, incluido el menú del tray | ✅ | ~ | **24/08**: panel entero en inglés (Overview/Data sources/Findings/Tips/Report/Preferences) **y el globo resumen del gatito también** («Session / Weekly / Weekly · Fable / Resets in 19 min») — o sea que el idioma llega a las ventanas del widget, no solo al panel. Falta lo único que dibuja Rust: el **menú del tray** (clic derecho). |
 | **Bitácora PRO**: botón visible en Ajustes que copia el flujo | — | ✅ | *2026-08-20*: "copiada · 300 renglones" y el contenido llegó entero. Con ella se cerró R3 en una sola pegada. |
 | **Gating v1**: bloques escondidos, Reporte "Próximamente", Mayús+clic alterna, tooltip cambia de idioma | — | ✅ | **21/08**, capturas de Oscar tras instalar el build 4c26726: Ajustes sin IA/remediación/ruteo/HUB, Reporte gris ("Coming soon" en inglés), y Mayús+clic en Acerca de devolviendo todo (relevo con sesiones "listo" incluido). La desinstalación con "borrar datos locales" hizo de prueba en limpio real: AppData vacía, localStorage del panel sobrevive (vive en WebView2). |
 | Auto-updater: check al arrancar y globo de versión nueva | ✅ (12/08) | ⬜ | Se probó con un release REAL: es el único bloque que nació validado en exe. |
@@ -511,12 +519,38 @@ observaciones necesita repaso: puede que sobreviviera una parte
 (WebView2 en `AppData\Local`) y se perdiera otra, o que el hallazgo
 ignorado se volviera a ocultar después.
 
-**Cómo confirmarlo (30 s, Oscar):** Ajustes → Mayús+clic en «MichiClaude
-vX.Y» para sacar el bloque de remediación (el gating v1 lo esconde) y leer
-el marcador «Aplicado por ti: /compact _ de 2 · /clear _ de 3». Si marca
-0 de 2 en `/compact`, se borró toda la cuenta y es el desinstalador.
+**CONFIRMADO (2026-08-24):** el marcador dice «Aplicado por ti: **/compact
+0 de 2** · /clear 1 de 3». El `/compact` iba por 2 de 2 el 19/08, así que
+la cuenta se borró ENTERA: fue la desinstalación con «borrar datos
+locales», no un fallo del contador. La nota del 21/08 («localStorage del
+panel sobrevive») queda **corregida**: no sobrevivió — lo que se vio
+entonces fue un hallazgo ocultado DESPUÉS.
+
+**Y no solo el contador:** en la misma captura, *Aplicar /compact en
+automático*, *Aplicar /clear en automático* y *…cuando el análisis local
+diga «tema nuevo»* están **APAGADOS**. La reinstalación devolvió los
+interruptores a fábrica. Ver el aviso de interruptores al principio.
 
 **Sin arreglo propuesto todavía:** si se confirma que es el desinstalador,
 la pregunta de diseño es si la compuerta de aprendizaje debería vivir en
 disco (AppData) en vez de en localStorage — hoy una reinstalación te
 vuelve a pedir el aprendizaje entero. No se toca nada hasta la tanda.
+
+### R9 · La Bitácora PRO va en UTC y la interfaz en tu hora — 2026-08-24
+
+**Qué se vio:** el mismo `/clear` sale como `18:37:03` en la bitácora PRO
+y como `24/08 12:34 p.m.` en el registro de acciones. Seis horas de
+diferencia (y tres minutos, que son el sondeo del relevo: a las 12:34 lo
+tecleaste, a las 12:37 lo vio el panel).
+
+**Por qué pasa:** `flog()` sella con `new Date().toISOString()`
+(index.html:1977) — eso es **UTC**. El resto de la interfaz usa la hora
+local (`fmtWhen`, `toLocaleTimeString`). Ninguno de los dos miente; es que
+no hablan la misma hora.
+
+**Impacto:** solo al depurar, pero es justo cuando más duele — casar «lo
+que vi en pantalla» con «lo que dice la bitácora» obliga a sumar seis
+horas a mano, y la trampa es silenciosa (las dos horas parecen válidas).
+
+**Arreglo propuesto (1 línea, para la tanda):** sellar `flog()` en hora
+local. El formato `MM-DD HH:MM:SS` se mantiene; solo cambia el reloj.
