@@ -4462,3 +4462,86 @@ desde el panel. R4 y R7 siguen abiertas (verificar), el HUB sigue
 bloqueado sin segunda máquina, y el bloque B del reparto —alarmas
 repetidas, semanal al 100%, ntfy con la PC apagada, `cat-zzz`/`cat-break`,
 caducidad de 24 h— solo se puede cerrar esperando a que ocurra.
+
+## 2026-08-25 — R14 y R15 cerradas: el último texto en inglés y el atajo que parecía roto; la fase 4 arranca
+
+QUÉ. Jornada corta de validación en modo usuario, dos rarezas y una poda.
+(1) **R14** cerrada del todo: el menú del tray ya sale en español —«Abrir
+panel · Widget flotante · Salir»— y con eso NO queda un solo texto de la
+app en inglés teniendo la interfaz en español. (2) **R15**: el interruptor
+«Hacer que «claude» pase por el relevo» APAGADO mientras el relevo
+funcionaba; no era fallo, era un texto que no acotaba su alcance, y se
+acotó en los 8 idiomas. (3) La **compuerta de aprendizaje se reganó** y
+Oscar encendió los dos automáticos: empieza la fase 4. (4) CLAUDE.md
+volvió a pasar de 40k y se podó.
+
+POR QUÉ, una por una.
+
+**R14 — el arreglo era de HILO, no de idioma.** El panel siempre mandaba
+las tres etiquetas traducidas con `set_tray_menu`; lo que fallaba es que
+un comando de Tauri corre en el pool del runtime y en Windows los menús
+nativos solo se pueden crear y asignar desde el hilo del bucle de eventos.
+`set_menu` se negaba EN SILENCIO —sin error que devolver al `.catch()`—
+así que el panel creía haber cumplido. Dos cinturones: `run_on_main_thread`
+en Rust, y en JS un `sendTrayMenu()` aparte que `updateTray` REINTENTA la
+primera vez que el tray responde (al arrancar, el icono puede no existir
+cuando el panel pinta, y como el idioma no vuelve a cambiar en toda la
+sesión el menú se quedaba en inglés para siempre). El TOOLTIP, que se
+sospechó roto, nunca lo estuvo: seguía al idioma elegido y el idioma era
+inglés. Esa sospecha quedó como HISTORIAL en `docs/validacion-pasiva.md`
+§R14 — se documentó el síntoma y se esperó al dato antes de tocar nada.
+
+**R15 — el alcance escrito solo en el doc no evita la confusión.** Oscar
+trabaja en el chat de VS Code contra el VPS. Vio el atajo del PATH apagado,
+la lista enseñando `michiclaude · VPS-EU · chat · listo` y la bombilla
+midiendo 7% de contexto, y lo dio por fallo. Son TRES puertas distintas al
+relevo y esa sesión entra por otra: el atajo (`set_relay_alias`) escribe un
+shim en el PATH de USUARIO de Windows, mientras el chat de VS Code y las
+terminales Linux tienen interruptor propio —los dos encendidos—. El
+alcance ya estaba en `docs/remediacion.md` §"El atajo del PATH" («NO cubre
+WSL desde dentro ni SSH»), pero la etiqueta decía solo «Hacer que «claude»
+pase por el relevo» y la nota «cualquier terminal». Arreglo de texto en
+los 8 idiomas: «(terminales de Windows)». Se decidió meterlo en la
+ETIQUETA y no en la nota porque sin servidores dados de alta las filas del
+chat y de las terminales Linux están OCULTAS (`rlyChatRow`/`rlyTermRow`) —
+una nota del tipo «SSH y WSL tienen su propio interruptor» señalaría algo
+invisible (invariante #8). LECCIÓN: si el interruptor de al lado hace algo
+parecido, el alcance va EN la etiqueta.
+
+**La compuerta y la fase 4.** Tras el borrón de R8 (la reinstalación se
+llevó `relayDone` de localStorage) la cuenta volvía a 0/2 y 1/3. Oscar
+aplicó los que faltaban y el marcador desapareció, que es la señal de
+desbloqueo por diseño (R1). De paso se corrigió algo que se le había dicho
+mal: cuentan las DOS vías, el comando TECLEADO por él —el relevo lo detecta
+y lo apunta, index.html:11463— y el botón «Aplicar» (11606); no hacía falta
+pasar por el panel. Con los cupos cumplidos encendió auto-`/compact` y
+auto-`/clear`, y dejó apagado el `/clear` por análisis local (pide la IA
+local, que sigue apagada). El ruteo entero sigue apagado: es la fase 5.
+
+**Poda de CLAUDE.md.** Llegó a 40.375 caracteres, por encima del techo
+duro. Se condensaron dos bloques CERRADOS cuyo detalle ya vive en su doc
+—«TEMAS de inflate» (→ `docs/analisis-local.md` §Etapa 3) y «Modo HUB» (→
+`docs/hub-modo-equipo.md`)— dejando en cada uno el puntero y lo que no
+puede olvidarse, y el párrafo de R6 se fundió en el pendiente de
+validación. Queda en 39.789.
+
+CÓMO SE VERIFICÓ. R14 **visto en pantalla** por Oscar sobre el exe
+recompilado: menú en español. Su build dejó un `warning: unused import:
+tauri::Manager` que se quitó — `run_on_main_thread` es inherente de
+`AppHandle` y no pide el trait. R15 es solo texto: `node --check` limpio
+sobre el bloque de script del panel (los 627k de `index.html` extraídos y
+comprobados aparte), y **visto en pantalla** tras el `git pull` + build de
+Oscar («Compiling michiclaude», 7m56s: no cayó la trampa de la hora del
+binario). ntfy REconfirmado en el celular sobre el build nuevo — el canal
+sobrevive a la reinstalación porque el topic vive en `ntfy_config.json`,
+no en localStorage. Sin `cargo check` en el VPS, como siempre.
+
+QUÉ QUEDA. La fase 4 está ARMADA pero SIN VER: falta la primera cuenta
+atrás de 15 s en la cápsula, que diga el comando, que un toque la pare, que
+el `/clear` deje su copia verificada y que el comando aterrice. R6 sigue
+arreglada y sin verla disparar. El ruteo (fase 5) ni se ha tocado: si algo
+suyo «no dispara», la causa es el interruptor, y el estado VIGENTE de todos
+ellos vive ahora en `docs/validacion-pasiva.md` para no volver a
+perseguirlo. Sigue esperando el bloque B —alarmas repetidas, semanal al
+100%, ntfy con la PC apagada, `cat-zzz`/`cat-break`, un 429 real,
+caducidad de 24 h—, R4 abierta y el HUB bloqueado sin segunda máquina.

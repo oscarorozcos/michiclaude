@@ -379,23 +379,16 @@ hay pendientes, botón "Copiar comando" → `plugin:clipboard-manager|
 write_text` invocado directo (capability
 `clipboard-manager:allow-write-text`, sin wrapper npm).
 
-**TEMAS de `inflate` (etapa 3, HECHA)** — reglas en `docs/analisis-local.md`
-§"Etapa 3". Capa ADITIVA sobre el hallazgo (nace igual, misma clave, mismo
-costo): embeddings —NUNCA el 2B— parten la sesión en tramos y CALCULAN el
-ahorro por frontera. Cuelga del opt-in del análisis local, SIN casilla
-nueva, y corre en una SEGUNDA pasada de fondo (`fndTopicsLater`,
-`topics:true`) que repinta al terminar: el escaneo que pinta las tarjetas
-NO espera al modelo, y con el análisis apagado ni se pide. La pasada
-ligera de 1 día y el Reporte no arrancan modelo. La evidencia (`umsgs` +
-`crs`) se recoge en la pasada QUE YA EXISTE con dedup PROPIO y viaja
-pegada al hallazgo: local/WSL la llenan en el escaneo, el exportador la
-manda por SSH (`topic_sample` réplica exacta) y el modelo corre SIEMPRE en
-la máquina del panel. Se BORRA antes de devolver (`skip_serializing` +
-limpieza explícita): a localStorage solo van tramos y ahorro. El ahorro usa
-el MÁXIMO CORRIDO del `cache_read` en las fronteras y se acota con el del
-turno — con el valor del instante, añadir una frontera BAJABA el ahorro en
-sesiones con rupturas de caché. Caché `inflate_topics.json` por
-origen|sesión|turnos|mensajes y presupuesto duro de 25 s.
+**TEMAS de `inflate` (etapa 3, HECHA)** — TODAS las reglas en
+`docs/analisis-local.md` §"Etapa 3", LEERLO. Lo que no puede olvidarse:
+capa ADITIVA (el hallazgo nace igual, misma clave, mismo costo, embeddings
+—NUNCA el 2B—); SEGUNDA pasada de fondo (`fndTopicsLater`) que repinta al
+terminar — el escaneo NO espera al modelo, y con el análisis apagado ni se
+pide (la pasada ligera de 1 día y el Reporte tampoco arrancan modelo); la
+evidencia (`umsgs`+`crs`) viaja pegada al hallazgo pero se BORRA antes de
+devolver (a localStorage solo van tramos y ahorro); y el ahorro usa el
+MÁXIMO CORRIDO del `cache_read` en las fronteras — con el valor del
+instante, añadir una frontera BAJABA el ahorro.
 
 **Análisis local (IA)** — TODAS las reglas en `docs/analisis-local.md`,
 LEERLO (llama-server bajo demanda que se MATA al terminar; embeddings
@@ -481,17 +474,15 @@ Fallos a ntfy_debug.json sin bloquear nada.
 
 ## Modo HUB (multi-máquina)
 
-TERMINADO. Análisis en `docs/hub-modo-equipo.md` — LEERLO antes de
-tocarlo. Cada ciclo sube la foto LOCAL A SECAS (subir lo fusionado haría eco) a
-`~/.michiclaude/hosts/<máquina>.json` por SSH; identidad en
-`hub_identity.json`, guard por id EN el servidor (código 3 si otro id). UNA FOTO POR VENTANA (`HUB_WINDOWS` = 1/7/15/30, DEBE
-coincidir con el selector); quien lee no puede recortar un resumen
-ajeno. `fetch_remote` pasa `--exclude-host <id>` y Rust re-filtra
-(recibir lo propio = contarlo doble). Nada se descarta por antigüedad.
-Config compartida: MANUAL a propósito (dos botones en Fuentes de datos);
-al guardar escribe en TODOS los servidores, al traer gana el primero;
-los servidores se FUSIONAN por host; NO viajan posición del widget,
-identidad, llaves SSH ni ntfy. Traer va en dos pasos con su fecha.
+TERMINADO. TODAS las reglas en `docs/hub-modo-equipo.md` — LEERLO antes de
+tocarlo. Lo que no puede olvidarse: cada ciclo sube la foto LOCAL A SECAS
+(subir lo fusionado haría eco) a `~/.michiclaude/hosts/<máquina>.json`,
+identidad en `hub_identity.json` con guard por id EN el servidor; UNA FOTO
+POR VENTANA (`HUB_WINDOWS` = 1/7/15/30, DEBE coincidir con el selector —
+quien lee no puede recortar un resumen ajeno); `--exclude-host <id>` y Rust
+re-filtra (recibir lo propio = contarlo doble); nada se descarta por
+antigüedad; la config compartida es MANUAL a propósito y NO viajan posición
+del widget, identidad, llaves SSH ni ntfy.
 
 ## Bloques cerrados — reglas duras viven en su doc (LEERLO antes de tocar)
 
@@ -576,14 +567,14 @@ fábrica (doble candado) y el Reporte junta datos igual. Mayús+clic en
 "MichiClaude vX.Y" alterna el modo completo (`v1all`), sin documentar en
 la UI. ntfy VISIBLE (push confirmado en celular 21/08).
 
-**R6 ARREGLADA (2026-08-24)** — umbrales absolutos junto al % del techo;
-autopsia en la bitácora y en `docs/validacion-pasiva.md` §R6. Falta VERLA
-disparar en uso real: primera ficha de compactar y primera tarjeta de
-intención con un modelo de 1M.
-
-- [ ] VALIDACIÓN PASIVA (con el uso): checklist vivo en
-      `docs/validacion-pasiva.md` — se marca AHÍ, con evidencia y fecha,
-      y nada se da por bueno desde el simulador. Falta lo gordo: alarmas
+- [ ] VALIDACIÓN PASIVA (con el uso): checklist vivo Y ESTADO DE LOS
+      INTERRUPTORES en `docs/validacion-pasiva.md` — se marca AHÍ, con
+      evidencia y fecha, y nada se da por bueno desde el simulador. Antes
+      de dar por "no dispara" algo, MIRAR el interruptor. VA POR LA FASE 4
+      (25/08): compuerta reganada y los dos automáticos ENCENDIDOS, falta
+      ver la cuenta atrás de 15 s; el ruteo entero sigue apagado (fase 5).
+      R6 arreglada pero SIN VER disparar (ficha de compactar y tarjeta de
+      intención con un modelo de 1M). Falta lo gordo: alarmas
       reales, ntfy con la PC apagada, hallazgo naciendo natural, ruteo
       (consejero en vivo, `think-top → fable`, bajada sola, `/model` en
       ConPTY, WSL) y análisis local (primer `via:emb` real). Cualquier
