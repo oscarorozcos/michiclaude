@@ -86,7 +86,7 @@ salió bien).
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
 | El panel publica el push de umbral | ⬜ | ✅ | Bitácora: `21:33:57 push ok: Sesión al 10% de tu límite de 5 h.` y varios más los días 12, 13 y 19. |
-| El push de umbral **se ve en el celular** | ⬜ | ✅ | **21/08**: Oscar confirmó que los pushes llegan a su celular ("ya validé que sí funcionan"). Con esto ntfy entra VISIBLE en la v1 del lanzamiento. |
+| El push de umbral **se ve en el celular** | ⬜ | ✅ | **21/08**: Oscar confirmó que los pushes llegan a su celular ("ya validé que sí funcionan"). Con esto ntfy entra VISIBLE en la v1 del lanzamiento. **24/08**: repetida la prueba tras reinstalar sobre el build nuevo — siguen llegando (el canal sobrevive a la reinstalación: el topic vive en `ntfy_config.json`, no en localStorage). |
 | 100%: aviso inmediato + "ya volvió" programado **con la PC apagada** | ⬜ | ⬜ | La pieza que de verdad prueba el diseño. |
 | Un push por ventana (no se repite) | ⬜ | ✅ | Bitácora: el globo se reemitió 3 veces a las 21:33-21:34 y hubo **un solo** `push ok`. La dedup aguanta aunque el globo insista (ver R7). |
 | Nombre de proyecto solo con la casilla `names` | ? | ~ | Los textos de la bitácora SÍ llevan proyecto (`Terminó tu sesión en sparky-site · VPS-EU`), o sea que la casilla está encendida. Falta leer un payload real para confirmar que no viaja nada más. |
@@ -212,7 +212,7 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Export CSV/JSON: una fila por hecho, BOM, sin totales | ✅ | ✅ | **24/08**: CSV de 30 d abierto en Excel — cabeceras con acentos correctos (BOM), columnas Fecha · Proyecto · Modelo · Origen · Costo estimado (USD) · Tokens, una fila por fecha×proyecto×modelo×origen, sin fila de totales, y `Local` / `VPS-EU` conviviendo. El aviso «CSV exportado» con su botón **Abrir** también va. |
 | Presupuesto semanal contra los últimos 7 días | ✅ | ✅ | **24/08**: puesto en $100 → globo «El gasto semanal $382.30 superó tu presupuesto de $100 (equiv. API)»; cambiado a $200 → volvió a avisar con la cifra nueva. Se ve la pega de UX en **R13**. |
 | Integridad: un `.jsonl` que encoge → "no comparable" | ✅ (15/08) | ✅ | **24/08**, Reporte en **Mes**: banda «Comparación no concluyente · 1 día(s) con trabajo ya no aparecen en los logs», insignia `no comparable` junto al número y la frase honesta («lo que parece un cambio podría ser solo lo que falta»). La pieza 2 del ADR, disparada sola por los logs reales. |
-| Multiidioma repinta TODO, incluido el menú del tray | ✅ | ~ | **24/08**: panel entero en inglés (Overview/Data sources/Findings/Tips/Report/Preferences) **y el globo resumen del gatito también** («Session / Weekly / Weekly · Fable / Resets in 19 min») — o sea que el idioma llega a las ventanas del widget, no solo al panel. Falta lo único que dibuja Rust: el **menú del tray** (clic derecho). |
+| Multiidioma repinta TODO, incluido el menú del tray | ✅ | ✅ | **24/08**: panel entero en inglés (Overview/Data sources/Findings/Tips/Report/Preferences) **y el globo resumen del gatito también** («Session / Weekly / Weekly · Fable / Resets in 19 min») — o sea que el idioma llega a las ventanas del widget, no solo al panel. El **menú del tray** era lo único que faltaba y tardó porque fallaba callado (**R14**): ya dice **Abrir panel · Widget flotante · Salir**, y el tooltip «Sesión 0% · Semanal 16%». |
 | **Bitácora PRO**: botón visible en Ajustes que copia el flujo | — | ✅ | *2026-08-20*: "copiada · 300 renglones" y el contenido llegó entero. Con ella se cerró R3 en una sola pegada. |
 | **Gating v1**: bloques escondidos, Reporte "Próximamente", Mayús+clic alterna, tooltip cambia de idioma | — | ✅ | **21/08**, capturas de Oscar tras instalar el build 4c26726: Ajustes sin IA/remediación/ruteo/HUB, Reporte gris ("Coming soon" en inglés), y Mayús+clic en Acerca de devolviendo todo (relevo con sesiones "listo" incluido). La desinstalación con "borrar datos locales" hizo de prueba en limpio real: AppData vacía, localStorage del panel sobrevive (vive en WebView2). |
 | Auto-updater: check al arrancar y globo de versión nueva | ✅ (12/08) | ⬜ | Se probó con un release REAL: es el único bloque que nació validado en exe. |
@@ -752,6 +752,12 @@ puesto era INGLÉS; al pasarlo a español el TOOLTIP cambió al instante
 que el idioma llegara mal y señala exactamente a la causa 1 — la llamada sale,
 Rust la recibe, y la reconstrucción del menú se pierde por hacerse fuera del
 hilo principal. El tooltip nunca estuvo roto: seguía al idioma elegido.
+
+**ARREGLADO Y VISTO (2026-08-24, exe):** clic derecho en el icono de bandeja
+→ **Abrir panel · Widget flotante · Salir**. Con esto se cierra la ÚLTIMA
+fila de idiomas: ya no queda un solo texto de la app en inglés teniéndola en
+español. (El `use tauri::Manager` sobraba —`run_on_main_thread` es inherente
+a `AppHandle`— y se quitó; el aviso de compilación no afectaba al arreglo.)
 
 **HISTORIAL — lo que se sospechó antes de tener ese dato:** El TOOLTIP no pasa por el menú:
 lo arma el panel con `t("tray_tip")` en cada ciclo y viaja en `update_tray`,
