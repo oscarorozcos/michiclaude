@@ -719,3 +719,38 @@ texto nuevo. El `change` del input se conserva, así que quien teclea y se
 va con Tab tampoco pierde el valor. **VISTO (24/08)**: chip `$100 ✕` sobre
 el input y el botón «Aplicar» al lado, con la misma pinta que las alarmas
 de arriba.
+
+### R14 · El menú del tray y su globito siguen en inglés — 2026-08-24
+
+**Qué se vio** (exe, con toda la app en español): clic derecho en el icono
+de bandeja → *Open panel / Floating widget / Quit*. Y al pasar el ratón por
+encima, *«Session 27% · Resets in 7 min · Weekly 16%»*.
+
+**Lo que YA estaba puesto:** el menú lo construye Rust al arrancar en inglés
+y el panel se lo manda traducido con `set_tray_menu` desde `applyI18n()`
+(hecho el 2026-07-29, invariante #10). El diccionario tiene las tres
+etiquetas y `tray_tip` en los 8 idiomas. O sea: la lógica está, lo que falla
+es la EJECUCIÓN.
+
+**Dos causas posibles, tapadas las dos (2026-08-24):**
+
+1. **Hilo equivocado.** En Windows los menús nativos solo se pueden crear y
+   asignar desde el hilo del bucle de eventos, y un comando de Tauri corre en
+   el pool del runtime. Hecho desde ahí falla **en silencio** — no hay error
+   que devolver al panel, así que el `.catch()` tampoco se enteraba.
+   `set_tray_menu` ahora despacha la reconstrucción con `run_on_main_thread`.
+2. **Llamada perdida al arrancar.** Si el icono de bandeja no está listo
+   cuando el panel pinta por primera vez, la única llamada se pierde: el
+   idioma no vuelve a cambiar en toda la sesión, así que nadie reintenta.
+   La llamada sale a `sendTrayMenu()` y `updateTray` la repite **la primera
+   vez que el tray responde**, que es cuando sabemos seguro que existe.
+
+**LO QUE NO CUADRA — pendiente de un dato.** El TOOLTIP no pasa por el menú:
+lo arma el panel con `t("tray_tip")` en cada ciclo y viaja en `update_tray`,
+que sí funciona (el número del icono se actualiza). Si el panel está en
+español, ese texto TIENE que salir en español. Que salga en inglés apunta a
+que la variable `lang` del panel es `en` mientras la interfaz se ve en
+español — y eso, con `applyI18n()` pintando todo desde el mismo diccionario,
+no debería poder pasar. **Falta comprobar en la app**: qué idioma marca
+Ajustes → Idioma, y si el globito sigue diciendo «Session» ahora mismo. Sin
+ese dato no se toca el tooltip: no hay causa, hay solo un síntoma.

@@ -11057,18 +11057,27 @@ fn set_pill_layer(app: tauri::AppHandle, layer: String) {
 /// por sesión. Los ids NO cambian, que son los que enrutan `on_menu_event`.
 #[tauri::command]
 fn set_tray_menu(app: tauri::AppHandle, open: String, widget: String, quit: String) {
-    use tauri::menu::{Menu, MenuItem};
-    let (Ok(a), Ok(b), Ok(c)) = (
-        MenuItem::with_id(&app, "tray_panel", open, true, None::<&str>),
-        MenuItem::with_id(&app, "tray_pill", widget, true, None::<&str>),
-        MenuItem::with_id(&app, "tray_quit", quit, true, None::<&str>),
-    ) else {
-        return;
-    };
-    let Ok(menu) = Menu::with_items(&app, &[&a, &b, &c]) else { return };
-    if let Some(tray) = app.tray_by_id("main-tray") {
-        let _ = tray.set_menu(Some(menu));
-    }
+    use tauri::Manager;
+    // EN EL HILO PRINCIPAL (2026-08-24): en Windows los menús nativos solo se
+    // pueden crear y asignar desde el hilo del bucle de eventos. Un comando de
+    // Tauri corre en el pool del runtime, así que hacerlo aquí mismo fallaba EN
+    // SILENCIO —sin error que devolver al panel— y el menú se quedaba en inglés
+    // con toda la app en español. Se despacha al hilo principal y ya.
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        use tauri::menu::{Menu, MenuItem};
+        let (Ok(a), Ok(b), Ok(c)) = (
+            MenuItem::with_id(&handle, "tray_panel", open, true, None::<&str>),
+            MenuItem::with_id(&handle, "tray_pill", widget, true, None::<&str>),
+            MenuItem::with_id(&handle, "tray_quit", quit, true, None::<&str>),
+        ) else {
+            return;
+        };
+        let Ok(menu) = Menu::with_items(&handle, &[&a, &b, &c]) else { return };
+        if let Some(tray) = handle.tray_by_id("main-tray") {
+            let _ = tray.set_menu(Some(menu));
+        }
+    });
 }
 
 /// Crea, solo si hacen falta, las dos ventanas del estilo de widget elegido.

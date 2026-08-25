@@ -7043,6 +7043,19 @@ function t(key,...a){
   const v=(I18N[lang]&&I18N[lang][key])??I18N.en[key];
   return typeof v==="function"?v(...a):(v??key);
 }
+// Manda al backend las tres etiquetas del menú del tray ya traducidas. Vive
+// aparte de applyI18n porque hay que REINTENTARLO: al arrancar, el icono de
+// bandeja puede no estar listo cuando el panel pinta, y como el idioma no
+// vuelve a cambiar en toda la sesión el menú se quedaba en inglés para
+// siempre. updateTray lo llama otra vez la primera vez que el tray responde,
+// que es el momento en el que sabemos SEGURO que existe.
+function sendTrayMenu(){
+  if(typeof invoke==="undefined" || !invoke) return;
+  invoke("set_tray_menu",{open:t("tray_open"),widget:t("tray_widget"),
+    quit:t("tray_quit")}).catch(()=>{});
+}
+let trayMenuRetry=false;
+
 function applyI18n(){
   document.documentElement.lang=lang;
   document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent=t(el.dataset.i18n); });
@@ -7061,9 +7074,7 @@ function applyI18n(){
   // pasar por t(): el idioma vive aquí. Se lo mandamos ya traducido, al
   // cargar y en cada cambio de idioma (era el único texto que se quedaba
   // en inglés — invariante #10).
-  if(typeof invoke!=="undefined" && invoke)
-    invoke("set_tray_menu",{open:t("tray_open"),widget:t("tray_widget"),quit:t("tray_quit")})
-      .catch(()=>{});
+  sendTrayMenu();
   // las fichas de Consejos se pintan desde t(): un cambio de idioma con la
   // pestaña abierta debe repintarlas al momento
   if(!$("tab-tips").hidden) renderTips();
@@ -7663,7 +7674,9 @@ function updateTray(ses, weekPct){
     tip = base + (why ? " · " + why : "");
   }
   invoke("update_tray",{rgba:Array.from(ctx.getImageData(0,0,S,S).data),
-    width:S, height:S, tooltip:tip}).catch(()=>{});
+    width:S, height:S, tooltip:tip})
+    .then(()=>{ if(!trayMenuRetry){ trayMenuRetry=true; sendTrayMenu(); } })
+    .catch(()=>{});
 }
 
 // ---------- helpers de cuota ----------

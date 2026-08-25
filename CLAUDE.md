@@ -177,7 +177,11 @@ ERR_NO_PYTHON. El nombre de un servidor se edita con clic en la lista.
   clara u oscura sin detectar el tema) + barrita semanal. Con cuota en error:
   "–" gris, nunca datos inventados. El menú lo construye Rust pero el
   panel se lo manda TRADUCIDO vía `set_tray_menu` desde `applyI18n()` —
-  todo texto que Rust dibuje llega así. Windows CORTA el tooltip a 128 chars:
+  todo texto que Rust dibuje llega así. Ese menú se reconstruye SIEMPRE en el
+  hilo principal (`run_on_main_thread`): desde el pool del runtime Windows
+  falla en silencio. Y `updateTray` REINTENTA la traducción la primera vez
+  que el tray responde (si se pierde al arrancar, nadie más la manda: el
+  idioma no vuelve a cambiar). Windows CORTA el tooltip a 128 chars:
   si no cabe, solo la primera frase (`firstSentence`).
 
 ## INVARIANTES — no romper nunca
