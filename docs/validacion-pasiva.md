@@ -44,12 +44,26 @@ con su visor, y el ✕ que despacha una ficha— y se abre **R8** (el contador
 de la compuerta de aprendizaje volvió a empezar). La presión de contexto
 midió 12-13% en dos sesiones largas: **R6** sigue tal cual.
 
+**Interruptores de Oscar — VIGENTE (2026-08-25, capturas).** Compuerta de
+aprendizaje **reganada** tras R8 (el marcador ya no se pinta = los dos cupos
+cumplidos), y con ella se abre la **fase 4**:
+
+- **Automáticos:** auto-`/compact` ENCENDIDO, auto-`/clear` ENCENDIDO,
+  `/clear` por análisis local APAGADO (pide la IA local, que sigue apagada).
+- **Relevo:** chat de VS Code ✓ y terminales Linux ✓; el atajo del PATH
+  APAGADO **a propósito** — Oscar trabaja en el chat de VS Code contra el
+  VPS y ese camino no pasa por ahí (ver la etiqueta nueva, R15).
+- **Ruteo: TODO apagado** — guardián, escalar solo, reenviar, bajar solo,
+  modelo top e inyectar contexto. Es la fase 5, aún no tocada: si algo del
+  ruteo «no dispara», la causa es esta.
+
+Antes de dar por «no dispara» nada, mirar el interruptor. Lo de abajo son
+fotos viejas:
+
 **Interruptores de Oscar — CADUCADO, ver R8.** La reinstalación del 21/08
 devolvió a fábrica lo que vivía en localStorage: el 24/08 el auto-`/compact`,
 el auto-`/clear` y el `/clear` por análisis local están APAGADOS, y la
-compuerta de aprendizaje volvió a 0/2 y 1/3. Antes de dar por «no dispara»
-nada de los automáticos, mirar el interruptor. Lo de abajo es la foto vieja
-del 19/08:
+compuerta de aprendizaje volvió a 0/2 y 1/3.
 
 **Interruptores de Oscar (2026-08-19, ya no vale):** TODOS encendidos salvo *borrado
 automático* (purga) y *archivar logs*. Es decir: ruteo, guardián, escalar
@@ -159,7 +173,7 @@ salió bien).
 | El relevo se anuncia en la ventana de Claude Code | ✅ (17/08 nº8) | ✅ | **19/08**: "michi · relevo activo (sesión 4122038)…", en la extensión de VS Code sobre SSH. |
 | Copia `/export` verificada y visible desde el panel | ✅ (13/08 nº8) | ✅ | **19/08**: "ver la copia" abre `HANDOFF-4122038-…JSONL · VPS-EU` con la conversación dentro. Pieza fail-closed del /clear. |
 | Registro de acciones, una fila por aplicación | ✅ (17/08 nº6-7) | ✅ | **19/08**: filas del 13, 16 y 19 de agosto, `manual` y `auto`, en «VPS-EU» y «oscar». |
-| Compuerta de aprendizaje (manuales antes del automático) | ✅ | ✅ | **19/08**: `/compact 2 de 2` y `/clear 8 de 3`, candados ya ocultos. Ver **R1**. |
+| Compuerta de aprendizaje (manuales antes del automático) | ✅ | ✅ | **19/08**: `/compact 2 de 2` y `/clear 8 de 3`, candados ya ocultos. Ver **R1**. **25/08, RE-GANADA sobre el archivo de disco** tras el borrón de R8: el marcador desapareció y el registro enseña los `/clear` tecleados en «oscar» y el `/compact` aplicado en «VPS-EU». Cuentan las DOS vías —tecleado por ti y botón «Aplicar»—, `relayMark` se llama en las dos (index.html:11463 y 11606). |
 | Lista de sesiones con relevo (pid, presión, `listo`) | ? | ✅ | **19/08**: `michiclaude` pid 4020410 · 7% y `sparky-site` pid 4122038 · 4%. |
 | El relevo ve un `/clear` **tecleado por ti** y lo cuenta | ✅ (17/08) | ✅ | **24/08 18:37**: `relevo: /clear tecleado por el usuario en pid 3695326` → `/clear aplicado a mano (1/3)`, sin tocar el panel. Ojo al contador: ver **R8**. |
 | Globo `cleared` + clic → la conversación anterior (`read_cleared`) | ✅ (16-17/08) | ✅ | **24/08**: globo anclado al gatito «/clear en michiclaude · VPS-EU — la conversación anterior quedó guardada. Clic para verla» y el visor abriéndola entera. Es la vía SIN copia handoff (el `/clear` tuyo no la deja): lee el `.jsonl` de la sesión por SSH. Cierra además la trampa del *sid vivo* del 17/08 — la conversación era la correcta. |
@@ -768,3 +782,29 @@ español — y eso, con `applyI18n()` pintando todo desde el mismo diccionario,
 no debería poder pasar. **Falta comprobar en la app**: qué idioma marca
 Ajustes → Idioma, y si el globito sigue diciendo «Session» ahora mismo. Sin
 ese dato no se toca el tooltip: no hay causa, hay solo un síntoma.
+
+### R15 · «Hacer que «claude» pase por el relevo» APAGADO y el relevo funcionando — 2026-08-25
+
+**Lo que vio Oscar:** el interruptor del atajo del PATH apagado, con su nota
+diciendo «para tener relevo hay que escribir *michi claude*», y a la vez la
+lista enseñando `michiclaude · VPS-EU · chat · pid 3994986 · listo` con su
+botón «Aplicar /compact» y la bombilla del gatito midiendo «7% Memoria de la
+conversación · michiclaude · VPS-EU · relevo». Lo dio por fallo.
+
+**NO ERA FALLO — son tres puertas distintas.** El atajo (`set_relay_alias`)
+escribe un shim en el PATH de USUARIO **de Windows**; su alcance ya estaba
+escrito en `docs/remediacion.md` §"El atajo del PATH" («NO cubre WSL desde
+dentro ni SSH»). Esa sesión es de tipo `chat`, o sea el wrapper del chat de
+VS Code sobre SSH, que tiene interruptor propio y estaba encendido — igual
+que el de las terminales Linux.
+
+**ARREGLADO (2026-08-25, solo texto):** la etiqueta pasa a
+«Hacer que «claude» pase por el relevo **(terminales de Windows)**» y las dos
+notas se acotan igual, en los 8 idiomas. La aclaración va en la ETIQUETA y no
+en la nota a propósito: sin servidores dados de alta las filas del chat y de
+las terminales Linux están OCULTAS (`rlyChatRow`/`rlyTermRow`), así que una
+nota del tipo «SSH y WSL tienen su propio interruptor» señalaría algo
+invisible (invariante #8).
+
+**Lección:** un alcance escrito solo en el doc no evita la confusión; si el
+interruptor de al lado hace algo parecido, el alcance va EN la etiqueta.
