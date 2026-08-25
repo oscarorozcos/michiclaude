@@ -11057,7 +11057,6 @@ fn set_pill_layer(app: tauri::AppHandle, layer: String) {
 /// por sesión. Los ids NO cambian, que son los que enrutan `on_menu_event`.
 #[tauri::command]
 fn set_tray_menu(app: tauri::AppHandle, open: String, widget: String, quit: String) {
-    use tauri::Manager;
     // EN EL HILO PRINCIPAL (2026-08-24): en Windows los menús nativos solo se
     // pueden crear y asignar desde el hilo del bucle de eventos. Un comando de
     // Tauri corre en el pool del runtime, así que hacerlo aquí mismo fallaba EN

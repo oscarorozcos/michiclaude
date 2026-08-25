@@ -745,7 +745,15 @@ es la EJECUCIÓN.
    La llamada sale a `sendTrayMenu()` y `updateTray` la repite **la primera
    vez que el tray responde**, que es cuando sabemos seguro que existe.
 
-**LO QUE NO CUADRA — pendiente de un dato.** El TOOLTIP no pasa por el menú:
+**CAUSA CONFIRMADA (2026-08-24, con el dato de Oscar).** El idioma que tenía
+puesto era INGLÉS; al pasarlo a español el TOOLTIP cambió al instante
+(«Sesión 0% · Semanal 16%») y el MENÚ se quedó en inglés. Mismo panel, mismo
+`lang`, misma pasada de `applyI18n()`: uno obedeció y el otro no. Eso descarta
+que el idioma llegara mal y señala exactamente a la causa 1 — la llamada sale,
+Rust la recibe, y la reconstrucción del menú se pierde por hacerse fuera del
+hilo principal. El tooltip nunca estuvo roto: seguía al idioma elegido.
+
+**HISTORIAL — lo que se sospechó antes de tener ese dato:** El TOOLTIP no pasa por el menú:
 lo arma el panel con `t("tray_tip")` en cada ciclo y viaja en `update_tray`,
 que sí funciona (el número del icono se actualiza). Si el panel está en
 español, ese texto TIENE que salir en español. Que salga en inglés apunta a
