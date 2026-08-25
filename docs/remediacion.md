@@ -872,7 +872,14 @@ sesión no tenía relevo (lo planteó Oscar así).
   el PATH lo resuelve WINDOWS, así que vale para todos de una vez.
 - **Alcance honesto:** cubre cualquier terminal o editor que resuelva `claude`
   por PATH. NO cubre WSL desde dentro ni SSH (cruzan la frontera — etapa 4) ni
-  una integración que llame al binario por ruta absoluta.
+  una integración que llame al binario por ruta absoluta. Y ESO SE DICE EN LA
+  ETIQUETA (2026-08-25): "(terminales de Windows)". Lo levantó Oscar validando
+  —trabaja en el chat de VS Code contra el VPS, vio el atajo APAGADO y el
+  relevo funcionando, y dio por hecho un fallo. La nota decía "cualquier
+  terminal" sin acotar y las otras dos puertas (chat de VS Code, terminales
+  Linux) tienen interruptor propio. La aclaración va en la ETIQUETA, no en la
+  nota: sin servidores dados de alta esas dos filas están OCULTAS y una nota
+  que las señale apuntaría a algo invisible.
 - **El atajo nunca puede dejarte sin Claude Code.** Dos salidas: si
   `MICHI_RELEVO` ya está puesto (estamos dentro de un relevo, no re-envolver) o
   si falta `michi.exe`, ejecuta el Claude Code de verdad, cuya ruta se resuelve
