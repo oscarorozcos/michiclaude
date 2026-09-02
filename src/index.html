@@ -11639,6 +11639,16 @@ const RELAY_AUTO_WAIT=15;   // más larga que la manual: esto no lo pediste tú
 // cuando lo decide una INFERENCIA. Cuanto más blanda la razón, más tiempo
 // para pararlo (docs/analisis-local.md §"El automático por inferencia").
 const RELAY_AUTO_WAIT_AI=30;
+// Reposo mínimo (minutos de `quiet` del hit press) para el AUTO-/clear
+// (R16, 2026-09-02): en un proceso autónomo largo la lista de TODOs se
+// cierra y el commit queda limpio A MITAD del proceso — el veredicto daba
+// Boundary con Claude trabajando (quiet 0) y el /clear mataba la tarea en
+// el hueco entre dos pasos (el candado del relevo solo ve el instante: 2 s
+// de PTY o el turno del chat, no una tarea en segundo plano). Mismo umbral
+// que ya usa `done` para decir "terminó tu sesión". Sin reposo NO se borra:
+// se degrada a /compact ("en la duda, /compact"), que comprime sin matar y
+// conserva la carrera ganada al auto-compact del ~94%.
+const AUTO_REST_MIN=5;
 let autoRun=null;           // {cmd,pid,timer} mientras corre la cuenta
 // Memoria del automático por sesión: "done" = ya se aplicó y no se vuelve a
 // tocar; un número = momento del último INTENTO fallido. Un rechazo del
@@ -11741,8 +11751,13 @@ async function relayAutoCheck(pr){
   // "tema nuevo", y el camino nuevo nunca llegaría a usarse. La presión solo
   // sube, así que esperar no cuesta nada; aiPending está acotado en tiempo.
   if(remOn("relayClearAi")&&det==="unsure"&&aiPending(sid)) return;
+  // R16: el /clear exige además sesión en REPOSO. `quiet` viene en minutos
+  // del hit press (tiempo desde el último toque del log): con Claude en
+  // plena faena la evidencia de "tarea cerrada" está contaminada por
+  // señales de mitad de proceso, y cae al /compact de siempre.
+  const rested=(pr.quiet||0)>=AUTO_REST_MIN;
   const clearOk=remOn("relayClear")&&relayUnlocked("/clear")&&(rly.v||1)>=2
-    &&(det==="boundary"||aiClear);
+    &&(det==="boundary"||aiClear)&&rested;
   const cmd=clearOk?"/clear":"/compact";
   if(!clearOk&&!relayUnlocked("/compact")) return;
   // Se sella el INTENTO antes de empezar: si algo revienta a medias, el
@@ -11754,7 +11769,8 @@ async function relayAutoCheck(pr){
   const byAi=clearOk&&det!=="boundary";
   let left=byAi?RELAY_AUTO_WAIT_AI:RELAY_AUTO_WAIT;
   flog("relevo auto: cuenta atrás para "+cmd+" en pid "+rly.pid
-    +(clearOk?" (con red /export)":"")+(byAi?" [IA: tema_nuevo]":""));
+    +(clearOk?" (con red /export)":"")+(byAi?" [IA: tema_nuevo]":"")
+    +((det==="boundary"||aiClear)&&!rested?" [sin reposo: /clear degradado, quiet "+(pr.quiet||0)+" min]":""));
   autoBeam(left,cmd);
   autoRun={cmd,pid:rly.pid,timer:setInterval(async ()=>{
     left--;

@@ -55,8 +55,9 @@ def price_for(model):
 
     Primero los precios descargados que llegan por stdin; si no hay, la tabla
     embebida. La tarifa depende de la VERSIÓN, no solo de la familia: Opus bajó
-    de $15/$75 a $5/$25 a partir de la 4.5 (3, 4.0 y 4.1 siguen en la vieja).
-    Escritura de caché = 1.25x input, lectura = 0.1x input.
+    de $15/$75 a $5/$25 a partir de la 4.5 (3, 4.0 y 4.1 siguen en la vieja) y
+    Sonnet bajó a $2/$10 en la 5. Escritura de caché = 1.25x input, lectura =
+    0.1x input — salvo Fable/Mythos 5.1+, que leen a $0.25/M en absoluto.
     MANTENER EN SINCRONÍA con price_for() de src-tauri/src/lib.rs.
     """
     p = PRICES.get(price_key(model))
@@ -77,8 +78,13 @@ def price_for(model):
             inp, out = 15.0, 75.0  # Opus 3 / 4.0 / 4.1
     elif "haiku" in m:
         inp, out = 1.0, 5.0
+    elif "sonnet" in m and major >= 5:
+        inp, out = 2.0, 10.0  # Sonnet 5: tarifa introductoria hecha permanente
     else:
-        inp, out = 3.0, 15.0  # sonnet y desconocidos
+        inp, out = 3.0, 15.0  # sonnet ≤4.6 y desconocidos
+    # Fable/Mythos 5.1+ leen caché a $0.25/M en absoluto (0.025×), no al 0.1×
+    if ("fable" in m or "mythos" in m) and (major > 5 or (major == 5 and minor >= 1)):
+        return (inp, out, inp * 1.25, 0.25)
     return (inp, out, inp * 1.25, inp * 0.1)
 
 

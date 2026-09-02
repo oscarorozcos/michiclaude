@@ -487,10 +487,21 @@ fn price_table(model: &str) -> (f64, f64, f64, f64) {
         }
     } else if m.contains("haiku") {
         (1.0, 5.0)
+    } else if m.contains("sonnet") && major >= 5 {
+        (2.0, 10.0) // Sonnet 5: tarifa introductoria hecha permanente (2026-09)
     } else {
-        (3.0, 15.0) // sonnet y desconocidos
+        (3.0, 15.0) // sonnet ≤4.6 y desconocidos
     };
-    (inp, out, inp * 1.25, inp * 0.1)
+    // Fable/Mythos 5.1+ leen caché a $0.25/M en absoluto (0.025×), no al
+    // 0.1× estándar del resto de la familia (verificado 2026-09-02).
+    let cr = if (m.contains("fable") || m.contains("mythos"))
+        && (major > 5 || (major == 5 && minor >= 1))
+    {
+        0.25
+    } else {
+        inp * 0.1
+    };
+    (inp, out, inp * 1.25, cr)
 }
 
 // ---------- precios dinámicos (cascada de fuentes públicas) ----------

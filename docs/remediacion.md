@@ -48,7 +48,11 @@ Los prompts para generar las maquetas con otra IA están guardados en
       Desbloqueo en `relayDone` (/compact 2, /clear 3; lo que TECLEAS TÚ
       también cuenta). AUTO-/CLEAR CON RED (doc §El auto-/clear con red):
       solo Boundary + `relayClear` (nace OFF) + 3 manuales + relevo v≥2
-      (a un v1 el panel NO pide la red — borraría sin copia). Red =
+      (a un v1 el panel NO pide la red — borraría sin copia) + sesión en
+      REPOSO (`quiet` ≥5 min, `AUTO_REST_MIN` — R16: un proceso autónomo
+      cierra TODOs y commitea A MITAD del trabajo y el veredicto daba
+      Boundary con Claude en plena faena; sin reposo se degrada a
+      /compact, jamás se borra). Red =
       `/export <ruta>` GENERADA por el relevo (jamás viaja por el canal),
       copia VERIFICADA en disco (`<datos>/handoff/`, 90 días) o NO hay
       /clear (`ERR_RELAY_EXPORT`); hilo propio; `/export` sin ruta abre
@@ -1487,6 +1491,19 @@ destruye si antes existe una copia VERIFICADA de la conversación.
 
 **Decisiones que lo sostienen:**
 
+- **Reposo obligatorio (R16, 2026-09-02):** el automático solo borra con
+  la sesión quieta ≥5 min (`AUTO_REST_MIN` en `relayAutoCheck`, mismo
+  umbral que la regla `done`). La mordida real (bitácora 09-02 12:39,
+  polymarket-bot): un proceso autónomo largo cierra su lista de TODOs y
+  deja commit limpio A MITAD del trabajo → `intentVerdict` dio Boundary
+  con `quiet` 0 (Claude generando) y el /clear entró en el hueco entre
+  dos pasos — el candado del relevo (`ready()`) solo ve el INSTANTE (2 s
+  de silencio de PTY / turno del chat), no una tarea en segundo plano ni
+  el paso siguiente del proceso. Sin reposo el veredicto se degrada a
+  /compact ("en la duda, /compact"): comprime sin matar y conserva la
+  carrera ganada al auto-compact del ~94%. La compuerta vive SOLO en el
+  panel (relayAutoCheck es JS puro): ni el relevo ni el exportador
+  cambian. El rastro dice "[sin reposo: /clear degradado, quiet X min]".
 - **La secuencia corre en SU hilo** (Rust y Python): esperar la copia
   tarda segundos y el bucle principal tiene que seguir bombeando
   pantalla y estado — si se bloqueara, el panel daría la sesión por

@@ -70,8 +70,9 @@ Los proyectos remotos llevan el sufijo del nombre del server.
 models.dev → OpenRouter, caché 24 h en `prices_cache.json`, RESPALDO, no
 verificación cruzada). `price_for()` cae a la embebida
 `price_table()` y `ctx_for()` a `ctx_table()`; las dos deciden por VERSIÓN,
-no familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75; Fable/Mythos
-$10/$50; caché 1.25x y 0.1x). Modelo sin tarifa → `estimated`, la UI marca "~". Viajan al exportador
+no familia (Opus 4.5+ $5/$25 vs Opus 3/4.0/4.1 $15/$75; Sonnet 5+
+$2/$10; Fable/Mythos $10/$50; caché 1.25x y 0.1x, salvo Fable/Mythos
+5.1+ que leen a $0.25/M). Modelo sin tarifa → `estimated`, la UI marca "~". Viajan al exportador
 por STDIN (`--prices-stdin`). Descarga fallando >1 semana: aviso ⚠ junto
 a "costo estimado", no toast. La sección de Ajustes informa de AMBAS
 cosas (`ctx_count` = modelos con techo): si una fuente deja de publicarlo,
@@ -490,9 +491,10 @@ del widget, identidad, llaves SSH ni ntfy.
   VIGENTES" y §"Purga del archivo". Transversal: crate APARTE `relevo/`
   (la app no gana deps); LISTA BLANCA (/compact, /clear + `/model <alias>`
   de lista cerrada) en LOS DOS lados; /clear automático SOLO con copia
-  `/export` VERIFICADA en disco (fail-closed) y por dos razones —
+  `/export` VERIFICADA en disco (fail-closed), por dos razones —
   Boundary o análisis local `tema_nuevo` (`relayClearAi` OFF,
-  `topen==0`); cuenta atrás 15 s (30 por inferencia) que DICE el comando,
+  `topen==0`) — y sesión en REPOSO (`quiet` ≥5 min,
+  `AUTO_REST_MIN`; sin reposo cae a /compact — R16); cuenta atrás 15 s (30 por inferencia) que DICE el comando,
   widget A LA VISTA, una vez por sesión, cualquier toque para; el
   AUTOMÁTICO espera el veredicto del análisis (`aiPending`); michi.exe
   viaja en el instalador SIN tocar el workflow (invariante #9). Purga: el
@@ -571,10 +573,9 @@ la UI. ntfy VISIBLE (push confirmado en celular 21/08).
       INTERRUPTORES en `docs/validacion-pasiva.md` — se marca AHÍ, con
       evidencia y fecha, y nada se da por bueno desde el simulador. Antes
       de dar por "no dispara" algo, MIRAR el interruptor. VA POR LA FASE 4
-      (25/08): compuerta reganada y los dos automáticos ENCENDIDOS, falta
-      ver la cuenta atrás de 15 s; el ruteo entero sigue apagado (fase 5).
-      R6 arreglada pero SIN VER disparar (ficha de compactar y tarjeta de
-      intención con un modelo de 1M). Falta lo gordo: alarmas
+      (02/09): los dos automáticos VISTOS en vivo (cuenta atrás incluida;
+      R6 disparó con 1M) pero mordió R16 — falta ver el /clear en reposo
+      y la degradación a /compact; el ruteo sigue apagado (fase 5). Falta lo gordo: alarmas
       reales, ntfy con la PC apagada, hallazgo naciendo natural, ruteo
       (consejero en vivo, `think-top → fable`, bajada sola, `/model` en
       ConPTY, WSL) y análisis local (primer `via:emb` real). Cualquier

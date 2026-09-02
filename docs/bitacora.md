@@ -4545,3 +4545,45 @@ ellos vive ahora en `docs/validacion-pasiva.md` para no volver a
 perseguirlo. Sigue esperando el bloque B —alarmas repetidas, semanal al
 100%, ntfy con la PC apagada, `cat-zzz`/`cat-break`, un 429 real,
 caducidad de 24 h—, R4 abierta y el HUB bloqueado sin segunda máquina.
+
+## 2026-09-02 — R16: el auto-/clear decapitaba procesos autónomos; compuerta de reposo + tarifas de los modelos nuevos
+
+QUÉ: compuerta de REPOSO para el auto-/clear (`AUTO_REST_MIN = 5` en
+`relayAutoCheck`, index.html): sin `quiet` ≥5 min el veredicto Boundary
+se degrada a /compact y JAMÁS se borra; rastro nuevo en la Bitácora PRO
+("[sin reposo: /clear degradado, quiet X min]"). Y tablas de respaldo al
+día con los modelos de septiembre: Sonnet 5+ a $2/$10 (la introductoria
+se hizo permanente) y lectura de caché de Fable/Mythos 5.1+ a $0.25/M en
+absoluto (0.025×, no el 0.1× estándar) — en `price_table()` de lib.rs y
+`price_for()` del exportador (invariante #1). R16 con autopsia en
+validacion-pasiva.md; regla en remediacion.md §"El auto-/clear con red"
+y en el resumen de CLAUDE.md.
+POR QUÉ: mordida real de Oscar (bitácora del flujo, 09-02 12:39:56):
+trabajando en polymarket-bot (chat VS Code sobre SSH, modelo de 1M) un
+análisis autónomo largo pasó de 200k absolutos, el clasificador dio
+Boundary — el proceso cierra su lista de TODOs y commitea A MITAD del
+trabajo, así que "tarea cerrada" salía con Claude generando (quiet 0) —
+y el /clear entró en el hueco entre dos pasos: el candado del relevo
+(`ready()`) solo ve el instante (2 s de PTY / turno del chat), no una
+tarea en segundo plano. El umbral de 5 min es el mismo que la regla
+`done` usa para "terminó tu sesión": para BORRAR hace falta sesión
+terminada, no hito intermedio. La ventana queda en quiet ∈ [5, 10) —
+a los 10 el hit press deja de salir (PRESS_QUIET_MAX) y ya no hay
+automático, asumido: /compact ya resolvió la presión. Se descartó
+endurecer el candado del relevo (QUIET_MS más largo): frenaría también
+los manuales y el /compact, que con Claude activo es justo el que gana
+la carrera al auto-compact del ~94%. Los alias del relevo NO cambian:
+`/model fable` resuelve a Fable 5.1 solito (Claude Code v2.1.257 lo
+hace default). Investigado con fuentes oficiales: Fable 5.1 salió el
+01/09 ($10/$50, 1M, alias `fable`), Opus 5 $5/$25 1M, Sonnet 5 $2/$10
+1M, Haiku 4.5 $1/$5 200k — la lógica por VERSIÓN de las tablas ya los
+cubría; solo las dos tarifas de arriba estaban desfasadas.
+CÓMO SE VERIFICÓ: py_compile del exportador limpio; el cambio de
+index.html es una condición nueva sobre campos que ya viajan (`quiet`
+del hit press, en minutos). cargo check PENDIENTE (el VPS no tiene
+toolchain): correrlo en el Windows de Oscar antes de recompilar — el
+cambio de lib.rs es solo la tabla de precios, sin firmas nuevas. Lo
+POSITIVO del día también cuenta: Oscar confirmó los dos automáticos
+disparando en vivo con su cuenta atrás (lo que faltaba de la fase 4).
+QUÉ QUEDA: ver el /clear disparar CON reposo y ver la degradación con su
+rastro (pendiente en R16); fase 4 actualizada en CLAUDE.md (02/09).

@@ -808,3 +808,40 @@ invisible (invariante #8).
 
 **Lección:** un alcance escrito solo en el doc no evita la confusión; si el
 interruptor de al lado hace algo parecido, el alcance va EN la etiqueta.
+
+### R16 · El auto-/clear interrumpe un proceso autónomo en marcha — 2026-09-02
+
+**Lo que vio Oscar:** trabajando en polymarket-bot (chat de VS Code sobre
+SSH, modelo de 1M), un análisis largo y autónomo pasó del 20% de contexto
+(200k absolutos → intención). A las 12:39:56 arrancó la cuenta atrás del
+auto-/clear "por hecho" y a las 12:40:14 se aplicó — con Claude EN PLENA
+FAENA (spinner girando, tareas en segundo plano corriendo). La copia
+/export se hizo y el globo salió, pero el proceso quedó decapitado: el
+paso siguiente ya no tenía conversación. Antes de eso, el mismo día,
+también confirmó lo BUENO: /compact y /clear automáticos disparando en
+vivo con su cuenta atrás — lo que faltaba de la fase 4.
+
+**La causa (dos capas):**
+1. `intentVerdict` da Boundary con "lista de TODOs cerrada" o "commit sin
+   ediciones después" — pero un proceso autónomo largo cierra su lista y
+   commitea A MITAD del trabajo. La evidencia de "tarea terminada" no
+   distingue el final del proceso de un hito intermedio.
+2. El candado del relevo (`ready()`) solo ve el INSTANTE: 2 s de silencio
+   de la PTY (terminal) o el turno en curso (chat). Entre dos pasos del
+   proceso —o esperando una tarea en segundo plano— la sesión parece
+   libre, y el /clear entra por ese hueco.
+
+**ARREGLADO (2026-09-02):** compuerta de REPOSO en `relayAutoCheck`
+(`AUTO_REST_MIN = 5`): el auto-/clear exige `quiet` ≥5 min del hit press
+(mismo umbral que la regla `done` usa para "terminó tu sesión"). Sin
+reposo el veredicto se degrada a /compact — comprime sin matar y conserva
+la carrera ganada al auto-compact del ~94%. Solo panel (JS): ni el relevo
+ni el exportador cambian. Rastro nuevo en la Bitácora PRO:
+"[sin reposo: /clear degradado, quiet X min]".
+
+**PENDIENTE DE VER:** un auto-/clear disparando con la sesión de verdad
+en reposo (quiet ≥5 min y <10, la ventana en que press sigue saliendo), y
+un Boundary a mitad de proceso degradándose a /compact con su rastro.
+
+**Lección:** "tarea cerrada" y "sesión terminada" no son lo mismo; para
+borrar hace falta el segundo, y eso lo dice el reposo, no el veredicto.
