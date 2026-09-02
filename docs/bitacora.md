@@ -4654,3 +4654,39 @@ desbloquea. Anotado también que `relayAutoCheck` calla en sus ~8
 salidas: distinguir "no tocaba" de "estaba bloqueado" costó una tarde de
 autopsia, y una línea con freno lo evitaría — no se hizo aquí para no
 mezclar dos cambios en la misma compuerta.
+
+## 2026-09-02 (3) — la sesión llega al 100%: cae la pieza de ntfy que llevaba pendiente desde el principio
+
+QUÉ: validación en vivo, sin tocar código. La sesión de 5 h de Oscar llegó
+al 100% y con ese único evento caen tres filas del checklist: el aviso de
+ntfy al 100% CON su «ya volvió» programado (fase 6 CERRADA), el globo de
+descanso anclado al gatito, y el estado `cat-break`. `docs/validacion-
+pasiva.md` actualizado (§2, §10, §"Lo que falta, en orden" y la
+actualización de cabecera).
+
+POR QUÉ: era la ocasión más barata que iba a haber — a las 16:06 la
+bitácora ya marcaba 96%, así que se sugirió aprovecharla en vez de abrir
+la fase 5. Un solo evento cubría cuatro filas pendientes.
+
+CÓMO SE VERIFICÓ: capturas de Oscar. Globo «Sin cuota de sesión. Vuelvo
+en 2 min.» con la cápsula «Sesión 100%» en rojo y el gatito tumbado; y en
+el celular LOS DOS avisos, el inmediato y el de cuota restablecida. Ese
+segundo solo puede ser el PROGRAMADO: `ntfyLimit` (index.html:12232-12240)
+lo publica en el mismo instante del 100% con el delay del reset +120 s, y
+no hay otro sitio en el código que emita ese texto — o sea que ntfy lo
+retuvo y lo entregó él solo, que es justo lo que había que probar.
+Comprobación cruzada del reloj de la cuota, de regalo: al 99% Claude Code
+decía «resets in 5m» y tres minutos después, ya al 100%, nuestro globo
+decía «Vuelvo en 2 min» — las dos fuentes cuadran al minuto.
+Oscar nota que el DIBUJO del gatito tarda un poco en cambiar: no es un
+fallo, es la cadencia de cuota (3 min). El widget nunca llama al endpoint;
+espera a que el panel le emita `quota:update`. Está anotado en la fila
+para que no vuelva a abrirse como rareza.
+
+QUÉ QUEDA: la cuarta fila que este evento podía cubrir —el
+restablecimiento de ventana con confirmación (`ackPending:session`, el
+gatito en `cat-fire` hasta abrir o enfocar el panel)— sigue ⬜ a la
+espera de que Oscar confirme si lo vio: si abrió el panel antes de
+mirarlo, la confirmación se gastó en silencio y hay que esperar a la
+próxima ventana que llegue al 100%. De ntfy no queda nada; del gatito
+falta `cat-zzz`, que pide la SEMANA al tope.

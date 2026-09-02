@@ -55,6 +55,14 @@ del automático era perpetuo y dejaba a la sesión sin relevo el resto de
 su vida → ahora se levanta al vaciarse el contexto). El ruteo sigue TODO
 apagado: la fase 5 no se ha abierto.
 
+Y esa misma noche cae **la pieza de ntfy que llevaba pendiente desde el
+principio**: la sesión de 5 h llegó al 100% y el celular recibió el aviso
+inmediato Y el «cuota restablecida» PROGRAMADO, que ntfy retuvo y
+entregó solo. De paso, una comprobación cruzada bonita del reloj de la
+cuota: a las 99% Claude Code decía «resets in 5m» y tres minutos después,
+ya al 100%, nuestro globo decía «Vuelvo en 2 min». Las dos fuentes
+cuadran al minuto.
+
 **Interruptores de Oscar — VIGENTE (2026-08-25, capturas).** Compuerta de
 aprendizaje **reganada** tras R8 (el marcador ya no se pinta = los dos cupos
 cumplidos), y con ella se abre la **fase 4**:
@@ -112,7 +120,7 @@ salió bien).
 |---|:--:|:--:|---|
 | El panel publica el push de umbral | ⬜ | ✅ | Bitácora: `21:33:57 push ok: Sesión al 10% de tu límite de 5 h.` y varios más los días 12, 13 y 19. |
 | El push de umbral **se ve en el celular** | ⬜ | ✅ | **21/08**: Oscar confirmó que los pushes llegan a su celular ("ya validé que sí funcionan"). Con esto ntfy entra VISIBLE en la v1 del lanzamiento. **24/08**: repetida la prueba tras reinstalar sobre el build nuevo — siguen llegando (el canal sobrevive a la reinstalación: el topic vive en `ntfy_config.json`, no en localStorage). |
-| 100%: aviso inmediato + "ya volvió" programado **con la PC apagada** | ⬜ | ⬜ | La pieza que de verdad prueba el diseño. |
+| 100%: aviso inmediato + "ya volvió" programado **con la PC apagada** | ⬜ | ✅ | **02/09**: la sesión de 5 h llegó al 100% y a Oscar le llegaron al celular LOS DOS — el inmediato («Sin cuota de sesión») y el de cuota restablecida. El segundo **solo puede ser el PROGRAMADO**: `ntfyLimit` (index.html:12232-12240) lo publica en el mismo instante del 100% con el delay del reset +120 s, y no hay ningún otro sitio en el código que emita ese texto. O sea que el servidor lo retuvo y lo entregó él solo. |
 | Un push por ventana (no se repite) | ⬜ | ✅ | Bitácora: el globo se reemitió 3 veces a las 21:33-21:34 y hubo **un solo** `push ok`. La dedup aguanta aunque el globo insista (ver R7). |
 | Nombre de proyecto solo con la casilla `names` | ? | ~ | Los textos de la bitácora SÍ llevan proyecto (`Terminó tu sesión en sparky-site · VPS-EU`), o sea que la casilla está encendida. Falta leer un payload real para confirmar que no viaja nada más. |
 
@@ -225,7 +233,7 @@ Etapas 0-5c cerradas en dev el 17/08; **nada** confirmado todavía en exe.
 | Hover lo esconde pero NO cuenta como leído | 🧪 | ✅ | **24/08**: confirmado por Oscar — el globo se esconde al pasar por encima y vuelve al salir. |
 | Cerrar el globo NO cambia el dibujo del gatito | 🧪 | ⬜ | |
 | Estado `cat-fire` (alarma por confirmar) | 🧪 | ✅ | **19/08**: llamas en la laptop con la alarma viva. |
-| Estados `cat-zzz` (semana al tope) y `cat-break` (sesión al tope) | 🧪 | ⬜ | |
+| Estados `cat-zzz` (semana al tope) y `cat-break` (sesión al tope) | 🧪 | ~ | **02/09**: `cat-break` visto con la sesión al 100% — globo «Sin cuota de sesión. Vuelvo en 2 min.», cápsula «Sesión 100%» en rojo y el gatito tumbado. Oscar nota que el dibujo tarda un poco en cambiar: **es la cadencia de cuota (3 min), no un fallo** — el widget nunca llama al endpoint, espera a que el panel le emita `quota:update`. Falta `cat-zzz`, que pide la SEMANA al tope. |
 | Globo resumen al hover en `.head` (sesión + semanales) | ✅ | ✅ | **24/08**: tarjeta blanca sobre el gatito con cola al portátil — `Session 5%`, `Weekly 14%`, `Weekly · Fable 19%` y sus resets. Los buckets POR MODELO se pintan solos (invariante #6): «Fable» salió sin estar en ninguna lista. |
 | Post-its rojo y turquesa con sus números | 🧪 | ✅ | **19/08**: `2` y `1` a la vez, iguales a los badges del panel. |
 | Capa: el widget no se hunde tras otra app a pantalla completa | ✅ | ✅ | **24/08**: vídeo a pantalla completa, gatito encima; repetido con el estilo pastilla. |
@@ -309,9 +317,8 @@ bajada sola · `/model` en terminal ConPTY · ruteo en WSL. Requisito del
 plan: trabajar A PROPÓSITO en sonnet, porque en opus el guardián no tiene
 nada que frenar.
 
-**FASE 6 — ntfy.** Solo queda la pieza que de verdad prueba el diseño:
-el aviso del 100% con su **«ya volvió» programado y la PC APAGADA**. El
-resto de pushes se ven a diario.
+**FASE 6 — ntfy: CERRADA el 02/09.** Cayó la última pieza, el 100% con su
+«ya volvió» programado. No queda nada de ntfy por ver.
 
 **Análisis local (IA), transversal:** el primer `via:emb` en una sesión
 real al 80%, la muestra natural antes de tocar `EMB_NEW`/`EMB_CROSS`, la
@@ -324,8 +331,8 @@ el más alto · la semanal al 100% (hace falta llegar) · el
 restablecimiento con confirmación · que con widget la alarma NO salga
 además como toast · el 429 conservando el último dato bueno 15 min ·
 marcas de arreglo de hallazgos (`fndHist`) · tope diario de 10 fichas y
-caducidad de 24 h del coach · las tres reglas del globo y los estados
-`cat-zzz`/`cat-break` del gatito · el arco de la pastilla (Oscar usa el
+caducidad de 24 h del coach · las tres reglas del globo y el estado
+`cat-zzz` del gatito (la SEMANA al tope) · el arco de la pastilla (Oscar usa el
 gatito: hay que cambiar de estilo) · el `compact_boundary` dejando «sin
 medida» hasta el turno siguiente · la advertencia de pendientes en la
 tarjeta de intención · el globo del auto-updater.
