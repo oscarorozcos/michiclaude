@@ -4639,8 +4639,16 @@ sin sesión sin efecto. Sin Rust tocado, así que no hace falta cargo
 check. NO verificado en vivo todavía: falta ver el rastro nuevo y un
 segundo automático en la misma sesión.
 
-QUÉ QUEDA: en la fase 4 de la validación pasiva, ver en vivo "sello
-levantado" y detrás el segundo automático; sigue pendiente lo de R16
+QUÉ QUEDA: checklist repasado el mismo día. La fase 4 marca YA en Exe el
+auto-/compact (02/09 12:59:54, preTokens 259.023) y el auto-/clear
+(12:40:14, «por hecho»), la alarma de cuota suma dos umbrales del día
+(81% y 96%, uno cada uno) y se abren tres filas nuevas: la degradación de
+R16, el /clear en reposo y el sello levantado de R17. Y §"Lo que falta,
+en orden" reúne por primera vez TODO lo pendiente agrupado por la fase
+que lo desbloquea. De la fase 4 quedan cuatro cosas, y solo una es
+forzable a voluntad: parar la cuenta atrás con un toque. En la fase 4 de
+la validación pasiva, ver en vivo "sello levantado" y detrás el segundo
+automático; sigue pendiente lo de R16
 (el /clear con reposo y la degradación a /compact), que este arreglo
 desbloquea. Anotado también que `relayAutoCheck` calla en sus ~8
 salidas: distinguir "no tocaba" de "estaba bloqueado" costó una tarde de

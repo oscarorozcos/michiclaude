@@ -44,6 +44,17 @@ con su visor, y el ✕ que despacha una ficha— y se abre **R8** (el contador
 de la compuerta de aprendizaje volvió a empezar). La presión de contexto
 midió 12-13% en dos sesiones largas: **R6** sigue tal cual.
 
+**Actualización 2026-09-02 (jornada 4, la fase 4 EN MARCHA):** los DOS
+automáticos vistos en vivo con su cuenta atrás, ambos sobre
+`polymarket-bot` con Fable 5.1 y techo de 1M — o sea que **R6 disparó de
+verdad**: auto-`/clear` a las 12:40:14 y auto-`/compact` a las 12:59:54.
+Y con ellos caen dos rarezas nuevas, las dos ARREGLADAS y compiladas el
+mismo día pero **sin ver todavía en vivo**: **R16** (el `/clear` decapitó
+un proceso autónomo en marcha → compuerta de reposo) y **R17** (el sello
+del automático era perpetuo y dejaba a la sesión sin relevo el resto de
+su vida → ahora se levanta al vaciarse el contexto). El ruteo sigue TODO
+apagado: la fase 5 no se ha abierto.
+
 **Interruptores de Oscar — VIGENTE (2026-08-25, capturas).** Compuerta de
 aprendizaje **reganada** tras R8 (el marcador ya no se pinta = los dos cupos
 cumplidos), y con ella se abre la **fase 4**:
@@ -81,7 +92,7 @@ frase de qué se vio. Lo raro abre entrada en §Rarezas.
 
 | Qué | Dev | Exe | Evidencia / nota |
 |---|:--:|:--:|---|
-| Alarma de sesión por umbral (chip) | 🧪 | ✅ | **19/08**: globo "Sesión al 10% de tu límite de 5 h · Reset en 3 h 36 min", gatito en `cat-fire`. Primera alarma REAL de la historia del proyecto. |
+| Alarma de sesión por umbral (chip) | 🧪 | ✅ | **19/08**: globo "Sesión al 10% de tu límite de 5 h · Reset en 3 h 36 min", gatito en `cat-fire`. Primera alarma REAL de la historia del proyecto. **02/09**, dos umbrales distintos el mismo día y cada uno UNA vez: `15:08:48 globo alarm: Sesión al 81%…` y `16:06:40 … al 96% — casi agotada`, los dos con su push. |
 | Se repite cada 5 min hasta abrir el panel | 🧪 | ⬜ | |
 | Varios umbrales de golpe → solo el más alto | 🧪 | ⬜ | |
 | Alarma semanal al 100% (una por ventana) | ⬜ | ⬜ | Hace falta llegar al 100% de verdad. |
@@ -178,9 +189,12 @@ salió bien).
 | El relevo ve un `/clear` **tecleado por ti** y lo cuenta | ✅ (17/08) | ✅ | **24/08 18:37**: `relevo: /clear tecleado por el usuario en pid 3695326` → `/clear aplicado a mano (1/3)`, sin tocar el panel. Ojo al contador: ver **R8**. |
 | Globo `cleared` + clic → la conversación anterior (`read_cleared`) | ✅ (16-17/08) | ✅ | **24/08**: globo anclado al gatito «/clear en michiclaude · VPS-EU — la conversación anterior quedó guardada. Clic para verla» y el visor abriéndola entera. Es la vía SIN copia handoff (el `/clear` tuyo no la deja): lee el `.jsonl` de la sesión por SSH. Cierra además la trampa del *sid vivo* del 17/08 — la conversación era la correcta. |
 | "Aplicar" inyecta el comando en la sesión | ✅ (17/08) | ✅ | La bitácora distingue las dos vías y las dos se ven: `relevo: /clear tecleado por el usuario en pid 3236` frente a `21:14:06 relevo: aplicado /clear en pid 4122038` — esta última es el botón del panel, y a esa misma hora nació `handoff-4122038-1787174044.jsonl`. |
-| Auto-`/compact` con cuenta atrás de 15 s que DICE el comando | ✅ (13/08 nº3) | ⬜ | |
-| Auto-`/clear` disparado solo | ✅ (13/08 nº5-7) | ~ | Hay filas `auto` del 13/08 en el registro; falta saber por qué razón y verlo en vivo. |
-| Cualquier toque para la cuenta atrás | ✅ | ⬜ | |
+| Auto-`/compact` con cuenta atrás de 15 s que DICE el comando | ✅ (13/08 nº3) | ✅ | **02/09 12:59:54**, `polymarket-bot`: aplicado solo (`relevo/3737148.json` → `id: app-…`, `ok:true`) y su `compact_boundary` a las 13:01:41 con **preTokens 259.023** → el contexto cayó de 259k a ~114k. Cuenta atrás vista por Oscar. |
+| Auto-`/clear` disparado solo | ✅ (13/08 nº5-7) | ✅ | **02/09**: cuenta atrás a las 12:39:56, aplicado a las 12:40:14 «por hecho» (Boundary) y con su copia `/export`. Mecánicamente perfecto, de criterio MAL —la sesión estaba en plena faena—: eso es **R16**. |
+| Cualquier toque para la cuenta atrás | ✅ | ⬜ | Las dos cuentas del 02/09 se dejaron correr enteras; falta pararla a propósito. |
+| El `/clear` se degrada a `/compact` sin reposo (**R16**) | ⬜ | ⬜ | Rastro a cazar en la Bitácora PRO: `[sin reposo: /clear degradado, quiet X min]`. |
+| Auto-`/clear` con la sesión de verdad EN REPOSO (`quiet` 5-10 min) | ⬜ | ⬜ | El escenario se dio el 02/09 a las ~15:48 (relevo libre, quieta, tarea cerrada, 344k de contexto) y lo bloqueó **R17**; arreglado eso, vuelve a estar al alcance. |
+| El sello se levanta al vaciarse el contexto (**R17**) | ⬜ | ⬜ | Rastro: `relevo auto: sello levantado en <proyecto> — contexto vaciado (259k → 115k), vuelve a estar armado`. Y detrás de él, lo que nunca se ha visto: un SEGUNDO automático en la misma sesión. |
 | Archivador (mueve) y purga (solo lo archivado) | ✅ (15/08 nº2) | ⬜ | |
 | El VPS **solo informa** (`--du`), nunca borra por SSH | ✅ | ✅ | **19/08**: "VPS-EU · 124 archivos · 245 MB" bajo SOLO INFORMACIÓN, sin botón de borrar. |
 
@@ -265,6 +279,60 @@ propuesto, cada fase se cierra antes de abrir la siguiente:
 | 6 | ntfy | Los 4 pushes y el invariante de privacidad | Canal nuevo si se comparte el topic |
 | 7 | Archivador y purga | Mover ≥365 d y borrar solo lo archivado | Hoy apagados a propósito |
 | 8 | HUB | Bloqueado | Segunda máquina |
+
+### Lo que falta, en orden — foto del 2026-09-02
+
+Sacado de las tablas de arriba (todo lo que sigue en `⬜` en la columna
+Exe), agrupado por la fase que lo desbloquea. **Nada de esto se fuerza
+desde el simulador**: sale con el uso, y por eso el orden importa.
+
+**FASE 4 — automáticos. Es la única fase abierta, y son 4 cosas:**
+
+1. **Parar una cuenta atrás con un toque.** Las dos del 02/09 se dejaron
+   correr enteras. Es la única que puedes provocar tú a voluntad: en
+   cuanto veas la cuenta en el widget, tócalo.
+2. **La degradación de R16**: un Boundary a mitad de faena que acaba en
+   `/compact` en vez de `/clear`. Rastro: `[sin reposo: /clear degradado,
+   quiet X min]`.
+3. **Un auto-`/clear` con la sesión de verdad en reposo** (`quiet` entre
+   5 y 10 min: pasados los 10 el hit `press` deja de salir y ya no hay
+   automático).
+4. **El re-armado de R17**: `relevo auto: sello levantado…` y, detrás, un
+   SEGUNDO automático en la misma sesión — algo que nunca ha ocurrido.
+
+Y de la misma área, sin depender de la presión: el **archivador y la
+purga** (fase 7, hoy apagados a propósito).
+
+**FASE 5 — ruteo. Sin abrir: TODO apagado.** Consejero `light` en vivo
+con cuota ≥70 · primer `think-top → fable` con cuota <50 · primera
+bajada sola · `/model` en terminal ConPTY · ruteo en WSL. Requisito del
+plan: trabajar A PROPÓSITO en sonnet, porque en opus el guardián no tiene
+nada que frenar.
+
+**FASE 6 — ntfy.** Solo queda la pieza que de verdad prueba el diseño:
+el aviso del 100% con su **«ya volvió» programado y la PC APAGADA**. El
+resto de pushes se ven a diario.
+
+**Análisis local (IA), transversal:** el primer `via:emb` en una sesión
+real al 80%, la muestra natural antes de tocar `EMB_NEW`/`EMB_CROSS`, la
+insignia punteada del `unsure`, el fail-quiet sin GGUF, el llama-server
+que arranca y se mata, y el primer auto-`/clear` por `tema_nuevo`.
+
+**Cabos sueltos que no dependen de ninguna fase:** que la alarma se
+repita cada 5 min hasta abrir el panel · varios umbrales de golpe → solo
+el más alto · la semanal al 100% (hace falta llegar) · el
+restablecimiento con confirmación · que con widget la alarma NO salga
+además como toast · el 429 conservando el último dato bueno 15 min ·
+marcas de arreglo de hallazgos (`fndHist`) · tope diario de 10 fichas y
+caducidad de 24 h del coach · las tres reglas del globo y los estados
+`cat-zzz`/`cat-break` del gatito · el arco de la pastilla (Oscar usa el
+gatito: hay que cambiar de estilo) · el `compact_boundary` dejando «sin
+medida» hasta el turno siguiente · la advertencia de pendientes en la
+tarjeta de intención · el globo del auto-updater.
+
+**BLOQUEADO:** el HUB entero, hasta que haya una segunda máquina.
+
+---
 
 **Manual antes que automático** (idea de Oscar, y encaja con el diseño: la
 propia app exige aplicaciones manuales antes de desbloquear el automático).

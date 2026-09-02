@@ -570,19 +570,19 @@ fábrica (doble candado) y el Reporte junta datos igual. Mayús+clic en
 "MichiClaude vX.Y" alterna el modo completo (`v1all`), sin documentar en
 la UI. ntfy VISIBLE (push confirmado en celular 21/08).
 
-- [ ] VALIDACIÓN PASIVA (con el uso): checklist vivo Y ESTADO DE LOS
-      INTERRUPTORES en `docs/validacion-pasiva.md` — se marca AHÍ, con
-      evidencia y fecha, y nada se da por bueno desde el simulador. Antes
-      de dar por "no dispara" algo, MIRAR el interruptor. VA POR LA FASE 4
-      (02/09): los dos automáticos VISTOS en vivo (cuenta atrás incluida;
-      R6 disparó con 1M) pero mordieron R16 y R17 — falta ver el /clear en
-      reposo, la degradación a /compact y el "sello levantado";
-      el ruteo sigue apagado (fase 5). Falta lo gordo: alarmas
-      reales, ntfy con la PC apagada, hallazgo naciendo natural, ruteo
-      (consejero en vivo, `think-top → fable`, bajada sola, `/model` en
-      ConPTY, WSL) y análisis local (primer `via:emb` real). Cualquier
-      rareza de clear/compact se revisa con la Bitácora PRO +
-      emb_debug.txt. Plan por fases acordado (apagar todo → manual → R6 →
+- [ ] VALIDACIÓN PASIVA (con el uso): checklist vivo, ESTADO DE LOS
+      INTERRUPTORES y §"Lo que falta, en orden" en
+      `docs/validacion-pasiva.md` — se marca AHÍ, con evidencia y fecha, y
+      nada se da por bueno desde el simulador. Antes de dar por "no
+      dispara" algo, MIRAR el interruptor. VA POR LA FASE 4 (02/09): los
+      dos automáticos VISTOS en vivo (cuenta atrás incluida; R6 disparó
+      con 1M) pero mordieron R16 y R17. Quedan 4: parar la cuenta con un
+      toque, la degradación a /compact, el /clear en reposo y el "sello
+      levantado" con su 2.º automático. El ruteo sigue apagado (fase 5:
+      consejero, `think-top → fable`, bajada sola, `/model` en ConPTY,
+      WSL); ntfy solo debe la PC apagada, y la IA local el primer
+      `via:emb` real. Rareza de clear/compact = Bitácora PRO +
+      emb_debug.txt. Plan por fases (apagar todo → manual → R6 →
       automáticos → ruteo → ntfy → purga → HUB) y VIGÍA en el VPS
       (`~/.michiclaude/vigia.py`, fuera del repo) que anota los rastros
       sin gastar cuota.
