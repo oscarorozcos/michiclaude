@@ -495,7 +495,8 @@ del widget, identidad, llaves SSH ni ntfy.
   Boundary o análisis local `tema_nuevo` (`relayClearAi` OFF,
   `topen==0`) — y sesión en REPOSO (`quiet` ≥5 min,
   `AUTO_REST_MIN`; sin reposo cae a /compact — R16); cuenta atrás 15 s (30 por inferencia) que DICE el comando,
-  widget A LA VISTA, una vez por sesión, cualquier toque para; el
+  widget A LA VISTA, una vez por CICLO DE CONTEXTO (R17: `autoRearm()` lo
+  levanta al vaciarse el contexto), cualquier toque para; el
   AUTOMÁTICO espera el veredicto del análisis (`aiPending`); michi.exe
   viaja en el instalador SIN tocar el workflow (invariante #9). Purga: el
   archivador MUEVE (≥365d), la purga BORRA solo lo archivado, allowlist
@@ -574,16 +575,17 @@ la UI. ntfy VISIBLE (push confirmado en celular 21/08).
       evidencia y fecha, y nada se da por bueno desde el simulador. Antes
       de dar por "no dispara" algo, MIRAR el interruptor. VA POR LA FASE 4
       (02/09): los dos automáticos VISTOS en vivo (cuenta atrás incluida;
-      R6 disparó con 1M) pero mordió R16 — falta ver el /clear en reposo
-      y la degradación a /compact; el ruteo sigue apagado (fase 5). Falta lo gordo: alarmas
+      R6 disparó con 1M) pero mordieron R16 y R17 — falta ver el /clear en
+      reposo, la degradación a /compact y el "sello levantado";
+      el ruteo sigue apagado (fase 5). Falta lo gordo: alarmas
       reales, ntfy con la PC apagada, hallazgo naciendo natural, ruteo
       (consejero en vivo, `think-top → fable`, bajada sola, `/model` en
       ConPTY, WSL) y análisis local (primer `via:emb` real). Cualquier
       rareza de clear/compact se revisa con la Bitácora PRO +
       emb_debug.txt. Plan por fases acordado (apagar todo → manual → R6 →
       automáticos → ruteo → ntfy → purga → HUB) y VIGÍA en el VPS
-      (`~/.michiclaude/vigia.py`, fuera del repo) que anota los cambios de
-      los rastros sin gastar cuota.
+      (`~/.michiclaude/vigia.py`, fuera del repo) que anota los rastros
+      sin gastar cuota.
 - [ ] HUB + RANGOS DE FECHA: NO sin una SEGUNDA máquina con MichiClaude
       (`docs/hub-modo-equipo.md` §"Rangos de fecha").
 

@@ -4587,3 +4587,62 @@ POSITIVO del día también cuenta: Oscar confirmó los dos automáticos
 disparando en vivo con su cuenta atrás (lo que faltaba de la fase 4).
 QUÉ QUEDA: ver el /clear disparar CON reposo y ver la degradación con su
 rastro (pendiente en R16); fase 4 actualizada en CLAUDE.md (02/09).
+
+## 2026-09-02 (2) — R17: el sello del automático era perpetuo y dejaba a la sesión sin relevo el resto de su vida
+
+QUÉ: el sello "ya se aplicó" del automático (`relayAuto` en localStorage)
+deja de ser perpetuo y pasa a durar UN CICLO DE CONTEXTO. Al aplicar se
+guarda la medida del momento (`{done:<tokens>}` en vez de la cadena
+`"done"`) y `autoRearm()` —nuevo, llamado desde `coachPoll` sobre TODAS
+las `press` de cada sondeo— levanta el sello en cuanto una lectura de esa
+sesión cae a la mitad o menos de lo sellado, dejando línea en la Bitácora
+PRO. `autoBlocked()` no cambia de firma: la cadena `"done"` a secas sigue
+bloqueando para siempre, que es el formato viejo y el sello del "bajar
+solo" (bajar de modelo una vez y ya). Documentado en
+`docs/remediacion.md` §REGLAS VIGENTES, `docs/validacion-pasiva.md` §R17
+y el resumen de CLAUDE.md.
+
+POR QUÉ: Oscar preguntó por qué le llegaban los consejos y no lo
+automático, y la Bitácora PRO no lo explicaba (todas las salidas de
+`relayAutoCheck` son mudas). Autopsia sobre los `.jsonl` de este VPS:
+polymarket-bot `dc321d80` (Fable 5.1, techo 1M) recibió el auto-/compact
+a las 12:59:54 (`relevo/3737148.json`, `id: app-…`, `ok:true`; el
+`compact_boundary` de las 13:01:41 trae preTokens 259.023 y el contexto
+cayó a ~114k), se volvió a llenar hasta **344.265 tok** y cerró a las
+15:43. A las ~15:48 se dieron a la vez TODAS las condiciones del /clear
+de R16 —relevo `ready:true`, quieta 5-10 min, tarea cerrada con recibo—
+y no disparó: `autoStamp(sid,"done")` es para siempre y `/compact` no
+cambia el `sessionId` (a diferencia de `/clear`, que estrena sesión y por
+eso sí se re-armaba solo). O sea: un `/compact` temprano desarmaba a la
+sesión justo cuando más falta hace, y encima se comió el escenario que
+llevábamos esperando para validar R16.
+La señal para levantar el sello NO es una corazonada: todo
+`compact_boundary` —de quien sea— pone `last_ctx = 0` (lib.rs 4180), el
+hit `press` exige >0 y deja de emitirse, y al turno siguiente reaparece
+con lo que quedó; dentro de un mismo ciclo el contexto solo crece, así
+que una caída a la mitad solo la produce un vaciado. Se descartó pedirle
+al motor un dato nuevo (contador de compactaciones): obligaría a tocar
+Rust + `meter-export.py` + las sesiones remotas por el invariante #1
+para algo que ya se deduce de lo que viaja. Y se descartó mirarlo solo
+sobre la sesión reina cuando arde: a 344k el rastro del 259k → 114k ya no
+existe, el vaciado solo se ve en el tramo BAJO y ese tramo no arde — por
+eso la pasada va sobre todas las `press` de cada sondeo.
+
+CÓMO SE VERIFICÓ: sintaxis del JS de index.html con `node --check` sobre
+los `<script>` extraídos, limpia. Banco de pruebas en seco (scratchpad,
+16 casos, todos en verde) con los números REALES del día: sesión virgen,
+intento fallido dentro y fuera de los 10 min, sellada que sube a 300k
+(sigue bloqueada), el vaciado 259k → 114k (levanta, con su rastro, una
+sola vez) y ya rellenada a 344k (sigue libre), sello viejo `"done"` y
+`down:<sid>` intactos, frontera exacta de la mitad, y lectura de 0 o hit
+sin sesión sin efecto. Sin Rust tocado, así que no hace falta cargo
+check. NO verificado en vivo todavía: falta ver el rastro nuevo y un
+segundo automático en la misma sesión.
+
+QUÉ QUEDA: en la fase 4 de la validación pasiva, ver en vivo "sello
+levantado" y detrás el segundo automático; sigue pendiente lo de R16
+(el /clear con reposo y la degradación a /compact), que este arreglo
+desbloquea. Anotado también que `relayAutoCheck` calla en sus ~8
+salidas: distinguir "no tocaba" de "estaba bloqueado" costó una tarde de
+autopsia, y una línea con freno lo evitaría — no se hizo aquí para no
+mezclar dos cambios en la misma compuerta.

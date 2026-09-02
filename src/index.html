@@ -9490,6 +9490,10 @@ async function coachPoll(){
     const prevCtx=pr?(coachPrevCtx[pr.session]||0):0;
     coachJump=!!pr&&prevCtx>0&&((pr.value||0)-prevCtx)>=COACH_RAMP_TOK;
     coachPrevCtx={}; for(const h of pressAll) coachPrevCtx[h.session]=h.value||0;
+    // ¿alguna sesión sellada por el automático se vació? (R17). Va AQUÍ, con
+    // todas las press del sondeo y antes de cualquier compuerta de presión: es
+    // en el tramo BAJO donde se ve el vaciado, y ese tramo no arde.
+    autoRearm(pressAll);
     const hits=all.filter(h=>h.rule!=="done"&&h.rule!=="ask"&&h.rule!=="press");
     // Tarjeta de intención (docs/remediacion.md etapa 1c): con la presión en
     // zona alta nace UNA tarjeta por sesión con las señales medidas del
@@ -11656,6 +11660,17 @@ let autoRun=null;           // {cmd,pid,timer} mientras corre la cuenta
 // único disparo por eso dejaba la sesión sin automático para siempre, que fue
 // justo lo que le pasó a Oscar en la primera prueba real (2026-08-08).
 const AUTO_RETRY_MIN=10;
+// R17 (2026-09-02): "una vez por sesión" se estaba leyendo como "una vez y para
+// siempre", y un /compact temprano dejaba a la sesión SIN automático el resto de
+// su vida — justo cuando más falta hace. Visto en vivo el 02/09 en
+// polymarket-bot: automático a las 12:59 (259k → 114k), la sesión se volvió a
+// llenar hasta 344k y a las ~15:48 se dieron TODAS las condiciones del /clear en
+// reposo de R16 (relevo libre, quieta 5-10 min, tarea cerrada) sin que disparara
+// nada. El sello ya no es perpetuo: dura UN CICLO DE CONTEXTO. Por eso el
+// "aplicado" guarda la medida del momento ({done:<tokens>}); la cadena "done" a
+// secas es el formato viejo Y el sello del "bajar solo", que SÍ es para siempre
+// (se baja de modelo una vez y ya).
+const AUTO_REARM_FRAC=0.5;   // caída que delata un vaciado (compactar deja ~10-30%)
 function autoMap(){ try{ return JSON.parse(localStorage.getItem("relayAuto")||"{}"); }catch(_){ return {}; } }
 function autoSave(m){
   // solo las 100 últimas: es una memoria, no un archivo histórico
@@ -11665,9 +11680,33 @@ function autoSave(m){
 }
 function autoBlocked(sid){
   const v=autoMap()[sid];
-  if(v==="done") return true;                       // aplicado: no insistir
+  if(v==="done") return true;                       // sello perpetuo (viejo / bajar solo)
+  if(v&&typeof v==="object"&&v.done>0) return true; // aplicado en ESTE ciclo de contexto
   if(typeof v==="number") return (Date.now()-v) < AUTO_RETRY_MIN*60000;
   return false;
+}
+// Levanta el sello de las sesiones cuyo contexto se VACIÓ desde que se aplicó.
+// La señal viene del motor, no es una corazonada: TODO compact_boundary —de
+// quien sea— pone last_ctx=0 (lib.rs), el hit `press` exige >0 y deja de
+// emitirse, y al turno siguiente reaparece con lo que quedó. Una caída a la
+// mitad o menos de lo sellado solo la produce un vaciado: dentro de un mismo
+// ciclo el contexto solo crece.
+// SE MIRA EN CADA SONDEO Y SOBRE TODAS las press, no solo sobre la reina: si se
+// esperara a que la sesión vuelva a arder, el rellenado ya habría tapado la
+// caída (hoy: 259k → 114k → 344k, y a 344k del vaciado no queda rastro). Con
+// Michi cerrado durante todo el tramo bajo la caída se pierde y el sello
+// aguanta — que es el fallo seguro: no hacer nada.
+function autoRearm(hits){
+  const m=autoMap(); let dirty=false;
+  for(const h of hits||[]){
+    const sid=h.session||"", v=m[sid], now=h.value||0;
+    if(!sid||!v||typeof v!=="object"||!(v.done>0)) continue;
+    if(now<=0||now>v.done*AUTO_REARM_FRAC) continue;
+    delete m[sid]; dirty=true;
+    flog("relevo auto: sello levantado en "+(h.project||sid)+" — contexto vaciado ("
+      +Math.round(v.done/1000)+"k → "+Math.round(now/1000)+"k), vuelve a estar armado");
+  }
+  if(dirty) autoSave(m);
 }
 function autoStamp(sid,val){ const m=autoMap(); m[sid]=val; autoSave(m); }
 // El veredicto del ANÁLISIS LOCAL de esa sesión, tal como lo dejó
@@ -11782,7 +11821,11 @@ async function relayAutoCheck(pr){
     // puso a teclear durante la cuenta, esto se rechaza — y está bien.
     try{
       await invoke("relay_inject",{pid:rly.pid,text:cmd,auto:true,origin:rly.origin||"",export:clearOk});
-      autoStamp(sid,"done");                 // hecho: esta sesión ya está
+      // hecho: esta sesión ya está, MIENTRAS dure este ciclo de contexto. Se
+      // guarda la medida del momento porque es lo único que permite saber
+      // después si el ciclo se cerró (autoRearm, R17). Sin cifra —imposible
+      // con `press`, que exige >0— se cae al sello perpetuo de siempre.
+      autoStamp(sid, (pr.value||0)>0 ? {done:pr.value} : "done");
       autoBeam(null,null,"ok");
       // quién lo decidió va al rastro: es EL dato de la prueba de unos días
       flog("relevo auto: aplicado "+cmd+(byAi?" por IA (tema_nuevo)":" por hecho"));

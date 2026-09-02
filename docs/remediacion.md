@@ -62,7 +62,16 @@ Los prompts para generar las maquetas con otra IA están guardados en
       cuenta atrás vive en la cápsula—, dura 15 s (30 por inferencia) y DICE el comando (rojo si borra),
       cualquier toque la para (en el gatito el manejador va en CAPTURA) y
       se marca ANTES de empezar. Un rechazo del candado es TRANSITORIO: `done` solo tras
-      aplicar; un fallo reintenta a los 10 min. La cuenta CIERRA con
+      aplicar; un fallo reintenta a los 10 min. Y `done` NO ES PERPETUO
+      (R17): dura UN CICLO DE CONTEXTO. El sello guarda los tokens que
+      había al aplicarlo (`{done:<tok>}`) y `autoRearm()` lo levanta —
+      dejando rastro en la Bitácora PRO— en cuanto una lectura de `press`
+      de esa sesión cae a la mitad o menos: solo un vaciado hace eso,
+      porque dentro de un ciclo el contexto únicamente crece. Se mira EN
+      CADA SONDEO y sobre TODAS las `press`, no sobre la reina, porque el
+      vaciado solo se ve en el tramo BAJO y ese tramo no arde. La cadena
+      `"done"` a secas sigue siendo perpetua: es el formato viejo y el
+      sello del "bajar solo", que sí es para siempre. La cuenta CIERRA con
       veredicto ✓/✕: acabar en silencio deja al usuario adivinando. ATAJO DEL PATH (`set_relay_alias`):
       `claude.cmd` en `%APPDATA%\<app>\bin` DELANTE del PATH de usuario —
       resuelve Windows, no el shell; NO alcanza WSL/SSH ni rutas

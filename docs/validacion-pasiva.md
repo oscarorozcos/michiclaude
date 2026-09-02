@@ -842,6 +842,53 @@ ni el exportador cambian. Rastro nuevo en la Bitácora PRO:
 **PENDIENTE DE VER:** un auto-/clear disparando con la sesión de verdad
 en reposo (quiet ≥5 min y <10, la ventana en que press sigue saliendo), y
 un Boundary a mitad de proceso degradándose a /compact con su rastro.
+Ojo: el escenario SE DIO el mismo 02/09 a las ~15:48 y no disparó por un
+motivo ajeno a R16 — ver R17, que lo desbloquea.
 
 **Lección:** "tarea cerrada" y "sesión terminada" no son lo mismo; para
 borrar hace falta el segundo, y eso lo dice el reposo, no el veredicto.
+
+### R17 · El sello del automático era perpetuo y desarmaba la sesión — 2026-09-02
+
+**Lo que vio Oscar:** la misma tarde de R16, revisando la Bitácora PRO:
+"me llegaron los consejos pero no lo automático de compact y clear, ¿está
+bien o no?". No había ni un rastro que lo explicara.
+
+**Lo que se midió** (los `.jsonl` de polymarket-bot, sesión `dc321d80`,
+Fable 5.1, techo 1M — el manómetro casó al 100% con el contexto real:
+13:32 → 127.277 tok = 13%; 13:47 → 150.966 = 15%; 14:44 → 197.985 = 20%):
+
+| hora | qué pasó |
+|---|---|
+| 12:59:54 | el automático aplica `/compact` (`relevo/3737148.json`, `id: app-…`, `ok:true`) |
+| 13:01:41 | `compact_boundary`, preTokens **259.023** → el contexto cae a ~114k |
+| 14:46 | vuelve a cruzar los 200k absolutos (201.143) |
+| 15:43 | cierra con **344.265 tok** (34% del techo), su pico del día |
+| ~15:48 | relevo `ready:true`, quieta 5-10 min, tarea cerrada: **el escenario exacto del /clear de R16** |
+
+Y no disparó nada. La causa: `autoStamp(sid,"done")` sellaba la sesión
+PARA SIEMPRE, y `/compact` no cambia el `sessionId` (a diferencia de
+`/clear`). Una sesión larga que recibe un `/compact` temprano se queda sin
+automático el resto de su vida — con la auto-compactación del ~94% de
+Claude Code como única red. Y de regalo: el escenario que llevábamos
+esperando para validar R16 se dio, y se lo comió el sello.
+
+**ARREGLADO (2026-09-02):** el sello dura UN CICLO DE CONTEXTO. Guarda los
+tokens que había al aplicarlo (`{done:<tok>}`) y `autoRearm()` lo levanta
+cuando una lectura de `press` de esa sesión cae a la mitad o menos —
+señal del motor, no corazonada: todo `compact_boundary`, de quien sea,
+pone `last_ctx = 0` (lib.rs), y dentro de un ciclo el contexto solo crece.
+Se mira en CADA sondeo y sobre TODAS las `press`, no sobre la reina: el
+vaciado solo se ve en el tramo BAJO, y ese tramo no arde (a 344k del
+259k → 114k ya no queda rastro). La cadena `"done"` a secas sigue siendo
+perpetua: formato viejo y sello del "bajar solo". Solo panel (JS).
+
+**PENDIENTE DE VER:** el rastro nuevo en vivo — "relevo auto: sello
+levantado en <proyecto> — contexto vaciado (259k → 115k), vuelve a estar
+armado" — y detrás de él un segundo automático en la misma sesión.
+
+**Lección:** una compuerta "una vez por sesión" hay que fecharla contra
+algo; sin fecha, "una vez" se convierte en "nunca más" en cuanto la
+sesión dura más que el motivo que la selló. Y un candado que se cierra en
+silencio cuesta una tarde de investigación: por eso el levantamiento deja
+línea en la bitácora del flujo.
