@@ -4683,10 +4683,15 @@ fallo, es la cadencia de cuota (3 min). El widget nunca llama al endpoint;
 espera a que el panel le emita `quota:update`. Está anotado en la fila
 para que no vuelva a abrirse como rareza.
 
-QUÉ QUEDA: la cuarta fila que este evento podía cubrir —el
-restablecimiento de ventana con confirmación (`ackPending:session`, el
-gatito en `cat-fire` hasta abrir o enfocar el panel)— sigue ⬜ a la
-espera de que Oscar confirme si lo vio: si abrió el panel antes de
-mirarlo, la confirmación se gastó en silencio y hay que esperar a la
-próxima ventana que llegue al 100%. De ntfy no queda nada; del gatito
-falta `cat-zzz`, que pide la SEMANA al tope.
+La CUARTA fila también cayó, con captura aparte: globo «Cuota de sesión
+restablecida. A trabajar.» anclado al gatito y la cápsula en «Sesión 0%»
+— el restablecimiento con confirmación, que solo sale porque la ventana
+anterior llegó al 100%. De paso corrige una afirmación equivocada de esta
+misma sesión: se le dijo a Oscar que buscara el gatito en `cat-fire`, y
+`cat-fire` es para una ALARMA sin confirmar (`ackPending:alarm`,
+index.html:7178). El restablecimiento se manifiesta como el GLOBO; al
+resetearse la ventana se borra `hit:session` y el dibujo vuelve a
+`normal`. Queda anotado en la fila para que nadie lo depure al revés.
+
+QUÉ QUEDA: de ntfy, nada. Del gatito falta `cat-zzz`, que pide la SEMANA
+al tope. La fase 4 sigue con sus cuatro.

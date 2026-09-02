@@ -104,7 +104,7 @@ frase de qué se vio. Lo raro abre entrada en §Rarezas.
 | Se repite cada 5 min hasta abrir el panel | 🧪 | ⬜ | |
 | Varios umbrales de golpe → solo el más alto | 🧪 | ⬜ | |
 | Alarma semanal al 100% (una por ventana) | ⬜ | ⬜ | Hace falta llegar al 100% de verdad. |
-| Restablecimiento de ventana con confirmación | 🧪 | ⬜ | |
+| Restablecimiento de ventana con confirmación | 🧪 | ✅ | **02/09**: globo «Cuota de sesión restablecida. A trabajar.» anclado al gatito, con la cápsula ya en «Sesión 0%». Solo sale porque la ventana anterior llegó al 100% (`hit:session` → `ackPending:session`), y se queda hasta el ✕ o hasta abrir el panel. OJO al depurar: el gatito NO se pone en `cat-fire` aquí — `cat-fire` es para una ALARMA sin confirmar (`ackPending:alarm`, index.html:7178); al resetearse la ventana se borra `hit:session` y el dibujo vuelve a `normal`, que es lo correcto. |
 | 429: el gauge conserva el último dato bueno 15 min | ✅ | ⬜ | En dev se provocó (arranques seguidos → 429 de 60 min); de ahí salió la cadencia de 3 min. |
 | Tray con cuota en error: "–" gris | ? | ✅ | **21/08**: captura de Oscar en la prueba en limpio del gating v1 — token vencido, tray con "–" y el panel con la guía "corre claude una vez", sin inventar datos. |
 | Con widget puesto, la alarma NO sale además como toast | ? | ⬜ | Regla dura: el toast es solo para quien no tiene widget. |
@@ -327,8 +327,7 @@ que arranca y se mata, y el primer auto-`/clear` por `tema_nuevo`.
 
 **Cabos sueltos que no dependen de ninguna fase:** que la alarma se
 repita cada 5 min hasta abrir el panel · varios umbrales de golpe → solo
-el más alto · la semanal al 100% (hace falta llegar) · el
-restablecimiento con confirmación · que con widget la alarma NO salga
+el más alto · la semanal al 100% (hace falta llegar) · que con widget la alarma NO salga
 además como toast · el 429 conservando el último dato bueno 15 min ·
 marcas de arreglo de hallazgos (`fndHist`) · tope diario de 10 fichas y
 caducidad de 24 h del coach · las tres reglas del globo y el estado
