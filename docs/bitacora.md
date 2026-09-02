@@ -4695,3 +4695,43 @@ resetearse la ventana se borra `hit:session` y el dibujo vuelve a
 
 QUÉ QUEDA: de ntfy, nada. Del gatito falta `cat-zzz`, que pide la SEMANA
 al tope. La fase 4 sigue con sus cuatro.
+
+## 2026-09-02 (4) — cierre de la jornada: R16 y R17 en el código, fase 6 cerrada, la fase 4 a cuatro filas del final
+
+QUÉ: cierre del día. Tres entradas antes que esta cuentan el detalle; el
+resumen es que hoy salieron dos arreglos del automático y una tanda de
+validación en vivo que cerró una fase entera.
+
+- **R16** (commit `73433f1`): el auto-`/clear` exige la sesión en REPOSO
+  (`quiet` ≥ `AUTO_REST_MIN` = 5 min); sin reposo degrada a `/compact`.
+  Además, tarifas de Sonnet 5 y caché de Fable 5.1.
+- **R17** (commit `0bafea4`): el sello `done` del automático dura UN CICLO
+  DE CONTEXTO, no toda la vida de la sesión. `autoRearm()` corre en cada
+  sondeo sobre TODAS las press y levanta el sello al ver el vaciado.
+- **Validación** (commits `00d2954`, `8144ae4`, `2d79017`): fase 6 (ntfy)
+  CERRADA con el 100% real de Oscar — aviso inmediato, «ya volvió»
+  programado, globo de descanso, `cat-break` y restablecimiento con
+  confirmación. Cinco filas con un solo evento.
+
+POR QUÉ: el día empezó con una pregunta de Oscar —«no me llegó el
+automático, ¿está bien o no?»— y la respuesta fue que NO estaba bien: la
+autopsia del flowLog encontró el sello perpetuo de un `/compact` de las
+12:59 bloqueando todo lo demás hasta el final del día, con la sesión en
+344k. De ahí R17. La validación de ntfy se hizo porque la cuota ya iba al
+96%: era la ocasión más barata que iba a haber, más barata que abrir la
+fase 5.
+
+CÓMO SE VERIFICÓ: `node --check` limpio y banco de pruebas de 16 casos con
+los números reales de la sesión (259k→114k→344k), todo en verde; el resto,
+capturas de Oscar en vivo, detalladas en las entradas (2) y (3).
+
+QUÉ QUEDA: la fase 4 es la ÚNICA abierta, con cuatro filas —parar la
+cuenta atrás con un toque (la única forzable a voluntad), la degradación
+de R16, el `/clear` en reposo de verdad y el rastro «sello levantado» de
+R17 con su segundo automático—. Fase 5 (ruteo) sin abrir y todo apagado;
+fase 7 (archivador y purga) igual; HUB bloqueado hasta la segunda máquina.
+Sueltos: `cat-zzz` (pide la SEMANA al tope) y el primer `via:emb` del
+análisis local. Aviso de mantenimiento: la bitácora va por 4.7k líneas y
+la regla de este archivo manda mover el tramo viejo a
+`bitacora-hasta-AAAA-MM-DD.md` pasadas las ~3.000 — pendiente de hacer, no
+urgente pero ya toca.
